@@ -1,0 +1,722 @@
+[
+  {
+    "id": 1,
+    "difficulty": "Easy",
+    "question": "What is the capital city of California?",
+    "options": [
+      "San Francisco",
+      "Los Angeles",
+      "Sacramento",
+      "San Diego"
+    ],
+    "answer": "Sacramento"
+  },
+  {
+    "id": 2,
+    "difficulty": "Easy",
+    "question": "How many countries are within the United Kingdom?",
+    "options": [
+      "Three",
+      "Four",
+      "Five",
+      "Two"
+    ],
+    "answer": "Four"
+  },
+  {
+    "id": 3,
+    "difficulty": "Easy",
+    "question": "What is the most populated country in Africa?",
+    "options": [
+      "Egypt",
+      "South Africa",
+      "Nigeria",
+      "Ethiopia"
+    ],
+    "answer": "Nigeria"
+  },
+  {
+    "id": 4,
+    "difficulty": "Easy",
+    "question": "What is Italy's largest island?",
+    "options": [
+      "Sardinia",
+      "Capri",
+      "Elba",
+      "Sicily"
+    ],
+    "answer": "Sicily"
+  },
+  {
+    "id": 5,
+    "difficulty": "Easy",
+    "question": "Which country is geographically closest to Antarctica?",
+    "options": [
+      "Australia",
+      "Chile",
+      "South Africa",
+      "New Zealand"
+    ],
+    "answer": "Chile"
+  },
+  {
+    "id": 6,
+    "difficulty": "Easy",
+    "question": "What is the capital city of Australia?",
+    "options": [
+      "Sydney",
+      "Melbourne",
+      "Brisbane",
+      "Canberra"
+    ],
+    "answer": "Canberra"
+  },
+  {
+    "id": 7,
+    "difficulty": "Easy",
+    "question": "Which ocean is the largest on Earth?",
+    "options": [
+      "Atlantic Ocean",
+      "Indian Ocean",
+      "Pacific Ocean",
+      "Arctic Ocean"
+    ],
+    "answer": "Pacific Ocean"
+  },
+  {
+    "id": 8,
+    "difficulty": "Easy",
+    "question": "What is the smallest country in the world by land area?",
+    "options": [
+      "Monaco",
+      "San Marino",
+      "Vatican City",
+      "Liechtenstein"
+    ],
+    "answer": "Vatican City"
+  },
+  {
+    "id": 9,
+    "difficulty": "Easy",
+    "question": "What is the capital city of Canada?",
+    "options": [
+      "Toronto",
+      "Vancouver",
+      "Montreal",
+      "Ottawa"
+    ],
+    "answer": "Ottawa"
+  },
+  {
+    "id": 10,
+    "difficulty": "Easy",
+    "question": "Which river flows through northeastern Africa and is widely known as the longest in the world?",
+    "options": [
+      "Amazon River",
+      "Nile River",
+      "Yangtze River",
+      "Mississippi River"
+    ],
+    "answer": "Nile River"
+  },
+  {
+    "id": 11,
+    "difficulty": "Easy",
+    "question": "What is the capital city of France?",
+    "options": [
+      "Lyon",
+      "Marseille",
+      "Paris",
+      "Nice"
+    ],
+    "answer": "Paris"
+  },
+  {
+    "id": 12,
+    "difficulty": "Easy",
+    "question": "Which country is known as the Land of the Rising Sun?",
+    "options": [
+      "China",
+      "Japan",
+      "South Korea",
+      "Thailand"
+    ],
+    "answer": "Japan"
+  },
+  {
+    "id": 13,
+    "difficulty": "Easy",
+    "question": "What is the capital of the United States?",
+    "options": [
+      "New York City",
+      "Los Angeles",
+      "Washington, D.C.",
+      "Chicago"
+    ],
+    "answer": "Washington, D.C."
+  },
+  {
+    "id": 14,
+    "difficulty": "Easy",
+    "question": "Which mountain is the tallest above sea level in the world?",
+    "options": [
+      "K2",
+      "Mount Kilimanjaro",
+      "Mount Everest",
+      "Mont Blanc"
+    ],
+    "answer": "Mount Everest"
+  },
+  {
+    "id": 15,
+    "difficulty": "Easy",
+    "question": "In which continent is the Amazon Rainforest primarily located?",
+    "options": [
+      "Africa",
+      "Asia",
+      "South America",
+      "North America"
+    ],
+    "answer": "South America"
+  },
+  {
+    "id": 16,
+    "difficulty": "Medium",
+    "question": "What country uniquely has three official capitals?",
+    "options": [
+      "South Africa",
+      "Bolivia",
+      "Netherlands",
+      "Malaysia"
+    ],
+    "answer": "South Africa"
+  },
+  {
+    "id": 17,
+    "difficulty": "Medium",
+    "question": "How many sovereign countries start with the letter Z?",
+    "options": [
+      "One",
+      "Two",
+      "Three",
+      "Zero"
+    ],
+    "answer": "Two"
+  },
+  {
+    "id": 18,
+    "difficulty": "Medium",
+    "question": "An American military base called Guantanamo Bay is located on which island?",
+    "options": [
+      "Puerto Rico",
+      "Jamaica",
+      "Haiti",
+      "Cuba"
+    ],
+    "answer": "Cuba"
+  },
+  {
+    "id": 19,
+    "difficulty": "Medium",
+    "question": "What is the longest river in Pakistan?",
+    "options": [
+      "Ganges River",
+      "Indus River",
+      "Jhelum River",
+      "Chenab River"
+    ],
+    "answer": "Indus River"
+  },
+  {
+    "id": 20,
+    "difficulty": "Medium",
+    "question": "What river runs continuously through both Vienna and Budapest?",
+    "options": [
+      "Rhine River",
+      "Seine River",
+      "Danube River",
+      "Elbe River"
+    ],
+    "answer": "Danube River"
+  },
+  {
+    "id": 21,
+    "difficulty": "Medium",
+    "question": "What is the most populated city located entirely in the Southern Hemisphere?",
+    "options": [
+      "Sydney",
+      "Jakarta",
+      "S\u00e3o Paulo",
+      "Buenos Aires"
+    ],
+    "answer": "S\u00e3o Paulo"
+  },
+  {
+    "id": 22,
+    "difficulty": "Medium",
+    "question": "Which sea separates Greece from Turkey?",
+    "options": [
+      "Aegean Sea",
+      "Adriatic Sea",
+      "Ionian Sea",
+      "Black Sea"
+    ],
+    "answer": "Aegean Sea"
+  },
+  {
+    "id": 23,
+    "difficulty": "Medium",
+    "question": "What is the capital city of Switzerland?",
+    "options": [
+      "Zurich",
+      "Geneva",
+      "Bern",
+      "Basel"
+    ],
+    "answer": "Bern"
+  },
+  {
+    "id": 24,
+    "difficulty": "Medium",
+    "question": "Which U.S. state shares the longest land border with Canada?",
+    "options": [
+      "Texas",
+      "Montana",
+      "North Dakota",
+      "Alaska"
+    ],
+    "answer": "Alaska"
+  },
+  {
+    "id": 25,
+    "difficulty": "Medium",
+    "question": "What is the highest mountain peak in North America?",
+    "options": [
+      "Mount Elbert",
+      "Mount Rainier",
+      "Denali",
+      "Mount Whitney"
+    ],
+    "answer": "Denali"
+  },
+  {
+    "id": 26,
+    "difficulty": "Medium",
+    "question": "Which desert is the largest hot desert in the world?",
+    "options": [
+      "Gobi Desert",
+      "Sahara Desert",
+      "Kalahari Desert",
+      "Arabian Desert"
+    ],
+    "answer": "Sahara Desert"
+  },
+  {
+    "id": 27,
+    "difficulty": "Medium",
+    "question": "What is the capital city of Egypt?",
+    "options": [
+      "Alexandria",
+      "Luxor",
+      "Cairo",
+      "Giza"
+    ],
+    "answer": "Cairo"
+  },
+  {
+    "id": 28,
+    "difficulty": "Medium",
+    "question": "Which European nation is divided into 17 autonomous communities?",
+    "options": [
+      "Italy",
+      "France",
+      "Germany",
+      "Spain"
+    ],
+    "answer": "Spain"
+  },
+  {
+    "id": 29,
+    "difficulty": "Medium",
+    "question": "What is the largest country by land area entirely within Europe?",
+    "options": [
+      "France",
+      "Ukraine",
+      "Germany",
+      "Poland"
+    ],
+    "answer": "Ukraine"
+  },
+  {
+    "id": 30,
+    "difficulty": "Medium",
+    "question": "Which island country is nicknamed the Emerald Isle?",
+    "options": [
+      "Iceland",
+      "Ireland",
+      "Greenland",
+      "Madagascar"
+    ],
+    "answer": "Ireland"
+  },
+  {
+    "id": 31,
+    "difficulty": "Hard",
+    "question": "What body of water is considered the largest lake/sea hybrid in the world?",
+    "options": [
+      "Black Sea",
+      "Caspian Sea",
+      "Aral Sea",
+      "Lake Superior"
+    ],
+    "answer": "Caspian Sea"
+  },
+  {
+    "id": 32,
+    "difficulty": "Hard",
+    "question": "What body of water separates the North and South Islands of New Zealand?",
+    "options": [
+      "Bass Strait",
+      "Cook Strait",
+      "Torres Strait",
+      "Tasman Strait"
+    ],
+    "answer": "Cook Strait"
+  },
+  {
+    "id": 33,
+    "difficulty": "Hard",
+    "question": "What Serbian city once served as the capital of Yugoslavia?",
+    "options": [
+      "Zagreb",
+      "Sarajevo",
+      "Belgrade",
+      "Skopje"
+    ],
+    "answer": "Belgrade"
+  },
+  {
+    "id": 34,
+    "difficulty": "Hard",
+    "question": "Which body of water is directly bordered by the cities of Jeddah and Hodeidah?",
+    "options": [
+      "Persian Gulf",
+      "Red Sea",
+      "Arabian Sea",
+      "Gulf of Aden"
+    ],
+    "answer": "Red Sea"
+  },
+  {
+    "id": 35,
+    "difficulty": "Hard",
+    "question": "What is the capital city of Mongolia?",
+    "options": [
+      "Ulaanbaatar",
+      "Astana",
+      "Tashkent",
+      "Bishkek"
+    ],
+    "answer": "Ulaanbaatar"
+  },
+  {
+    "id": 36,
+    "difficulty": "Hard",
+    "question": "Which African country is entirely landlocked and surrounded completely by South Africa?",
+    "options": [
+      "Eswatini",
+      "Lesotho",
+      "Botswana",
+      "Namibia"
+    ],
+    "answer": "Lesotho"
+  },
+  {
+    "id": 37,
+    "difficulty": "Hard",
+    "question": "What is the name of the deep trench located in the Western Pacific Ocean, known as the deepest point on Earth?",
+    "options": [
+      "Java Trench",
+      "Puerto Rico Trench",
+      "Mariana Trench",
+      "Tonga Trench"
+    ],
+    "answer": "Mariana Trench"
+  },
+  {
+    "id": 38,
+    "difficulty": "Hard",
+    "question": "Which country has the most natural lakes in the world?",
+    "options": [
+      "Russia",
+      "Canada",
+      "United States",
+      "Brazil"
+    ],
+    "answer": "Canada"
+  },
+  {
+    "id": 39,
+    "difficulty": "Hard",
+    "question": "What island group is divided between Malaysia, Indonesia, and Brunei?",
+    "options": [
+      "Sumatra",
+      "Java",
+      "New Guinea",
+      "Borneo"
+    ],
+    "answer": "Borneo"
+  },
+  {
+    "id": 40,
+    "difficulty": "Hard",
+    "question": "What is the name of the narrow strip of water that connects the Atlantic Ocean to the Mediterranean Sea?",
+    "options": [
+      "Strait of Malacca",
+      "Strait of Gibraltar",
+      "Bosphorus Strait",
+      "Dardanelles"
+    ],
+    "answer": "Strait of Gibraltar"
+  },
+  {
+    "id": 41,
+    "difficulty": "Hard",
+    "question": "What is the capital city of Iceland?",
+    "options": [
+      "Akureyri",
+      "Reykjavik",
+      "Kopavogur",
+      "Hafnarfjordur"
+    ],
+    "answer": "Reykjavik"
+  },
+  {
+    "id": 42,
+    "difficulty": "Hard",
+    "question": "Which sea is bordered by Europe, Asia, and Africa?",
+    "options": [
+      "Caribbean Sea",
+      "Mediterranean Sea",
+      "South China Sea",
+      "Baltic Sea"
+    ],
+    "answer": "Mediterranean Sea"
+  },
+  {
+    "id": 43,
+    "difficulty": "Hard",
+    "question": "What is the capital city of Morocco?",
+    "options": [
+      "Marrakesh",
+      "Casablanca",
+      "Rabat",
+      "Fez"
+    ],
+    "answer": "Rabat"
+  },
+  {
+    "id": 44,
+    "difficulty": "Hard",
+    "question": "Which mountain range separates Europe from Asia?",
+    "options": [
+      "Alps",
+      "Ural Mountains",
+      "Andes",
+      "Himalayas"
+    ],
+    "answer": "Ural Mountains"
+  },
+  {
+    "id": 45,
+    "difficulty": "Hard",
+    "question": "What is the capital city of New Zealand?",
+    "options": [
+      "Auckland",
+      "Christchurch",
+      "Wellington",
+      "Hamilton"
+    ],
+    "answer": "Wellington"
+  },
+  {
+    "id": 46,
+    "difficulty": "Impossible",
+    "question": "On which specific island is the Japanese city of Fukuoka located?",
+    "options": [
+      "Honshu",
+      "Hokkaido",
+      "Kyushu",
+      "Shikoku"
+    ],
+    "answer": "Kyushu"
+  },
+  {
+    "id": 47,
+    "difficulty": "Impossible",
+    "question": "What is the capital of the Komi Republic in Russia?",
+    "options": [
+      "Syktyvkar",
+      "Kazan",
+      "Ufa",
+      "Perm"
+    ],
+    "answer": "Syktyvkar"
+  },
+  {
+    "id": 48,
+    "difficulty": "Impossible",
+    "question": "What is the capital of the Brazilian state of Mato Grosso?",
+    "options": [
+      "Cuiab\u00e1",
+      "Manaus",
+      "Bel\u00e9m",
+      "Goi\u00e2nia"
+    ],
+    "answer": "Cuiab\u00e1"
+  },
+  {
+    "id": 49,
+    "difficulty": "Impossible",
+    "question": "What is the capital of the tiny landlocked European nation of Liechtenstein?",
+    "options": [
+      "Vaduz",
+      "Schaan",
+      "Balzers",
+      "Triesen"
+    ],
+    "answer": "Vaduz"
+  },
+  {
+    "id": 50,
+    "difficulty": "Impossible",
+    "question": "Which capital city is the closest to the equator?",
+    "options": [
+      "Nairobi, Kenya",
+      "Quito, Ecuador",
+      "Kampala, Uganda",
+      "Bogota, Colombia"
+    ],
+    "answer": "Quito, Ecuador"
+  },
+  {
+    "id": 51,
+    "difficulty": "Impossible",
+    "question": "What is the capital city of Kazakhstan, which was renamed back from Nur-Sultan?",
+    "options": [
+      "Almaty",
+      "Astana",
+      "Shymkent",
+      "Aktobe"
+    ],
+    "answer": "Astana"
+  },
+  {
+    "id": 52,
+    "difficulty": "Impossible",
+    "question": "What is the most populated landlocked country in the world?",
+    "options": [
+      "Ethiopia",
+      "Bolivia",
+      "Switzerland",
+      "Kazakhstan"
+    ],
+    "answer": "Ethiopia"
+  },
+  {
+    "id": 53,
+    "difficulty": "Impossible",
+    "question": "Which country owns the remote volcanic island of Jan Mayen?",
+    "options": [
+      "Denmark",
+      "Iceland",
+      "Norway",
+      "Greenland"
+    ],
+    "answer": "Norway"
+  },
+  {
+    "id": 54,
+    "difficulty": "Impossible",
+    "question": "What is the capital of the U.S. territory of American Samoa?",
+    "options": [
+      "Pago Pago",
+      "Apia",
+      "Saipan",
+      "Agana"
+    ],
+    "answer": "Pago Pago"
+  },
+  {
+    "id": 55,
+    "difficulty": "Impossible",
+    "question": "In which country would you find the ancient, carved rock city of Petra?",
+    "options": [
+      "Egypt",
+      "Jordan",
+      "Syria",
+      "Lebanon"
+    ],
+    "answer": "Jordan"
+  },
+  {
+    "id": 56,
+    "difficulty": "Impossible",
+    "question": "What is the capital city of Bhutan?",
+    "options": [
+      "Paro",
+      "Thimphu",
+      "Punakha",
+      "Jakar"
+    ],
+    "answer": "Thimphu"
+  },
+  {
+    "id": 57,
+    "difficulty": "Impossible",
+    "question": "Which autonomous territory belongs to Denmark but is geographically part of North America?",
+    "options": [
+      "Faroe Islands",
+      "Svalbard",
+      "Greenland",
+      "Bornholm"
+    ],
+    "answer": "Greenland"
+  },
+  {
+    "id": 58,
+    "difficulty": "Impossible",
+    "question": "What is the capital of the Canadian territory of Nunavut?",
+    "options": [
+      "Yellowknife",
+      "Whitehorse",
+      "Iqaluit",
+      "Inuvik"
+    ],
+    "answer": "Iqaluit"
+  },
+  {
+    "id": 59,
+    "difficulty": "Impossible",
+    "question": "Which country contains the absolute lowest point of land elevation on Earth?",
+    "options": [
+      "Israel",
+      "Jordan",
+      "Djibouti",
+      "United States"
+    ],
+    "answer": "Israel"
+  },
+  {
+    "id": 60,
+    "difficulty": "Impossible",
+    "question": "What is the capital of the island nation of Vanuatu?",
+    "options": [
+      "Port Vila",
+      "Suva",
+      "Nuku'alofa",
+      "Apia"
+    ],
+    "answer": "Port Vila"
+  }
+]

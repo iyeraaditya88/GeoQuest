@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#04060f" />
+    <title>GeoQuest — Explore the World</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="preload" as="image" href="/textures/loader-earth.jpg" />
+    <link rel="preload" as="image" href="/textures/earth-blue-marble.jpg" crossorigin="anonymous" />
+    <!-- Critical styles: the boot screen must look right from the very first paint,
+         before any JavaScript or the main stylesheet has loaded. -->
+    <style>
+      html, body { margin: 0; height: 100%; background: #03050d; }
+      #boot {
+        position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; align-content: center; gap: 10px;
+        background: radial-gradient(circle at center, #0b1430, #03050d 70%);
+        font: 500 14px 'Space Grotesk', system-ui, sans-serif; letter-spacing: 0.02em;
+        transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s 0.7s;
+      }
+      #boot.done { opacity: 0; visibility: hidden; }
+      #boot .stage { position: relative; width: 140px; height: 150px; }
+      #boot .hop { position: absolute; left: 50%; bottom: 22px; width: 92px; height: 92px; margin-left: -46px; transform-origin: 50% 100%; animation: boot-hop 1.15s infinite; }
+      @keyframes boot-hop {
+        0% { transform: translateY(0) scale(1.1, 0.88); animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1); }
+        12% { transform: translateY(-8px) scale(0.95, 1.06); animation-timing-function: cubic-bezier(0.2, 0.6, 0.35, 1); }
+        50% { transform: translateY(-40px) scale(1, 1); animation-timing-function: cubic-bezier(0.6, 0, 0.8, 0.45); }
+        88% { transform: translateY(-4px) scale(0.97, 1.04); animation-timing-function: cubic-bezier(0.3, 0, 0.6, 1); }
+        100% { transform: translateY(0) scale(1.1, 0.88); }
+      }
+      #boot .earth {
+        position: relative; width: 100%; height: 100%; border-radius: 50%; overflow: hidden;
+        background: #1d4ed8 url(/textures/loader-earth.jpg) 0 50% / auto 100% repeat-x; animation: boot-spin 5s linear infinite;
+        box-shadow: 0 0 0 1px rgba(125, 211, 252, 0.25), 0 0 34px rgba(56, 189, 248, 0.45), 0 0 80px rgba(56, 189, 248, 0.18);
+      }
+      @keyframes boot-spin { to { background-position: -184px 50%; } }
+      #boot .earth::before { content: ''; position: absolute; inset: 0; border-radius: 50%;
+        background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.35), rgba(255,255,255,0) 38%), radial-gradient(circle at 42% 38%, rgba(0,0,0,0) 36%, rgba(2,6,23,0.5) 70%, rgba(2,6,23,0.95) 100%); }
+      #boot .earth::after { content: ''; position: absolute; inset: 0; border-radius: 50%; box-shadow: inset 0 0 0 1.5px rgba(186,230,253,0.35), inset 6px 8px 18px rgba(186,230,253,0.25); }
+      #boot .shadow { position: absolute; left: 50%; bottom: 10px; width: 84px; height: 14px; margin-left: -42px; border-radius: 50%;
+        background: radial-gradient(closest-side, rgba(56,189,248,0.38), rgba(56,189,248,0.08) 70%, transparent); filter: blur(2px); animation: boot-shadow 1.15s infinite; }
+      @keyframes boot-shadow {
+        0% { transform: scale(1.1, 1); opacity: 1; animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1); }
+        50% { transform: scale(0.55, 0.7); opacity: 0.35; animation-timing-function: cubic-bezier(0.6, 0, 0.8, 0.45); }
+        100% { transform: scale(1.1, 1); opacity: 1; }
+      }
+      #boot .text { background: linear-gradient(90deg, #64748b 0%, #e2e8f0 50%, #64748b 100%) 0 0 / 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: boot-shimmer 2.4s linear infinite; }
+      @keyframes boot-shimmer { to { background-position: -200% 0; } }
+      @media (prefers-reduced-motion: reduce) { #boot .hop, #boot .shadow { animation: none; } }
+    </style>
+  </head>
+  <body>
+    <div id="boot" role="status" aria-label="Loading GeoQuest">
+      <div class="stage" aria-hidden="true"><div class="hop"><div class="earth"></div></div><div class="shadow"></div></div>
+      <span class="text">Spinning up the planet…</span>
+    </div>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
