@@ -141,6 +141,7 @@ export default function App() {
   const [style, setStyle] = useState<MapStyle>('satellite');
   const [autoRotate, setAutoRotate] = useState(true);
   // Rivers, lakes, mountain ranges & peaks — on by default, remembered per browser.
+  const [hosted, setHosted] = useState(false); // public deployment: keys are owner-managed
   const [nature, setNature] = useState(() => { try { return localStorage.getItem('gq-nature') !== '0'; } catch { return true; } });
   const toggleNature = () => setNature((v) => { try { localStorage.setItem('gq-nature', v ? '0' : '1'); } catch { /* private mode */ } return !v; });
   const [searchOpen, setSearchOpen] = useState(false);
@@ -605,6 +606,7 @@ export default function App() {
         selected={selected}
         recents={recents}
         ai={ai}
+        hosted={hosted}
         onSearch={() => setSearchOpen(true)}
         onRandom={() => { if (quiz) exitQuiz(); random(); }}
         onAsk={() => { if (quiz) exitQuiz(); setDockOpen(true); }}
@@ -666,7 +668,7 @@ export default function App() {
         )}
       </AnimatePresence>
       <CountryPanel country={quiz || geo || play || anti ? null : country} onClose={() => setSelected(null)} onSelect={select} onAsk={ask} />
-      {chrome && !quiz && !geo && !play && !anti && <AskDock open={dockOpen} setOpen={setDockOpen} country={country} request={askReq} keyRequest={keyReq} onAiChange={setAi} onHighlight={highlight} onSelect={select} />}
+      {chrome && !quiz && !geo && !play && !anti && <AskDock open={dockOpen} setOpen={setDockOpen} country={country} request={askReq} keyRequest={keyReq} onAiChange={setAi} onHosted={setHosted} onHighlight={highlight} onSelect={select} />}
       <CustomCursor />
       <SearchPalette open={searchOpen} onClose={() => setSearchOpen(false)} onPick={(c) => { if (quiz) exitQuiz(); select(c); }} />
     </div>

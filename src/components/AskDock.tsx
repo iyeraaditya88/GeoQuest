@@ -13,6 +13,8 @@ interface Props {
   request: { prompt: string; n: number } | null;
   /** bump to open the Connect Claude form */
   keyRequest?: number;
+  /** Tells the app whether this is the public, owner-managed deployment. */
+  onHosted?: (hosted: boolean) => void;
   onAiChange?: (ai: boolean) => void;
   onHighlight: (cca3s: string[]) => void;
   onSelect: (cca3: string) => void;
@@ -67,12 +69,14 @@ function splitMap(raw: string): { text: string; codes: string[] } {
   return { text, codes };
 }
 
-export function AskDock({ open, setOpen, country, request, keyRequest = 0, onAiChange, onHighlight, onSelect }: Props) {
+export function AskDock({ open, setOpen, country, request, keyRequest = 0, onAiChange, onHosted, onHighlight, onSelect }: Props) {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [ai, setAi] = useState<boolean | null>(null);
   const [keySource, setKeySource] = useState<'env' | 'app' | null>(null);
+  // On the public site keys are owner-managed: never offer the key form there.
+  const [hosted, setHosted] = useState(false);
   const [showKey, setShowKey] = useState(false);
   const [useCountry, setUseCountry] = useState(true);
   const abort = useRef<AbortController | null>(null);
@@ -82,10 +86,10 @@ export function AskDock({ open, setOpen, country, request, keyRequest = 0, onAiC
   const scope = useCountry && country ? country : null;
 
   useEffect(() => {
-    fetch('/api/health').then((r) => r.json()).then((d) => { setAi(!!d.ai); setKeySource(d.source ?? null); }).catch(() => setAi(false));
+    fetch('/api/health').then((r) => r.json()).then((d) => { setAi(!!d.ai); setKeySource(d.source ?? null); setHosted(!!d.hosted); onHosted?.(!!d.hosted); }).catch(() => setAi(false));
   }, []);
   useEffect(() => { setUseCountry(true); }, [country?.cca3]);
-  useEffect(() => { if (keyRequest && ai === false) setShowKey(true); }, [keyRequest, ai]);
+  useEffect(() => { if (keyRequest && ai === false && !hosted) setShowKey(true); }, [keyRequest, ai, hosted]);
   useEffect(() => { if (ai !== null) onAiChange?.(ai); }, [ai, onAiChange]);
   useEffect(() => { scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: 'smooth' }); }, [msgs]);
   useEffect(() => { if (open) setTimeout(() => field.current?.focus(), 250); }, [open]);
@@ -103,8 +107,10 @@ export function AskDock({ open, setOpen, country, request, keyRequest = 0, onAiC
 
     const offline = () => {
       const local = answerLocally(q, scope);
-      const content = local?.text ?? 'Offline, I can only answer data questions (capitals, populations, borders, largest/smallest, driving side, landlocked, languages). **Connect Claude** with your Anthropic API key to ask me anything at all.';
-      setMsgs([...history, { role: 'assistant', content, countries: local?.highlight, offline: true, connect: !local }]);
+      const content = local?.text ?? (hosted
+        ? 'I can answer data questions here — capitals, populations, borders, largest/smallest, driving side, landlocked countries and languages. Try one of those!'
+        : 'Offline, I can only answer data questions (capitals, populations, borders, largest/smallest, driving side, landlocked, languages). **Connect Claude** with your Anthropic API key to ask me anything at all.');
+      setMsgs([...history, { role: 'assistant', content, countries: local?.highlight, offline: true, connect: !local && !hosted }]);
       if (local?.highlight.length) onHighlight(local.highlight);
     };
 
@@ -196,7 +202,9 @@ export function AskDock({ open, setOpen, country, request, keyRequest = 0, onAiC
               <span className="fab-orb"><Sparkles size={15} /></span>
               <div className="dock-title">
                 <b>The Atlas</b>
-                {ai === false ? (
+                {ai === false && hosted ? (
+                  <span className="connect-link"><WifiOff size={11} /> Instant data answers</span>
+                ) : ai === false ? (
                   <button className="connect-link" onClick={() => setShowKey((v) => !v)}><WifiOff size={11} /> Offline · <u>Connect Claude</u></button>
                 ) : ai ? (
                   <span className="ai-on">
@@ -216,7 +224,7 @@ export function AskDock({ open, setOpen, country, request, keyRequest = 0, onAiC
             </header>
 
             <AnimatePresence initial={false}>
-              {showKey && <KeyForm onDone={onConnected} onCancel={() => setShowKey(false)} />}
+              {showKey && !hosted && <KeyForm onDone={onConnected} onCancel={() => setShowKey(false)} />}
             </AnimatePresence>
 
             <div className="dock-body" ref={scroller}>

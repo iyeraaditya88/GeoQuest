@@ -27,6 +27,7 @@ interface Props {
   onRandom: () => void;
   onAsk: () => void;
   onConnect: () => void;
+  hosted?: boolean;
   onQuiz: () => void;
   onStreet: () => void;
   antipodeOn: boolean;
@@ -177,12 +178,12 @@ export function Sidebar(p: Props) {
 
         {/* Footer */}
         <div className="sb-foot">
-          <button className={`sb-status ${p.ai ? 'ok' : ''}`} onClick={act(p.ai ? p.onAsk : p.onConnect)} data-tip={rail ? (p.ai ? 'Claude connected' : 'Connect Claude') : undefined}>
-            {p.ai ? <i className="sb-live" /> : <KeyRound size={15} />}
+          <button className={`sb-status ${p.ai ? 'ok' : ''}`} onClick={act(p.ai || p.hosted ? p.onAsk : p.onConnect)} data-tip={rail ? (p.ai ? 'Claude connected' : p.hosted ? 'Ask the Atlas' : 'Connect Claude') : undefined}>
+            {p.ai ? <i className="sb-live" /> : p.hosted ? <Sparkles size={15} /> : <KeyRound size={15} />}
             <Fade show={!rail}>
               <span className="sb-status-text">
-                <b>{p.ai ? 'Claude connected' : 'Connect Claude'}</b>
-                <span>{p.ai ? 'Ask anything, anywhere' : 'Unlock open questions'}</span>
+                <b>{p.ai ? 'Claude connected' : p.hosted ? 'Ask the Atlas' : 'Connect Claude'}</b>
+                <span>{p.ai ? 'Ask anything, anywhere' : p.hosted ? 'Instant data answers' : 'Unlock open questions'}</span>
               </span>
             </Fade>
           </button>
