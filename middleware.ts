@@ -2,7 +2,7 @@
 // Runs on Vercel only (local `npm run dev` has no login). Every request — pages, scripts,
 // textures, data and API — needs a valid session cookie; otherwise pages redirect to
 // /login and API calls get 401. Fails closed: with no SESSION_SECRET nobody gets in.
-import { next } from '@vercel/functions';
+import { next, rewrite } from '@vercel/functions';
 import { SESSION_COOKIE, readCookie, verifySession } from './server/session.js';
 
 // Reachable without signing in: the login page itself and what it needs.
@@ -10,6 +10,8 @@ const PUBLIC = new Set(['/login', '/login.html', '/api/login', '/api/logout', '/
 
 export default async function middleware(request: Request) {
   const url = new URL(request.url);
+  // Serve the clean /login URL from the static page (vercel.json rewrites don't apply after middleware).
+  if (url.pathname === '/login') return rewrite(new URL('/login.html' + url.search, url));
   if (PUBLIC.has(url.pathname)) return next();
 
   const session = await verifySession(readCookie(request.headers.get('cookie'), SESSION_COOKIE));
