@@ -2,9 +2,11 @@
 // Runs two ways: locally via server/index.ts (Express on 127.0.0.1), and on Vercel as a
 // serverless function (api/index.ts).
 //
-// Credentials: ANTHROPIC_API_KEY from the environment / .env. Locally you can also paste a
-// key into the app (validated, then saved to .env on this machine only). On a public
-// deployment that's switched off: the key can only be set by the site owner in Vercel.
+// Locally: no login; the Anthropic key comes from .env (or is pasted into the app and saved
+// to .env on this machine only).
+// Hosted (Vercel): every request needs a signed-in session (accounts in GEOQUEST_USERS, see
+// server/auth.ts), and each user brings their own Anthropic key, kept encrypted in an
+// httpOnly cookie in their browser — never stored on the server. The owner's key is never used.
 import 'dotenv/config';
 import { readFile, writeFile, chmod } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -13,6 +15,12 @@ import express from 'express';
 import Anthropic from '@anthropic-ai/sdk';
 import countries from '../src/data/countries.json' with { type: 'json' };
 import { CURATED } from '../src/data/curated.js';
+import { KEY_COOKIE, SESSION_COOKIE, SESSION_DAYS, authConfigured, openKey, readCookie, sealKey, signSession, verifySession } from './session.js';
+import { checkLogin, hasUsers } from './auth.js';
+
+declare module 'express-serve-static-core' {
+  interface Request { user?: string }
+}
 
 const ENV_PATH = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.env');
 
@@ -22,27 +30,61 @@ const HOSTED = !!process.env.VERCEL;
 const app = express();
 app.use(express.json({ limit: '256kb' }));
 
-// On a public site, nobody but the owner may change the server's keys or tokens.
-const ownerOnly: express.RequestHandler = (_req, res, next) => {
-  if (!HOSTED) { next(); return; }
-  res.status(403).json({ error: 'On the hosted site, keys are managed by the site owner (Vercel environment variables).' });
-};
+const MLY_COOKIE = 'gq_mly';
+const DAY = 86400;
 
-// Best-effort per-visitor rate limit for the paid AI endpoints (per server instance).
-function rateLimit(max: number, windowMs: number): express.RequestHandler {
+// Cookies on the hosted site are always Secure (https) and, for credentials, httpOnly.
+function setCookie(res: express.Response, name: string, value: string, opts: { days: number; sameSite?: 'Lax' | 'Strict'; httpOnly?: boolean }) {
+  res.append('Set-Cookie', `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${Math.round(opts.days * DAY)}; ${opts.httpOnly === false ? '' : 'HttpOnly; '}Secure; SameSite=${opts.sameSite ?? 'Lax'}`);
+}
+const clearCookie = (res: express.Response, name: string) => res.append('Set-Cookie', `${name}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`);
+const cookie = (req: express.Request, name: string) => readCookie(req.headers.cookie, name);
+
+// Best-effort rate limit (per server instance), keyed by user when signed in, else by IP.
+function rateLimit(max: number, windowMs: number, message = 'Too many requests — take a breather and try again in a few minutes.'): express.RequestHandler {
   const hits = new Map<string, number[]>();
   return (req, res, next) => {
     if (!HOSTED) { next(); return; }
-    const ip = String(req.headers['x-forwarded-for'] ?? req.socket.remoteAddress ?? '?').split(',')[0].trim();
+    const who = req.user ?? String(req.headers['x-forwarded-for'] ?? req.socket.remoteAddress ?? '?').split(',')[0].trim();
     const now = Date.now();
-    const recent = (hits.get(ip) ?? []).filter((t) => now - t < windowMs);
-    if (recent.length >= max) { res.status(429).json({ error: 'Too many questions — take a breather and try again in a few minutes.' }); return; }
+    const recent = (hits.get(who) ?? []).filter((t) => now - t < windowMs);
+    if (recent.length >= max) { res.status(429).json({ error: message }); return; }
     recent.push(now);
-    hits.set(ip, recent);
+    hits.set(who, recent);
     if (hits.size > 5000) hits.clear(); // keep memory bounded
     next();
   };
 }
+
+// ── Accounts (hosted only) ──
+app.post('/api/login', rateLimit(8, 10 * 60_000, 'Too many sign-in attempts — wait a few minutes and try again.'), async (req, res) => {
+  if (!HOSTED) { res.json({ ok: true, user: null }); return; } // no login on your own machine
+  if (!authConfigured() || !hasUsers()) { res.status(503).json({ error: 'Sign-in isn’t set up yet — the site owner needs to add accounts.' }); return; }
+  const { username, password } = (req.body ?? {}) as { username?: string; password?: string };
+  if (typeof username !== 'string' || typeof password !== 'string' || !username.trim() || !password || password.length > 200) {
+    res.status(400).json({ error: 'Enter your username and password.' });
+    return;
+  }
+  const user = await checkLogin(username, password);
+  if (!user) { res.status(401).json({ error: 'Wrong username or password.' }); return; }
+  setCookie(res, SESSION_COOKIE, await signSession(user), { days: SESSION_DAYS });
+  res.json({ ok: true, user });
+});
+
+app.post('/api/logout', (_req, res) => {
+  for (const c of [SESSION_COOKIE, KEY_COOKIE, MLY_COOKIE]) clearCookie(res, c);
+  res.json({ ok: true });
+});
+
+// Everything else under /api needs a valid session on the hosted site. (Routing middleware
+// already gates the whole site; this is the second lock.)
+app.use('/api', async (req, res, next) => {
+  if (!HOSTED) { next(); return; }
+  const s = await verifySession(cookie(req, SESSION_COOKIE));
+  if (!s) { res.status(401).json({ error: 'Please sign in.' }); return; }
+  req.user = s.u;
+  next();
+});
 
 const byCca3 = new Map((countries as { cca3: string }[]).map((c) => [c.cca3, c]));
 
@@ -52,6 +94,13 @@ let aiReady: boolean | null = null;
 
 async function verify(c: Anthropic) {
   await c.models.retrieve('claude-opus-5-5');
+}
+
+/** The Anthropic client for this request: the server's (locally) or the user's own key (hosted). */
+async function clientFor(req: express.Request): Promise<Anthropic | null> {
+  if (!HOSTED) return (await checkAi()) ? client : null;
+  const key = await openKey(cookie(req, KEY_COOKIE), req.user!);
+  return key ? new Anthropic({ apiKey: key }) : null;
 }
 
 async function checkAi() {
@@ -83,11 +132,11 @@ const saveKeyToEnv = (key: string | null) => setEnvVar('ANTHROPIC_API_KEY', key)
 // ── Mapillary (street-level imagery for the Street View challenge) ──
 // Mapillary *client* tokens are designed to be used in the browser, so the app
 // can read it back; we keep it in .env so it survives restarts.
-app.get('/api/mapillary', (_req, res) => {
-  res.json({ token: process.env.MAPILLARY_TOKEN || null });
+app.get('/api/mapillary', (req, res) => {
+  res.json({ token: (HOSTED ? cookie(req, MLY_COOKIE) : null) || process.env.MAPILLARY_TOKEN || null });
 });
 
-app.post('/api/mapillary', ownerOnly, async (req, res) => {
+app.post('/api/mapillary', async (req, res) => {
   const token = String((req.body as { token?: string })?.token ?? '').trim();
   if (!/^MLY\|\d+\|[0-9a-f]{16,}$/i.test(token)) {
     res.status(400).json({ error: 'That doesn’t look like a Mapillary client token (it starts with MLY|).' });
@@ -111,22 +160,29 @@ app.post('/api/mapillary', ownerOnly, async (req, res) => {
     res.status(400).json({ error: 'Couldn’t reach Mapillary to check the token — try again.' });
     return;
   }
+  if (HOSTED) { setCookie(res, MLY_COOKIE, token, { days: 365 }); res.json({ token }); return; } // per user
   process.env.MAPILLARY_TOKEN = token;
   try { await setEnvVar('MAPILLARY_TOKEN', token); } catch (err) { console.warn('[geoquest] could not save Mapillary token:', err); }
   res.json({ token });
 });
 
-app.delete('/api/mapillary', ownerOnly, async (_req, res) => {
+app.delete('/api/mapillary', async (_req, res) => {
+  if (HOSTED) { clearCookie(res, MLY_COOKIE); res.json({ token: null }); return; }
   delete process.env.MAPILLARY_TOKEN;
   try { await setEnvVar('MAPILLARY_TOKEN', null); } catch { /* ignore */ }
   res.json({ token: null });
 });
 
-app.get('/api/health', async (_req, res) => {
-  res.json({ ai: await checkAi(), source: keySource, hosted: HOSTED });
+app.get('/api/health', async (req, res) => {
+  if (HOSTED) {
+    const ai = !!(await openKey(cookie(req, KEY_COOKIE), req.user!));
+    res.json({ ai, source: ai ? 'user' : null, hosted: true, user: req.user });
+    return;
+  }
+  res.json({ ai: await checkAi(), source: keySource, hosted: false, user: null });
 });
 
-app.post('/api/key', ownerOnly, async (req, res) => {
+app.post('/api/key', rateLimit(10, 10 * 60_000), async (req, res) => {
   const key = String((req.body as { key?: string })?.key ?? '').trim();
   if (!/^sk-ant-[A-Za-z0-9_-]{20,}$/.test(key)) {
     res.status(400).json({ error: 'That doesn’t look like an Anthropic API key (it should start with sk-ant-).' });
@@ -142,6 +198,12 @@ app.post('/api/key', ownerOnly, async (req, res) => {
     res.status(400).json({ error: msg });
     return;
   }
+  if (HOSTED) {
+    // The user's own key: sealed into an httpOnly cookie in their browser, never stored here.
+    setCookie(res, KEY_COOKIE, await sealKey(key, req.user!), { days: SESSION_DAYS, sameSite: 'Strict' });
+    res.json({ ai: true, source: 'user' });
+    return;
+  }
   client = c;
   keySource = 'app';
   aiReady = true;
@@ -150,7 +212,8 @@ app.post('/api/key', ownerOnly, async (req, res) => {
   res.json({ ai: true, source: keySource });
 });
 
-app.delete('/api/key', ownerOnly, async (_req, res) => {
+app.delete('/api/key', async (_req, res) => {
+  if (HOSTED) { clearCookie(res, KEY_COOKIE); res.json({ ai: false, source: null }); return; }
   client = null;
   keySource = null;
   aiReady = false;
@@ -182,17 +245,17 @@ interface AskBody {
   country?: string | null;
 }
 
-app.post('/api/ask', rateLimit(30, 10 * 60_000), async (req, res) => {
+app.post('/api/ask', rateLimit(60, 10 * 60_000), async (req, res) => {
   const { messages, country } = req.body as AskBody;
   if (!Array.isArray(messages) || messages.length === 0) {
     res.status(400).json({ error: 'messages required' });
     return;
   }
-  if (!(await checkAi()) || !client) {
+  const ai = await clientFor(req);
+  if (!ai) {
     res.status(503).json({ error: 'AI not configured' });
     return;
   }
-  const ai = client;
 
   // Ground the model in the selected country's dataset entry.
   const ctx = country && byCca3.get(country)
@@ -236,7 +299,10 @@ app.post('/api/ask', rateLimit(30, 10 * 60_000), async (req, res) => {
     res.end();
   } catch (err) {
     if (aborted) return;
-    if (err instanceof Anthropic.AuthenticationError) { aiReady = false; client = null; keySource = null; }
+    if (err instanceof Anthropic.AuthenticationError) {
+      if (HOSTED) { if (!res.headersSent) clearCookie(res, KEY_COOKIE); } // their key stopped working
+      else { aiReady = false; client = null; keySource = null; }
+    }
     const msg = err instanceof Anthropic.RateLimitError
       ? 'The Atlas is a bit busy — try again in a moment.'
       : err instanceof Anthropic.AuthenticationError
@@ -253,12 +319,13 @@ app.post('/api/ask', rateLimit(30, 10 * 60_000), async (req, res) => {
 // ── Lenient answer matching for "Name the Top 5" ─────────────
 // Fuzzy matching happens in the browser; this is the fallback for answers that are
 // semantically right but spelled/phrased differently ("the big river in Egypt").
-app.post('/api/match', rateLimit(120, 10 * 60_000), async (req, res) => {
+app.post('/api/match', rateLimit(200, 10 * 60_000), async (req, res) => {
   const { guess, options, question } = req.body as { guess?: string; options?: string[]; question?: string };
   if (!guess || !Array.isArray(options) || !options.length) { res.status(400).json({ error: 'guess and options required' }); return; }
-  if (!(await checkAi()) || !client) { res.json({ match: null }); return; }
+  const ai = await clientFor(req);
+  if (!ai) { res.json({ match: null }); return; }
   try {
-    const msg = await client.messages.create({
+    const msg = await ai.messages.create({
       model: 'claude-opus-5-5',
       max_tokens: 1500,
       output_config: { effort: 'low' },

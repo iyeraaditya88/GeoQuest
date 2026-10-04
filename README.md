@@ -14,6 +14,21 @@ npm run dev            # http://localhost:5173
 
 No key yet? Open **Ask the Atlas → Connect Claude** and paste your key. The server checks it with Anthropic and saves it to this project's `.env` (gitignored, readable only by you); the browser never stores it. Without a key, the Atlas still answers data questions offline (capitals, populations, borders, superlatives, driving side, landlocked countries, languages).
 
+## Hosting & accounts (Vercel)
+
+The hosted site (`npm run build` → Vercel, with `api/index.ts` as the API function) sits **entirely behind a sign-in** (`middleware.ts`). Accounts are created by the owner; there is no sign-up.
+
+1. Create a login (the password is typed locally and only its hash is printed):
+   ```bash
+   npm run user:add -- alice --secret   # --secret also prints a SESSION_SECRET (needed once)
+   ```
+2. In Vercel → project → Settings → Environment Variables (Production), set:
+   - `SESSION_SECRET`: the generated secret (changing it signs everyone out)
+   - `GEOQUEST_USERS`: the printed entries, comma-separated (`alice:scrypt:…,bob:scrypt:…`)
+3. Redeploy. To add or remove someone, edit `GEOQUEST_USERS` and redeploy.
+
+On the hosted site each user connects **their own** Anthropic key from Ask the Atlas. It's checked with Anthropic and kept encrypted in an httpOnly cookie in their browser, never stored on the server; the owner's key is never used. Locally (`npm run dev`) there's no login and the key lives in `.env` as before.
+
 ## Features
 
 ### Explore

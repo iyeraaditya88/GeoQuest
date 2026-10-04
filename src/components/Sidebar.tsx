@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
-  Binoculars, Dices, Gamepad2, ListOrdered, Landmark, Globe2, History, Keyboard, KeyRound, Map as MapIcon, Mountain, Drill, Brain, SunMoon, ChevronLeft, RotateCcw, RotateCw, Satellite, Search, Sparkles, X, Menu,
+  Binoculars, Dices, Gamepad2, ListOrdered, Landmark, Globe2, History, Keyboard, KeyRound, Map as MapIcon, Mountain, Drill, Brain, SunMoon, LogOut, UserRound, ChevronLeft, RotateCcw, RotateCw, Satellite, Search, Sparkles, X, Menu,
 } from 'lucide-react';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import type { MapStyle } from './GlobeView';
@@ -28,6 +28,9 @@ interface Props {
   onAsk: () => void;
   onConnect: () => void;
   hosted?: boolean;
+  /** Signed-in user on the hosted site (null locally). */
+  user?: string | null;
+  onSignOut?: () => void;
   onQuiz: () => void;
   onStreet: () => void;
   antipodeOn: boolean;
@@ -178,17 +181,23 @@ export function Sidebar(p: Props) {
 
         {/* Footer */}
         <div className="sb-foot">
-          <button className={`sb-status ${p.ai ? 'ok' : ''}`} onClick={act(p.ai || p.hosted ? p.onAsk : p.onConnect)} data-tip={rail ? (p.ai ? 'Claude connected' : p.hosted ? 'Ask the Atlas' : 'Connect Claude') : undefined}>
-            {p.ai ? <i className="sb-live" /> : p.hosted ? <Sparkles size={15} /> : <KeyRound size={15} />}
+          <button className={`sb-status ${p.ai ? 'ok' : ''}`} onClick={act(p.ai ? p.onAsk : p.onConnect)} data-tip={rail ? (p.ai ? 'Claude connected' : 'Connect Claude') : undefined}>
+            {p.ai ? <i className="sb-live" /> : <KeyRound size={15} />}
             <Fade show={!rail}>
               <span className="sb-status-text">
-                <b>{p.ai ? 'Claude connected' : p.hosted ? 'Ask the Atlas' : 'Connect Claude'}</b>
-                <span>{p.ai ? 'Ask anything, anywhere' : p.hosted ? 'Instant data answers' : 'Unlock open questions'}</span>
+                <b>{p.ai ? 'Claude connected' : 'Connect Claude'}</b>
+                <span>{p.ai ? 'Ask anything, anywhere' : p.hosted ? 'Use your own Anthropic key' : 'Unlock open questions'}</span>
               </span>
             </Fade>
           </button>
           <div className="sb-foot-row">
             <button className="sb-icon" onClick={p.onShortcuts} aria-label="Keyboard shortcuts" data-tip="Shortcuts  ?"><Keyboard size={17} /></button>
+            {p.user && (
+              <>
+                <Fade show={!rail}><span className="sb-user" title={`Signed in as ${p.user}`}><UserRound size={13} /> {p.user}</span></Fade>
+                <button className="sb-icon sb-signout" onClick={p.onSignOut} aria-label="Sign out" data-tip="Sign out"><LogOut size={16} /></button>
+              </>
+            )}
           </div>
         </div>
       </motion.nav>

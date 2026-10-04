@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { ArrowUp, Globe2, KeyRound, MapPin, Sparkles, X, WifiOff, Square, Loader2, ExternalLink } from 'lucide-react';
 import { BY_CCA3, flagUrl, type Country } from '../lib/data';
 import { answerLocally } from '../lib/localQuery';
+import { api } from '../lib/api';
 
 interface Msg { role: 'user' | 'assistant'; content: string; countries?: string[]; scope?: string | null; offline?: boolean; connect?: boolean }
 
@@ -74,7 +75,7 @@ export function AskDock({ open, setOpen, country, request, keyRequest = 0, onAiC
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [ai, setAi] = useState<boolean | null>(null);
-  const [keySource, setKeySource] = useState<'env' | 'app' | null>(null);
+  const [keySource, setKeySource] = useState<'env' | 'app' | 'user' | null>(null);
   // On the public site keys are owner-managed: never offer the key form there.
   const [hosted, setHosted] = useState(false);
   const [showKey, setShowKey] = useState(false);
@@ -86,10 +87,10 @@ export function AskDock({ open, setOpen, country, request, keyRequest = 0, onAiC
   const scope = useCountry && country ? country : null;
 
   useEffect(() => {
-    fetch('/api/health').then((r) => r.json()).then((d) => { setAi(!!d.ai); setKeySource(d.source ?? null); setHosted(!!d.hosted); onHosted?.(!!d.hosted); }).catch(() => setAi(false));
-  }, []);
+    api('/api/health').then((r) => r.json()).then((d) => { setAi(!!d.ai); setKeySource(d.source ?? null); setHosted(!!d.hosted); onHosted?.(!!d.hosted); }).catch(() => setAi(false));
+  }, [onHosted]); // a stable state setter — runs once
   useEffect(() => { setUseCountry(true); }, [country?.cca3]);
-  useEffect(() => { if (keyRequest && ai === false && !hosted) setShowKey(true); }, [keyRequest, ai, hosted]);
+  useEffect(() => { if (keyRequest && ai === false) setShowKey(true); }, [keyRequest, ai]);
   useEffect(() => { if (ai !== null) onAiChange?.(ai); }, [ai, onAiChange]);
   useEffect(() => { scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: 'smooth' }); }, [msgs]);
   useEffect(() => { if (open) setTimeout(() => field.current?.focus(), 250); }, [open]);
@@ -107,10 +108,8 @@ export function AskDock({ open, setOpen, country, request, keyRequest = 0, onAiC
 
     const offline = () => {
       const local = answerLocally(q, scope);
-      const content = local?.text ?? (hosted
-        ? 'I can answer data questions here — capitals, populations, borders, largest/smallest, driving side, landlocked countries and languages. Try one of those!'
-        : 'Offline, I can only answer data questions (capitals, populations, borders, largest/smallest, driving side, landlocked, languages). **Connect Claude** with your Anthropic API key to ask me anything at all.');
-      setMsgs([...history, { role: 'assistant', content, countries: local?.highlight, offline: true, connect: !local && !hosted }]);
+      const content = local?.text ?? 'Offline, I can only answer data questions (capitals, populations, borders, largest/smallest, driving side, landlocked, languages). **Connect Claude** with your Anthropic API key to ask me anything at all.';
+      setMsgs([...history, { role: 'assistant', content, countries: local?.highlight, offline: true, connect: !local }]);
       if (local?.highlight.length) onHighlight(local.highlight);
     };
 
@@ -120,7 +119,7 @@ export function AskDock({ open, setOpen, country, request, keyRequest = 0, onAiC
     const ctl = new AbortController();
     abort.current = ctl;
     try {
-      const res = await fetch('/api/ask', {
+      const res = await api('/api/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: history.map(({ role, content }) => ({ role, content })), country: scope?.cca3 ?? null }),
@@ -148,7 +147,7 @@ export function AskDock({ open, setOpen, country, request, keyRequest = 0, onAiC
     }
   }
 
-  const onConnected = (source: 'env' | 'app' | null) => {
+  const onConnected = (source: 'env' | 'app' | 'user' | null) => {
     setAi(true);
     setKeySource(source);
     setShowKey(false);
@@ -164,7 +163,7 @@ export function AskDock({ open, setOpen, country, request, keyRequest = 0, onAiC
   const disconnect = () => {
     setAi(false); // reflect it at once; the server call can finish in the background
     setKeySource(null);
-    void fetch('/api/key', { method: 'DELETE' }).catch(() => null);
+    void api('/api/key', { method: 'DELETE' }).catch(() => null);
   };
 
   const suggestions = scope ? countrySuggestions(scope) : WORLD_SUGGESTIONS;
@@ -202,14 +201,12 @@ export function AskDock({ open, setOpen, country, request, keyRequest = 0, onAiC
               <span className="fab-orb"><Sparkles size={15} /></span>
               <div className="dock-title">
                 <b>The Atlas</b>
-                {ai === false && hosted ? (
-                  <span className="connect-link"><WifiOff size={11} /> Instant data answers</span>
-                ) : ai === false ? (
+                {ai === false ? (
                   <button className="connect-link" onClick={() => setShowKey((v) => !v)}><WifiOff size={11} /> Offline · <u>Connect Claude</u></button>
                 ) : ai ? (
                   <span className="ai-on">
                     <i className="live-dot" /> Powered by Claude
-                    {keySource === 'app' && <button className="connect-link" onClick={() => void disconnect()} title="Forget the saved API key">· Disconnect</button>}
+                    {(keySource === 'app' || keySource === 'user') && <button className="connect-link" onClick={() => void disconnect()} title="Forget the saved API key">· Disconnect</button>}
                   </span>
                 ) : <span>Connecting…</span>}
               </div>
@@ -224,7 +221,7 @@ export function AskDock({ open, setOpen, country, request, keyRequest = 0, onAiC
             </header>
 
             <AnimatePresence initial={false}>
-              {showKey && !hosted && <KeyForm onDone={onConnected} onCancel={() => setShowKey(false)} />}
+              {showKey && <KeyForm hosted={hosted} onDone={onConnected} onCancel={() => setShowKey(false)} />}
             </AnimatePresence>
 
             <div className="dock-body" ref={scroller}>
@@ -293,7 +290,7 @@ export function AskDock({ open, setOpen, country, request, keyRequest = 0, onAiC
   );
 }
 
-function KeyForm({ onDone, onCancel }: { onDone: (source: 'env' | 'app' | null) => void; onCancel: () => void }) {
+function KeyForm({ hosted, onDone, onCancel }: { hosted: boolean; onDone: (source: 'env' | 'app' | 'user' | null) => void; onCancel: () => void }) {
   const [key, setKey] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -306,7 +303,7 @@ function KeyForm({ onDone, onCancel }: { onDone: (source: 'env' | 'app' | null) 
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch('/api/key', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: key.trim() }) });
+      const res = await api('/api/key', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: key.trim() }) });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) { setError(d.error ?? 'Couldn’t save the key.'); return; }
       setKey('');
@@ -328,7 +325,9 @@ function KeyForm({ onDone, onCancel }: { onDone: (source: 'env' | 'app' | null) 
       transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="key-inner">
-        <p><KeyRound size={14} /> Paste your Anthropic API key to let the Atlas answer <b>anything</b>. It’s checked with Anthropic and saved only in this project’s <code>.env</code> on your computer — never in the browser.</p>
+        <p><KeyRound size={14} /> Paste your Anthropic API key to let the Atlas answer <b>anything</b>. {hosted
+          ? <>It’s checked with Anthropic and kept <b>encrypted in a secure cookie in this browser</b> — never stored on our servers. Remove it any time with Disconnect.</>
+          : <>It’s checked with Anthropic and saved only in this project’s <code>.env</code> on your computer — never in the browser.</>}</p>
         <div className="key-row">
           <input
             ref={field}

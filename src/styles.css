@@ -1115,3 +1115,8 @@ button:not(:disabled):active { filter: brightness(0.86); transition-duration: 0s
 .sb-scroll { overflow-x: hidden; }
 .sb-seg button { min-width: 0; }
 .sb-seg button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Signed-in user (hosted site) */
+.sb-user { flex: 1; min-width: 0; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 0 6px;
+  font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-signout:hover { color: #fca5a5; }

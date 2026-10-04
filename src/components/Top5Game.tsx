@@ -4,6 +4,7 @@ import { ArrowRight, Flag, Heart, Lightbulb, ListOrdered, Loader2, Sparkles, X }
 import confetti from 'canvas-confetti';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import { matchAnswer, norm, shuffledQuestions, type Top5Question } from '../lib/top5';
+import { api } from '../lib/api';
 
 const STRIKES = 3;
 
@@ -58,7 +59,7 @@ export function Top5Game({ ai, onHighlight, onExit }: Props) {
     if (idx < 0 && ai) {
       setChecking(guess);
       try {
-        const r = await fetch('/api/match', {
+        const r = await api('/api/match', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ guess, question: q.title, options: q.answers.map((a) => a.name) }),
         }).then((x) => x.json());

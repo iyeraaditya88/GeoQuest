@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#04060f" />
+    <meta name="robots" content="noindex" />
+    <title>Sign in — GeoQuest</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <!-- Self-contained on purpose: everything else on the site needs a session. -->
+    <style>
+      :root { --gold: #fbbf24; --gold-soft: #fde68a; --text: #e8edf7; --muted: #94a3b8; --dim: #64748b; --line: rgba(148, 163, 184, 0.18); --ease: cubic-bezier(0.16, 1, 0.3, 1); }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; background: #03050d; color: var(--text); font: 15px/1.5 Inter, system-ui, sans-serif; }
+      body { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px;
+        background: radial-gradient(circle at 50% 30%, #0b1430, #03050d 70%); overflow-x: hidden; }
+      /* a field of slow stars */
+      body::before { content: ''; position: fixed; inset: -50%; pointer-events: none; opacity: 0.55;
+        background-image: radial-gradient(1px 1px at 20% 30%, #fff, transparent), radial-gradient(1px 1px at 70% 60%, #cbd5e1, transparent),
+          radial-gradient(1.5px 1.5px at 40% 80%, #fff, transparent), radial-gradient(1px 1px at 85% 15%, #e2e8f0, transparent),
+          radial-gradient(1px 1px at 10% 70%, #fff, transparent), radial-gradient(1.2px 1.2px at 55% 20%, #f8fafc, transparent);
+        background-size: 360px 360px; animation: drift 120s linear infinite; }
+      @keyframes drift { to { transform: translate(180px, 90px); } }
+
+      .card { position: relative; width: min(380px, 100%); padding: 28px 26px 24px; border-radius: 24px;
+        background: rgba(9, 14, 30, 0.86); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+        box-shadow: 0 0 0 1px var(--line), 0 30px 80px -20px rgba(0, 0, 0, 0.8);
+        animation: rise 0.7s var(--ease) both; }
+      @keyframes rise { from { opacity: 0; transform: translateY(14px) scale(0.98); } }
+
+      .stage { position: relative; width: 120px; height: 118px; margin: -6px auto 4px; }
+      .hop { position: absolute; left: 50%; bottom: 20px; width: 74px; height: 74px; margin-left: -37px; transform-origin: 50% 100%; animation: hop 1.25s infinite; }
+      @keyframes hop {
+        0% { transform: translateY(0) scale(1.08, 0.9); animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1); }
+        12% { transform: translateY(-6px) scale(0.96, 1.05); animation-timing-function: cubic-bezier(0.2, 0.6, 0.35, 1); }
+        50% { transform: translateY(-30px) scale(1, 1); animation-timing-function: cubic-bezier(0.6, 0, 0.8, 0.45); }
+        88% { transform: translateY(-3px) scale(0.97, 1.03); animation-timing-function: cubic-bezier(0.3, 0, 0.6, 1); }
+        100% { transform: translateY(0) scale(1.08, 0.9); }
+      }
+      .earth { position: relative; width: 100%; height: 100%; border-radius: 50%; overflow: hidden;
+        background: #1d4ed8 url(/textures/loader-earth.jpg) 0 50% / auto 100% repeat-x; animation: spin 5s linear infinite;
+        box-shadow: 0 0 0 1px rgba(125, 211, 252, 0.25), 0 0 28px rgba(56, 189, 248, 0.45), 0 0 70px rgba(56, 189, 248, 0.16); }
+      @keyframes spin { to { background-position: -148px 50%; } }
+      .earth::before { content: ''; position: absolute; inset: 0; border-radius: 50%;
+        background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.35), rgba(255,255,255,0) 38%), radial-gradient(circle at 42% 38%, rgba(0,0,0,0) 36%, rgba(2,6,23,0.5) 70%, rgba(2,6,23,0.95) 100%); }
+      .shadow { position: absolute; left: 50%; bottom: 10px; width: 66px; height: 12px; margin-left: -33px; border-radius: 50%;
+        background: radial-gradient(closest-side, rgba(56,189,248,0.38), rgba(56,189,248,0.08) 70%, transparent); filter: blur(2px); animation: shadow 1.25s infinite; }
+      @keyframes shadow { 0% { transform: scale(1.1, 1); opacity: 1; } 50% { transform: scale(0.55, 0.7); opacity: 0.35; } 100% { transform: scale(1.1, 1); opacity: 1; } }
+
+      h1 { margin: 0; text-align: center; font: 700 26px/1.2 'Space Grotesk', Inter, sans-serif; letter-spacing: -0.01em; }
+      .sub { margin: 4px 0 22px; text-align: center; color: var(--muted); font-size: 14px; }
+
+      form { display: grid; gap: 12px; }
+      label { display: grid; gap: 6px; font-size: 12.5px; font-weight: 500; color: var(--muted); }
+      .field { position: relative; display: flex; align-items: center; height: 44px; border-radius: 12px;
+        background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 0 0 1px var(--line); transition: box-shadow 0.2s; }
+      .field:focus-within { box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.6), 0 0 0 3px rgba(251, 191, 36, 0.14); }
+      input { flex: 1; min-width: 0; height: 100%; padding: 0 14px; border: 0; outline: none; background: none; color: var(--text); font: 500 15px Inter, sans-serif; }
+      input::placeholder { color: var(--dim); }
+      .peek { height: 100%; padding: 0 12px; border: 0; background: none; color: var(--muted); font: 500 12px Inter, sans-serif; cursor: pointer; border-radius: 0 12px 12px 0; }
+      .peek:hover { color: var(--text); }
+      button.go { margin-top: 6px; height: 46px; border: 0; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+        font: 600 15px 'Space Grotesk', Inter, sans-serif; color: #1a1205; background: linear-gradient(135deg, var(--gold-soft), var(--gold));
+        box-shadow: 0 10px 30px -10px rgba(251, 191, 36, 0.7); transition: transform 0.15s, filter 0.15s, opacity 0.2s; }
+      button.go:hover { transform: translateY(-1px); }
+      button.go:active { transform: translateY(0) scale(0.99); filter: brightness(0.92); }
+      button.go:disabled { opacity: 0.7; cursor: default; transform: none; }
+      .spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(26, 18, 5, 0.25); border-top-color: #1a1205; animation: rot 0.8s linear infinite; display: none; }
+      button.busy .spinner { display: block; }
+      @keyframes rot { to { transform: rotate(360deg); } }
+      :where(button, input):focus-visible { outline: 2px solid rgba(251, 191, 36, 0.75); outline-offset: 2px; }
+
+      .error { min-height: 20px; margin: 2px 0 0; font-size: 13px; color: #fca5a5; text-align: center; }
+      .shake { animation: shake 0.42s; }
+      @keyframes shake { 20%, 60% { transform: translateX(-7px); } 40%, 80% { transform: translateX(7px); } }
+      .foot { margin: 16px 0 0; text-align: center; font-size: 12px; color: var(--dim); }
+      @media (prefers-reduced-motion: reduce) { .hop, .shadow, .earth, body::before, .card { animation: none; } }
+    </style>
+  </head>
+  <body>
+    <main class="card" id="card">
+      <div class="stage" aria-hidden="true"><div class="hop"><div class="earth"></div></div><div class="shadow"></div></div>
+      <h1>GeoQuest</h1>
+      <p class="sub">Sign in to explore the world</p>
+      <form id="form" novalidate>
+        <label>Username
+          <span class="field"><input id="u" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus /></span>
+        </label>
+        <label>Password
+          <span class="field"><input id="p" name="password" type="password" autocomplete="current-password" required /><button type="button" class="peek" id="peek" aria-label="Show password">Show</button></span>
+        </label>
+        <button class="go" id="go" type="submit"><span class="spinner" aria-hidden="true"></span><span id="goText">Sign in</span></button>
+        <p class="error" id="err" role="alert"></p>
+      </form>
+      <p class="foot">Accounts are created by the site owner.</p>
+    </main>
+    <script>
+      (function () {
+        var form = document.getElementById('form'), u = document.getElementById('u'), p = document.getElementById('p');
+        var go = document.getElementById('go'), goText = document.getElementById('goText'), err = document.getElementById('err');
+        var card = document.getElementById('card'), peek = document.getElementById('peek');
+        // Only ever return to a path on this site.
+        var nxt = new URLSearchParams(location.search).get('next') || '/';
+        if (nxt.charAt(0) !== '/' || nxt.charAt(1) === '/' || nxt.charAt(1) === '\\') nxt = '/';
+
+        peek.addEventListener('click', function () {
+          var show = p.type === 'password';
+          p.type = show ? 'text' : 'password';
+          peek.textContent = show ? 'Hide' : 'Show';
+          peek.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+          p.focus();
+        });
+
+        function fail(msg) {
+          err.textContent = msg;
+          card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake');
+          go.disabled = false; go.classList.remove('busy'); goText.textContent = 'Sign in';
+        }
+
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          if (!u.value.trim() || !p.value) { fail('Enter your username and password.'); (u.value.trim() ? p : u).focus(); return; }
+          err.textContent = '';
+          go.disabled = true; go.classList.add('busy'); goText.textContent = 'Signing in…';
+          fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ username: u.value.trim(), password: p.value }) })
+            .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, d: d }; }); })
+            .then(function (x) {
+              if (x.ok) { goText.textContent = 'Welcome!'; location.replace(nxt); return; }
+              fail(x.d.error || 'Couldn’t sign in — try again.');
+              if (x.d.error && /password/i.test(x.d.error)) { p.select(); }
+            })
+            .catch(function () { fail('Couldn’t reach the server — check your connection.'); });
+        });
+      })();
+    </script>
+  </body>
+</html>

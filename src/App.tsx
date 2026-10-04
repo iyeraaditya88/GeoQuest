@@ -52,6 +52,7 @@ import { AskDock } from './components/AskDock';
 import { QuizBar, type QuizMode, type QuizState } from './components/QuizBar';
 import { BY_CCA3, COUNTRIES, MAPPABLE } from './lib/data';
 import { CURATED } from './data/curated';
+import { api } from './lib/api';
 
 const QUIZ_POOL = COUNTRIES.filter((c) => c.un && MAPPABLE.has(c.cca3) && c.area > 2000).map((c) => c.cca3);
 const CLUE_POOL = Object.keys(CURATED).filter((k) => MAPPABLE.has(k));
@@ -95,7 +96,7 @@ export default function App() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
   useEffect(() => {
-    const check = () => fetch('/api/health').then((r) => r.json()).then((d) => setAi(!!d.ai)).catch(() => setAi(false));
+    const check = () => api('/api/health').then((r) => r.json()).then((d) => { setAi(!!d.ai); setUser(d.user ?? null); }).catch(() => setAi(false));
     void check();
     window.addEventListener('focus', check);
     return () => window.removeEventListener('focus', check);
@@ -141,7 +142,9 @@ export default function App() {
   const [style, setStyle] = useState<MapStyle>('satellite');
   const [autoRotate, setAutoRotate] = useState(true);
   // Rivers, lakes, mountain ranges & peaks — on by default, remembered per browser.
-  const [hosted, setHosted] = useState(false); // public deployment: keys are owner-managed
+  const [hosted, setHosted] = useState(false); // public deployment: sign-in, per-user keys
+  const [user, setUser] = useState<string | null>(null);
+  const signOut = () => { void api('/api/logout', { method: 'POST' }).finally(() => location.replace('/login')); };
   const [nature, setNature] = useState(() => { try { return localStorage.getItem('gq-nature') !== '0'; } catch { return true; } });
   const toggleNature = () => setNature((v) => { try { localStorage.setItem('gq-nature', v ? '0' : '1'); } catch { /* private mode */ } return !v; });
   const [searchOpen, setSearchOpen] = useState(false);
@@ -321,7 +324,7 @@ export default function App() {
       prefetch.current = null;
       if (err instanceof MapillaryTokenError && mlyToken.current !== DEFAULT_MAPILLARY_TOKEN) {
         // A saved token stopped working → drop it and retry with the built-in one.
-        void fetch('/api/mapillary', { method: 'DELETE' }).catch(() => null);
+        void api('/api/mapillary', { method: 'DELETE' }).catch(() => null);
         mlyToken.current = DEFAULT_MAPILLARY_TOKEN;
         setMlyTokenState(DEFAULT_MAPILLARY_TOKEN);
         void loadRound(round, results);
@@ -331,7 +334,7 @@ export default function App() {
         // Even the built-in token is rejected (revoked?) → setup card, with the reason.
         mlyToken.current = null;
         setMlyTokenState(null);
-        void fetch('/api/mapillary', { method: 'DELETE' }).catch(() => null);
+        void api('/api/mapillary', { method: 'DELETE' }).catch(() => null);
         setGeo({ round: 1, totalRounds: 5, results: [], status: 'setup', item: null, guess: null, error: err.message });
         return;
       }
@@ -357,7 +360,7 @@ export default function App() {
     window.setTimeout(() => { if (geoRef.current) globe.current?.pause(); }, 450);
     // A token saved via the setup card wins; otherwise use the built-in one.
     try {
-      const d = await fetch('/api/mapillary').then((r) => r.json());
+      const d = await api('/api/mapillary').then((r) => r.json());
       mlyToken.current = d.token ?? DEFAULT_MAPILLARY_TOKEN;
     } catch {
       mlyToken.current = DEFAULT_MAPILLARY_TOKEN; // e.g. hosted as a static site, no API server
@@ -607,6 +610,8 @@ export default function App() {
         recents={recents}
         ai={ai}
         hosted={hosted}
+        user={user}
+        onSignOut={signOut}
         onSearch={() => setSearchOpen(true)}
         onRandom={() => { if (quiz) exitQuiz(); random(); }}
         onAsk={() => { if (quiz) exitQuiz(); setDockOpen(true); }}

@@ -17,6 +17,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { BY_CCA3, flagUrl, fmtInt } from '../lib/data';
 import { getItem, prefetchAround, type StreetItem } from '../lib/streetview';
 import type { MapillarySpot } from '../lib/mapillary';
+import { api } from '../lib/api';
 
 const { ACTIONS } = CONSTANTS;
 
@@ -764,7 +765,7 @@ function MapillarySetup({ onConnected, onFallback, initialError }: { onConnected
     setBusy(true);
     setError(null);
     try {
-      const r = await fetch('/api/mapillary', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: token.trim() }) });
+      const r = await api('/api/mapillary', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: token.trim() }) });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setError(d.error ?? 'Couldn’t save the token.'); return; }
       onConnected(d.token);
