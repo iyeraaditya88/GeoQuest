@@ -1120,3 +1120,37 @@ button:not(:disabled):active { filter: brightness(0.86); transition-duration: 0s
 .sb-user { flex: 1; min-width: 0; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 0 6px;
   font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sb-signout:hover { color: #fca5a5; }
+
+/* ── People (owner) ─────────────────────────────────── */
+.people-backdrop { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 16px; background: rgba(2, 4, 12, 0.55); backdrop-filter: blur(4px); }
+.people { width: min(480px, 100%); max-height: min(640px, calc(100vh - 32px)); overflow: auto; display: grid; gap: 12px; align-content: start;
+  padding: 14px 16px 16px; border-radius: 22px; background: rgba(9, 14, 30, 0.97); box-shadow: var(--shadow); }
+.people .gc-title { flex: 0 1 auto; }
+.pp-invite { display: flex; gap: 8px; }
+.pp-field { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 0 12px; height: 38px; border-radius: 11px; color: var(--muted);
+  background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 0 0 1px var(--line); }
+.pp-field:focus-within { box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.55), 0 0 0 3px rgba(251, 191, 36, 0.12); }
+.pp-field input { flex: 1; min-width: 0; background: none; border: 0; outline: none; color: var(--text); font: 500 14px 'Inter', sans-serif; }
+.pp-invite .primary { white-space: nowrap; }
+.pp-invite .primary:disabled { opacity: 0.5; }
+.pp-error { margin: -4px 0 0; font-size: 12.5px; color: #fca5a5; }
+.pp-link { overflow: hidden; padding: 12px; border-radius: 14px; background: rgba(251, 191, 36, 0.07); box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.25); }
+.pp-link p { margin: 0 0 10px; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+.pp-link p b { color: var(--gold-soft); }
+.pp-copy { display: flex; gap: 6px; }
+.pp-copy input { flex: 1; min-width: 0; height: 34px; padding: 0 10px; border: 0; border-radius: 9px; outline: none; font: 500 12px ui-monospace, monospace;
+  color: var(--text); background: rgba(0, 0, 0, 0.3); box-shadow: inset 0 0 0 1px var(--line); }
+.pp-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.pp-list li { display: flex; align-items: center; gap: 10px; padding: 8px 6px 8px 8px; border-radius: 12px; }
+.pp-list li:hover { background: rgba(255, 255, 255, 0.03); }
+.pp-avatar { width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; font: 700 13px var(--display); color: #e0f2fe; background: rgba(56, 189, 248, 0.18); }
+.pp-avatar.owner { color: #1a1205; background: linear-gradient(135deg, var(--gold-soft), var(--gold)); }
+.pp-who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pp-who b { font-size: 14px; font-weight: 600; }
+.pp-who span { font-size: 12px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pp-actions { display: flex; gap: 2px; }
+.pp-del:hover { color: #fca5a5; }
+.pp-confirm { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
+.pp-confirm button { padding: 4px 9px; border-radius: 8px; font-size: 12px; font-weight: 600; color: var(--text); background: rgba(255, 255, 255, 0.07); }
+.pp-confirm button:first-of-type { color: #fecaca; background: rgba(248, 113, 113, 0.18); }
+.pp-empty { justify-content: center; gap: 8px; font-size: 12.5px; color: var(--dim); }

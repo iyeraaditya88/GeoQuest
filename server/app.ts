@@ -4,8 +4,9 @@
 //
 // Locally: no login; the Anthropic key comes from .env (or is pasted into the app and saved
 // to .env on this machine only).
-// Hosted (Vercel): every request needs a signed-in session (accounts in GEOQUEST_USERS, see
-// server/auth.ts), and each user brings their own Anthropic key, kept encrypted in an
+// Hosted (Vercel): every request needs a signed-in session. Accounts live in a private Blob
+// store (server/users.ts): the owner sets up once through the Vercel-protected address, then
+// invites people from the app. Each user brings their own Anthropic key, kept encrypted in an
 // httpOnly cookie in their browser — never stored on the server. The owner's key is never used.
 import 'dotenv/config';
 import { readFile, writeFile, chmod } from 'node:fs/promises';
@@ -16,10 +17,10 @@ import Anthropic from '@anthropic-ai/sdk';
 import countries from '../src/data/countries.json' with { type: 'json' };
 import { CURATED } from '../src/data/curated.js';
 import { KEY_COOKIE, SESSION_COOKIE, SESSION_DAYS, authConfigured, openKey, readCookie, sealKey, signSession, verifySession } from './session.js';
-import { checkLogin, hasUsers } from './auth.js';
+import * as accounts from './users.js';
 
 declare module 'express-serve-static-core' {
-  interface Request { user?: string }
+  interface Request { user?: string; role?: accounts.Role }
 }
 
 const ENV_PATH = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.env');
@@ -57,18 +58,58 @@ function rateLimit(max: number, windowMs: number, message = 'Too many requests �
 }
 
 // ── Accounts (hosted only) ──
-app.post('/api/login', rateLimit(8, 10 * 60_000, 'Too many sign-in attempts — wait a few minutes and try again.'), async (req, res) => {
-  if (!HOSTED) { res.json({ ok: true, user: null }); return; } // no login on your own machine
-  if (!authConfigured() || !hasUsers()) { res.status(503).json({ error: 'Sign-in isn’t set up yet — the site owner needs to add accounts.' }); return; }
+const fail = (res: express.Response, status: number, err: unknown) => res.status(status).json({ error: err instanceof Error ? err.message : String(err) });
+const signIn = async (res: express.Response, name: string) => setCookie(res, SESSION_COOKIE, await signSession(name), { days: SESSION_DAYS });
+// Each auth route gets its own budget (opening an invite shouldn't eat into signing in).
+const authLimit = (max: number) => rateLimit(max, 10 * 60_000, 'Too many attempts — wait a few minutes and try again.');
+
+/**
+ * First-time setup may only happen through the Vercel-protected address (Vercel asks the
+ * owner to sign in to Vercel before the request ever reaches us), and only while there's no owner.
+ */
+const viaProtectedHost = (req: express.Request) => !!process.env.OWNER_SETUP_HOST && req.headers.host === process.env.OWNER_SETUP_HOST;
+
+app.get('/api/setup', async (req, res) => {
+  res.json({ needsSetup: HOSTED && !(await accounts.hasOwner()), allowedHere: viaProtectedHost(req), setupUrl: process.env.OWNER_SETUP_HOST ? `https://${process.env.OWNER_SETUP_HOST}/setup` : null, ready: authConfigured() });
+});
+
+app.post('/api/setup', authLimit(10), async (req, res) => {
+  if (!HOSTED || !authConfigured()) { fail(res, 503, 'Sign-in storage isn’t connected yet.'); return; }
+  if (!viaProtectedHost(req)) { fail(res, 403, 'Open the setup link from your Vercel-protected address.'); return; }
   const { username, password } = (req.body ?? {}) as { username?: string; password?: string };
-  if (typeof username !== 'string' || typeof password !== 'string' || !username.trim() || !password || password.length > 200) {
-    res.status(400).json({ error: 'Enter your username and password.' });
-    return;
-  }
-  const user = await checkLogin(username, password);
-  if (!user) { res.status(401).json({ error: 'Wrong username or password.' }); return; }
-  setCookie(res, SESSION_COOKIE, await signSession(user), { days: SESSION_DAYS });
-  res.json({ ok: true, user });
+  if (!accounts.validPassword(password)) { fail(res, 400, 'Use a password of at least 8 characters.'); return; }
+  try {
+    const u = await accounts.createOwner(username, password);
+    await signIn(res, u.name);
+    // Setup happens on the protected address; continue on the public site.
+    res.json({ ok: true, user: u.name, next: process.env.PUBLIC_HOST ? `https://${process.env.PUBLIC_HOST}/login?ready=1` : '/' });
+  } catch (err) { fail(res, 400, err); }
+});
+
+app.post('/api/login', authLimit(10), async (req, res) => {
+  if (!HOSTED) { res.json({ ok: true, user: null }); return; } // no login on your own machine
+  if (!authConfigured()) { fail(res, 503, 'Sign-in isn’t set up yet.'); return; }
+  const { username, password } = (req.body ?? {}) as { username?: string; password?: string };
+  if (!accounts.normName(username) || typeof password !== 'string' || !password || password.length > 200) { fail(res, 400, 'Enter your username and password.'); return; }
+  const u = await accounts.checkLogin(username, password);
+  if (!u) { fail(res, 401, 'Wrong username or password.'); return; }
+  await signIn(res, u.name);
+  res.json({ ok: true, user: u.name });
+});
+
+// Invite links: check (to greet the person) and accept (they choose their own password).
+app.get('/api/invite', authLimit(40), async (req, res) => {
+  res.json({ valid: await accounts.inviteValid(req.query.u, req.query.t) });
+});
+app.post('/api/invite/accept', authLimit(10), async (req, res) => {
+  if (!HOSTED || !authConfigured()) { fail(res, 503, 'Sign-in isn’t set up yet.'); return; }
+  const { username, token, password } = (req.body ?? {}) as { username?: string; token?: string; password?: string };
+  if (!accounts.validPassword(password)) { fail(res, 400, 'Use a password of at least 8 characters.'); return; }
+  try {
+    const u = await accounts.acceptInvite(username, token, password);
+    await signIn(res, u.name);
+    res.json({ ok: true, user: u.name });
+  } catch (err) { fail(res, 400, err); }
 });
 
 app.post('/api/logout', (_req, res) => {
@@ -76,14 +117,36 @@ app.post('/api/logout', (_req, res) => {
   res.json({ ok: true });
 });
 
-// Everything else under /api needs a valid session on the hosted site. (Routing middleware
-// already gates the whole site; this is the second lock.)
+// Everything else under /api needs a valid session on the hosted site — and the account must
+// still exist (so removing someone cuts them off at once). Routing middleware already gates the
+// whole site; this is the second lock.
 app.use('/api', async (req, res, next) => {
   if (!HOSTED) { next(); return; }
   const s = await verifySession(cookie(req, SESSION_COOKIE));
-  if (!s) { res.status(401).json({ error: 'Please sign in.' }); return; }
+  const u = s ? await accounts.getUser(s.u) : null;
+  if (!s || !u?.password) { res.status(401).json({ error: 'Please sign in.' }); return; }
   req.user = s.u;
+  req.role = u.role;
   next();
+});
+
+// ── People (owner only) ──
+const ownerOnly: express.RequestHandler = (req, res, next) => {
+  if (HOSTED && req.role === 'owner') { next(); return; }
+  fail(res, 403, 'Only the owner can manage people.');
+};
+const inviteLink = (req: express.Request, name: string, token: string) =>
+  `https://${process.env.PUBLIC_HOST || req.headers.host}/welcome?u=${encodeURIComponent(name)}&t=${token}`;
+
+app.get('/api/people', ownerOnly, async (_req, res) => { res.json({ people: await accounts.listUsers() }); });
+app.post('/api/people', ownerOnly, async (req, res) => {
+  try {
+    const r = await accounts.invite((req.body as { username?: string })?.username);
+    res.json({ name: r.name, link: inviteLink(req, r.name, r.token), days: r.days });
+  } catch (err) { fail(res, 400, err); }
+});
+app.delete('/api/people/:name', ownerOnly, async (req, res) => {
+  try { res.json({ removed: await accounts.removeUser(req.params.name) }); } catch (err) { fail(res, 400, err); }
 });
 
 const byCca3 = new Map((countries as { cca3: string }[]).map((c) => [c.cca3, c]));
@@ -176,7 +239,7 @@ app.delete('/api/mapillary', async (_req, res) => {
 app.get('/api/health', async (req, res) => {
   if (HOSTED) {
     const ai = !!(await openKey(cookie(req, KEY_COOKIE), req.user!));
-    res.json({ ai, source: ai ? 'user' : null, hosted: true, user: req.user });
+    res.json({ ai, source: ai ? 'user' : null, hosted: true, user: req.user, role: req.role });
     return;
   }
   res.json({ ai: await checkAi(), source: keySource, hosted: false, user: null });

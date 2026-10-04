@@ -44,6 +44,7 @@ import { DEFAULT_MAPILLARY_TOKEN } from './config';
 import { findLocation, haversineKm, scoreFor } from './lib/streetview';
 import { countryAt } from './lib/data';
 import { CountryPanel } from './components/CountryPanel';
+import { PeoplePanel } from './components/PeoplePanel';
 import { AntipodeCard, type AntipodeStage } from './components/AntipodeCard';
 import { antipodeOf, describePlace, type Place } from './lib/antipode';
 import { placeFor } from './lib/trivia';
@@ -96,7 +97,7 @@ export default function App() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
   useEffect(() => {
-    const check = () => api('/api/health').then((r) => r.json()).then((d) => { setAi(!!d.ai); setUser(d.user ?? null); }).catch(() => setAi(false));
+    const check = () => api('/api/health').then((r) => r.json()).then((d) => { setAi(!!d.ai); setUser(d.user ?? null); setRole(d.role ?? null); }).catch(() => setAi(false));
     void check();
     window.addEventListener('focus', check);
     return () => window.removeEventListener('focus', check);
@@ -144,6 +145,8 @@ export default function App() {
   // Rivers, lakes, mountain ranges & peaks — on by default, remembered per browser.
   const [hosted, setHosted] = useState(false); // public deployment: sign-in, per-user keys
   const [user, setUser] = useState<string | null>(null);
+  const [role, setRole] = useState<'owner' | 'member' | null>(null);
+  const [peopleOpen, setPeopleOpen] = useState(false);
   const signOut = () => { void api('/api/logout', { method: 'POST' }).finally(() => location.replace('/login')); };
   const [nature, setNature] = useState(() => { try { return localStorage.getItem('gq-nature') !== '0'; } catch { return true; } });
   const toggleNature = () => setNature((v) => { try { localStorage.setItem('gq-nature', v ? '0' : '1'); } catch { /* private mode */ } return !v; });
@@ -612,6 +615,7 @@ export default function App() {
         hosted={hosted}
         user={user}
         onSignOut={signOut}
+        onPeople={role === 'owner' ? () => setPeopleOpen(true) : undefined}
         onSearch={() => setSearchOpen(true)}
         onRandom={() => { if (quiz) exitQuiz(); random(); }}
         onAsk={() => { if (quiz) exitQuiz(); setDockOpen(true); }}
@@ -633,6 +637,7 @@ export default function App() {
         onShortcuts={() => setShortcutsOpen(true)}
       />
       <ShortcutsSheet open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      <PeoplePanel open={peopleOpen} onClose={() => setPeopleOpen(false)} />
 
 
       {/* Onboarding hint */}

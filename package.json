@@ -8,8 +8,7 @@
     "build": "tsc -b && vite build",
     "start": "tsx server/index.ts",
     "lint": "oxlint",
-    "preview": "vite preview",
-    "user:add": "tsx scripts/add-user.ts"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
@@ -18,6 +17,7 @@
     "@photo-sphere-viewer/core": "^5.15.1",
     "@photo-sphere-viewer/markers-plugin": "^5.15.1",
     "@photo-sphere-viewer/virtual-tour-plugin": "^5.15.1",
+    "@vercel/blob": "^2.8.0",
     "@vercel/functions": "^3.9.11",
     "canvas-confetti": "^1.9.4",
     "d3-ease": "^3.0.1",

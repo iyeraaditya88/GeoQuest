@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
-  Binoculars, Dices, Gamepad2, ListOrdered, Landmark, Globe2, History, Keyboard, KeyRound, Map as MapIcon, Mountain, Drill, Brain, SunMoon, LogOut, UserRound, ChevronLeft, RotateCcw, RotateCw, Satellite, Search, Sparkles, X, Menu,
+  Binoculars, Dices, Gamepad2, ListOrdered, Landmark, Globe2, History, Keyboard, KeyRound, Map as MapIcon, Mountain, Drill, Brain, SunMoon, LogOut, UserRound, Users, ChevronLeft, RotateCcw, RotateCw, Satellite, Search, Sparkles, X, Menu,
 } from 'lucide-react';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import type { MapStyle } from './GlobeView';
@@ -31,6 +31,8 @@ interface Props {
   /** Signed-in user on the hosted site (null locally). */
   user?: string | null;
   onSignOut?: () => void;
+  /** Owner on the hosted site: open the People panel. */
+  onPeople?: () => void;
   onQuiz: () => void;
   onStreet: () => void;
   antipodeOn: boolean;
@@ -195,6 +197,7 @@ export function Sidebar(p: Props) {
             {p.user && (
               <>
                 <Fade show={!rail}><span className="sb-user" title={`Signed in as ${p.user}`}><UserRound size={13} /> {p.user}</span></Fade>
+                {p.onPeople && <button className="sb-icon" onClick={p.onPeople} aria-label="People" data-tip="People — invite friends"><Users size={16} /></button>}
                 <button className="sb-icon sb-signout" onClick={p.onSignOut} aria-label="Sign out" data-tip="Sign out"><LogOut size={16} /></button>
               </>
             )}

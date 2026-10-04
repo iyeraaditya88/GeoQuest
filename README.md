@@ -16,16 +16,11 @@ No key yet? Open **Ask the Atlas → Connect Claude** and paste your key. The se
 
 ## Hosting & accounts (Vercel)
 
-The hosted site (`npm run build` → Vercel, with `api/index.ts` as the API function) sits **entirely behind a sign-in** (`middleware.ts`). Accounts are created by the owner; there is no sign-up.
+The hosted site sits **entirely behind a sign-in** (`middleware.ts`). Accounts live in a private Vercel Blob store (`server/users.ts`); only password hashes are stored.
 
-1. Create a login (the password is typed locally and only its hash is printed):
-   ```bash
-   npm run user:add -- alice --secret   # --secret also prints a SESSION_SECRET (needed once)
-   ```
-2. In Vercel → project → Settings → Environment Variables (Production), set:
-   - `SESSION_SECRET`: the generated secret (changing it signs everyone out)
-   - `GEOQUEST_USERS`: the printed entries, comma-separated (`alice:scrypt:…,bob:scrypt:…`)
-3. Redeploy. To add or remove someone, edit `GEOQUEST_USERS` and redeploy.
+- **One-time setup:** connect a *private* Blob store to the project (Vercel → Storage → Create → Blob → Private → connect to this project), then open `https://<OWNER_SETUP_HOST>/setup`, the Vercel-protected address, and choose the owner password.
+- **Adding people:** in the app, open **People** (sidebar footer), type a name, then **Create invite** and **Copy**, and send the link. They open it and choose their own password. Links are single-use and expire in 7 days. From the same panel you can issue a new link (which resets a forgotten password) or remove someone, which signs them out at once.
+- Env (set already): `OWNER_SETUP_HOST` (protected address for setup) and `PUBLIC_HOST` (domain used in invite links). The session key is derived from the Blob store credential; set `SESSION_SECRET` to override.
 
 On the hosted site each user connects **their own** Anthropic key from Ask the Atlas. It's checked with Anthropic and kept encrypted in an httpOnly cookie in their browser, never stored on the server; the owner's key is never used. Locally (`npm run dev`) there's no login and the key lives in `.env` as before.
 

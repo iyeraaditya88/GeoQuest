@@ -5,13 +5,15 @@
 import { next, rewrite } from '@vercel/functions';
 import { SESSION_COOKIE, readCookie, verifySession } from './server/session.js';
 
-// Reachable without signing in: the login page itself and what it needs.
-const PUBLIC = new Set(['/login', '/login.html', '/api/login', '/api/logout', '/favicon.svg', '/textures/loader-earth.jpg']);
+// Reachable without signing in: the sign-in page (which also handles invites and first-time
+// setup) and what it needs.
+const PAGES = new Set(['/login', '/welcome', '/setup']);
+const PUBLIC = new Set(['/login.html', '/api/login', '/api/logout', '/api/setup', '/api/invite', '/api/invite/accept', '/favicon.svg', '/textures/loader-earth.jpg']);
 
 export default async function middleware(request: Request) {
   const url = new URL(request.url);
-  // Serve the clean /login URL from the static page (vercel.json rewrites don't apply after middleware).
-  if (url.pathname === '/login') return rewrite(new URL('/login.html' + url.search, url));
+  // Clean URLs for the one static auth page (vercel.json rewrites don't apply after middleware).
+  if (PAGES.has(url.pathname)) return rewrite(new URL('/login.html' + url.search, url));
   if (PUBLIC.has(url.pathname)) return next();
 
   const session = await verifySession(readCookie(request.headers.get('cookie'), SESSION_COOKIE));

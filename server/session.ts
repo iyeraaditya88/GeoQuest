@@ -23,9 +23,12 @@ function unb64url(s: string) {
   return out;
 }
 
+// SESSION_SECRET if set; otherwise derived from the account store's own credential (injected by
+// Vercel when the private Blob store is connected), so there's no separate secret to manage.
 const secret = () => {
-  const s = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.SESSION_SECRET;
-  return s && s.length >= 32 ? s : null;
+  const env = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env ?? {};
+  const s = env.SESSION_SECRET || (env.BLOB_READ_WRITE_TOKEN ? `geoquest-session:${env.BLOB_READ_WRITE_TOKEN}` : '');
+  return s.length >= 32 ? s : null;
 };
 export const authConfigured = () => !!secret();
 
