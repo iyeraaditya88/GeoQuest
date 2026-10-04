@@ -18,6 +18,7 @@ import countries from '../src/data/countries.json' with { type: 'json' };
 import { CURATED } from '../src/data/curated.js';
 import { KEY_COOKIE, SESSION_COOKIE, SESSION_DAYS, authConfigured, openKey, readCookie, sealKey, signSession, verifySession } from './session.js';
 import * as accounts from './users.js';
+import { setSecretSource } from './session.js';
 
 declare module 'express-serve-static-core' {
   interface Request { user?: string; role?: accounts.Role }
@@ -27,6 +28,8 @@ const ENV_PATH = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '
 
 /** Running as a public deployment (Vercel), not on your own machine. */
 const HOSTED = !!process.env.VERCEL;
+
+setSecretSource(accounts.sessionSecret); // signing key lives in the private account store
 
 const app = express();
 app.use(express.json({ limit: '256kb' }));
@@ -70,11 +73,11 @@ const authLimit = (max: number) => rateLimit(max, 10 * 60_000, 'Too many attempt
 const viaProtectedHost = (req: express.Request) => !!process.env.OWNER_SETUP_HOST && req.headers.host === process.env.OWNER_SETUP_HOST;
 
 app.get('/api/setup', async (req, res) => {
-  res.json({ needsSetup: HOSTED && !(await accounts.hasOwner()), allowedHere: viaProtectedHost(req), setupUrl: process.env.OWNER_SETUP_HOST ? `https://${process.env.OWNER_SETUP_HOST}/setup` : null, ready: authConfigured() });
+  res.json({ needsSetup: HOSTED && !(await accounts.hasOwner()), allowedHere: viaProtectedHost(req), setupUrl: process.env.OWNER_SETUP_HOST ? `https://${process.env.OWNER_SETUP_HOST}/setup` : null, ready: await authConfigured() });
 });
 
 app.post('/api/setup', authLimit(10), async (req, res) => {
-  if (!HOSTED || !authConfigured()) { fail(res, 503, 'Sign-in storage isn’t connected yet.'); return; }
+  if (!HOSTED || !(await authConfigured())) { fail(res, 503, 'Sign-in storage isn’t connected yet.'); return; }
   if (!viaProtectedHost(req)) { fail(res, 403, 'Open the setup link from your Vercel-protected address.'); return; }
   const { username, password } = (req.body ?? {}) as { username?: string; password?: string };
   if (!accounts.validPassword(password)) { fail(res, 400, 'Use a password of at least 8 characters.'); return; }
@@ -88,7 +91,7 @@ app.post('/api/setup', authLimit(10), async (req, res) => {
 
 app.post('/api/login', authLimit(10), async (req, res) => {
   if (!HOSTED) { res.json({ ok: true, user: null }); return; } // no login on your own machine
-  if (!authConfigured()) { fail(res, 503, 'Sign-in isn’t set up yet.'); return; }
+  if (!(await authConfigured())) { fail(res, 503, 'Sign-in isn’t set up yet.'); return; }
   const { username, password } = (req.body ?? {}) as { username?: string; password?: string };
   if (!accounts.normName(username) || typeof password !== 'string' || !password || password.length > 200) { fail(res, 400, 'Enter your username and password.'); return; }
   const u = await accounts.checkLogin(username, password);
@@ -102,7 +105,7 @@ app.get('/api/invite', authLimit(40), async (req, res) => {
   res.json({ valid: await accounts.inviteValid(req.query.u, req.query.t) });
 });
 app.post('/api/invite/accept', authLimit(10), async (req, res) => {
-  if (!HOSTED || !authConfigured()) { fail(res, 503, 'Sign-in isn’t set up yet.'); return; }
+  if (!HOSTED || !(await authConfigured())) { fail(res, 503, 'Sign-in isn’t set up yet.'); return; }
   const { username, token, password } = (req.body ?? {}) as { username?: string; token?: string; password?: string };
   if (!accounts.validPassword(password)) { fail(res, 400, 'Use a password of at least 8 characters.'); return; }
   try {

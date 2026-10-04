@@ -1,9 +1,14 @@
 // Vercel Routing Middleware: the whole hosted site sits behind a sign-in.
 // Runs on Vercel only (local `npm run dev` has no login). Every request — pages, scripts,
 // textures, data and API — needs a valid session cookie; otherwise pages redirect to
-// /login and API calls get 401. Fails closed: with no SESSION_SECRET nobody gets in.
+// /login and API calls get 401. Fails closed: with no signing key nobody gets in.
 import { next, rewrite } from '@vercel/functions';
-import { SESSION_COOKIE, readCookie, verifySession } from './server/session.js';
+import { SESSION_COOKIE, authConfigured, readCookie, setSecretSource, verifySession } from './server/session.js';
+import { sessionSecret } from './server/users.js';
+
+// Node runtime: the signing key is read from the private account store (then cached).
+export const config = { runtime: 'nodejs' };
+setSecretSource(sessionSecret);
 
 // Reachable without signing in: the sign-in page (which also handles invites and first-time
 // setup) and what it needs.
@@ -24,5 +29,6 @@ export default async function middleware(request: Request) {
   }
   const login = new URL('/login', url);
   if (url.pathname !== '/' || url.search) login.searchParams.set('next', url.pathname + url.search);
-  return new Response(null, { status: 302, headers: { Location: login.toString(), 'Cache-Control': 'no-store' } });
+  // x-gq-auth: whether sign-in is wired up (handy when checking a deployment; not sensitive).
+  return new Response(null, { status: 302, headers: { Location: login.toString(), 'Cache-Control': 'no-store', 'x-gq-auth': (await authConfigured()) ? 'ready' : 'not-configured' } });
 }

@@ -26,7 +26,8 @@ export interface UserRecord {
 }
 type Db = { users: Record<string, UserRecord> };
 
-const useBlob = () => !!process.env.BLOB_READ_WRITE_TOKEN;
+// Connected store: classic read-write token, or (newer projects) store ID + Vercel OIDC.
+const useBlob = () => !!(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
 const localFile = () => process.env.GQ_USERS_FILE ?? '.users.local.json';
 
 // Short cache: reads are on every API call (to cut off removed users at once), writes are rare.
@@ -54,6 +55,37 @@ async function save(db: Db) {
   if (useBlob()) await put(BLOB_PATH, body, { access: 'private', allowOverwrite: true, addRandomSuffix: false, contentType: 'application/json', cacheControlMaxAge: 0 });
   else await writeFile(localFile(), body, { mode: 0o600 });
   cache = { db, at: Date.now() };
+}
+
+// ── Session signing key ──
+// SESSION_SECRET if set; otherwise a random key generated on first use and kept in the same
+// private store (so there's nothing for anyone to copy or paste). Cached per instance.
+const SECRET_PATH = 'auth/session-secret';
+let secretCache: string | null = null;
+async function readSecret() {
+  const r = await get(SECRET_PATH, { access: 'private', useCache: false }).catch(() => null);
+  return r && r.statusCode === 200 ? (await new Response(r.stream).text()).trim() : null;
+}
+export async function sessionSecret(): Promise<string | null> {
+  const env = process.env.SESSION_SECRET;
+  if (env && env.length >= 32) return env;
+  if (secretCache) return secretCache;
+  if (!useBlob()) return null;
+  try {
+    secretCache = await readSecret();
+    if (secretCache) return secretCache;
+    const fresh = randomBytes(32).toString('base64url');
+    try {
+      await put(SECRET_PATH, fresh, { access: 'private', allowOverwrite: false, addRandomSuffix: false, contentType: 'text/plain', cacheControlMaxAge: 0 });
+      secretCache = fresh;
+    } catch {
+      secretCache = await readSecret(); // another instance created it first — use theirs
+    }
+    return secretCache;
+  } catch (err) {
+    console.error('[geoquest] could not load the session key:', (err as Error).message);
+    return null;
+  }
 }
 
 /** Usernames: 2–32 chars, lowercase letters, digits, dot, dash, underscore. */

@@ -23,14 +23,19 @@ function unb64url(s: string) {
   return out;
 }
 
-// SESSION_SECRET if set; otherwise derived from the account store's own credential (injected by
-// Vercel when the private Blob store is connected), so there's no separate secret to manage.
-const secret = () => {
-  const env = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env ?? {};
-  const s = env.SESSION_SECRET || (env.BLOB_READ_WRITE_TOKEN ? `geoquest-session:${env.BLOB_READ_WRITE_TOKEN}` : '');
-  return s.length >= 32 ? s : null;
+// Where the signing key comes from: SESSION_SECRET by default; the server and middleware
+// plug in the account store's generated key (server/users.ts → sessionSecret).
+type SecretSource = () => Promise<string | null>;
+let source: SecretSource = async () => {
+  const s = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.SESSION_SECRET;
+  return s && s.length >= 32 ? s : null;
 };
-export const authConfigured = () => !!secret();
+export function setSecretSource(fn: SecretSource) { source = fn; }
+const secret = async () => {
+  const s = await source();
+  return s && s.length >= 32 ? s : null;
+};
+export const authConfigured = async () => !!(await secret());
 
 async function hmacKey(s: string) {
   return crypto.subtle.importKey('raw', enc.encode(s), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']);
@@ -40,8 +45,8 @@ export interface Session { u: string; exp: number }
 
 /** A signed, expiring session token: base64url(payload).base64url(hmac). */
 export async function signSession(user: string, days = SESSION_DAYS) {
-  const s = secret();
-  if (!s) throw new Error('SESSION_SECRET is not set');
+  const s = await secret();
+  if (!s) throw new Error('No session key available');
   const payload = b64url(enc.encode(JSON.stringify({ u: user, exp: Date.now() + days * 86400000 } satisfies Session)));
   const sig = new Uint8Array(await crypto.subtle.sign('HMAC', await hmacKey(s), enc.encode(payload)));
   return `${payload}.${b64url(sig)}`;
@@ -49,7 +54,7 @@ export async function signSession(user: string, days = SESSION_DAYS) {
 
 /** The session in a token, or null if it's missing, forged, malformed or expired. */
 export async function verifySession(token: string | null | undefined): Promise<Session | null> {
-  const s = secret();
+  const s = await secret();
   if (!s || !token) return null;
   const [payload, sig] = token.split('.');
   if (!payload || !sig) return null;
@@ -75,8 +80,8 @@ async function aesKey(s: string) {
 
 /** Encrypt `value` for `user` (AES-256-GCM; the username is bound in as associated data). */
 export async function sealKey(value: string, user: string) {
-  const s = secret();
-  if (!s) throw new Error('SESSION_SECRET is not set');
+  const s = await secret();
+  if (!s) throw new Error('No session key available');
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: enc.encode(user) }, await aesKey(s), enc.encode(value)));
   return `${b64url(iv)}.${b64url(ct)}`;
@@ -84,7 +89,7 @@ export async function sealKey(value: string, user: string) {
 
 /** Decrypt a sealed value for `user`; null if it was tampered with or sealed for someone else. */
 export async function openKey(blob: string | null | undefined, user: string) {
-  const s = secret();
+  const s = await secret();
   if (!s || !blob) return null;
   const [iv, ct] = blob.split('.');
   if (!iv || !ct) return null;

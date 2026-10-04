@@ -20,7 +20,7 @@ The hosted site sits **entirely behind a sign-in** (`middleware.ts`). Accounts l
 
 - **One-time setup:** connect a *private* Blob store to the project (Vercel → Storage → Create → Blob → Private → connect to this project), then open `https://<OWNER_SETUP_HOST>/setup`, the Vercel-protected address, and choose the owner password.
 - **Adding people:** in the app, open **People** (sidebar footer), type a name, then **Create invite** and **Copy**, and send the link. They open it and choose their own password. Links are single-use and expire in 7 days. From the same panel you can issue a new link (which resets a forgotten password) or remove someone, which signs them out at once.
-- Env (set already): `OWNER_SETUP_HOST` (protected address for setup) and `PUBLIC_HOST` (domain used in invite links). The session key is derived from the Blob store credential; set `SESSION_SECRET` to override.
+- Env (set already): `OWNER_SETUP_HOST` (protected address for setup) and `PUBLIC_HOST` (domain used in invite links). The session signing key is generated on first use and kept in the private store; set `SESSION_SECRET` to override.
 
 On the hosted site each user connects **their own** Anthropic key from Ask the Atlas. It's checked with Anthropic and kept encrypted in an httpOnly cookie in their browser, never stored on the server; the owner's key is never used. Locally (`npm run dev`) there's no login and the key lives in `.env` as before.
 
