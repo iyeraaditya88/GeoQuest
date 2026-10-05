@@ -53,13 +53,11 @@ import { placeFor } from './lib/trivia';
 import { SearchPalette } from './components/SearchPalette';
 import { AskDock } from './components/AskDock';
 import { QuizBar, type QuizMode, type QuizState } from './components/QuizBar';
-import { BY_CCA3, COUNTRIES, MAPPABLE } from './lib/data';
-import { CURATED } from './data/curated';
+import { BY_CCA3 } from './lib/data';
 import { api } from './lib/api';
-
-const QUIZ_POOL = COUNTRIES.filter((c) => c.un && MAPPABLE.has(c.cca3) && c.area > 2000).map((c) => c.cca3);
-const CLUE_POOL = Object.keys(CURATED).filter((k) => MAPPABLE.has(k));
-const pickRandom = <T,>(xs: T[], not?: T) => { let x: T; do { x = xs[Math.floor(Math.random() * xs.length)]; } while (xs.length > 1 && x === not); return x; };
+import { CLUE_POOL, QUIZ_POOL, clueFor, pickRandom } from './lib/quiz';
+import { LivePlay, type LiveState, type MatchGlobe } from './components/LivePlay';
+import { localName } from './lib/live';
 
 function loadBest() { try { return Number(localStorage.getItem('gq-best') ?? 0); } catch { return 0; } }
 function saveBest(n: number) { try { localStorage.setItem('gq-best', String(n)); } catch { /* ignore */ } }
@@ -67,13 +65,7 @@ function saveBest(n: number) { try { localStorage.setItem('gq-best', String(n));
 function newRound(mode: QuizMode, prev?: QuizState): QuizState {
   const pool = mode === 'clue' ? CLUE_POOL : QUIZ_POOL;
   const target = pickRandom(pool, prev?.target);
-  let clue: string | undefined;
-  if (mode === 'clue') {
-    const c = BY_CCA3.get(target)!;
-    const tips = CURATED[target].tips.map((t) => t.t);
-    clue = pickRandom(tips);
-    for (const w of [c.name, c.demonym].filter(Boolean)) clue = clue.replace(new RegExp(w, 'gi'), '▢▢▢');
-  }
+  const clue = mode === 'clue' ? clueFor(target) : undefined;
   return {
     mode, target, clue, result: 'idle', misses: 0,
     streak: prev?.streak ?? 0, best: prev?.best ?? loadBest(), score: prev?.score ?? 0, rounds: prev?.rounds ?? 0,
@@ -99,7 +91,7 @@ export default function App() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
   useEffect(() => {
-    const check = () => api('/api/health').then((r) => r.json()).then((d) => { setAi(!!d.ai); setUser(d.user ?? null); setRole(d.role ?? null); }).catch(() => setAi(false));
+    const check = () => api('/api/health').then((r) => r.json()).then((d) => { setAi(!!d.ai); setUser(d.user ?? null); setRole(d.role ?? null); setLiveMode(d.live === 'ably' || d.live === 'local' ? d.live : null); }).catch(() => setAi(false));
     void check();
     window.addEventListener('focus', check);
     return () => window.removeEventListener('focus', check);
@@ -149,6 +141,13 @@ export default function App() {
   const [user, setUser] = useState<string | null>(null);
   const [role, setRole] = useState<'owner' | 'member' | null>(null);
   const [peopleOpen, setPeopleOpen] = useState(false);
+  // Live head-to-head (see LivePlay): hosted over Ably, locally between tabs.
+  const [liveMode, setLiveMode] = useState<'ably' | 'local' | null>(null);
+  const [liveState, setLiveState] = useState<LiveState>({ active: false, quiz: false, immersive: false, online: 0, ready: false });
+  const liveRef = useRef(liveState);
+  liveRef.current = liveState;
+  const [friendsReq, setFriendsReq] = useState(0);
+  const matchClick = useRef<((cca3: string | null) => void) | null>(null);
   const signOut = () => { void api('/api/logout', { method: 'POST' }).finally(() => location.replace('/login')); };
   const [nature, setNature] = useState(() => { try { return localStorage.getItem('gq-nature') !== '0'; } catch { return true; } });
   const toggleNature = () => setNature((v) => { try { localStorage.setItem('gq-nature', v ? '0' : '1'); } catch { /* private mode */ } return !v; });
@@ -471,6 +470,37 @@ export default function App() {
     else if (viewRef.current === 'globe') { setHighlighted([]); globe.current?.frame(at.lat, at.lng, at.alt); }
   }, [cam]);
 
+  // ── Live matches: what a match may do to the map, and clearing the stage when one starts ──
+  const liveMe = useMemo(() => (liveMode === 'ably' ? user : liveMode === 'local' ? localName() : null), [liveMode, user]);
+  const hlRef = useRef(highlight);
+  hlRef.current = highlight;
+  const matchGlobe = useMemo<MatchGlobe>(() => ({
+    flyTo: (c) => cam.flyTo(c),
+    feedback: (f) => setFeedback(f),
+    highlight: (ids) => (ids.length ? hlRef.current(ids) : setHighlighted([])),
+    revealPlace: (a) => revealTrivia(a),
+  }), [cam, revealTrivia]);
+  useEffect(() => {
+    if (!liveState.active) return;
+    if (geoRef.current) exitGeo();
+    if (antiRef.current) exitAntipode();
+    exitQuiz();
+    setPlay(null);
+    setSelected(null);
+    setFeature(null);
+    setHighlighted([]);
+    setDockOpen(false);
+    setSearchOpen(false);
+    setAutoRotate(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveState.active]);
+  // Street View matches cover the screen: stop drawing the globe underneath.
+  useEffect(() => {
+    if (!liveState.immersive) return;
+    const t = window.setTimeout(() => globe.current?.pause(), 450);
+    return () => { window.clearTimeout(t); globe.current?.resume(); };
+  }, [liveState.immersive]);
+
   // ── Antipode finder ────────────────────────────────────
   // (pins: where you start, and — once you've surfaced — where you came out)
   const [anti, setAnti] = useState<{ stage: AntipodeStage; from: Place | null; to: Place | null } | null>(null);
@@ -527,6 +557,7 @@ export default function App() {
       const typing = (e.target as HTMLElement)?.closest?.('input, textarea');
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setSearchOpen(true); return; }
       if (typing) return;
+      if (liveRef.current.active) return; // a live match owns the keyboard
       if (antiRef.current) {
         // Esc skips a running dig, otherwise closes; P toggles the finder.
         if (e.key === 'Escape') { if (antiRef.current.stage === 'dive') diveRun.current?.cancel(); else exitAntipode(); }
@@ -577,7 +608,7 @@ export default function App() {
         style={style}
         autoRotate={autoRotate}
         feedback={feedback}
-        quiz={!!quiz}
+        quiz={!!quiz || liveState.quiz}
         liftUp={dockOpen && !quiz}
         dropDown={!!play || (!!anti && anti.stage !== 'dive')}
         pickMode={!!anti && anti.stage !== 'dive'}
@@ -585,9 +616,9 @@ export default function App() {
         pins={antiPins}
         leftInset={leftInset}
         nature={nature}
-        hidden={globeHidden || !!geo}
-        onSelect={(c) => { if (anti) return; if (quiz) quizClick(c); else if (c) select(c); else { setSelected(null); setHighlighted([]); setFeature(null); } }}
-        onFeature={(f) => { if (!anti && !quiz) void openFeature(f); }}
+        hidden={globeHidden || !!geo || liveState.immersive}
+        onSelect={(c) => { if (matchClick.current) { matchClick.current(c); return; } if (liveRef.current.active) return; if (anti) return; if (quiz) quizClick(c); else if (c) select(c); else { setSelected(null); setHighlighted([]); setFeature(null); } }}
+        onFeature={(f) => { if (!anti && !quiz && !liveRef.current.active) void openFeature(f); }}
         feature={feature}
         onInteract={() => setAutoRotate(false)}
         onReady={() => setTimeout(() => setReady(true), 300)}
@@ -602,13 +633,13 @@ export default function App() {
             selected={selected}
             highlighted={highlighted}
             feedback={feedback}
-            quiz={!!quiz}
+            quiz={!!quiz || liveState.quiz}
             panelOpen={(!!country || !!feature) && !quiz}
             leftInset={leftInset}
             nature={nature}
             feature={feature}
-            onFeature={(f) => { if (!quiz) void openFeature(f); }}
-            onSelect={(c) => (quiz ? quizClick(c) : c ? select(c) : (setSelected(null), setHighlighted([]), setFeature(null)))}
+            onFeature={(f) => { if (!quiz && !liveRef.current.active) void openFeature(f); }}
+            onSelect={(c) => (matchClick.current ? matchClick.current(c) : liveRef.current.active ? undefined : quiz ? quizClick(c) : c ? select(c) : (setSelected(null), setHighlighted([]), setFeature(null)))}
             onInteract={() => setAutoRotate(false)}
             onReady={() => { morphing.current = false; }}
           />
@@ -631,7 +662,7 @@ export default function App() {
         mobile={mobile}
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
-        hidden={!chrome || !!geo}
+        hidden={!chrome || !!geo || liveState.immersive}
         view={view}
         style={style}
         autoRotate={autoRotate}
@@ -655,6 +686,9 @@ export default function App() {
         onTop5={() => (play === 'top5' ? exitPlay() : startPlay('top5'))}
         onCapitals={() => (play === 'capitals' ? exitPlay() : startPlay('capitals'))}
         onTrivia={() => (play === 'trivia' ? exitPlay() : startPlay('trivia'))}
+        onFriends={liveMode && liveMe ? () => setFriendsReq((n) => n + 1) : undefined}
+        friendsOnline={liveState.online}
+        matchOn={liveState.active}
         onToggleView={() => void toggleFlat()}
         onStyle={setStyle}
         onAutoRotate={() => setAutoRotate((v) => !v)}
@@ -670,7 +704,7 @@ export default function App() {
 
       {/* Onboarding hint */}
       <AnimatePresence>
-        {chrome && !selected && !quiz && !dockOpen && !geo && !play && !anti && (
+        {chrome && !selected && !quiz && !dockOpen && !geo && !play && !anti && !liveState.active && (
           <motion.div className="hint" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ delay: 0.9 }}>
             <span className="pulse-dot" />{' '}
             {view === 'globe' && style === 'daynight'
@@ -705,9 +739,10 @@ export default function App() {
           />
         )}
       </AnimatePresence>
-      <FeaturePanel feature={quiz || geo || play || anti ? null : feature} onClose={() => setFeature(null)} onSelectCountry={select} onAsk={ask} />
-      <CountryPanel country={quiz || geo || play || anti ? null : country} onClose={() => setSelected(null)} onSelect={select} onAsk={ask} />
-      {chrome && !quiz && !geo && !play && !anti && <AskDock open={dockOpen} setOpen={setDockOpen} country={country} request={askReq} keyRequest={keyReq} onAiChange={setAi} onHosted={setHosted} onHighlight={highlight} onSelect={select} />}
+      <FeaturePanel feature={quiz || geo || play || anti || liveState.active ? null : feature} onClose={() => setFeature(null)} onSelectCountry={select} onAsk={ask} />
+      <CountryPanel country={quiz || geo || play || anti || liveState.active ? null : country} onClose={() => setSelected(null)} onSelect={select} onAsk={ask} />
+      {chrome && !quiz && !geo && !play && !anti && !liveState.active && <AskDock open={dockOpen} setOpen={setDockOpen} country={country} request={askReq} keyRequest={keyReq} onAiChange={setAi} onHosted={setHosted} onHighlight={highlight} onSelect={select} />}
+      <LivePlay mode={liveMode} me={liveMe} ai={ai} friendsReq={friendsReq} globe={matchGlobe} clickRef={matchClick} onState={setLiveState} />
       <CustomCursor />
       <SearchPalette open={searchOpen} onClose={() => setSearchOpen(false)} onPick={(c) => { if (quiz) exitQuiz(); select(c); }} />
     </div>

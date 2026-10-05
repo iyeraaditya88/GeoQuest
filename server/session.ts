@@ -69,6 +69,28 @@ export async function verifySession(token: string | null | undefined): Promise<S
   }
 }
 
+// ── Small signed tokens for other purposes (e.g. live-match tickets) ──
+// The purpose is mixed into the MAC, so one kind of token can never pass as another (or as a session).
+export async function signData(purpose: string, data: object) {
+  const s = await secret();
+  if (!s) throw new Error('No session key available');
+  const payload = b64url(enc.encode(JSON.stringify(data)));
+  const sig = new Uint8Array(await crypto.subtle.sign('HMAC', await hmacKey(s), enc.encode(`${purpose}.${payload}`)));
+  return `${payload}.${b64url(sig)}`;
+}
+export async function verifyData<T>(purpose: string, token: unknown): Promise<T | null> {
+  const s = await secret();
+  if (!s || typeof token !== 'string') return null;
+  const [payload, sig] = token.split('.');
+  if (!payload || !sig) return null;
+  try {
+    if (!(await crypto.subtle.verify('HMAC', await hmacKey(s), unb64url(sig), enc.encode(`${purpose}.${payload}`)))) return null;
+    return JSON.parse(dec.decode(unb64url(payload))) as T;
+  } catch {
+    return null;
+  }
+}
+
 // ── A user's own Anthropic key, sealed into an httpOnly cookie ──
 async function aesKey(s: string) {
   const base = await crypto.subtle.importKey('raw', enc.encode(s), 'HKDF', false, ['deriveKey']);

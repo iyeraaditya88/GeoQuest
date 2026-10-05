@@ -19,6 +19,7 @@
     "@photo-sphere-viewer/virtual-tour-plugin": "^5.15.1",
     "@vercel/blob": "^2.8.0",
     "@vercel/functions": "^3.9.11",
+    "ably": "^2.29.0",
     "canvas-confetti": "^1.9.4",
     "d3-ease": "^3.0.1",
     "d3-geo": "^3.1.1",

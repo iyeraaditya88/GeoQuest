@@ -808,6 +808,8 @@ interface Props {
   onSkip: () => void;
   onMapillary: (token: string) => void;
   onFallback: () => void;
+  /** Live match: the match paces the rounds — no Skip / Next, show this note instead. */
+  match?: { note: string };
 }
 
 function Count({ to, duration = 1.1 }: { to: number; duration?: number }) {
@@ -821,7 +823,7 @@ function Count({ to, duration = 1.1 }: { to: number; duration?: number }) {
 
 const fmtKm = (km: number) => (km < 1 ? `${Math.round(km * 1000)} m` : km < 100 ? `${km.toFixed(1)} km` : `${fmtInt(Math.round(km))} km`);
 
-export function StreetGame({ game, mlyToken, onPick, onGuess, onNext, onExit, onRestart, onSkip, onMapillary, onFallback }: Props) {
+export function StreetGame({ game, mlyToken, onPick, onGuess, onNext, onExit, onRestart, onSkip, onMapillary, onFallback, match }: Props) {
   const [steps, setSteps] = useState(0);
   useEffect(() => setSteps(0), [game.item?.id]);
   const total = game.results.reduce((s, r) => s + r.score, 0);
@@ -850,7 +852,7 @@ export function StreetGame({ game, mlyToken, onPick, onGuess, onNext, onExit, on
       {game.status === 'error' && (
         <div className="sv-loading">
           <span>{game.error}</span>
-          <button className="primary sv-small" onClick={onSkip}>Try again</button>
+          {match ? <span className="sv-match-note">{match.note}</span> : <button className="primary sv-small" onClick={onSkip}>Try again</button>}
         </div>
       )}
 
@@ -870,7 +872,7 @@ export function StreetGame({ game, mlyToken, onPick, onGuess, onNext, onExit, on
           <div className="sv-chip"><Trophy size={13} /> <b>{fmtInt(total)}</b> pts</div>
           {steps > 0 && game.status === 'play' && <div className="sv-chip ghost">{steps} step{steps === 1 ? '' : 's'}</div>}
           <div className="sv-spacer" />
-          {game.status === 'play' && <button className="sv-chip btn" onClick={onSkip} title="New location (no points)">Skip</button>}
+          {game.status === 'play' && !match && <button className="sv-chip btn" onClick={onSkip} title="New location (no points)">Skip</button>}
           <button className="sv-btn" onClick={onExit} aria-label="Exit street view"><X size={17} /></button>
         </div>
       )}
@@ -904,7 +906,7 @@ export function StreetGame({ game, mlyToken, onPick, onGuess, onNext, onExit, on
               )}
             </div>
             <div className="svr-bar"><motion.i initial={{ width: 0 }} animate={{ width: `${(last.score / 5000) * 100}%` }} transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }} /></div>
-            <button className="primary" onClick={onNext}>{game.round >= game.totalRounds ? <><Flag size={15} /> See final score</> : <>Next round <kbd>↵</kbd></>}</button>
+            {match ? <div className="sv-match-note">{match.note}</div> : <button className="primary" onClick={onNext}>{game.round >= game.totalRounds ? <><Flag size={15} /> See final score</> : <>Next round <kbd>↵</kbd></>}</button>}
           </motion.div>
         )}
       </AnimatePresence>

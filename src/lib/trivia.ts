@@ -52,6 +52,20 @@ export function nextQuestion(level: number, askedThisRound: Set<number>): Trivia
   return null;
 }
 
+/** A fixed difficulty ramp for live matches (everyone gets the same ten): 3 Easy, 3 Medium, 3 Hard, 1 Impossible. */
+export const MATCH_RAMP = [0, 0, 0, 1, 1, 1, 2, 2, 2, 3];
+export function matchQuestions(): TriviaQ[] {
+  const asked = new Set<number>();
+  const out: TriviaQ[] = [];
+  for (const lv of MATCH_RAMP) {
+    const q = nextQuestion(lv, asked);
+    if (!q) break;
+    asked.add(q.id);
+    out.push(q);
+  }
+  return out;
+}
+
 export function loadBest() { try { return Number(localStorage.getItem('gq-trivia-best') ?? 0); } catch { return 0; } }
 export function saveBest(n: number) { try { localStorage.setItem('gq-trivia-best', String(n)); } catch { /* ignore */ } }
 

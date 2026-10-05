@@ -27,3 +27,4 @@ dist-ssr
 # Local tooling
 .claude/
 .users.local.json
+.matches.local.json

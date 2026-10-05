@@ -18,6 +18,8 @@ import countries from '../src/data/countries.json' with { type: 'json' };
 import { CURATED } from '../src/data/curated.js';
 import { KEY_COOKIE, SESSION_COOKIE, SESSION_DAYS, authConfigured, openKey, readCookie, sealKey, signSession, verifySession } from './session.js';
 import * as accounts from './users.js';
+import * as live from './live.js';
+import { historyFor, saveMatch, type MatchRecord } from './matches.js';
 import { setSecretSource } from './session.js';
 
 declare module 'express-serve-static-core' {
@@ -152,6 +154,59 @@ app.delete('/api/people/:name', ownerOnly, async (req, res) => {
   try { res.json({ removed: await accounts.removeUser(req.params.name) }); } catch (err) { fail(res, 400, err); }
 });
 
+// ── Live matches ──
+// Hosted: Ably, with tokens scoped by signed match tickets (server/live.ts). Locally there's no
+// login and no Ably — the browser plays over a BroadcastChannel between tabs, and says who it is.
+const me = (req: express.Request) => (HOSTED ? req.user! : accounts.normName(req.headers['x-gq-as']) || 'you');
+
+// Everyone signed in can see who else plays (names only — managing people stays owner-only).
+app.get('/api/players', async (req, res) => {
+  if (!HOSTED) { res.json({ players: [] }); return; }
+  const people = await accounts.listUsers();
+  res.json({ players: people.filter((p) => p.status === 'active' && p.name !== req.user).map((p) => ({ name: p.name, lastLogin: p.lastLogin })) });
+});
+
+app.post('/api/realtime/token', rateLimit(120, 10 * 60_000), async (req, res) => {
+  if (!HOSTED || !live.liveConfigured()) { fail(res, 404, 'Live play isn’t set up.'); return; }
+  try { res.json(await live.tokenRequest(req.user!, (req.body as { tickets?: unknown })?.tickets)); } catch (err) { fail(res, 502, err); }
+});
+
+app.post('/api/challenges', rateLimit(40, 10 * 60_000), async (req, res) => {
+  if (!HOSTED || !live.liveConfigured()) { fail(res, 404, 'Live play isn’t set up.'); return; }
+  const body = req.body as { to?: unknown; game?: unknown; opts?: unknown };
+  const game = body.game as live.GameId;
+  const to = [...new Set((Array.isArray(body.to) ? body.to : []).map(accounts.normName))].filter((n) => n && n !== req.user);
+  if (!live.GAMES.includes(game)) { fail(res, 400, 'Unknown game.'); return; }
+  if (!to.length || to.length > 5) { fail(res, 400, 'Challenge between 1 and 5 friends.'); return; }
+  for (const n of to) if (!(await accounts.getUser(n))?.password) { fail(res, 400, `There’s no player called “${n}”.`); return; }
+  const opts = typeof body.opts === 'object' && body.opts ? body.opts : {};
+  const id = live.newMatchId();
+  const players = [req.user!, ...to];
+  try {
+    await Promise.all(to.map(async (name) => live.sendInvite(name, { id, from: req.user, game, opts, players, at: Date.now(), ticket: await live.issueTicket({ m: id, host: req.user!, players, game }) })));
+    res.json({ id, players, ticket: await live.issueTicket({ m: id, host: req.user!, players, game }) });
+  } catch (err) { fail(res, 502, err); }
+});
+
+app.get('/api/matches', async (req, res) => { res.json({ matches: await historyFor(me(req)) }); });
+app.post('/api/matches/:id/result', rateLimit(30, 10 * 60_000), async (req, res) => {
+  const body = req.body as { ticket?: unknown; game?: unknown; mode?: unknown; players?: unknown };
+  const id = String(req.params.id);
+  let allowed: string[] | null = null;
+  if (HOSTED) {
+    const t = await live.readTicket(body.ticket, req.user!);
+    if (!t || t.m !== id || t.host !== req.user) { fail(res, 403, 'Only the host can record this match.'); return; }
+    allowed = t.players;
+  }
+  const players = (Array.isArray(body.players) ? body.players : [])
+    .map((p: { name?: unknown; score?: unknown }) => ({ name: accounts.normName(p?.name), score: Math.max(0, Math.round(Number(p?.score) || 0)) }))
+    .filter((p) => accounts.validName(p.name) && (!allowed || allowed.includes(p.name)))
+    .slice(0, 6);
+  if (players.length < 2 || !/^[\w-]{6,24}$/.test(id)) { fail(res, 400, 'Not a finished match.'); return; }
+  const rec: MatchRecord = { id, game: String(body.game).slice(0, 12), mode: body.mode ? String(body.mode).slice(0, 12) : undefined, host: me(req), at: Date.now(), players };
+  try { await saveMatch(rec); res.json({ ok: true }); } catch (err) { fail(res, 500, err); }
+});
+
 const byCca3 = new Map((countries as { cca3: string }[]).map((c) => [c.cca3, c]));
 
 let client: Anthropic | null = null;
@@ -242,10 +297,10 @@ app.delete('/api/mapillary', async (_req, res) => {
 app.get('/api/health', async (req, res) => {
   if (HOSTED) {
     const ai = !!(await openKey(cookie(req, KEY_COOKIE), req.user!));
-    res.json({ ai, source: ai ? 'user' : null, hosted: true, user: req.user, role: req.role });
+    res.json({ ai, source: ai ? 'user' : null, hosted: true, user: req.user, role: req.role, live: live.liveConfigured() ? 'ably' : null });
     return;
   }
-  res.json({ ai: await checkAi(), source: keySource, hosted: false, user: null });
+  res.json({ ai: await checkAi(), source: keySource, hosted: false, user: null, live: 'local' });
 });
 
 app.post('/api/key', rateLimit(10, 10 * 60_000), async (req, res) => {

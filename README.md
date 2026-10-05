@@ -22,6 +22,8 @@ The hosted site sits **entirely behind a sign-in** (`middleware.ts`). Accounts l
 - **Adding people:** in the app, open **People** (sidebar footer), type a name, then **Create invite** and **Copy**, and send the link. They open it and choose their own password. Links are single-use and expire in 7 days. From the same panel you can issue a new link (which resets a forgotten password) or remove someone, which signs them out at once.
 - Env (set already): `OWNER_SETUP_HOST` (protected address for setup) and `PUBLIC_HOST` (domain used in invite links). The session signing key is generated on first use and kept in the private store; set `SESSION_SECRET` to override.
 
+**Live play with friends:** create a free app at [ably.com](https://ably.com), copy its API key (the root key, or one with publish, subscribe, presence and token-request rights), and add it in Vercel → Settings → Environment Variables as `ABLY_API_KEY`, then redeploy. The key stays on the server. Browsers get short-lived tokens that only reach the lobby, their own inbox, and matches they hold a signed ticket for. Until the key is set, **Play with friends** doesn't appear.
+
 On the hosted site each user connects **their own** Anthropic key from Ask the Atlas. It's checked with Anthropic and kept encrypted in an httpOnly cookie in their browser, never stored on the server; the owner's key is never used. Locally (`npm run dev`) there's no login and the key lives in `.env` as before.
 
 ## Features
@@ -34,6 +36,12 @@ On the hosted site each user connects **their own** Anthropic key from Ask the A
 - **Antipode finder** (`P`): pick any place, then dig straight through the Earth's core and come out at its exact opposite point.
 
 ### Play
+- **Play with friends**: live head-to-head for up to 6 players.
+  - Pick friends who are online and a game, then send the challenge; they get a card with a 30-second timer to accept.
+  - Everyone gets the same questions at the same moment, on a live scoreboard. Faster right answers score more.
+  - At the end there's a podium and a rematch button. Recent matches and your record against each friend appear in the panel.
+  - Works with every game below.
+  - Locally there are no keys: open two windows at `?as=alice` and `?as=bob` and they play each other.
 - **Map quiz** (`Q`): *Find it*, *Flags* and *GeoGuessr clues*, with streaks.
 - **Street View challenge** (`G`): five GeoGuessr-style rounds on real street-level imagery from [Mapillary](https://www.mapillary.com) (falls back to [Panoramax](https://panoramax.fr)). Walk with `W`/`S`, look around with `A`/`D`, and pin your guess on the map.
 - **Name the Top 5** (`T`): lenient spelling, judged by meaning when Claude is connected.

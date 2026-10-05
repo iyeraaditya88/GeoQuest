@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
-  Binoculars, Dices, Gamepad2, ListOrdered, Landmark, Globe2, History, Keyboard, KeyRound, Map as MapIcon, Mountain, Drill, Brain, SunMoon, LogOut, UserRound, Users, ChevronLeft, RotateCcw, RotateCw, Satellite, Search, Sparkles, X, Menu,
+  Binoculars, Swords, Dices, Gamepad2, ListOrdered, Landmark, Globe2, History, Keyboard, KeyRound, Map as MapIcon, Mountain, Drill, Brain, SunMoon, LogOut, UserRound, Users, ChevronLeft, RotateCcw, RotateCw, Satellite, Search, Sparkles, X, Menu,
 } from 'lucide-react';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import type { MapStyle } from './GlobeView';
@@ -40,6 +40,10 @@ interface Props {
   onTop5: () => void;
   onCapitals: () => void;
   onTrivia: () => void;
+  /** Live head-to-head (absent when live play isn't available) */
+  onFriends?: () => void;
+  friendsOnline?: number;
+  matchOn?: boolean;
   onToggleView: () => void;
   onStyle: (s: MapStyle) => void;
   onAutoRotate: () => void;
@@ -111,6 +115,10 @@ export function Sidebar(p: Props) {
           </Section>
 
           <Section title="Play" rail={rail}>
+            {p.onFriends && (
+              <Item icon={Swords} label="Play with friends" sub={p.matchOn ? 'Match in progress' : 'Live head-to-head'} rail={rail} active={p.matchOn} onClick={act(p.onFriends)} accent
+                trailing={p.friendsOnline ? <span className="sb-online" title={`${p.friendsOnline} online`}><i />{p.friendsOnline}</span> : undefined} />
+            )}
             <Item icon={Gamepad2} label={p.quizOn ? 'Exit quiz' : 'Map quiz'} sub={p.quizOn ? undefined : 'Find it · Flags · Clues'} kbd="Q" rail={rail} active={p.quizOn} onClick={act(p.onQuiz)} />
             <Item icon={Binoculars} label="Street View challenge" sub="GeoGuessr-style, 5 rounds" kbd="G" rail={rail} onClick={act(p.onStreet)} />
             <Item icon={ListOrdered} label={p.playOn === 'top5' ? 'Exit Top 5' : 'Name the Top 5'} sub={p.playOn === 'top5' ? undefined : 'Rivers, peaks, populations…'} kbd="T" rail={rail} active={p.playOn === 'top5'} onClick={act(p.onTop5)} />
