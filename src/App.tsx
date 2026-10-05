@@ -58,6 +58,7 @@ import { api } from './lib/api';
 import { CLUE_POOL, QUIZ_POOL, clueFor, pickRandom } from './lib/quiz';
 import { LivePlay, type LiveState, type MatchGlobe } from './components/LivePlay';
 import { localName } from './lib/live';
+import { panelWidth } from './lib/layout';
 
 function loadBest() { try { return Number(localStorage.getItem('gq-best') ?? 0); } catch { return 0; } }
 function saveBest(n: number) { try { localStorage.setItem('gq-best', String(n)); } catch { /* ignore */ } }
@@ -80,13 +81,14 @@ export default function App() {
   const [sbCollapsed, setSbCollapsedState] = useState(() => { try { return localStorage.getItem('gq-sb') === 'rail'; } catch { return false; } });
   const setSbCollapsed = (v: boolean) => { setSbCollapsedState(v); try { localStorage.setItem('gq-sb', v ? 'rail' : 'open'); } catch { /* ignore */ } };
   const [mobile, setMobile] = useState(() => window.innerWidth <= 900);
+  const [vp, setVp] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }));
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [keyReq, setKeyReq] = useState(0);
   const [ai, setAi] = useState<boolean | null>(null);
   const [recents, setRecents] = useState<string[]>(() => { try { return JSON.parse(localStorage.getItem('gq-recents') ?? '[]'); } catch { return []; } });
   useEffect(() => {
-    const onResize = () => { setMobile(window.innerWidth <= 900); };
+    const onResize = () => { setMobile(window.innerWidth <= 900); setVp({ w: window.innerWidth, h: window.innerHeight }); };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
@@ -593,7 +595,7 @@ export default function App() {
 
   // Reserve the sidebar's space from the start, so nothing shifts when it slides in.
   const leftInset = mobile || geo ? 0 : sbCollapsed ? SIDEBAR_W.rail : SIDEBAR_W.open;
-  const rightInset = !mobile && (country || feature) && !quiz && !geo && !play ? 420 : 0;
+  const rightInset = (country || feature) && !quiz && !geo && !play && !liveState.active ? panelWidth(vp.w, vp.h) : 0;
 
   return (
     <div

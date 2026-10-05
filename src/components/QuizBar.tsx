@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { Flag, Flame, Lightbulb, MapPinned, SkipForward, X } from 'lucide-react';
 import { BY_CCA3, flagUrl } from '../lib/data';
+import { Click } from '../lib/touch';
 
 export type QuizMode = 'find' | 'flag' | 'clue';
 export interface QuizState {
@@ -65,7 +66,7 @@ export function QuizBar({ quiz, onMode, onSkip, onExit }: Props) {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             >
-              <span className="quiz-kicker">Click on the globe</span>
+              <span className="quiz-kicker">{Click} on the globe</span>
               {quiz.mode === 'find' && <h3>Where is <b>{target.name}</b>?</h3>}
               {quiz.mode === 'flag' && (
                 <div className="quiz-flag">

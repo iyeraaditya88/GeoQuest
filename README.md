@@ -26,6 +26,10 @@ The hosted site sits **entirely behind a sign-in** (`middleware.ts`). Accounts l
 
 On the hosted site each user connects **their own** Anthropic key from Ask the Atlas. It's checked with Anthropic and kept encrypted in an httpOnly cookie in their browser, never stored on the server; the owner's key is never used. Locally (`npm run dev`) there's no login and the key lives in `.env` as before.
 
+## Install as an app (PWA)
+
+GeoQuest installs like a native app on phones, tablets and desktops: in Safari use **Share → Add to Home Screen**, in Chrome or Edge use **Install app**. It opens full-screen with its own icon, keeps clear of notches and home bars, and starts instantly on later visits. The service worker (`public/sw.js`) caches the app page, built assets, textures and map data, and never caches `/api` or the sign-in pages. The app icon is generated from real coastlines with `npx tsx scripts/make-icon.mts`; the sources are in `design/`.
+
 ## Features
 
 ### Explore

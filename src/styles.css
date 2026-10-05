@@ -1,4 +1,6 @@
 :root {
+  /* Notches & home indicators (installed app / viewport-fit=cover); 0 everywhere else */
+  --st: env(safe-area-inset-top, 0px); --sb: env(safe-area-inset-bottom, 0px); --sl: env(safe-area-inset-left, 0px); --sr: env(safe-area-inset-right, 0px);
   --bg: #03050d;
   --glass: rgba(10, 16, 34, 0.86);
   --glass-strong: rgba(9, 14, 30, 0.94);
@@ -705,9 +707,10 @@ html.custom-cursor.cur-drag .globe-wrap, html.custom-cursor.cur-drag .globe-wrap
 .sb-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 16px 14px 12px 16px; min-height: 68px; }
 .sb-brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
 .sb-mark {
-  width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; display: grid; place-items: center; color: #0b1020;
-  background: linear-gradient(135deg, var(--gold-soft), var(--gold) 45%, #f97316); box-shadow: 0 8px 22px -8px rgba(251, 191, 36, 0.6);
+  width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; display: grid; place-items: center; overflow: hidden;
+  background: #070d22; box-shadow: 0 0 0 1px rgba(125, 211, 252, 0.18), 0 8px 22px -8px rgba(56, 189, 248, 0.55);
 }
+.sb-mark img { width: 100%; height: 100%; display: block; }
 .sb-brand-text { display: flex; flex-direction: column; white-space: nowrap; }
 .sb-brand-text b { font: 700 17px/1.15 var(--display); letter-spacing: -0.01em; }
 .sb-brand-text span { font-size: 11px; color: var(--dim); letter-spacing: 0.04em; }
@@ -1335,3 +1338,113 @@ button:not(:disabled):active { filter: brightness(0.86); transition-duration: 0s
   .mt-countdown b { font-size: 90px; }
 }
 .mt-r-actions .ghost-cta { width: auto; margin-top: 0; padding: 11px 18px; }
+
+/* ── Touch screens: no keyboard hints; respect notches and home indicators ── */
+@media (hover: none) and (pointer: coarse) {
+  kbd, button[aria-label="Keyboard shortcuts"] { display: none !important; }
+  /* iOS Safari zooms the page into any text field under 16px — keep them at 16px on touch. */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, select { font-size: 16px !important; }
+}
+
+/* Safe areas: keep controls clear of the notch / status bar and the home indicator. */
+.sb-burger { top: calc(12px + var(--st)); left: calc(12px + var(--sl)); }
+.sidebar { padding-top: var(--st); padding-bottom: var(--sb); padding-left: var(--sl); }
+.sb-handle { top: calc(34px + var(--st)); }
+.game-card { top: calc(18px + var(--st)); }
+.quiz { top: calc(78px + var(--st)); }
+.quiz.mq { top: calc(18px + var(--st)); }
+.ask-fab { bottom: calc(66px + var(--sb)); }
+.hint { bottom: calc(26px + var(--sb)); }
+.dock { bottom: calc(20px + var(--sb)); max-height: min(64vh, 640px, calc(100% - 40px - var(--st) - var(--sb))); }
+.dive-hud { bottom: calc(26px + var(--sb)); }
+.ch-toasts { top: calc(16px + var(--st)); right: calc(16px + var(--sr)); }
+.mt-hud { bottom: calc(18px + var(--sb)); }
+.mt-hud.top { top: calc(64px + var(--st)); }
+.people-backdrop, .mt-results-wrap { padding: calc(16px + var(--st)) calc(16px + var(--sr)) calc(16px + var(--sb)) calc(16px + var(--sl)); }
+.sv-hud { top: calc(14px + var(--st)); }
+.sv-close { top: calc(16px + var(--st)); }
+.sv-instruction { top: calc(64px + var(--st)); }
+.sv-start { bottom: calc(36px + var(--sb)); }
+.sv-credit { bottom: calc(14px + var(--sb)); }
+.sv-guess, .guess-dock { bottom: calc(18px + var(--sb)); right: calc(18px + var(--sr)); }
+.sv-result { bottom: calc(16px + var(--sb)); }
+@media (max-width: 900px) {
+  .game-card { top: calc(66px + var(--st)); }
+  .ask-fab { bottom: calc(18px + var(--sb)); }
+  .panel { height: calc(56vh + var(--sb)); }
+  .panel-foot { padding-bottom: calc(18px + var(--sb)); }
+}
+@media (max-width: 600px) {
+  .quiz.mq { top: calc(70px + var(--st)); }
+  .mt-hud, .mt-hud.top { bottom: calc(10px + var(--sb)); }
+  .mt-hud.top { top: calc(64px + var(--st)); bottom: auto; }
+}
+/* Narrow phones: game headers get a second row for the level switch, so titles stay on one line. */
+@media (max-width: 480px) {
+  .gc-head { flex-wrap: wrap; row-gap: 8px; }
+  .game-card .gc-head > .gc-title { flex: 1 1 0; min-width: 0; }
+  .game-card .gc-head > .gc-spacer { display: none; }
+  .gc-title span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gc-head > .gc-level, .gc-head > .tv-level { order: 10; flex-basis: 100%; }
+  .gc-head > .gc-level { display: flex; }
+  .gc-head > .gc-level button { flex: 1; }
+}
+@media (max-width: 520px) {
+  /* Quiz bar: score + close on the first row, the three modes on their own row below. */
+  .quiz-top { flex-wrap: wrap; row-gap: 8px; }
+  .quiz-modes { order: 10; flex-basis: 100%; }
+  .quiz-modes button { flex: 1; justify-content: center; white-space: nowrap; padding: 6px 4px; }
+  .quiz-score { margin-left: 6px; margin-right: auto; }
+}
+@media (max-width: 480px) {
+  .dock-title b, .dock-title span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dock-title span { display: block; }
+  .scope button { padding-left: 8px; padding-right: 8px; }
+  .dock-head > .fab-orb { display: none; }
+}
+/* App-like touch behaviour: no pull-to-refresh / rubber-banding, no grey tap flash,
+   no text-selection callouts when long-pressing the map, and map labels take gestures like the map. */
+html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+.app { -webkit-touch-callout: none; }
+.map-labels, .map-labels *, .app canvas { -webkit-user-select: none; user-select: none; }
+.map-labels .clickable { touch-action: none; }
+.panel-scroll, .dock-body, .people, .sb-scroll, .palette { overscroll-behavior: contain; }
+/* Search palette never taller than the screen (landscape phones, open keyboard). */
+.scrim { padding-top: calc(min(14vh, 90px) + var(--st)); padding-bottom: calc(12px + var(--sb)); }
+.palette { display: flex; flex-direction: column; max-height: 100%; }
+.palette-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+/* Landscape phones: the info panel is a side panel (same rule as lib/layout.ts → sidePanel). */
+@media (max-width: 900px) and (min-width: 560px) and (max-height: 520px) and (orientation: landscape) {
+  .panel { top: 0; bottom: 0; left: auto; right: 0; width: min(380px, 48vw); height: auto; border-top: 0; border-left: 1px solid rgba(148, 163, 184, 0.14); border-radius: 0; padding-right: var(--sr); }
+  .hero { height: 118px; }
+  .hero h2 { font-size: 22px; }
+  .panel-foot { padding: 10px 14px calc(10px + var(--sb)); }
+}
+/* Short screens (landscape phones): game cards fit the screen and scroll inside. */
+@media (max-height: 640px) {
+  .game-card { max-height: calc(100dvh - 18px - var(--st) - 12px - var(--sb)); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+  .quiz { max-height: calc(100dvh - 78px - var(--st) - 12px - var(--sb)); overflow-y: auto; }
+}
+@media (max-width: 900px) and (max-height: 640px) {
+  .game-card { max-height: calc(100dvh - 66px - var(--st) - 12px - var(--sb)); }
+}
+@media (max-width: 900px) and (max-height: 520px) and (orientation: landscape) {
+  /* Beside the menu button rather than below it — vertical space is what's scarce. */
+  .game-card { top: calc(10px + var(--st)); width: min(520px, calc(100vw - 2 * (68px + var(--sl)))); max-height: calc(100dvh - 20px - var(--st) - var(--sb)); }
+  .quiz { top: calc(10px + var(--st)); width: min(520px, calc(100vw - 2 * (68px + var(--sl)))); max-height: calc(100dvh - 20px - var(--st) - var(--sb)); }
+  .quiz.mq { top: calc(10px + var(--st)); }
+}
+/* Street View on touch / small screens: guess map is a corner thumbnail until opened. */
+.guess-dock.compact { width: 132px; opacity: 1; }
+.guess-dock.compact .guess-map-wrap { height: 96px; }
+.guess-dock.compact.big { width: min(620px, calc(100vw - 24px - var(--sl) - var(--sr))); right: calc(12px + var(--sr)); }
+.guess-dock.compact.big .guess-map-wrap { height: min(56vh, 460px); }
+.gm-open { position: absolute; inset: 0; z-index: 2; display: flex; align-items: flex-end; justify-content: center; gap: 5px; padding-bottom: 7px;
+  font: 600 11.5px var(--display); color: #fff; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7); background: linear-gradient(180deg, transparent 35%, rgba(2, 6, 23, 0.65)); }
+@media (max-width: 900px) {
+  .sv-hud { left: calc(12px + var(--sl)); right: calc(12px + var(--sr)); gap: 6px; }
+  .sv-hud .sv-chip { padding-left: 9px; padding-right: 9px; }
+}
+.guess-dock.compact:not(.big) { bottom: calc(84px + var(--sb)); }
+.guess-dock.compact:not(.big) .maplibregl-ctrl-attrib, .guess-dock.compact:not(.big) .maplibregl-ctrl-bottom-left { display: none; }
+.result-layer .maplibregl-ctrl-top-right { top: var(--st); right: var(--sr); }

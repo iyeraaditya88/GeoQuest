@@ -88,7 +88,7 @@ export function Sidebar(p: Props) {
         {/* Brand */}
         <div className="sb-head">
           <div className="sb-brand">
-            <span className="sb-mark"><Globe2 size={18} /></span>
+            <span className="sb-mark"><img src="/icons/icon-192.png" alt="" width={40} height={40} /></span>
             <Fade show={!rail}>
               <div className="sb-brand-text"><b>GeoQuest</b><span>Explore · Learn · Guess</span></div>
             </Fade>

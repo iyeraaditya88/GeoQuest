@@ -13,6 +13,7 @@ import { DEFAULT_MAPILLARY_TOKEN } from '../config';
 import { api } from '../lib/api';
 import type { GeoGame } from './StreetGame';
 import type { MatchGlobe } from './LivePlay';
+import { Click } from '../lib/touch';
 
 const StreetGame = lazy(() => import('./StreetGame').then((m) => ({ default: m.StreetGame })));
 const ICONS: Record<GameId, typeof Swords> = { quiz: Gamepad2, capitals: Landmark, trivia: Brain, top5: ListOrdered, street: Binoculars };
@@ -374,7 +375,7 @@ function QuizInner({ s, script, session, globe, clickRef }: Pick<StageProps, 's'
           {Array.from({ length: MAX_MISSES }, (_, k) => <motion.span key={k} animate={{ scale: k < MAX_MISSES - misses ? 1 : 0.7, opacity: k < MAX_MISSES - misses ? 1 : 0.25 }}><Heart size={13} fill="currentColor" /></motion.span>)}
         </span>
         <span className="mq-status">
-          {s.phase === 'reveal' ? <>It’s <b>{target.name}</b></> : mine ? (mine.ok ? `✓ +${mine.pts} — waiting for the others` : 'Out of tries — waiting for the others') : 'Click it on the globe'}
+          {s.phase === 'reveal' ? <>It’s <b>{target.name}</b></> : mine ? (mine.ok ? `✓ +${mine.pts} — waiting for the others` : 'Out of tries — waiting for the others') : `${Click} it on the globe`}
         </span>
       </div>
     </motion.div>

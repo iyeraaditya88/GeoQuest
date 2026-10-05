@@ -13,6 +13,7 @@ import { displayName, riverNear, type FeatureInfo, type FeatureRef } from '../li
 const displayRiver = (n: string) => displayName({ kind: 'river', name: n });
 import { createDayNightMaterial, loadTexture, updateSun } from '../lib/daynight';
 import { createReliefLayer } from '../lib/relief';
+import { panelWidth, sidePanel } from '../lib/layout';
 
 export type MapStyle = 'satellite' | 'political' | 'daynight';
 export type Feedback = { cca3: string; kind: 'good' | 'bad' | 'reveal' } | null;
@@ -165,7 +166,7 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
     const p = press.current;
     press.current = null;
     if (!p || e.button !== 0) return;
-    if (Math.hypot(e.clientX - p.x, e.clientY - p.y) > 6 || performance.now() - p.t > 600) return;
+    if (Math.hypot(e.clientX - p.x, e.clientY - p.y) > (e.pointerType === 'touch' ? 12 : 6) || performance.now() - p.t > 600) return;
     if ((e.target as HTMLElement).tagName !== 'CANVAS') return;
     const g = globe.current;
     if (!g) return;
@@ -177,7 +178,8 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
     const choose = () => { if (id) onSelect(id); else if (!quiz) onSelect(null); };
     // A click right on a river line opens the river; anywhere else, the country.
     if (geo && natureRef.current && !quiz && onFeature) {
-      void riverNear(geo.lat, geo.lng, pxTol(geo, 7)).then((r) => (r ? onFeature({ kind: 'river', name: r.id }) : choose()));
+      // A fingertip is imprecise: on touch only a near-exact hit on the line counts (labels stay tappable).
+      void riverNear(geo.lat, geo.lng, pxTol(geo, e.pointerType === 'touch' ? 2.5 : 7)).then((r) => (r ? onFeature({ kind: 'river', name: r.id }) : choose()));
       return;
     }
     choose();
@@ -373,10 +375,11 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
   };
 
   // Animate the globe offset (panel/chat open) instead of jumping.
-  const wide = size.w > 900;
+  const wide = sidePanel(size.w, size.h);
+  const pw = panelWidth(size.w, size.h);
   const sel = selected && !quiz ? BY_CCA3.get(selected) : undefined;
   const panelSide = !!sel || !!feature; // a side panel (country or feature) is open
-  const targetX = sideView && wide ? size.w * 0.29 : leftInset / 2 + (panelSide && wide ? -210 : 0);
+  const targetX = sideView && wide ? size.w * 0.29 : leftInset / 2 + (panelSide && wide ? -pw / 2 : 0);
   const targetY = sideView && !wide ? size.h * 0.26 : sel && !wide ? -size.h * 0.27 : liftUp ? -Math.min(170, size.h * 0.19) : dropDown ? Math.min(150, size.h * 0.17) : 0;
   const offsetRef = useRef(offset);
   offsetRef.current = offset;
@@ -406,7 +409,7 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
     return () => { live = false; };
   }, [selected, quiz]);
   useEffect(() => { if (labelLayer.current) labelLayer.current.dataset.offset = offset.join(','); }, [offset]);
-  useEffect(() => { if (labelLayer.current) labelLayer.current.dataset.panel = panelSide && wide && !sideView ? '420' : '0'; }, [panelSide, wide, sideView]);
+  useEffect(() => { if (labelLayer.current) labelLayer.current.dataset.panel = panelSide && wide && !sideView ? String(pw) : '0'; }, [panelSide, wide, sideView, pw]);
   // Selected feature: gold river line + highlighted label.
   useEffect(() => {
     natureLayer.current?.highlight(feature?.kind === 'river' ? feature.river ?? null : null);

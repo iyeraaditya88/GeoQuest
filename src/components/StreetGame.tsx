@@ -18,6 +18,7 @@ import { BY_CCA3, flagUrl, fmtInt } from '../lib/data';
 import { getItem, prefetchAround, type StreetItem } from '../lib/streetview';
 import type { MapillarySpot } from '../lib/mapillary';
 import { api } from '../lib/api';
+import { Click, TOUCH } from '../lib/touch';
 
 const { ACTIONS } = CONSTANTS;
 
@@ -216,7 +217,7 @@ function PanoramaxViewer({ item, onError, onMoved }: { item: StreetItem; onError
     tour.addEventListener('leave-arrow', () => { overArrow = false; });
     v.addEventListener('click', ({ data }) => {
       if (data.rightclick || overArrow) return;
-      if (data.pitch > 0.12) { setHint('Click the road below the horizon to walk'); window.setTimeout(() => setHint(null), 1600); return; }
+      if (data.pitch > 0.12) { setHint(`${Click} the road below the horizon to walk`); window.setTimeout(() => setHint(null), 1600); return; }
       moveTowards(data.yaw);
     });
 
@@ -525,7 +526,7 @@ function MapillaryViewer({ token, spot, onError, onMoved }: { token: string; spo
     // Mouse: click the street to walk towards that point.
     v.on('mousedown', () => { touched = true; });
     v.on('click', (e) => {
-      if (movingNow || !edgesFresh || !e.lngLat) { if (!e.lngLat) say('Click the road to walk that way'); return; }
+      if (movingNow || !edgesFresh || !e.lngLat) { if (!e.lngLat) say(`${Click} the road to walk that way`); return; }
       const heading = bearingTo(here, e.lngLat);
       const edge = best(heading, 50);
       if (edge) go(edge.target);
@@ -644,7 +645,9 @@ function GuessMap({ round, guess, onPick, onGuess }: { round: number; guess: { l
   pickRef.current = onPick;
   const [hover, setHover] = useState(false);
   const [pinned, setPinned] = useState(false);
-  const big = hover || pinned;
+  // Touch / small screens: a thumbnail in the corner; tap it to open the map, then guess.
+  const [compact] = useState(() => TOUCH || window.innerWidth <= 600);
+  const big = (!compact && hover) || pinned;
 
   useEffect(() => {
     const m = new maplibregl.Map({
@@ -667,7 +670,8 @@ function GuessMap({ round, guess, onPick, onGuess }: { round: number; guess: { l
     marker.current?.remove();
     marker.current = null;
     map.current?.jumpTo({ center: [10, 25], zoom: 0.4 });
-  }, [round]);
+    if (compact) setPinned(false);
+  }, [round, compact]);
 
   useEffect(() => {
     if (!map.current) return;
@@ -677,16 +681,24 @@ function GuessMap({ round, guess, onPick, onGuess }: { round: number; guess: { l
   }, [guess]);
 
   return (
-    <div className={`guess-dock ${big ? 'big' : ''}`} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+    <div className={`guess-dock ${big ? 'big' : ''} ${compact ? 'compact' : ''}`} onMouseEnter={compact ? undefined : () => setHover(true)} onMouseLeave={compact ? undefined : () => setHover(false)}>
       <div className="guess-map-wrap">
         <div ref={host} className="guess-map" />
-        <button className="gm-pin" onClick={() => setPinned((v) => !v)} title={pinned ? 'Shrink map' : 'Keep map large'}>
-          {pinned ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-        </button>
+        {compact && !big ? (
+          <button className="gm-open" onClick={() => setPinned(true)} aria-label="Open the map to place your guess">
+            <MapPin size={13} /> {guess ? 'Your pin' : `${Click} to guess`}
+          </button>
+        ) : (
+          <button className="gm-pin" onClick={() => setPinned((v) => !v)} title={pinned ? 'Shrink map' : 'Keep map large'} aria-label={pinned ? 'Shrink map' : 'Enlarge map'}>
+            {pinned ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+          </button>
+        )}
       </div>
-      <motion.button className="sv-guess" disabled={!guess} onClick={onGuess} whileTap={guess ? { scale: 0.98 } : undefined}>
-        <MapPin size={16} /> {guess ? <>Guess <kbd>↵</kbd></> : 'Place your pin on the map'}
-      </motion.button>
+      {(!compact || big) && (
+        <motion.button className="sv-guess" disabled={!guess} onClick={onGuess} whileTap={guess ? { scale: 0.98 } : undefined}>
+          <MapPin size={16} /> {guess ? <>Guess <kbd>↵</kbd></> : 'Place your pin on the map'}
+        </motion.button>
+      )}
     </div>
   );
 }

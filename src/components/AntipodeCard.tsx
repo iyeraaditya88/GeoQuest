@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { ArrowUpDown, Drill, Globe2, LocateFixed, MapPin, Search, Waves, X } from 'lucide-react';
 import { flagUrl } from '../lib/data';
 import { EARTH_R_KM, fmtCoord, fmtKm, journeyAt, searchPlaces, type Place } from '../lib/antipode';
+import { Click } from '../lib/touch';
 
 export type AntipodeStage = 'pick' | 'dive' | 'result';
 
@@ -147,11 +148,11 @@ function Picker({ from, onPick, onDig, onExit }: Props) {
         {from ? (
           <motion.div key={`${from.lat},${from.lng}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.2 }}>
             <PlaceRow place={from} tone="from" />
-            <div className="ap-note">Click anywhere on the globe to fine-tune the spot.</div>
+            <div className="ap-note">{Click} anywhere on the globe to fine-tune the spot.</div>
           </motion.div>
         ) : (
           <motion.div key="empty" className="ap-empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <MapPin size={16} /> Click anywhere on the globe, or search above
+            <MapPin size={16} /> {Click} anywhere on the globe, or search above
           </motion.div>
         )}
       </AnimatePresence>

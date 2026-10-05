@@ -14,6 +14,7 @@ import { loadAdmin, prefetchCountry, type AdminCity, type AdminState } from '../
 import { loadNature, rangeSpots, riverTier, type Nature } from '../lib/nature';
 import { displayName, riverNear, type FeatureInfo, type FeatureRef } from '../lib/features';
 import type { Feedback, GlobeView2D } from './GlobeView';
+import { panelWidth, sidePanel } from '../lib/layout';
 
 export interface AtlasHandle {
   morphOut: (to: GlobeView2D) => Promise<void>;
@@ -510,7 +511,7 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
     // Reserve the strip under the sidebar so no label hides behind it.
     const placed: number[] = live.current.leftInset ? [-1e4, -1e4, live.current.leftInset + 4, 1e5] : [];
     // …and the info panel on the right.
-    if (live.current.panelOpen && s.W > 900) placed.push(s.W - 424, -1e4, 1e5, 1e5);
+    if (live.current.panelOpen && sidePanel(s.W, s.H)) placed.push(s.W - panelWidth(s.W, s.H) - 4, -1e4, 1e5, 1e5);
     const hit = (x0: number, y0: number, x1: number, y1: number) => {
       for (let i = 0; i < placed.length; i += 4) if (x0 < placed[i + 2] && x1 > placed[i] && y0 < placed[i + 3] && y1 > placed[i + 1]) return true;
       return false;
@@ -1091,7 +1092,7 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
     const p = press.current;
     press.current = null;
     if (!p || st.current.phase !== 'flat') return;
-    if (Math.hypot(e.clientX - p.x, e.clientY - p.y) > 6 || performance.now() - p.t > 600) return;
+    if (Math.hypot(e.clientX - p.x, e.clientY - p.y) > (e.pointerType === 'touch' ? 12 : 6) || performance.now() - p.t > 600) return;
     const g = geoAt(e.clientX, e.clientY);
     const id = g ? countryAt(g.lat, g.lng) : null;
     live.current.onInteract();
@@ -1104,7 +1105,7 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
       // Right on a river line?
       if (g) {
         const perDeg = (s.S1 * s.transform.k * Math.PI) / 180;
-        void riverNear(g.lat, g.lng, 7 / perDeg).then((r) => (r ? L.onFeature!({ kind: 'river', name: r.id }) : choose()));
+        void riverNear(g.lat, g.lng, (e.pointerType === 'touch' ? 2.5 : 7) / perDeg).then((r) => (r ? L.onFeature!({ kind: 'river', name: r.id }) : choose()));
         return;
       }
     }
@@ -1114,9 +1115,9 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
   // ── Camera helpers ────────────────────────────────────────
   /** Screen area not covered by chrome. `withPanel` frames for the info panel that is about to open. */
   function visibleBox(withPanel = false) {
-    const s = st.current, wide = s.W > 900, panel = withPanel || live.current.panelOpen;
+    const s = st.current, wide = sidePanel(s.W, s.H), panel = withPanel || live.current.panelOpen;
     const li = live.current.leftInset;
-    if (panel && wide) return { x0: li + 30, y0: 40, x1: s.W - 420 - 30, y1: s.H - 30 };
+    if (panel && wide) return { x0: li + 30, y0: 40, x1: s.W - panelWidth(s.W, s.H) - 30, y1: s.H - 30 };
     if (panel && !wide) return { x0: 10, y0: 60, x1: s.W - 10, y1: s.H * 0.44 };
     return { x0: li + 30, y0: 40, x1: s.W - 30, y1: s.H - 30 };
   }

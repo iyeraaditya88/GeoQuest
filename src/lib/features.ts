@@ -127,6 +127,27 @@ export function displayName(ref: FeatureRef) {
   return ref.name;
 }
 
+/**
+ * A river's length from its Wikipedia summary — only from a phrase that states a length
+ * ("2,330 km long", "length of 6,650 km", "1,450 mi (2,330 km) long"), not any distance
+ * ("rises 160 km northeast of Lima").
+ */
+export function riverLength(text: string): number | undefined {
+  const num = (s: string) => Number(s.replace(/,/g, ''));
+  const KM = String.raw`([\d,]+(?:\.\d+)?)\s*(?:km|kilomet(?:re|er)s)`;
+  const patterns = [
+    new RegExp(String.raw`${KM}(?:\s*\([^)]*\))?\s*(?:long|in length)`, 'i'),                // 2,330 km (1,450 mi) long
+    new RegExp(String.raw`[\d,.]+\s*(?:mi|miles)\s*\(${KM}\)\s*(?:long|in length)`, 'i'),   // 1,450 mi (2,330 km) long
+    new RegExp(String.raw`(?:length|long)[^.]{0,40}?(?:of|is|about|approximately|some)\s+(?:about\s+|approximately\s+|some\s+)?${KM}`, 'i'), // a length of 6,650 km
+    new RegExp(String.raw`[\d,-]+[-\s](?:mile|mi)[-\s]long\s*\(${KM}\)`, 'i'),                // 1,450-mile-long (2,330 km)
+  ];
+  for (const re of patterns) {
+    const m = re.exec(text);
+    if (m) { const v = Math.round(num(m[1])); if (v > 10) return v; }
+  }
+  return undefined;
+}
+
 // ── Wikipedia summary (free, no key, CORS-enabled) ──
 export interface WikiSummary { title: string; description?: string; extract: string; thumbnail?: string; url: string; lengthKm?: number }
 const wikiCache = new Map<string, Promise<WikiSummary | null>>();
@@ -141,9 +162,7 @@ export function wikiSummary(ref: FeatureRef, countries: string[] = []) {
     if (!title) return null;
     const p = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`).then((r) => (r.ok ? r.json() : null));
     if (!p?.extract) return null;
-    // "… is 2,330 km (1,450 mi) long" / "1,450 mi (2,330 km)" → km
-    const m = /([\d,.]+)\s*(?:km|kilomet(?:re|er)s)\b/i.exec(p.extract);
-    const lengthKm = ref.kind === 'river' && m ? Math.round(Number(m[1].replace(/,/g, ''))) : undefined;
+    const lengthKm = ref.kind === 'river' ? riverLength(p.extract) : undefined;
     return { title: p.title, description: p.description, extract: p.extract, thumbnail: p.thumbnail?.source, url: p.content_urls?.desktop?.page ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`, lengthKm };
   })().catch(() => null));
   return wikiCache.get(key)!;

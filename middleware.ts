@@ -13,13 +13,15 @@ setSecretSource(sessionSecret);
 // Reachable without signing in: the sign-in page (which also handles invites and first-time
 // setup) and what it needs.
 const PAGES = new Set(['/login', '/welcome', '/setup']);
-const PUBLIC = new Set(['/login.html', '/api/login', '/api/logout', '/api/setup', '/api/invite', '/api/invite/accept', '/favicon.svg', '/textures/loader-earth.jpg']);
+const PUBLIC = new Set(['/login.html', '/api/login', '/api/logout', '/api/setup', '/api/invite', '/api/invite/accept', '/favicon.svg', '/textures/loader-earth.jpg', '/manifest.webmanifest', '/sw.js']);
+// App icons are public too: the home screen and the sign-in page need them.
+const PUBLIC_PREFIX = ['/icons/'];
 
 export default async function middleware(request: Request) {
   const url = new URL(request.url);
   // Clean URLs for the one static auth page (vercel.json rewrites don't apply after middleware).
   if (PAGES.has(url.pathname)) return rewrite(new URL('/login.html' + url.search, url));
-  if (PUBLIC.has(url.pathname)) return next();
+  if (PUBLIC.has(url.pathname) || PUBLIC_PREFIX.some((p) => url.pathname.startsWith(p))) return next();
 
   const session = await verifySession(readCookie(request.headers.get('cookie'), SESSION_COOKIE));
   if (session) return next();
