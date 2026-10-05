@@ -15,8 +15,12 @@ import { FEATURES, FEATURES_110 } from './data';
 import { rgba } from './countryMesh';
 
 type LngLat = [number, number];
-/** r = importance (1 = great river); len = longest reach in degrees; as = candidate label spots [anchor, a point further along]. */
-export interface River { n: string; r: number; len: number; as: [LngLat, LngLat][]; c: LngLat[][] }
+/**
+ * r = importance (1 = great river: the better of Natural Earth's rank and mapped length);
+ * len = longest continuous reach in degrees (for label fit); km = mapped length (approximate);
+ * bb = [w, s, e, n]; as = candidate label spots [anchor, a point further along].
+ */
+export interface River { id: string; n: string; r: number; len: number; km: number; bb: [number, number, number, number]; as: [LngLat, LngLat][]; c: LngLat[][] }
 export interface Lake { n: string; area: number; l: LngLat; p: LngLat[][][] }
 /** a = centre, b = one degree along the range's main axis, len = axis length in degrees */
 export interface Range { n: string; r: number; a: LngLat; b: LngLat; len: number }
@@ -117,6 +121,7 @@ export function createNatureLayer(scene: THREE.Scene, R: number, camera: THREE.C
   let lakeEdge: THREE.LineSegments | null = null;
   let lifted: { id: string; group: THREE.Group } | null = null;
   let wanted: string | null = null; // latest lift request (older async ones bail out)
+  let picked: THREE.Group | null = null; // the selected river, drawn in gold
   const tierAlpha = [0, 0, 0];
   let raf = 0;
 
@@ -183,7 +188,8 @@ export function createNatureLayer(scene: THREE.Scene, R: number, camera: THREE.C
     const alt = camera.position.length() / R - 1;
     const base = rgba(PALETTE[style].river)[3], glowA = rgba(PALETTE[style].glow)[3];
     // Lines thicken a little as you dive in, so rivers read as rivers at every scale.
-    const grow = 1 + 0.35 * Math.max(0, Math.min(1, (1.3 - alt) / 1.1));
+    // Hairline at world scale, more weight as you dive in.
+    const grow = 0.7 + 0.65 * Math.max(0, Math.min(1, (1.8 - alt) / 1.5));
     tiers.forEach((t, i) => {
       const want = visible && alt < TIER_ALT[i] ? 1 : 0;
       tierAlpha[i] += (want - tierAlpha[i]) * 0.12;
@@ -289,6 +295,23 @@ export function createNatureLayer(scene: THREE.Scene, R: number, camera: THREE.C
       applyColors();
       // Draw in once the country has risen (same beat as the province lines).
       fadeGroup(g, 1, 400, 250);
+    },
+    /** Draw a selected river in glowing gold (null clears). */
+    highlight(river: River | null) {
+      if (picked) {
+        const old = picked; picked = null;
+        fadeGroup(old, 0, 200, 0, () => { scene.remove(old); old.traverse((o) => { (o as THREE.Mesh).geometry?.dispose(); const m = (o as THREE.Mesh).material; if (m instanceof LineMaterial) { fatMats.delete(m); m.dispose(); } }); });
+      }
+      if (!river) return;
+      const g = new THREE.Group();
+      const glowGeo = riverGeo([river], R * 1.0058), coreGeo = riverGeo([river], R * 1.0059);
+      if (!glowGeo || !coreGeo) return;
+      const glow = fat(glowGeo, 9, 8); glow.material.color.set('#fbbf24'); glow.userData.target = 0.28;
+      const core = fat(coreGeo, 3, 8.1); core.material.color.set('#fde68a'); core.userData.target = 1;
+      g.add(glow, core);
+      scene.add(g);
+      picked = g;
+      fadeGroup(g, 1, 350);
     },
     dispose() {
       cancelAnimationFrame(raf);

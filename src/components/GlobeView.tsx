@@ -6,9 +6,11 @@ import { BY_CCA3, FEATURES, POLITICAL_COLOR, altitudeFor, countryAt, fmtCompact,
 import { createLabelLayer } from '../lib/mapLabels';
 import { cursor } from '../lib/cursor';
 import { buildCountryLayer, rgba, type CountryLayer, type RGBA } from '../lib/countryMesh';
-import { createAdminLayer, createHoverFx, loadAdmin, prefetchCountry } from '../lib/globeOverlays';
+import { createAdminLayer, createHoverFx, createZoomAdminLayer, loadAdmin, prefetchCountry } from '../lib/globeOverlays';
 import { createNatureLayer, loadNature } from '../lib/nature';
 import { runDive, type DiveHooks } from '../lib/antipode';
+import { displayName, riverNear, type FeatureInfo, type FeatureRef } from '../lib/features';
+const displayRiver = (n: string) => displayName({ kind: 'river', name: n });
 import { createDayNightMaterial, loadTexture, updateSun } from '../lib/daynight';
 import { createReliefLayer } from '../lib/relief';
 
@@ -52,6 +54,10 @@ interface Props {
   pins?: { lat: number; lng: number; kind: 'guess' | 'answer' | 'from' | 'to' }[];
   arcs?: { startLat: number; startLng: number; endLat: number; endLng: number }[];
   onPick?: (lat: number, lng: number) => void;
+  /** A river / range / peak / lake was clicked. */
+  onFeature?: (f: FeatureRef) => void;
+  /** The selected feature (highlighted; its panel is open). */
+  feature?: FeatureInfo | null;
   onSelect: (cca3: string | null) => void;
   onInteract: () => void;
   onReady: () => void;
@@ -87,7 +93,7 @@ function angularDistance(a: { lat: number; lng: number }, b: { lat: number; lng:
 }
 
 export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
-  { selected, highlighted, style, autoRotate, feedback, quiz, liftUp, dropDown = false, hidden, nature = true, leftInset = 0, pickMode = false, sideView = false, pins = [], arcs = [], onPick, onSelect, onInteract, onReady }, ref,
+  { selected, highlighted, style, autoRotate, feedback, quiz, liftUp, dropDown = false, hidden, nature = true, leftInset = 0, pickMode = false, sideView = false, pins = [], arcs = [], onPick, onFeature, feature = null, onSelect, onInteract, onReady }, ref,
 ) {
   const globe = useRef<GlobeMethods | undefined>(undefined);
   const labelLayer = useRef<HTMLDivElement>(null);
@@ -96,6 +102,8 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
   const dragging = useRef(false);
   const interactRef = useRef(onInteract);
   interactRef.current = onInteract;
+  const featureCb = useRef(onFeature);
+  featureCb.current = onFeature;
   const styleRef = useRef(style), hiddenRef = useRef(hidden), natureRef = useRef(nature);
   styleRef.current = style; hiddenRef.current = hidden; natureRef.current = nature;
 
@@ -105,6 +113,7 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
   const adminLayer = useRef<ReturnType<typeof createAdminLayer> | null>(null);
   const natureLayer = useRef<ReturnType<typeof createNatureLayer> | null>(null);
   const reliefLayer = useRef<ReturnType<typeof createReliefLayer> | null>(null);
+  const zoomAdmin = useRef<ReturnType<typeof createZoomAdminLayer> | null>(null);
   const hoverFx = useRef<ReturnType<typeof createHoverFx> | null>(null);
   const [layerReady, setLayerReady] = useState(false);
   const prevHover = useRef<string | null>(null);
@@ -141,6 +150,13 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
       setHover((h) => (h === id ? h : id));
       const c = id ? BY_CCA3.get(id) : undefined;
       cursor.set({ country: c ? { name: c.name, cca2: c.cca2, sub: `${c.capital[0] ?? '—'} · ${fmtCompact(c.population)}` } : null });
+      // Right on a river line? Name it (a click will open its details).
+      if (geo && natureRef.current && !quiz && !pickMode) {
+        void riverNear(geo.lat, geo.lng, pxTol(geo, 7)).then((r) => {
+          if (!r || dragging.current) return;
+          cursor.set({ country: { name: displayRiver(r.n), cca2: '', glyph: '〰', sub: 'River · click for details' } });
+        });
+      }
     });
   };
   const onPointerLeave = () => { setHover(null); cursor.set({ country: null }); };
@@ -158,8 +174,22 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
     interactRef.current();
     if (pickMode) { if (geo) onPick?.(geo.lat, geo.lng); return; }
     const id = geo ? countryAt(geo.lat, geo.lng) : null;
-    if (id) onSelect(id);
-    else if (!quiz) onSelect(null);
+    const choose = () => { if (id) onSelect(id); else if (!quiz) onSelect(null); };
+    // A click right on a river line opens the river; anywhere else, the country.
+    if (geo && natureRef.current && !quiz && onFeature) {
+      void riverNear(geo.lat, geo.lng, pxTol(geo, 7)).then((r) => (r ? onFeature({ kind: 'river', name: r.id }) : choose()));
+      return;
+    }
+    choose();
+  };
+
+  /** `px` screen pixels expressed in degrees at a point (for hit-testing lines). */
+  const pxTol = (geo: { lat: number; lng: number }, px: number) => {
+    const g = globe.current;
+    if (!g) return 0.2;
+    const a = g.getScreenCoords(geo.lat, geo.lng), b = g.getScreenCoords(Math.min(89.9, geo.lat + 0.5), geo.lng);
+    const perDeg = Math.hypot(a.x - b.x, a.y - b.y) * 2 || 1;
+    return px / perDeg;
   };
 
   const flyToPov = useCallback((to: { lat: number; lng: number; altitude: number }, ms?: number) => {
@@ -215,12 +245,14 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
       labels.current?.setEnabled(styleRef.current === 'political', false);
       natureLayer.current?.setVisible(false);
       reliefLayer.current?.setVisible(false);
+      zoomAdmin.current?.setEnabled(false);
       hoverFx.current?.set(null, false);
       const run = runDive(g, from, hooks);
       void run.finished.then(() => {
         labels.current?.setEnabled(styleRef.current === 'political', !hiddenRef.current);
         natureLayer.current?.setVisible(natureRef.current);
         reliefLayer.current?.setVisible(natureRef.current);
+        zoomAdmin.current?.setEnabled(true);
       });
       return run;
     },
@@ -330,6 +362,7 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
     adminLayer.current = createAdminLayer(g.scene(), R);
     natureLayer.current = createNatureLayer(g.scene(), R, g.camera());
     reliefLayer.current = createReliefLayer(g.scene(), R);
+    zoomAdmin.current = createZoomAdminLayer(g.scene(), R, g.camera());
     void natureLayer.current.init();
     hoverFx.current = createHoverFx({
       scene: g.scene(), R, features: FEATURES,
@@ -342,7 +375,8 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
   // Animate the globe offset (panel/chat open) instead of jumping.
   const wide = size.w > 900;
   const sel = selected && !quiz ? BY_CCA3.get(selected) : undefined;
-  const targetX = sideView && wide ? size.w * 0.29 : leftInset / 2 + (sel && wide ? -210 : 0);
+  const panelSide = !!sel || !!feature; // a side panel (country or feature) is open
+  const targetX = sideView && wide ? size.w * 0.29 : leftInset / 2 + (panelSide && wide ? -210 : 0);
   const targetY = sideView && !wide ? size.h * 0.26 : sel && !wide ? -size.h * 0.27 : liftUp ? -Math.min(170, size.h * 0.19) : dropDown ? Math.min(150, size.h * 0.17) : 0;
   const offsetRef = useRef(offset);
   offsetRef.current = offset;
@@ -359,7 +393,7 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
   // Label layer (political map only)
   useEffect(() => {
     if (!labelLayer.current) return;
-    labels.current = createLabelLayer(labelLayer.current, () => globe.current);
+    labels.current = createLabelLayer(labelLayer.current, () => globe.current, (f) => featureCb.current?.(f));
     return () => labels.current?.destroy();
   }, []);
   useEffect(() => { labels.current?.setEnabled(style === 'political', !hidden); }, [style, hidden]);
@@ -372,7 +406,12 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
     return () => { live = false; };
   }, [selected, quiz]);
   useEffect(() => { if (labelLayer.current) labelLayer.current.dataset.offset = offset.join(','); }, [offset]);
-  useEffect(() => { if (labelLayer.current) labelLayer.current.dataset.panel = sel && wide && !sideView ? '420' : '0'; }, [sel, wide, sideView]);
+  useEffect(() => { if (labelLayer.current) labelLayer.current.dataset.panel = panelSide && wide && !sideView ? '420' : '0'; }, [panelSide, wide, sideView]);
+  // Selected feature: gold river line + highlighted label.
+  useEffect(() => {
+    natureLayer.current?.highlight(feature?.kind === 'river' ? feature.river ?? null : null);
+    labels.current?.setPicked(feature ? { kind: feature.kind, name: feature.name } : null);
+  }, [feature, layerReady]);
 
   const material = useMemo(() => {
     if (style === 'daynight') return createDayNightMaterial();
@@ -449,6 +488,10 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected, quiz, layerReady]);
   useEffect(() => { adminLayer.current?.recolor(adminColor); }, [adminColor]);
+  // Province borders for every country in view once you zoom in.
+  useEffect(() => { zoomAdmin.current?.setColor(political ? 'rgba(60,46,34,0.62)' : 'rgba(255,248,230,0.5)'); }, [political, layerReady]);
+  useEffect(() => { zoomAdmin.current?.setEnabled(!quiz && !hidden); }, [quiz, hidden, layerReady]);
+  useEffect(() => { zoomAdmin.current?.setExclude(!quiz && selected ? selected : null); }, [selected, quiz, layerReady]);
 
   // Rivers, lakes, ranges & peaks.
   useEffect(() => { natureLayer.current?.setStyle(style); reliefLayer.current?.setStyle(style); }, [style, layerReady]);

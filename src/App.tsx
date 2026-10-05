@@ -45,6 +45,8 @@ import { findLocation, haversineKm, scoreFor } from './lib/streetview';
 import { countryAt } from './lib/data';
 import { CountryPanel } from './components/CountryPanel';
 import { PeoplePanel } from './components/PeoplePanel';
+import { FeaturePanel } from './components/FeaturePanel';
+import { featureInfo, type FeatureInfo, type FeatureRef } from './lib/features';
 import { AntipodeCard, type AntipodeStage } from './components/AntipodeCard';
 import { antipodeOf, describePlace, type Place } from './lib/antipode';
 import { placeFor } from './lib/trivia';
@@ -168,6 +170,7 @@ export default function App() {
 
   const select = useCallback((cca3: string | null) => {
     setSelected(cca3);
+    setFeature(null);
     if (cca3) {
       cam.flyTo(cca3);
       setRecents((r) => {
@@ -177,6 +180,27 @@ export default function App() {
       });
     }
   }, [cam]);
+
+  // ── Rivers, ranges, peaks & lakes: click one to open its panel ──
+  const [feature, setFeature] = useState<FeatureInfo | null>(null);
+  const featureReq = useRef(0);
+  const openFeature = useCallback(async (ref: FeatureRef) => {
+    const n = ++featureReq.current;
+    const info = await featureInfo(ref);
+    if (!info || n !== featureReq.current) return;
+    setSelected(null);
+    setHighlighted([]);
+    setDockOpen(false);
+    setAutoRotate(false);
+    setFeature(info);
+    // Frame it: wide enough to see the whole river or range.
+    const [w, s, e, nn] = info.bbox;
+    if (viewRef.current === 'flat') atlas.current?.fitGeo(info.bbox);
+    else {
+      const span = Math.max((e - w) * Math.cos((info.center.lat * Math.PI) / 180), nn - s);
+      globe.current?.frame(info.center.lat, info.center.lng, Math.max(0.32, Math.min(2.1, span / 32 + 0.28)));
+    }
+  }, []);
 
   const ask = useCallback((prompt: string) => {
     setDockOpen(true);
@@ -523,7 +547,7 @@ export default function App() {
       if (e.key === ']') { setSbCollapsed(false); return; }
       if (e.key === '?') { setShortcutsOpen((v) => !v); return; }
       if (e.key === '/') { e.preventDefault(); setSearchOpen(true); }
-      else if (e.key === 'Escape') { if (shortcutsOpen) setShortcutsOpen(false); else if (drawerOpen) setDrawerOpen(false); else if (play) exitPlay(); else if (searchOpen) setSearchOpen(false); else if (dockOpen) setDockOpen(false); else if (quiz) exitQuiz(); else { setSelected(null); setHighlighted([]); } }
+      else if (e.key === 'Escape') { if (shortcutsOpen) setShortcutsOpen(false); else if (drawerOpen) setDrawerOpen(false); else if (play) exitPlay(); else if (searchOpen) setSearchOpen(false); else if (dockOpen) setDockOpen(false); else if (quiz) exitQuiz(); else if (feature) setFeature(null); else { setSelected(null); setHighlighted([]); } }
       else if (e.key.toLowerCase() === 'r' && !quiz) random();
       else if (e.key.toLowerCase() === 'a') { e.preventDefault(); setDockOpen(true); }
       else if (e.key.toLowerCase() === 'q') { if (quiz) exitQuiz(); else startQuiz(); }
@@ -538,7 +562,7 @@ export default function App() {
 
   // Reserve the sidebar's space from the start, so nothing shifts when it slides in.
   const leftInset = mobile || geo ? 0 : sbCollapsed ? SIDEBAR_W.rail : SIDEBAR_W.open;
-  const rightInset = !mobile && country && !quiz && !geo && !play ? 420 : 0;
+  const rightInset = !mobile && (country || feature) && !quiz && !geo && !play ? 420 : 0;
 
   return (
     <div
@@ -562,7 +586,9 @@ export default function App() {
         leftInset={leftInset}
         nature={nature}
         hidden={globeHidden || !!geo}
-        onSelect={(c) => { if (anti) return; if (quiz) quizClick(c); else if (c) select(c); else { setSelected(null); setHighlighted([]); } }}
+        onSelect={(c) => { if (anti) return; if (quiz) quizClick(c); else if (c) select(c); else { setSelected(null); setHighlighted([]); setFeature(null); } }}
+        onFeature={(f) => { if (!anti && !quiz) void openFeature(f); }}
+        feature={feature}
         onInteract={() => setAutoRotate(false)}
         onReady={() => setTimeout(() => setReady(true), 300)}
       />
@@ -577,10 +603,12 @@ export default function App() {
             highlighted={highlighted}
             feedback={feedback}
             quiz={!!quiz}
-            panelOpen={!!country && !quiz}
+            panelOpen={(!!country || !!feature) && !quiz}
             leftInset={leftInset}
             nature={nature}
-            onSelect={(c) => (quiz ? quizClick(c) : c ? select(c) : (setSelected(null), setHighlighted([])))}
+            feature={feature}
+            onFeature={(f) => { if (!quiz) void openFeature(f); }}
+            onSelect={(c) => (quiz ? quizClick(c) : c ? select(c) : (setSelected(null), setHighlighted([]), setFeature(null)))}
             onInteract={() => setAutoRotate(false)}
             onReady={() => { morphing.current = false; }}
           />
@@ -677,6 +705,7 @@ export default function App() {
           />
         )}
       </AnimatePresence>
+      <FeaturePanel feature={quiz || geo || play || anti ? null : feature} onClose={() => setFeature(null)} onSelectCountry={select} onAsk={ask} />
       <CountryPanel country={quiz || geo || play || anti ? null : country} onClose={() => setSelected(null)} onSelect={select} onAsk={ask} />
       {chrome && !quiz && !geo && !play && !anti && <AskDock open={dockOpen} setOpen={setDockOpen} country={country} request={askReq} keyRequest={keyReq} onAiChange={setAi} onHosted={setHosted} onHighlight={highlight} onSelect={select} />}
       <CustomCursor />

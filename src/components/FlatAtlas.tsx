@@ -12,6 +12,7 @@ import citiesRaw from '../data/cities.json';
 import { cursor } from '../lib/cursor';
 import { loadAdmin, prefetchCountry, type AdminCity, type AdminState } from '../lib/globeOverlays';
 import { loadNature, rangeSpots, riverTier, type Nature } from '../lib/nature';
+import { displayName, riverNear, type FeatureInfo, type FeatureRef } from '../lib/features';
 import type { Feedback, GlobeView2D } from './GlobeView';
 
 export interface AtlasHandle {
@@ -19,6 +20,8 @@ export interface AtlasHandle {
   centerGeo: () => { lat: number; lng: number };
   focus: (cca3: string) => void;
   fit: (codes: string[]) => void;
+  /** Frame a [w, s, e, n] box (a river, range…), beside the side panel. */
+  fitGeo: (bbox: [number, number, number, number]) => void;
   reset: () => void;
 }
 
@@ -33,6 +36,9 @@ interface Props {
   leftInset: number;
   /** rivers, lakes, mountain ranges & peaks */
   nature?: boolean;
+  /** The selected river/range/peak/lake (highlighted). */
+  feature?: FeatureInfo | null;
+  onFeature?: (f: FeatureRef) => void;
   onSelect: (cca3: string | null) => void;
   onInteract: () => void;
   onReady: () => void;
@@ -170,6 +176,12 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
     zoomB: null as ZoomBehavior<HTMLCanvasElement, unknown> | null,
     cache: null as FlatCache | null,
     pending: null as (() => void) | null,
+    /** clickable physical labels drawn this frame (screen boxes) */
+    natHits: [] as { box: [number, number, number, number]; kind: FeatureRef['kind']; name: string }[],
+    /** province lines per country for the zoom-in view, projected at zoom 1 */
+    zoomAdmin: new Map<string, { path: Path2D | null; key: string; lines: number[][][] | null; loading: boolean }>(),
+    /** the selected river, projected at zoom 1 */
+    pickedRiver: null as { name: string; key: string; path: Path2D } | null,
     nature: null as Nature | null,
     /** nature projected at zoom 1 (rebuilt when the projection changes) */
     nat: null as NatCache | null,
@@ -322,6 +334,49 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
       ctx.globalAlpha = 1;
     }
 
+    // Province borders for every country in view once zoomed in (the selected one is drawn below).
+    if (k >= 3 && !live.current.quiz) {
+      const key = `${s.S1}|${s.lambda0}`;
+      ctx.save();
+      ctx.setLineDash([2.5 / k, 2 / k]);
+      ctx.strokeStyle = 'rgba(71,85,105,0.42)'; ctx.lineWidth = 0.6 / k;
+      ctx.globalAlpha = Math.min(1, (k - 3) / 1.5);
+      for (const [id, , b] of C.countries) {
+        if (!id || id === live.current.selected || b[2] < vx0 || b[0] > vx1 || b[3] < vy0 || b[1] > vy1) continue;
+        if (Math.max(b[2] - b[0], b[3] - b[1]) * k < 140) continue; // too small on screen to need it
+        let z = s.zoomAdmin.get(id);
+        if (!z) {
+          z = { path: null, key: '', lines: null, loading: true };
+          s.zoomAdmin.set(id, z);
+          const entry = z;
+          void loadAdmin(id).then((d) => { entry.lines = d?.lines ?? []; entry.loading = false; scheduleDraw(); });
+        }
+        if (z.lines?.length && z.key !== key) {
+          const proj = geoNaturalEarth1().rotate([-s.lambda0, 0]).scale(s.S1).translate(s.T1).precision(0.3);
+          const dPath = geoPath(proj)({ type: 'MultiLineString', coordinates: z.lines } as GeoJSON.MultiLineString);
+          z.path = dPath ? new Path2D(dPath) : null; z.key = key;
+        }
+        if (z.path) ctx.stroke(z.path);
+      }
+      ctx.restore();
+    }
+    // The selected river, in gold.
+    const pf = live.current.feature;
+    if (pf?.kind === 'river' && pf.river) {
+      const key = `${pf.name}|${s.S1}|${s.lambda0}`;
+      if (s.pickedRiver?.key !== key) {
+        const proj = geoNaturalEarth1().rotate([-s.lambda0, 0]).scale(s.S1).translate(s.T1).precision(0.3);
+        const dPath = geoPath(proj)({ type: 'MultiLineString', coordinates: pf.river.c } as GeoJSON.MultiLineString);
+        s.pickedRiver = dPath ? { name: pf.name, key, path: new Path2D(dPath) } : null;
+      }
+      if (s.pickedRiver) {
+        ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        ctx.strokeStyle = 'rgba(251,191,36,0.35)'; ctx.lineWidth = 8 / k; ctx.stroke(s.pickedRiver.path);
+        ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2.6 / k; ctx.stroke(s.pickedRiver.path);
+        ctx.restore();
+      }
+    }
+
     const sel = live.current.selected;
     if (sel && !live.current.quiz) {
       const hit = C.countries.find(([id]) => id === sel);
@@ -411,13 +466,13 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
       labels.push({ kind: 'lake', key: `nl:${l.n}`, text: l.n, x: p[0], y: p[1], ang: 0, w: ctx.measureText(l.n).width, size: Math.sqrt(l.area) * pxPerDeg, rank: 0 });
     }
     for (const r of d.rivers) {
-      if (!r.n || seen.has(`v${r.n}`)) continue;
-      seen.add(`v${r.n}`);
+      if (!r.n || seen.has(`v${r.id}`)) continue;
+      seen.add(`v${r.id}`);
       const w = ctx.measureText(r.n).width;
       // Several candidate spots along the river; the first that fits wins.
       r.as.forEach(([a, b], i) => {
         const p = proj(a);
-        if (p) labels.push({ kind: 'river', key: `nv:${r.n}:${i}`, group: `v${r.n}`, text: r.n, x: p[0], y: p[1], ang: angleOf(a, b), w, size: r.len * pxPerDeg, rank: riverTier(r.r) });
+        if (p) labels.push({ kind: 'river', key: `nv:${r.id}:${i}`, group: `v${r.id}`, text: r.n, x: p[0], y: p[1], ang: angleOf(a, b), w, size: r.len * pxPerDeg, rank: riverTier(r.r) });
       });
     }
     ctx.restore();
@@ -558,6 +613,7 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
       A.states.forEach((t, i) => { if (t.size * k >= t.w * 0.75) drawState(`s:${sel}:${i}`, t.text, t.x * k + tx, t.y * k + ty, t.w); });
       A.cities.forEach((c, i) => { if (c.cap !== 2 && i >= 8) city(i); });
     }
+    s.natHits = [];
     // Physical features: the great ranges claim space before minor cities, the rest after.
     const N = s.natAlpha > 0.5 ? s.nat : null;
     const setLS = (v: string) => { if (supportsLS) (ctx as unknown as { letterSpacing: string }).letterSpacing = v; };
@@ -608,7 +664,7 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
           w = L.w + (L.ew ?? 0) + 18;
         } else if (L.kind === 'lake') {
           if (k < 1.5 || L.size * k < L.w * 0.55) return;
-        } else if (k < RIVER_LABEL_K[L.rank] || L.size * k < L.w * 2) return;
+        } else if (k < RIVER_LABEL_K[L.rank] || L.size * k < L.w * 1.4) return;
         // Footprint: one box, or for tilted text a chain of small squares along it.
         // Ranges retry with tighter letter-spacing when the spread-out name collides.
         const tries = L.kind === 'range' ? [...new Set([sp, Math.round((sp + 1.5) / 2), 1.5])] : [sp];
@@ -630,6 +686,12 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
         if (!boxes.length) return;
         for (const b of boxes) placed.push(...b);
         if (L.group) groups.add(L.group);
+        {
+          const [pre, ...rest] = L.key.split(':');
+          const kind = ({ nv: 'river', nr: 'range', np: 'peak', nl: 'lake' } as const)[pre as 'nv'];
+          const name = (pre === 'nv' || pre === 'nr' ? rest.slice(0, -1) : rest).join(':');
+          if (kind) s.natHits.push({ box: [Math.min(...boxes.map((b) => b[0])), Math.min(...boxes.map((b) => b[1])), Math.max(...boxes.map((b) => b[2])), Math.max(...boxes.map((b) => b[3]))], kind, name });
+        }
         want.add(L.key);
         items.push({
           key: L.key, draw: (a) => {
@@ -1010,6 +1072,18 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
       cursor.set({ country: c ? { name: c.name, cca2: c.cca2, sub: `${c.capital[0] ?? '—'} · ${fmtCompact(c.population)}` } : null });
       scheduleDraw();
     }
+    // Over a feature name or right on a river line: say what a click will open.
+    if (live.current.quiz || live.current.nature === false) return;
+    const label = s.natHits.find((h) => e.clientX >= h.box[0] && e.clientX <= h.box[2] && e.clientY >= h.box[1] && e.clientY <= h.box[3]);
+    const kindText = { river: 'River', range: 'Mountain range', peak: 'Peak', lake: 'Lake' } as const;
+    const glyph = { river: '〰', range: '⛰', peak: '▲', lake: '〰' } as const;
+    if (label) { cursor.set({ country: { name: displayName(label), cca2: '', glyph: glyph[label.kind], sub: `${kindText[label.kind]} · click for details` } }); s.hover = null; return; }
+    if (g) {
+      const perDeg = (s.S1 * s.transform.k * Math.PI) / 180;
+      void riverNear(g.lat, g.lng, 7 / perDeg).then((r) => {
+        if (r) { cursor.set({ country: { name: displayName({ kind: 'river', name: r.n }), cca2: '', glyph: '〰', sub: 'River · click for details' } }); s.hover = null; }
+      });
+    }
   };
   const onPointerLeave = () => { st.current.hover = null; cursor.set({ country: null }); scheduleDraw(); };
   const onPointerDown = (e: React.PointerEvent) => { press.current = { x: e.clientX, y: e.clientY, t: performance.now() }; };
@@ -1021,8 +1095,20 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
     const g = geoAt(e.clientX, e.clientY);
     const id = g ? countryAt(g.lat, g.lng) : null;
     live.current.onInteract();
-    if (id) live.current.onSelect(id);
-    else if (!live.current.quiz) live.current.onSelect(null);
+    const choose = () => { if (id) live.current.onSelect(id); else if (!live.current.quiz) live.current.onSelect(null); };
+    const L = live.current, s = st.current;
+    if (!L.quiz && L.onFeature && L.nature !== false) {
+      // A river / range / peak / lake name?
+      const hit = s.natHits.find((h) => e.clientX >= h.box[0] && e.clientX <= h.box[2] && e.clientY >= h.box[1] && e.clientY <= h.box[3]);
+      if (hit) { L.onFeature({ kind: hit.kind, name: hit.name }); return; }
+      // Right on a river line?
+      if (g) {
+        const perDeg = (s.S1 * s.transform.k * Math.PI) / 180;
+        void riverNear(g.lat, g.lng, 7 / perDeg).then((r) => (r ? L.onFeature!({ kind: 'river', name: r.id }) : choose()));
+        return;
+      }
+    }
+    choose();
   };
 
   // ── Camera helpers ────────────────────────────────────────
@@ -1062,6 +1148,18 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
       const b = s.baseBounds.get(cca3);
       // Focusing selects the country, so its panel is opening: frame beside it.
       if (b) zoomToBounds(b, 10, !live.current.quiz);
+    },
+    fitGeo(bbox) {
+      const s = st.current;
+      if (s.phase !== 'flat') { s.pending = () => this.fitGeo(bbox); return; }
+      const [w, so, e, n] = bbox;
+      const proj = geoNaturalEarth1().rotate([-s.lambda0, 0]).scale(s.S1).translate(s.T1);
+      const ring: [number, number][] = [];
+      for (let i = 0; i <= 8; i++) ring.push([w + ((e - w) * i) / 8, so], [w + ((e - w) * i) / 8, n]);
+      const pts = ring.map((p) => proj(p)).filter(Boolean) as [number, number][];
+      if (!pts.length) return;
+      const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+      zoomToBounds([Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)], 12, true);
     },
     fit(codes) {
       if (st.current.phase !== 'flat') { st.current.pending = () => this.fit(codes); return; }

@@ -1,6 +1,7 @@
 // Tiny pub/sub store for the custom cursor, so map hover/drag updates never
 // re-render React trees on every mouse move.
-export interface CursorCountry { name: string; cca2: string; sub: string }
+/** Hover card: a country (flag from cca2) or a feature (cca2 '' + glyph). */
+export interface CursorCountry { name: string; cca2: string; sub: string; glyph?: string }
 export interface CursorState {
   country: CursorCountry | null;
   dragging: boolean;

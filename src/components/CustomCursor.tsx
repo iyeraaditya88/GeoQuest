@@ -28,7 +28,7 @@ export function CustomCursor() {
       const key = s.country ? s.country.cca2 + s.country.name : '';
       if (key && key !== last) {
         last = key;
-        c.innerHTML = `<img src="${flagUrl(s.country!.cca2, 80)}" alt="" /><b>${s.country!.name}</b><span>${s.country!.sub}</span>`;
+        c.innerHTML = `${s.country!.cca2 ? `<img src="${flagUrl(s.country!.cca2, 80)}" alt="" />` : `<i class="cur-glyph">${s.country!.glyph ?? '•'}</i>`}<b>${s.country!.name}</b><span>${s.country!.sub}</span>`;
       }
     };
 

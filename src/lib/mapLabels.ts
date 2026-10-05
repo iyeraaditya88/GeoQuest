@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { COUNTRIES, MAPPABLE } from './data';
 import { insideTest, rangeSpots, riverTier, type Nature } from './nature';
 import type { AdminData } from './globeOverlays';
+import { displayName } from './features';
 import citiesRaw from '../data/cities.json';
 
 type City = [name: string, lat: number, lng: number, pop: number, rank: number, capital: 0 | 1, iso3: string];
@@ -34,6 +35,7 @@ interface Label {
   inSel?: boolean; // inside the selected (raised) country
   angle?: number;
   group?: string; // alternatives for one feature: only the first that fits is shown
+  feature?: { kind: 'river' | 'range' | 'peak' | 'lake'; name: string }; // clickable physical feature
   detail?: boolean; // part of the selected country's interior set
   bv?: [number, number, number]; // unit vector of `b`
   el?: HTMLDivElement;
@@ -120,7 +122,7 @@ function buildNature(d: Nature): Label[] {
     const w0 = measure(text, 'italic 600 10px Inter', 1.5);
     rangeSpots(r).forEach(([a, b], i) => out.push({
       kind: 'range', text, lat: a[1], lng: a[0], v: unit(a[1], a[0]), b: [b[1], b[0]], len: r.len, group: `r:${r.n}`,
-      w: w0, w0, h: 14, cls: 'ml ml-range', priority: (r.r <= 1 ? 0.95e9 : (r.r + 1) * 1e9 + 5e8) - r.len * 1e6 + i, rank: r.r, on: false, // great ranges before minor cities
+      w: w0, w0, h: 14, cls: 'ml ml-range clickable', feature: { kind: 'range', name: r.n }, priority: (r.r <= 1 ? 0.95e9 : (r.r + 1) * 1e9 + 5e8) - r.len * 1e6 + i, rank: r.r, on: false, // great ranges before minor cities
     }));
   }
   for (const p of d.peaks) {
@@ -129,7 +131,7 @@ function buildNature(d: Nature): Label[] {
     out.push({
       kind: 'peak', text: p.n, lat: p.a[1], lng: p.a[0], v: unit(p.a[1], p.a[0]),
       w: measure(p.n, 'italic 600 10.5px Inter') + measure(elev, '500 9.5px Inter') + 22, h: 15,
-      cls: 'ml ml-peak', priority: (p.r + 1.2) * 1e9 - p.e * 1e3, rank: p.r, on: false,
+      cls: 'ml ml-peak clickable', feature: { kind: 'peak', name: p.n }, priority: (p.r + 1.2) * 1e9 - p.e * 1e3, rank: p.r, on: false,
       extentDeg: p.e, // elevation, for the markup
     });
   }
@@ -137,17 +139,17 @@ function buildNature(d: Nature): Label[] {
     if (!l.n || !once(`l:${l.n}`)) continue;
     out.push({
       kind: 'lake', text: l.n, lat: l.l[1], lng: l.l[0], v: unit(l.l[1], l.l[0]),
-      w: measure(l.n, 'italic 500 10.5px Inter') + 4, h: 14, cls: 'ml ml-lake',
+      w: measure(l.n, 'italic 500 10.5px Inter') + 4, h: 14, cls: 'ml ml-lake clickable', feature: { kind: 'lake', name: l.n },
       priority: 2.2e9 - l.area * 1e8, extentDeg: Math.sqrt(l.area), on: false,
     });
   }
   for (const r of d.rivers) {
-    if (!r.n || !once(`v:${r.n}`)) continue;
+    if (!r.n || !once(`v:${r.id}`)) continue;
     const w = measure(r.n, 'italic 500 10.5px Inter') + 4;
     // Several candidate spots along the river; the first that fits wins.
     r.as.forEach(([a, b], i) => out.push({
-      kind: 'river', text: r.n, lat: a[1], lng: a[0], v: unit(a[1], a[0]), b: [b[1], b[0]], len: r.len, group: `v:${r.n}`,
-      w, h: 14, cls: 'ml ml-river', priority: (r.r + 1.6) * 1e9 - r.len * 1e6 + i, rank: riverTier(r.r), on: false,
+      kind: 'river', text: r.n, lat: a[1], lng: a[0], v: unit(a[1], a[0]), b: [b[1], b[0]], len: r.len, group: `v:${r.id}`,
+      w, h: 14, cls: 'ml ml-river clickable', feature: { kind: 'river', name: r.id }, priority: (r.r + 1.6) * 1e9 - r.len * 1e6 + i, rank: riverTier(r.r), on: false,
     }));
   }
   return out;
@@ -168,7 +170,14 @@ function maxCityRank(alt: number) {
   return 6;
 }
 
-export function createLabelLayer(layer: HTMLDivElement, getGlobe: () => GlobeMethods | undefined) {
+export function createLabelLayer(layer: HTMLDivElement, getGlobe: () => GlobeMethods | undefined, onFeature?: (f: { kind: 'river' | 'range' | 'peak' | 'lake'; name: string }) => void) {
+  // River / range / peak / lake names are clickable (the layer itself ignores the pointer).
+  const onClick = (e: MouseEvent) => {
+    const el = (e.target as HTMLElement).closest<HTMLElement>('.ml.clickable');
+    if (el?.dataset.kind && el.dataset.name) onFeature?.({ kind: el.dataset.kind as 'river', name: el.dataset.name });
+  };
+  layer.addEventListener('click', onClick);
+  let picked = '';
   const base = buildLabels();
   const capitalOf = new Map(base.filter((l) => l.kind === 'city' && l.capital).map((l) => [l.iso!, l] as const));
   let labels = base;
@@ -287,7 +296,7 @@ export function createLabelLayer(layer: HTMLDivElement, getGlobe: () => GlobeMet
           k === 'range' ? alt < RANGE_ALT[l.rank!] && l.len! * pxPerDeg >= l.w0! * 0.9
           : k === 'peak' ? alt < PEAK_ALT[l.rank!]
           : k === 'lake' ? alt < 1.6 && l.extentDeg! * pxPerDeg >= l.w * 0.55
-          : alt < RIVER_ALT[l.rank!] && l.len! * pxPerDeg >= l.w * 2);
+          : alt < RIVER_ALT[l.rank!] && l.len! * pxPerDeg >= l.w * 1.4);
       } else if (!enabled) eligible = false;
       // The detail set replaces the selected country's own name and its world-city labels.
       else if (detailOn && l.iso === detail!.id) eligible = false;
@@ -385,6 +394,11 @@ export function createLabelLayer(layer: HTMLDivElement, getGlobe: () => GlobeMet
             : l.kind === 'peak' ? `<i></i><span>${esc(l.text)}</span><em>${l.extentDeg!.toLocaleString()} m</em>`
             : esc(l.text);
           if (l.spacing) el.style.letterSpacing = `${l.spacing}px`;
+          if (l.feature) {
+            el.dataset.kind = l.feature.kind; el.dataset.name = l.feature.name;
+            el.title = `${displayName(l.feature)} — click for details`;
+            if (`${l.feature.kind}:${l.feature.name}` === picked) el.classList.add('is-picked');
+          }
           layer.appendChild(el);
           l.el = el;
         }
@@ -431,7 +445,13 @@ export function createLabelLayer(layer: HTMLDivElement, getGlobe: () => GlobeMet
       lastKey = '';
       if (!natureOn) for (const l of nature) if (l.on && l.el) { l.on = false; l.el.classList.remove('on'); }
     },
+    /** Mark the selected feature's label (or none). */
+    setPicked(f: { kind: string; name: string } | null) {
+      picked = f ? `${f.kind}:${f.name}` : '';
+      for (const l of nature) l.el?.classList.toggle('is-picked', !!l.feature && `${l.feature.kind}:${l.feature.name}` === picked);
+    },
     destroy() {
+      layer.removeEventListener('click', onClick);
       cancelAnimationFrame(raf);
       layer.innerHTML = '';
     },

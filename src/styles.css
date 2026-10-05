@@ -1154,3 +1154,25 @@ button:not(:disabled):active { filter: brightness(0.86); transition-duration: 0s
 .pp-confirm button { padding: 4px 9px; border-radius: 8px; font-size: 12px; font-weight: 600; color: var(--text); background: rgba(255, 255, 255, 0.07); }
 .pp-confirm button:first-of-type { color: #fecaca; background: rgba(248, 113, 113, 0.18); }
 .pp-empty { justify-content: center; gap: 8px; font-size: 12.5px; color: var(--dim); }
+
+/* ── Feature panel (rivers, ranges, peaks, lakes) ─────── */
+.feature-hero.tone-water { background: radial-gradient(circle at 70% 20%, #1e5aa8, #0b1730 70%); }
+.feature-hero.tone-earth { background: radial-gradient(circle at 70% 20%, #7c5a36, #1a1310 70%); }
+.feature-glyph { position: absolute; right: 22px; top: 18px; color: rgba(255, 255, 255, 0.16); }
+.feature-peaks { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 6px; }
+.feature-peaks li { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
+.feature-peaks li svg { color: #c8a27a; }
+.feature-peaks li span { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
+.feature-about { display: grid; gap: 8px; padding: 2px 0 18px; }
+.feature-about p { margin: 0; font-size: 14px; line-height: 1.6; color: #cbd5e1; }
+.feature-about p.muted { color: var(--dim); }
+.feature-about a { justify-self: start; display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--cyan); text-decoration: none; }
+.feature-about a:hover { text-decoration: underline; }
+
+/* Rivers, ranges, peaks and lakes on the globe are clickable */
+.map-labels .ml.clickable.on { pointer-events: auto; cursor: pointer; }
+.map-labels .ml.clickable.on:hover { filter: brightness(1.25) drop-shadow(0 0 6px rgba(125, 211, 252, 0.6)); }
+.map-labels .ml-range.clickable.on:hover, .map-labels .ml-peak.clickable.on:hover { filter: brightness(1.2) drop-shadow(0 0 6px rgba(253, 230, 138, 0.6)); }
+.map-labels .ml.is-picked { filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.9)); }
+/* Cursor card for rivers / ranges (no flag) */
+.cur-glyph { width: 34px; height: 23px; display: grid; place-items: center; border-radius: 4px; font-style: normal; font-size: 14px; color: #bae6fd; background: rgba(56, 189, 248, 0.16); }

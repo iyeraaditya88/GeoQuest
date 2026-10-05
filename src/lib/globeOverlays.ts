@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import GeoJsonGeometry from 'three-geojson-geometry';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { flagUrl, type CountryFeature } from './data';
+import { countryAt, flagUrl, type CountryFeature } from './data';
 import { rgba } from './countryMesh';
 
 const ease = (t: number) => 1 - Math.pow(1 - t, 3);
@@ -160,5 +160,87 @@ export function createHoverFx(opts: {
     /** Current hover strength of a country (for full repaints). */
     strength: (id: string | null) => (id ? entries.get(id)?.t ?? 0 : 0),
     dispose() { cancelAnimationFrame(raf); for (const e of entries.values()) if (e.outline) scene.remove(e.outline); outlineGeo.forEach((g) => g.dispose()); },
+  };
+}
+
+// ── Province borders for every country in view once you zoom in ──
+// (The selected country has its own raised set — see createAdminLayer.)
+export function createZoomAdminLayer(scene: THREE.Scene, R: number, camera: THREE.Camera) {
+  const meshes = new Map<string, THREE.LineSegments>();
+  const loading = new Set<string>();
+  let wanted = new Set<string>();
+  let exclude: string | null = null;
+  let enabled = true;
+  let color = 'rgba(255,255,255,0.3)';
+  let raf = 0, lastCheck = 0, lastKey = '';
+  const START = 1.25, FULL = 0.8; // camera altitude: start fading in → fully shown
+
+  const build = async (id: string) => {
+    if (meshes.has(id) || loading.has(id)) return;
+    loading.add(id);
+    const lines = (await loadAdmin(id))?.lines;
+    loading.delete(id);
+    if (!lines?.length || meshes.has(id)) return;
+    const mesh = lineMesh(new GeoJsonGeometry({ type: 'MultiLineString', coordinates: lines }, R * 1.0049, 2), color, 2.5);
+    mesh.visible = false;
+    mesh.name = `zoom-admin:${id}`;
+    scene.add(mesh);
+    meshes.set(id, mesh);
+    if (meshes.size > 40) { // keep memory bounded: drop the oldest hidden ones
+      for (const [k, m] of meshes) if (!wanted.has(k) && meshes.size > 30) { scene.remove(m); m.geometry.dispose(); (m.material as THREE.Material).dispose(); meshes.delete(k); }
+    }
+  };
+
+  // Which countries are on screen: sample a grid across the visible part of the globe.
+  const visibleCountries = (alt: number) => {
+    const p = camera.position, d = p.length();
+    const lat = Math.asin(p.y / d) * 180 / Math.PI;
+    const lng = 90 - Math.atan2(p.z, p.x) * 180 / Math.PI; // three-globe convention
+    const reach = Math.min(28, Math.acos(R / d) * 180 / Math.PI * 0.5 + alt * 4);
+    const out = new Set<string>();
+    // Centre first, then rings outward — so the cap below keeps what's in the middle of the view.
+    const pts: [number, number][] = [];
+    for (let i = -3; i <= 3; i++) for (let j = -3; j <= 3; j++) pts.push([i, j]);
+    pts.sort((a, b) => Math.hypot(...a) - Math.hypot(...b));
+    for (const [i, j] of pts) {
+      const la = Math.max(-85, Math.min(85, lat + (j / 3) * reach));
+      const lo = ((lng + ((i / 3) * reach) / Math.max(0.35, Math.cos((la * Math.PI) / 180)) + 540) % 360) - 180;
+      const c = countryAt(la, lo);
+      if (c && c !== exclude) out.add(c);
+    }
+    return out;
+  };
+
+  const tick = (now: number) => {
+    raf = requestAnimationFrame(tick);
+    const alt = camera.position.length() / R - 1;
+    const strength = enabled ? Math.max(0, Math.min(1, (START - alt) / (START - FULL))) : 0;
+    const key = `${camera.position.x.toFixed(1)},${camera.position.y.toFixed(1)},${camera.position.z.toFixed(1)}`;
+    if (strength > 0 && now - lastCheck > 250 && key !== lastKey) {
+      lastCheck = now; lastKey = key;
+      wanted = visibleCountries(alt);
+      if (wanted.size > 12) wanted = new Set([...wanted].slice(0, 12));
+      for (const id of wanted) void build(id);
+    }
+    const target = rgba(color)[3];
+    for (const [id, m] of meshes) {
+      const mat = m.material as THREE.LineBasicMaterial;
+      const want = strength > 0 && wanted.has(id) && id !== exclude ? target * strength : 0;
+      mat.opacity += (want - mat.opacity) * 0.15;
+      if (Math.abs(want - mat.opacity) < 0.003) mat.opacity = want;
+      m.visible = mat.opacity > 0.003;
+    }
+  };
+  raf = requestAnimationFrame(tick);
+
+  return {
+    setColor(css: string) {
+      color = css;
+      const [r, g, b] = rgba(css);
+      for (const m of meshes.values()) (m.material as THREE.LineBasicMaterial).color.setRGB(r, g, b);
+    },
+    setEnabled(v: boolean) { enabled = v; },
+    setExclude(id: string | null) { exclude = id; lastKey = ''; },
+    dispose() { cancelAnimationFrame(raf); for (const m of meshes.values()) { scene.remove(m); m.geometry.dispose(); } },
   };
 }
