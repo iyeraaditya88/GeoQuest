@@ -20,6 +20,7 @@ import type { MapillarySpot } from '../lib/mapillary';
 import { api } from '../lib/api';
 import { Click, TOUCH } from '../lib/touch';
 import { escapeHtml } from '../lib/html';
+import { MusicButton } from './MusicButton';
 
 
 export interface RoundResult {
@@ -949,6 +950,7 @@ export function StreetGame({ game, mlyToken, onPick, onGuess, onNext, onExit, on
           {steps > 0 && game.status === 'play' && <div className="sv-chip ghost">{steps} step{steps === 1 ? '' : 's'}</div>}
           <div className="sv-spacer" />
           {game.status === 'play' && !match && <button className="sv-chip btn" onClick={onSkip} title="New location (no points)">Skip</button>}
+          <MusicButton className="sv-btn" />
           <button className="sv-btn" onClick={onExit} aria-label="Exit street view"><X size={17} /></button>
         </div>
       )}

@@ -1511,7 +1511,6 @@ html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent
 .gm-size button:disabled { opacity: 0.4; }
 .guess-map .game-pin.map { cursor: grab; }
 .rl-dist { padding: 4px 9px; border-radius: 999px; font: 700 12px var(--display); color: #1a1205; background: var(--gold-soft); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35); white-space: nowrap; pointer-events: none; }
-.mt-mute.off { color: var(--dim); }
 .quiz-next { white-space: nowrap; flex-shrink: 0; }
 .quiz-foot { gap: 10px; }
 @media (max-width: 600px) { .quiz-msg { font-size: 12px; text-align: left; } }
@@ -1524,3 +1523,24 @@ html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent
 .crash-card div { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .crash-card b { font: 600 14px var(--display); }
 .crash-card span { font-size: 12.5px; color: var(--muted); }
+
+/* ── Music on/off ── */
+.music-btn { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: var(--gold-soft);
+  background: rgba(9, 14, 30, 0.8); box-shadow: 0 0 0 1px var(--line); backdrop-filter: blur(6px); transition: color 0.2s, background 0.2s, transform 0.2s var(--ease); }
+.music-btn:hover { background: rgba(20, 28, 52, 0.92); transform: translateY(-1px); }
+.music-btn.off { color: var(--dim); }
+.music-btn .eq { display: flex; align-items: flex-end; gap: 2px; height: 14px; }
+.music-btn .eq i { width: 3px; border-radius: 2px; background: currentColor; animation: eq 1.1s ease-in-out infinite; }
+.music-btn .eq i:nth-child(1) { height: 6px; animation-delay: -0.2s; }
+.music-btn .eq i:nth-child(2) { height: 12px; animation-delay: -0.5s; }
+.music-btn .eq i:nth-child(3) { height: 8px; animation-delay: -0.8s; }
+.music-btn .eq i:nth-child(4) { height: 10px; animation-delay: -0.35s; }
+@keyframes eq { 0%, 100% { transform: scaleY(0.45); } 50% { transform: scaleY(1); } }
+.music-btn .eq i { transform-origin: bottom; }
+@media (prefers-reduced-motion: reduce) { .music-btn .eq i { animation: none; } }
+/* Top-right of the free map area: clears an open side panel, the notch and the home bar. */
+.music-fab { position: fixed; z-index: 13; top: calc(16px + var(--st)); right: calc(var(--ri) + 16px + var(--sr)); transition: right 0.55s var(--ease), color 0.2s, background 0.2s, transform 0.2s var(--ease); }
+@media (max-width: 900px) {
+  /* Phones: mirrors the menu button in the opposite corner — same size, same height. */
+  .music-fab { top: calc(12px + var(--st)); right: calc(var(--ri) + 12px + var(--sr)); width: 44px; height: 44px; border-radius: 13px; }
+}

@@ -1,30 +1,46 @@
-// Light, upbeat background music for live matches — generated on the fly with Web Audio
-// (no audio files, nothing to license). A warm pad, a plucked arpeggio, soft bass and hats,
-// in a I–vi–IV–V loop. Intensity rises in the last seconds of a question.
+// Background music, generated on the fly with Web Audio (no audio files, nothing to license).
 //
-//   0 = calm (countdown, reveals)   1 = playing   2 = hurry (last 5 s)
+//   explore — while you browse the globe: gentle, mildly upbeat (88 BPM), soft pads, a light
+//             plucked arpeggio, a whisper of shaker; three chord progressions in rotation and the
+//             odd melody note, so it doesn't loop noticeably.
+//   match   — live challenges: livelier (104 BPM); intensity 0 calm (countdown, reveals),
+//             1 playing, 2 hurry (last 5 s of a question).
+//
+// Browsers only allow sound after the user has interacted with the page, so the app calls
+// `music.unlock()` on the first tap/click/key. Muting is remembered per browser.
 
 const KEY = 'gq-music';
 export const musicMuted = () => { try { return localStorage.getItem(KEY) === 'off'; } catch { return false; } };
 
-const BPM = 104;
-const STEP = 60 / BPM / 4; // a 16th note, in seconds
-const VOLUME = 0.16;
-// C major: C, Am, F, G — as MIDI chord tones (root, third, fifth).
-const CHORDS = [[48, 52, 55], [45, 48, 52], [41, 45, 48], [43, 47, 50]];
+export type MusicMode = 'explore' | 'match';
+const MODES: Record<MusicMode, { bpm: number; volume: number }> = {
+  explore: { bpm: 88, volume: 0.085 },
+  match: { bpm: 104, volume: 0.16 },
+};
+// Chord progressions (MIDI root, third, fifth): I–vi–IV–V, vi–IV–I–V, IV–V–iii–vi in C major.
+const PROGRESSIONS = [
+  [[48, 52, 55], [45, 48, 52], [41, 45, 48], [43, 47, 50]],
+  [[45, 48, 52], [41, 45, 48], [48, 52, 55], [43, 47, 50]],
+  [[41, 45, 48], [43, 47, 50], [40, 43, 47], [45, 48, 52]],
+];
+const PENTATONIC = [72, 74, 76, 79, 81, 84];
 const hz = (midi: number) => 440 * Math.pow(2, (midi - 69) / 12);
 
 class Engine {
   private ctx: AudioContext;
   private master: GainNode;
   private filter: BiquadFilterNode;
+  private delay: DelayNode;
   private delaySend: GainNode;
   private noise: AudioBuffer;
   private timer = 0;
   private stopTimer = 0;
-  private step = 0;
+  private step = 0; // 16th notes since start
   private nextTime = 0;
-  intensity = 0;
+  private bpm = MODES.explore.bpm;
+  mode: MusicMode = 'explore';
+  intensity = 1;
+  playing = false;
 
   constructor() {
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
@@ -33,49 +49,62 @@ class Engine {
     this.master.gain.value = 0;
     this.filter = this.ctx.createBiquadFilter();
     this.filter.type = 'lowpass';
-    this.filter.frequency.value = 2400;
+    this.filter.frequency.value = 2200;
     this.filter.connect(this.master);
     this.master.connect(this.ctx.destination);
     // A soft echo for space.
-    const delay = this.ctx.createDelay(1);
-    delay.delayTime.value = STEP * 3;
+    this.delay = this.ctx.createDelay(1.5);
+    this.delay.delayTime.value = this.stepLen() * 3;
     const fb = this.ctx.createGain();
     fb.gain.value = 0.28;
     this.delaySend = this.ctx.createGain();
     this.delaySend.gain.value = 0.22;
-    this.delaySend.connect(delay).connect(fb).connect(delay);
-    delay.connect(this.filter);
-    // One second of white noise for hats.
+    this.delaySend.connect(this.delay).connect(fb).connect(this.delay);
+    this.delay.connect(this.filter);
+    // One second of white noise for hats / shaker.
     this.noise = this.ctx.createBuffer(1, this.ctx.sampleRate, this.ctx.sampleRate);
     const d = this.noise.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   }
 
+  private stepLen() { return 60 / this.bpm / 4; }
+
   start() {
     window.clearTimeout(this.stopTimer);
     void this.ctx.resume();
-    const t = this.ctx.currentTime;
-    this.master.gain.cancelScheduledValues(t);
-    this.master.gain.setValueAtTime(this.master.gain.value, t);
-    this.master.gain.linearRampToValueAtTime(VOLUME, t + 1.5);
+    this.fadeTo(MODES[this.mode].volume, 1.8);
+    this.playing = true;
     if (this.timer) return;
-    this.nextTime = t + 0.05;
+    this.nextTime = this.ctx.currentTime + 0.05;
     this.timer = window.setInterval(() => this.schedule(), 25);
   }
 
   stop(fade = 1.2) {
-    const t = this.ctx.currentTime;
-    this.master.gain.cancelScheduledValues(t);
-    this.master.gain.setValueAtTime(this.master.gain.value, t);
-    this.master.gain.linearRampToValueAtTime(0, t + fade);
+    this.playing = false;
+    this.fadeTo(0, fade);
     window.clearTimeout(this.stopTimer);
     this.stopTimer = window.setTimeout(() => { window.clearInterval(this.timer); this.timer = 0; void this.ctx.suspend(); }, fade * 1000 + 100);
   }
 
+  /** Pause/resume the audio clock (e.g. while the tab is hidden) without changing state. */
+  suspend(on: boolean) {
+    if (on) void this.ctx.suspend();
+    else if (this.playing) void this.ctx.resume();
+  }
+
+  setMode(mode: MusicMode) {
+    if (mode === this.mode) return;
+    this.mode = mode;
+    this.bpm = MODES[mode].bpm;
+    this.delay.delayTime.setTargetAtTime(this.stepLen() * 3, this.ctx.currentTime, 0.3);
+    if (this.playing) this.fadeTo(MODES[mode].volume, 1.2);
+    this.setIntensity(1);
+  }
+
   setIntensity(n: number) {
     this.intensity = n;
-    const t = this.ctx.currentTime;
-    this.filter.frequency.setTargetAtTime(n >= 2 ? 5200 : n === 1 ? 2800 : 1500, t, 0.4);
+    const f = this.mode === 'explore' ? 2200 : n >= 2 ? 5200 : n === 1 ? 2800 : 1500;
+    this.filter.frequency.setTargetAtTime(f, this.ctx.currentTime, 0.4);
   }
 
   /** A short chime: up for right, down for wrong. */
@@ -86,33 +115,68 @@ class Engine {
     notes.forEach((n, i) => this.voice(hz(n), t + i * 0.09, 0.32, 'triangle', 0.16, this.ctx.destination));
   }
 
+  private fadeTo(v: number, secs: number) {
+    const t = this.ctx.currentTime;
+    this.master.gain.cancelScheduledValues(t);
+    this.master.gain.setValueAtTime(this.master.gain.value, t);
+    this.master.gain.linearRampToValueAtTime(v, t + secs);
+  }
+
   private schedule() {
     while (this.nextTime < this.ctx.currentTime + 0.12) {
-      this.play(this.step, this.nextTime);
-      this.nextTime += STEP;
-      this.step = (this.step + 1) % 64; // 4 bars of 16ths
+      if (this.mode === 'explore') this.playExplore(this.step, this.nextTime);
+      else this.playMatch(this.step, this.nextTime);
+      this.nextTime += this.stepLen();
+      this.step += 1;
     }
   }
 
-  private play(step: number, t: number) {
-    const chord = CHORDS[Math.floor(step / 16)];
+  private chordAt(step: number) {
+    const bar = Math.floor(step / 16);
+    const prog = PROGRESSIONS[Math.floor(bar / 4) % PROGRESSIONS.length];
+    return prog[bar % 4];
+  }
+
+  private playExplore(step: number, t: number) {
+    const S = this.stepLen();
+    const chord = this.chordAt(step);
+    const beat = step % 16;
+    const bar = Math.floor(step / 16);
+    // Pad: a soft chord each bar.
+    if (beat === 0) for (const n of chord) this.voice(hz(n + 12), t, S * 16, 'sine', 0.04, this.filter, 0.6);
+    // Bass: a round note on the downbeat, a lighter one on beat 3.
+    if (beat === 0) this.voice(hz(chord[0] - 12), t, S * 6, 'sine', 0.09, this.filter, 0.02);
+    if (beat === 8) this.voice(hz(chord[0] - 12), t, S * 4, 'sine', 0.05, this.filter, 0.02);
+    // Arpeggio: 8th notes, the odd one left out so it breathes.
+    if (beat % 2 === 0 && (beat === 0 || Math.random() > 0.18)) {
+      const tones = [chord[0] + 24, chord[1] + 24, chord[2] + 24, chord[1] + 36];
+      const n = tones[(beat / 2 + (bar % 2)) % tones.length];
+      this.voice(hz(n), t, S * 1.8, 'triangle', 0.028, this.filter, 0.006).connect(this.delaySend);
+    }
+    // Shaker: a whisper on the off-beats.
+    if (beat % 4 === 2) this.hat(t, 0.014);
+    // Now and then, a melody note from the pentatonic scale.
+    if ((beat === 6 || beat === 12) && Math.random() < 0.22) {
+      const n = PENTATONIC[Math.floor(Math.random() * PENTATONIC.length)];
+      this.voice(hz(n), t, S * 6, 'sine', 0.03, this.filter, 0.03).connect(this.delaySend);
+    }
+  }
+
+  private playMatch(step: number, t: number) {
+    const S = this.stepLen();
+    const chord = PROGRESSIONS[0][Math.floor((step % 64) / 16)];
     const beat = step % 16;
     const I = this.intensity;
-    // Pad: each bar, a soft chord.
-    if (beat === 0) for (const n of chord) this.voice(hz(n + 12), t, STEP * 16, 'sine', 0.035, this.filter, 0.5);
-    // Bass: beats 1 and 3 (+ a pickup when it's busy).
-    if (I >= 1 && (beat === 0 || beat === 8 || (I >= 2 && beat === 14))) this.voice(hz(chord[0] - 12), t, STEP * 3, 'sine', 0.11, this.filter, 0.01);
-    // Arpeggio: 8ths when playing, 16ths in the last seconds.
+    if (beat === 0) for (const n of chord) this.voice(hz(n + 12), t, S * 16, 'sine', 0.035, this.filter, 0.5);
+    if (I >= 1 && (beat === 0 || beat === 8 || (I >= 2 && beat === 14))) this.voice(hz(chord[0] - 12), t, S * 3, 'sine', 0.11, this.filter, 0.01);
     if (I >= 1 && (I >= 2 || beat % 2 === 0)) {
       const tones = [...chord.map((n) => n + 24), chord[1] + 36];
       const n = tones[(beat / (I >= 2 ? 1 : 2)) % tones.length | 0];
-      const v = this.voice(hz(n), t, STEP * 1.6, 'triangle', I >= 2 ? 0.05 : 0.045, this.filter, 0.005);
-      v.connect(this.delaySend);
+      this.voice(hz(n), t, S * 1.6, 'triangle', I >= 2 ? 0.05 : 0.045, this.filter, 0.005).connect(this.delaySend);
     }
-    // Hats on the off-beats; a soft kick when it's busy.
     if (I >= 1 && beat % 4 === 2) this.hat(t, 0.035);
     if (I >= 2 && beat % 4 === 0) this.kick(t);
-    if (I === 0 && beat === 8) this.voice(hz(chord[2] + 24), t, STEP * 6, 'sine', 0.02, this.filter, 0.2).connect(this.delaySend);
+    if (I === 0 && beat === 8) this.voice(hz(chord[2] + 24), t, S * 6, 'sine', 0.02, this.filter, 0.2).connect(this.delaySend);
   }
 
   private voice(freq: number, t: number, dur: number, type: OscillatorType, peak: number, out: AudioNode, attack = 0.01) {
@@ -156,18 +220,40 @@ class Engine {
 }
 
 let engine: Engine | null = null;
+let unlocked = false; // the user has interacted, so sound is allowed
 const get = () => {
   if (!engine) { try { engine = new Engine(); } catch { return null; } }
   return engine;
 };
+const listeners = new Set<() => void>();
+const emit = () => { for (const l of listeners) l(); };
+
+// A hidden tab doesn't need music (and phones thank you for it).
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => engine?.suspend(document.hidden));
+}
 
 export const music = {
-  start() { if (!musicMuted()) get()?.start(); },
-  stop() { engine?.stop(); },
+  /** Call on the first user interaction: starts the music unless it's muted. */
+  unlock() {
+    if (unlocked) return;
+    unlocked = true;
+    if (!musicMuted()) get()?.start();
+    emit();
+  },
+  /** Explore while browsing, match during live challenges. */
+  setMode(mode: MusicMode) {
+    get()?.setMode(mode);
+    if (unlocked && !musicMuted()) engine?.start();
+  },
   intensity(n: number) { if (engine && engine.intensity !== n) engine.setIntensity(n); },
   sfx(kind: 'good' | 'bad') { if (!musicMuted()) get()?.sfx(kind); },
+  stop() { engine?.stop(); },
   setMuted(off: boolean) {
     try { localStorage.setItem(KEY, off ? 'off' : 'on'); } catch { /* ignore */ }
+    unlocked = true;
     if (off) engine?.stop(0.4); else get()?.start();
+    emit();
   },
+  subscribe(cb: () => void) { listeners.add(cb); return () => { listeners.delete(cb); }; },
 };

@@ -62,6 +62,8 @@ import { LivePlay, type LiveState, type MatchGlobe } from './components/LivePlay
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { localName } from './lib/live';
 import { panelWidth } from './lib/layout';
+import { MusicButton } from './components/MusicButton';
+import { music } from './lib/music';
 
 function loadBest() { try { return Number(localStorage.getItem('gq-best') ?? 0); } catch { return 0; } }
 function saveBest(n: number) { try { localStorage.setItem('gq-best', String(n)); } catch { /* ignore */ } }
@@ -562,6 +564,14 @@ export default function App() {
     if (to.cca3) confetti({ particleCount: 70, spread: 70, origin: { y: 0.25 }, colors: ['#5eead4', '#fde68a', '#34d399'], disableForReducedMotion: true });
   };
 
+  // Background music: browsers allow sound only after an interaction, so start on the first one.
+  useEffect(() => {
+    const unlock = () => { music.unlock(); off(); };
+    const off = () => { for (const ev of ['pointerdown', 'keydown', 'touchstart'] as const) window.removeEventListener(ev, unlock, true); };
+    for (const ev of ['pointerdown', 'keydown', 'touchstart'] as const) window.addEventListener(ev, unlock, true);
+    return off;
+  }, []);
+
   // ── Keyboard: search (⌘K / Ctrl+K, or /) and Esc to close things — nothing else ──
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -742,6 +752,8 @@ export default function App() {
       <ErrorBoundary name="Live play">
         <LivePlay mode={liveMode} me={liveMe} ai={ai} friendsReq={friendsReq} inviteReq={inviteReq} globe={matchGlobe} clickRef={matchClick} onState={setLiveState} />
       </ErrorBoundary>
+      {/* Music on/off — top right (in Street View it moves into that screen's own top bar) */}
+      {chrome && !geo && !liveState.immersive && <MusicButton className="music-fab" />}
       <CustomCursor />
       <SearchPalette open={searchOpen} onClose={() => setSearchOpen(false)} onPick={(c) => { if (quiz) exitQuiz(); select(c); }} />
     </div>
