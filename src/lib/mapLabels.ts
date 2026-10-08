@@ -117,12 +117,13 @@ function buildNature(d: Nature): Label[] {
   const seen = new Set<string>();
   const once = (k: string) => (seen.has(k) ? false : (seen.add(k), true));
   for (const r of d.ranges) {
-    if (!once(`r:${r.n}`)) continue;
+    const rid = r.id ?? r.n; // same-named ranges in different places have their own ids
+    if (!once(`r:${rid}`)) continue;
     const text = r.n.toUpperCase();
     const w0 = measure(text, 'italic 600 10px Inter', 1.5);
     rangeSpots(r).forEach(([a, b], i) => out.push({
-      kind: 'range', text, lat: a[1], lng: a[0], v: unit(a[1], a[0]), b: [b[1], b[0]], len: r.len, group: `r:${r.n}`,
-      w: w0, w0, h: 14, cls: 'ml ml-range clickable', feature: { kind: 'range', name: r.n }, priority: (r.r <= 1 ? 0.95e9 : (r.r + 1) * 1e9 + 5e8) - r.len * 1e6 + i, rank: r.r, on: false, // great ranges before minor cities
+      kind: 'range', text, lat: a[1], lng: a[0], v: unit(a[1], a[0]), b: [b[1], b[0]], len: r.len, group: `r:${rid}`,
+      w: w0, w0, h: 14, cls: 'ml ml-range clickable', feature: { kind: 'range', name: rid }, priority: (r.r <= 1 ? 0.95e9 : (r.r + 1) * 1e9 + 5e8) - r.len * 1e6 + i, rank: r.r, on: false, // great ranges before minor cities
     }));
   }
   for (const p of d.peaks) {

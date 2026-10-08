@@ -461,14 +461,15 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
     };
     ctx.save();
     for (const r of d.ranges) {
-      if (seen.has(`r${r.n}`)) continue;
-      seen.add(`r${r.n}`);
+      const rid = r.id ?? r.n;
+      if (seen.has(`r${rid}`)) continue;
+      seen.add(`r${rid}`);
       const text = r.n.toUpperCase();
       ctx.font = 'italic 600 10px Inter, sans-serif'; setLS('1.5px');
       const w = ctx.measureText(text).width;
       rangeSpots(r).forEach(([a, b], i) => {
         const p = proj(a);
-        if (p) labels.push({ kind: 'range', key: `nr:${r.n}:${i}`, group: `r${r.n}`, text, x: p[0], y: p[1], ang: angleOf(a, b), w, size: r.len * pxPerDeg, rank: r.r });
+        if (p) labels.push({ kind: 'range', key: `nr:${rid}:${i}`, group: `r${rid}`, text, x: p[0], y: p[1], ang: angleOf(a, b), w, size: r.len * pxPerDeg, rank: r.r });
       });
     }
     setLS('0px');

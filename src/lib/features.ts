@@ -86,8 +86,29 @@ export async function featureInfo(ref: FeatureRef): Promise<FeatureInfo | null> 
     return { kind: 'river', name: r.id, bbox: r.bb, center: { lat: (s + n) / 2, lng: (w + e) / 2 }, countries: uniqCountries(pts).slice(0, 10), river: r };
   }
   if (ref.kind === 'range') {
-    const rg = d.ranges.find((x) => x.n === ref.name);
+    const rg = d.ranges.find((x) => (x.id ?? x.n) === ref.name) ?? d.ranges.find((x) => x.n === ref.name);
     if (!rg) return null;
+    // With the range's real outline: countries it covers and the highest peaks inside it.
+    const area = d.rp?.find((a) => (a.id ?? a.n) === (rg.id ?? rg.n)) ?? d.rp?.find((a) => a.n === rg.n);
+    if (area) {
+      const inside = (x: number, y: number) => area.p.some((ring) => {
+        let c = false;
+        for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+          const [xi, yi] = ring[i], [xj, yj] = ring[j];
+          if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c;
+        }
+        return c;
+      });
+      const [w, s, e, n] = area.bb;
+      const pts: [number, number][] = [];
+      const step = Math.max(0.15, Math.max(e - w, n - s) / 24);
+      for (let y = s; y <= n; y += step) for (let x = w; x <= e; x += step) if (inside(x, y)) pts.push([x, y]);
+      // Peaks inside — or just outside the (simplified) outline, within ~25 km.
+      const near = (x: number, y: number) => inside(x, y) || [0, 1, 2, 3, 4, 5, 6, 7].some((k) => inside(x + 0.25 * Math.cos(k * Math.PI / 4), y + 0.25 * Math.sin(k * Math.PI / 4)));
+      const peaks = d.peaks.filter((p) => near(p.a[0], p.a[1])).sort((a, b) => b.e - a.e).slice(0, 3).map((p) => ({ name: p.n, e: p.e }));
+      const pad = Math.max(0.5, Math.max(e - w, n - s) * 0.08);
+      return { kind: 'range', name: rg.id ?? rg.n, bbox: [w - pad, s - pad, e + pad, n + pad], center: { lat: (s + n) / 2, lng: (w + e) / 2 }, countries: uniqCountries(pts).slice(0, 10), peaks, range: rg };
+    }
     const dx = rg.b[0] - rg.a[0], dy = rg.b[1] - rg.a[1];
     const along = (t: number): [number, number] => [rg.a[0] + dx * t, rg.a[1] + dy * t];
     const half = rg.len / 2;
@@ -123,7 +144,7 @@ export async function featureInfo(ref: FeatureRef): Promise<FeatureInfo | null> 
 export function displayName(ref: FeatureRef) {
   if (ref.kind === 'river') ref = { ...ref, name: ref.name.replace(/#\d+$/, '') }; // same-named rivers: "Colorado#2"
   if (ref.kind === 'river' && !/\b(river|rio|río|creek|canal|branch)\b/i.test(ref.name)) return `${ref.name} River`;
-  if (ref.kind === 'range') return ref.name.replace(/\b\w+/g, (w) => (w.length > 2 ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w.toLowerCase()));
+  if (ref.kind === 'range') return ref.name.replace(/#\d+$/, '').replace(/\b\w+/g, (w) => (w.length > 2 ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w.toLowerCase()));
   return ref.name;
 }
 

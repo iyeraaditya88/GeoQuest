@@ -23,10 +23,10 @@ type LngLat = [number, number];
 export interface River { id: string; n: string; r: number; len: number; km: number; bb: [number, number, number, number]; as: [LngLat, LngLat][]; c: LngLat[][] }
 export interface Lake { n: string; area: number; l: LngLat; p: LngLat[][][] }
 /** a = centre, b = one degree along the range's main axis, len = axis length in degrees */
-export interface Range { n: string; r: number; a: LngLat; b: LngLat; len: number }
+export interface Range { n: string; id?: string; r: number; a: LngLat; b: LngLat; len: number }
 export interface Peak { n: string; r: number; e: number; a: LngLat }
 /** A mountain range's area (Natural Earth outline). r = importance (1 = Himalayas, Andes, Rockies…). */
-export interface RangeArea { n: string; r: number; p: LngLat[][]; bb: [number, number, number, number] }
+export interface RangeArea { n: string; id?: string; r: number; p: LngLat[][]; bb: [number, number, number, number] }
 export interface Nature { rivers: River[]; lakes: Lake[]; ranges: Range[]; peaks: Peak[]; rp?: RangeArea[] }
 
 let naturePromise: Promise<Nature | null> | null = null;
