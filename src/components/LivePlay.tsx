@@ -5,13 +5,14 @@ import { AnimatePresence } from 'motion/react';
 import { connectLive, type Live } from '../lib/live';
 import type { GameId, Invite, MatchOpts, MatchSession, Snapshot } from '../lib/match';
 import type { Feedback } from './GlobeView';
+import { fresh } from '../lib/chunks';
 
-const FriendsPanel = lazy(() => import('./FriendsPanel').then((m) => ({ default: m.FriendsPanel })));
-const InvitePanel = lazy(() => import('./FriendsPanel').then((m) => ({ default: m.InvitePanel })));
-const ChallengeToasts = lazy(() => import('./ChallengeToasts').then((m) => ({ default: m.ChallengeToasts })));
-const MatchOverlay = lazy(() => import('./MatchOverlay').then((m) => ({ default: m.MatchOverlay })));
+const FriendsPanel = lazy(() => fresh(import('./FriendsPanel')).then((m) => ({ default: m.FriendsPanel })));
+const InvitePanel = lazy(() => fresh(import('./FriendsPanel')).then((m) => ({ default: m.InvitePanel })));
+const ChallengeToasts = lazy(() => fresh(import('./ChallengeToasts')).then((m) => ({ default: m.ChallengeToasts })));
+const MatchOverlay = lazy(() => fresh(import('./MatchOverlay')).then((m) => ({ default: m.MatchOverlay })));
 
-const loadMatch = () => import('../lib/match');
+const loadMatch = () => fresh(import('../lib/match'));
 
 /** What a match needs from the globe. */
 export interface MatchGlobe {

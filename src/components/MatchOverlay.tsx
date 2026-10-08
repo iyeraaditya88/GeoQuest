@@ -15,8 +15,9 @@ import type { GeoGame } from './StreetGame';
 import type { MatchGlobe } from './LivePlay';
 import { Click, buzz } from '../lib/touch';
 import { music } from '../lib/music';
+import { fresh } from '../lib/chunks';
 
-const StreetGame = lazy(() => import('./StreetGame').then((m) => ({ default: m.StreetGame })));
+const StreetGame = lazy(() => fresh(import('./StreetGame')).then((m) => ({ default: m.StreetGame })));
 const ICONS: Record<GameId, typeof Swords> = { quiz: Gamepad2, capitals: Landmark, trivia: Brain, top5: ListOrdered, street: Binoculars };
 
 interface Props {

@@ -91,3 +91,13 @@ describe('games', () => {
     }
   });
 });
+
+describe('stale-version detection', async () => {
+  const { isChunkError } = await import('../src/lib/chunks');
+  it('recognises a missing code file from an older deploy, and nothing else', () => {
+    expect(isChunkError(new TypeError('Failed to fetch dynamically imported module: https://x/assets/StreetGame-abc.js'))).toBe(true); // Chrome
+    expect(isChunkError(new TypeError('Importing a module script failed.'))).toBe(true); // Safari
+    expect(isChunkError(new TypeError('error loading dynamically imported module'))).toBe(true); // Firefox
+    expect(isChunkError(new Error('Cannot read properties of undefined'))).toBe(false);
+  });
+});

@@ -7,14 +7,15 @@ import { CustomCursor } from './components/CustomCursor';
 import { Sidebar, SIDEBAR_W } from './components/Sidebar';
 import { cursor } from './lib/cursor';
 import type { GeoGame, Spot } from './components/StreetGame';
+import { fresh } from './lib/chunks';
 
 // Games load on demand: Street View alone brings MapillaryJS (with its own three.js),
 // MapLibre and Photo Sphere Viewer — none of that belongs in the first paint.
-const loadStreet = () => import('./components/StreetGame');
+const loadStreet = () => fresh(import('./components/StreetGame'));
 const StreetGame = lazy(() => loadStreet().then((m) => ({ default: m.StreetGame })));
-const loadTop5 = () => import('./components/Top5Game');
-const loadCapitals = () => import('./components/CapitalsGame');
-const loadTrivia = () => import('./components/TriviaGame');
+const loadTop5 = () => fresh(import('./components/Top5Game'));
+const loadCapitals = () => fresh(import('./components/CapitalsGame'));
+const loadTrivia = () => fresh(import('./components/TriviaGame'));
 const TriviaGame = lazy(() => loadTrivia().then((m) => ({ default: m.TriviaGame })));
 const Top5Game = lazy(() => loadTop5().then((m) => ({ default: m.Top5Game })));
 const CapitalsGame = lazy(() => loadCapitals().then((m) => ({ default: m.CapitalsGame })));

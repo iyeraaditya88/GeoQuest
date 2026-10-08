@@ -3,6 +3,7 @@
 //  • a BroadcastChannel locally, so two tabs on this machine can play each other — no keys needed.
 // Both echo your own messages back to you, so match logic treats everyone the same way.
 import { api } from './api';
+import { fresh } from './chunks';
 
 export interface Member { name: string; data: unknown }
 export type Listener = (name: string, data: unknown, from: string) => void;
@@ -32,7 +33,7 @@ export interface Live {
 
 // ── Ably ──
 async function connectAbly(me: string): Promise<Live> {
-  const mod = await import('ably');
+  const mod = await fresh(import('ably'));
   const Ably = ((mod as unknown as { default?: typeof mod }).default ?? mod) as typeof mod;
   const tickets: string[] = [];
   const rt = new Ably.Realtime({
