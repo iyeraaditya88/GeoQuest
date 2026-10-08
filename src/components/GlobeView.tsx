@@ -174,7 +174,10 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
     const geo = g.toGlobeCoords(e.clientX - rect.left, e.clientY - rect.top);
     interactRef.current();
     if (pickMode) { if (geo) onPick?.(geo.lat, geo.lng); return; }
-    const id = geo ? countryAt(geo.lat, geo.lng) : null;
+    let id = geo ? countryAt(geo.lat, geo.lng) : null;
+    // Quizzes on a touchscreen: a fingertip that lands just off a small country (in the sea)
+    // still counts — take the nearest country within finger reach.
+    if (!id && quiz && e.pointerType === 'touch') id = nearestCountry(g, e.clientX - rect.left, e.clientY - rect.top, 16);
     const choose = () => { if (id) onSelect(id); else if (!quiz) onSelect(null); };
     // A click right on a river line opens the river; anywhere else, the country.
     if (geo && natureRef.current && !quiz && onFeature) {
@@ -183,6 +186,19 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
       return;
     }
     choose();
+  };
+
+  /** The country nearest to a screen point, searching rings out to `maxPx`. */
+  const nearestCountry = (g: GlobeMethods, x: number, y: number, maxPx: number) => {
+    for (let r = 4; r <= maxPx; r += 4) {
+      for (let k = 0; k < 12; k++) {
+        const a = (k / 12) * Math.PI * 2;
+        const p = g.toGlobeCoords(x + Math.cos(a) * r, y + Math.sin(a) * r);
+        const c = p ? countryAt(p.lat, p.lng) : null;
+        if (c) return c;
+      }
+    }
+    return null;
   };
 
   /** `px` screen pixels expressed in degrees at a point (for hit-testing lines). */

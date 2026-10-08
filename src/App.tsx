@@ -56,6 +56,8 @@ import { QuizBar, type QuizMode, type QuizState } from './components/QuizBar';
 import { BY_CCA3 } from './lib/data';
 import { api } from './lib/api';
 import { CLUE_POOL, QUIZ_POOL, clueFor, pickRandom } from './lib/quiz';
+import { missHint, takeaway } from './lib/quizCoach';
+import { buzz } from './lib/touch';
 import { LivePlay, type LiveState, type MatchGlobe } from './components/LivePlay';
 import { localName } from './lib/live';
 import { panelWidth } from './lib/layout';
@@ -281,20 +283,23 @@ export default function App() {
       const best = Math.max(streak, quiz.best);
       saveBest(best);
       const q = { ...quiz, streak, best, score: quiz.score + 1, rounds: quiz.rounds + 1, result: 'good' as const };
+      buzz('good');
       setQuiz(q);
       setFeedback({ cca3, kind: 'good' });
       confetti({ particleCount: 90, spread: 75, origin: { y: 0.2 }, colors: ['#fde68a', '#34d399', '#7dd3fc', '#f9a8d4'], disableForReducedMotion: true });
       nextRound(q);
     } else {
       const misses = quiz.misses + 1;
+      buzz('bad');
       if (misses >= 3) {
-        const q = { ...quiz, misses, streak: 0, rounds: quiz.rounds + 1, result: 'reveal' as const };
+        // Learn it: show where it is and something to remember, then move on when ready.
+        window.clearTimeout(timer.current);
+        const q = { ...quiz, misses, streak: 0, rounds: quiz.rounds + 1, result: 'reveal' as const, takeaway: takeaway(quiz.target) };
         setQuiz(q);
         setFeedback({ cca3: quiz.target, kind: 'reveal' });
         cam.flyTo(quiz.target, 1200);
-        nextRound(q, 2600);
       } else {
-        setQuiz({ ...quiz, misses, result: 'bad' });
+        setQuiz({ ...quiz, misses, result: 'bad', hint: missHint(quiz.target, cca3, misses) });
         setFeedback({ cca3, kind: 'bad' });
         window.clearTimeout(timer.current);
         timer.current = window.setTimeout(() => setFeedback(null), 700);
@@ -304,12 +309,13 @@ export default function App() {
 
   const skip = () => {
     if (!quiz || quiz.result === 'good' || quiz.result === 'reveal') return;
-    const q = { ...quiz, streak: 0, rounds: quiz.rounds + 1, result: 'reveal' as const };
-    setQuiz(q);
+    window.clearTimeout(timer.current);
+    setQuiz({ ...quiz, streak: 0, rounds: quiz.rounds + 1, result: 'reveal' as const, takeaway: takeaway(quiz.target) });
     setFeedback({ cca3: quiz.target, kind: 'reveal' });
     cam.flyTo(quiz.target, 1200);
-    nextRound(q, 2400);
   };
+  /** After a reveal: on to the next country. */
+  const nextQuiz = () => { if (quiz?.result === 'reveal') nextRound(quiz, 0); };
 
   const exitQuiz = () => { window.clearTimeout(timer.current); setQuiz(null); setFeedback(null); };
 
@@ -581,6 +587,7 @@ export default function App() {
       if (e.key === ']') { setSbCollapsed(false); return; }
       if (e.key === '?') { setShortcutsOpen((v) => !v); return; }
       if (e.key === '/') { e.preventDefault(); setSearchOpen(true); }
+      else if (e.key === 'Enter' && quiz?.result === 'reveal') { e.preventDefault(); nextQuiz(); }
       else if (e.key === 'Escape') { if (shortcutsOpen) setShortcutsOpen(false); else if (drawerOpen) setDrawerOpen(false); else if (play) exitPlay(); else if (searchOpen) setSearchOpen(false); else if (dockOpen) setDockOpen(false); else if (quiz) exitQuiz(); else if (feature) setFeature(null); else { setSelected(null); setHighlighted([]); } }
       else if (e.key.toLowerCase() === 'r' && !quiz) random();
       else if (e.key.toLowerCase() === 'a') { e.preventDefault(); setDockOpen(true); }
@@ -612,8 +619,8 @@ export default function App() {
         autoRotate={autoRotate}
         feedback={feedback}
         quiz={!!quiz || liveState.quiz}
-        liftUp={dockOpen && !quiz}
-        dropDown={!!play || (!!anti && anti.stage !== 'dive')}
+        liftUp={(dockOpen && !quiz) || (!!quiz && vp.w <= 600 && vp.h > vp.w)}
+        dropDown={!!play || (!!anti && anti.stage !== 'dive') || (!!quiz && !(vp.w <= 600 && vp.h > vp.w))}
         pickMode={!!anti && anti.stage !== 'dive'}
         onPick={pickAntipode}
         pins={antiPins}
@@ -724,7 +731,7 @@ export default function App() {
         {play === 'trivia' && <Suspense key="trivia" fallback={<GameCardSkeleton />}><TriviaGame onReveal={revealTrivia} onExit={exitPlay} /></Suspense>}
         {play === 'capitals' && <Suspense key="capitals" fallback={<GameCardSkeleton />}><CapitalsGame onReveal={(c) => { setHighlighted([c]); cam.flyTo(c); }} onExit={exitPlay} /></Suspense>}
       </AnimatePresence>
-      <QuizBar quiz={quiz} onMode={(m) => startQuiz(m)} onSkip={skip} onExit={exitQuiz} />
+      <QuizBar quiz={quiz} onMode={(m) => startQuiz(m)} onSkip={skip} onNext={nextQuiz} onExit={exitQuiz} />
       <AnimatePresence>
         {anti && (
           <AntipodeCard

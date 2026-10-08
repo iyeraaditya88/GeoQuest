@@ -1,7 +1,7 @@
 // The live match on screen: lobby → 3-2-1 → questions with a live scoreboard → podium.
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowRight, Copy, Share2, Binoculars, Brain, Check, Crown, Flag, Gamepad2, Heart, Landmark, Lightbulb, ListOrdered, Loader2, LogOut, RotateCcw, Sparkles, Swords, X } from 'lucide-react';
+import { ArrowRight, Copy, Share2, Volume2, VolumeX, Binoculars, Brain, Check, Crown, Flag, Gamepad2, Heart, Landmark, Lightbulb, ListOrdered, Loader2, LogOut, RotateCcw, Sparkles, Swords, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import { GAMES, QUIZ_MODES, speedPoints, type GameId, type MatchSession, type Player, type Script, type Snapshot } from '../lib/match';
@@ -13,7 +13,8 @@ import { DEFAULT_MAPILLARY_TOKEN } from '../config';
 import { api } from '../lib/api';
 import type { GeoGame } from './StreetGame';
 import type { MatchGlobe } from './LivePlay';
-import { Click } from '../lib/touch';
+import { Click, buzz } from '../lib/touch';
+import { music, musicMuted } from '../lib/music';
 
 const StreetGame = lazy(() => import('./StreetGame').then((m) => ({ default: m.StreetGame })));
 const ICONS: Record<GameId, typeof Swords> = { quiz: Gamepad2, capitals: Landmark, trivia: Brain, top5: ListOrdered, street: Binoculars };
@@ -61,6 +62,25 @@ export function MatchOverlay({ session, snap, ai, globe, clickRef, onImmersive, 
   const [confirmLeave, setConfirmLeave] = useState(false);
   useEffect(() => { if (!confirmLeave) return; const t = window.setTimeout(() => setConfirmLeave(false), 3000); return () => window.clearTimeout(t); }, [confirmLeave]);
   const leave = () => { if (playing && !confirmLeave) { setConfirmLeave(true); return; } onLeave(); };
+
+  // Background music: calm in countdowns/reveals, upbeat while answering, a push in the last 5 s.
+  useEffect(() => {
+    if (s.phase === 'countdown' || s.phase === 'question' || s.phase === 'reveal') music.start();
+    else if (s.phase === 'done' || s.phase === 'aborted') music.stop();
+    if (s.phase !== 'question') { music.intensity(0); return; }
+    music.intensity(1);
+    const t = window.setTimeout(() => music.intensity(2), Math.max(0, s.qEndsAt - Date.now() - 5000));
+    return () => window.clearTimeout(t);
+  }, [s.phase, s.qi, s.qEndsAt]);
+  useEffect(() => () => music.stop(), []);
+  // A little chime (and a buzz on phones) for my own answer.
+  const mine = s.answers[s.qi]?.[s.me];
+  useEffect(() => {
+    if (!mine) return;
+    const good = mine.ok || mine.pts > 0;
+    music.sfx(good ? 'good' : 'bad');
+    buzz(good ? 'good' : 'bad');
+  }, [mine]);
 
   // Esc leaves (twice while playing — no accidental exits).
   useEffect(() => {
@@ -195,8 +215,18 @@ function Hud({ s, confirmLeave, onLeave }: { s: Snapshot; confirmLeave: boolean;
           );
         })}
       </ul>
+      <MuteToggle />
       <button className={`mt-leave ${confirmLeave ? 'sure' : ''}`} onClick={onLeave} aria-label="Leave match">{confirmLeave ? 'Leave?' : <LogOut size={15} />}</button>
     </motion.div>
+  );
+}
+
+function MuteToggle() {
+  const [off, setOff] = useState(musicMuted);
+  return (
+    <button className={`mt-leave mt-mute ${off ? 'off' : ''}`} onClick={() => { music.setMuted(!off); setOff(!off); }} aria-label={off ? 'Turn music on' : 'Mute music'} title={off ? 'Music off' : 'Music on'}>
+      {off ? <VolumeX size={15} /> : <Volume2 size={15} />}
+    </button>
   );
 }
 

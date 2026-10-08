@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'motion/react';
-import { Flag, Flame, Lightbulb, MapPinned, SkipForward, X } from 'lucide-react';
+import { ArrowRight, Flag, Flame, Lightbulb, MapPinned, SkipForward, X } from 'lucide-react';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import { Click } from '../lib/touch';
 
@@ -14,6 +14,10 @@ export interface QuizState {
   rounds: number;
   misses: number;
   result: 'idle' | 'good' | 'bad' | 'reveal';
+  /** Nudge after a wrong guess (direction from your click + a clue) */
+  hint?: string;
+  /** Shown with the answer: where it is, in words worth remembering */
+  takeaway?: string[];
 }
 
 const MODES: { id: QuizMode; label: string; icon: typeof Flag }[] = [
@@ -26,10 +30,11 @@ interface Props {
   quiz: QuizState | null;
   onMode: (m: QuizMode) => void;
   onSkip: () => void;
+  onNext: () => void;
   onExit: () => void;
 }
 
-export function QuizBar({ quiz, onMode, onSkip, onExit }: Props) {
+export function QuizBar({ quiz, onMode, onSkip, onNext, onExit }: Props) {
   const target = quiz ? BY_CCA3.get(quiz.target) : undefined;
   return (
     <AnimatePresence>
@@ -78,16 +83,33 @@ export function QuizBar({ quiz, onMode, onSkip, onExit }: Props) {
             </motion.div>
           </AnimatePresence>
 
+          {/* Learning: a nudge after each miss, and a takeaway with the answer */}
+          <AnimatePresence initial={false}>
+            {quiz.result !== 'reveal' && quiz.hint && quiz.misses > 0 && (
+              <motion.div key={`hint-${quiz.misses}`} className="quiz-hint" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}>
+                <Lightbulb size={14} /> <span>{quiz.hint}</span>
+              </motion.div>
+            )}
+            {quiz.result === 'reveal' && (
+              <motion.div key="learn" className="quiz-learn" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}>
+                <div className="ql-head"><img src={flagUrl(target.cca2, 80)} alt="" /> <b>{target.name}</b><span>Remember it</span></div>
+                <ul>{(quiz.takeaway ?? []).map((t) => <li key={t}>{t}</li>)}</ul>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div className="quiz-foot">
             <AnimatePresence mode="wait">
               <motion.span key={quiz.result + quiz.misses} className="quiz-msg" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
-                {quiz.result === 'good' && <>✓ Correct — {target.name}!</>}
-                {quiz.result === 'bad' && <>Not quite — {3 - quiz.misses > 0 ? `${3 - quiz.misses} more ${3 - quiz.misses === 1 ? 'try' : 'tries'}` : 'revealing…'}</>}
-                {quiz.result === 'reveal' && <>It was {target.flag} {target.name}</>}
-                {quiz.result === 'idle' && (quiz.mode === 'clue' ? 'Tip: open the GeoGuessr tab to study these clues' : ' ')}
+                {quiz.result === 'good' && <>✓ Correct — {target.name}!{quiz.misses ? ' Nice recovery.' : ''}</>}
+                {quiz.result === 'bad' && <>Not quite — {3 - quiz.misses} more {3 - quiz.misses === 1 ? 'try' : 'tries'}</>}
+                {quiz.result === 'reveal' && <>Take a look at where it is on the globe</>}
+                {quiz.result === 'idle' && (quiz.misses ? `${3 - quiz.misses} ${3 - quiz.misses === 1 ? 'try' : 'tries'} left` : quiz.mode === 'clue' ? 'Tip: open the GeoGuessr tab to study these clues' : ' ')}
               </motion.span>
             </AnimatePresence>
-            <button className="skip" onClick={onSkip}><SkipForward size={13} /> Skip</button>
+            {quiz.result === 'reveal'
+              ? <button className="quiz-next" onClick={onNext} autoFocus>Next country <ArrowRight size={14} /><kbd>↵</kbd></button>
+              : <button className="skip" onClick={onSkip}><SkipForward size={13} /> {quiz.misses ? 'Show me' : 'Skip'}</button>}
           </div>
         </motion.div>
       )}

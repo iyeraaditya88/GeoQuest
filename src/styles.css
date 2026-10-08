@@ -1474,3 +1474,55 @@ html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent
 /* Lobby share link */
 .mt-share { padding: 12px; border-radius: 14px; background: rgba(251, 191, 36, 0.07); box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.25); }
 .mt-share p { margin: 0 0 10px; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+
+/* ── Map quiz: learning ── */
+.quiz-hint { display: flex; align-items: flex-start; gap: 8px; margin: 8px 6px 0; padding: 9px 12px; border-radius: 12px; text-align: left; overflow: hidden;
+  font-size: 13px; line-height: 1.45; color: #fde68a; background: rgba(251, 191, 36, 0.09); box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.25); }
+.quiz-hint svg { flex-shrink: 0; margin-top: 2px; color: var(--gold); }
+.quiz-learn { margin: 8px 6px 0; padding: 11px 13px 10px; border-radius: 14px; text-align: left; overflow: hidden;
+  background: linear-gradient(135deg, rgba(125, 211, 252, 0.08), rgba(52, 211, 153, 0.06)); box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.22); }
+.ql-head { display: flex; align-items: center; gap: 8px; }
+.ql-head img { width: 26px; height: 18px; object-fit: cover; border-radius: 3px; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15); }
+.ql-head b { font: 600 15px var(--display); }
+.ql-head span { margin-left: auto; font: 600 10px var(--display); letter-spacing: 0.14em; text-transform: uppercase; color: var(--cyan); }
+.quiz-learn ul { margin: 8px 0 0; padding: 0 0 0 18px; display: grid; gap: 4px; font-size: 13px; line-height: 1.45; color: var(--text); }
+.quiz-learn li::marker { color: var(--cyan); }
+.quiz-next { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 10px; font-weight: 600; font-size: 13px; color: #1a1205;
+  background: linear-gradient(135deg, var(--gold-soft), var(--gold) 55%, #f59e0b); transition: transform 0.18s var(--ease); }
+.quiz-next:hover { transform: translateY(-1px); }
+.quiz-next kbd { background: rgba(0, 0, 0, 0.12); border-color: rgba(0, 0, 0, 0.15); color: #3b2f0a; }
+
+/* ── Map quiz on phones (portrait): the bar sits at the bottom, in thumb reach ── */
+@media (max-width: 600px) and (orientation: portrait) {
+  .quiz:not(.mq) { top: auto !important; bottom: calc(12px + var(--sb)); padding: 8px 8px 10px; max-height: 62dvh; overflow-y: auto; }
+  .quiz .quiz-prompt { padding: 8px 6px 2px; }
+  .quiz .quiz-kicker { display: none; }
+  .quiz .quiz-prompt h3 { font-size: 19px; }
+  .quiz .quiz-flag img { max-height: 64px; }
+  .quiz-foot { padding: 6px 6px 0; }
+  .quiz .skip, .quiz-next { min-height: 38px; }
+}
+
+/* ── Street View: navigation feedback ── */
+.sv-ripple { position: absolute; z-index: 3; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; pointer-events: none;
+  border: 2px solid rgba(255, 255, 255, 0.9); box-shadow: 0 0 12px rgba(0, 0, 0, 0.35); animation: sv-ripple 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.sv-ripple.far { border-color: var(--gold); box-shadow: 0 0 18px rgba(251, 191, 36, 0.55); }
+@keyframes sv-ripple { from { transform: scale(0.3); opacity: 1; } to { transform: scale(1.5); opacity: 0; } }
+.sv-walk .sv-turn { opacity: 0.85; }
+@media (hover: none) and (pointer: coarse) {
+  .sv-walk button { width: 44px; height: 44px; }
+  .sv-walk span { font-size: 11.5px; }
+}
+/* ── Street View: guess map sizes & controls ── */
+.guess-dock.size-2:not(.compact) { width: min(820px, 64vw); }
+.guess-dock.size-2:not(.compact) .guess-map-wrap { height: min(560px, 62vh); }
+.gm-size { position: absolute; top: 8px; right: 8px; z-index: 2; display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s; }
+.guess-dock:hover .gm-size, .guess-dock:focus-within .gm-size { opacity: 1; }
+.gm-size button { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; color: #0f172a; background: rgba(255, 255, 255, 0.92); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+.gm-size button:disabled { opacity: 0.4; }
+.guess-map .game-pin.map { cursor: grab; }
+.rl-dist { padding: 4px 9px; border-radius: 999px; font: 700 12px var(--display); color: #1a1205; background: var(--gold-soft); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35); white-space: nowrap; pointer-events: none; }
+.mt-mute.off { color: var(--dim); }
+.quiz-next { white-space: nowrap; flex-shrink: 0; }
+.quiz-foot { gap: 10px; }
+@media (max-width: 600px) { .quiz-msg { font-size: 12px; text-align: left; } }

@@ -8,7 +8,7 @@ import '@photo-sphere-viewer/core/index.css';
 import '@photo-sphere-viewer/markers-plugin/index.css';
 import '@photo-sphere-viewer/compass-plugin/index.css';
 import '@photo-sphere-viewer/virtual-tour-plugin/index.css';
-import { ChevronDown, ChevronUp, ExternalLink, Flag, KeyRound, Loader2, LocateFixed, Maximize2, MapPin, Minimize2, RotateCcw, Trophy, X, Footprints } from 'lucide-react';
+import { RotateCw, ChevronDown, ChevronUp, ExternalLink, Flag, KeyRound, Loader2, LocateFixed, Maximize2, MapPin, Minimize2, RotateCcw, Trophy, X, Footprints } from 'lucide-react';
 import { Viewer as MlyViewer, NavigationDirection } from 'mapillary-js';
 import 'mapillary-js/dist/mapillary.css';
 import * as maplibregl from 'maplibre-gl';
@@ -363,6 +363,10 @@ function MapillaryViewer({ token, spot, onError, onMoved }: { token: string; spo
   const host = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<MlyViewer | null>(null);
   const walkRef = useRef<(dir: 'forward' | 'back') => void>(() => {});
+  const holdRef = useRef<(dir: 'forward' | 'back' | null) => void>(() => {});
+  const turnRef = useRef<(deg: number) => void>(() => {});
+  const [ripples, setRipples] = useState<{ id: number; x: number; y: number; far: boolean }[]>([]);
+  const [gliding, setGliding] = useState(false);
   const [loading, setLoading] = useState(true);
   const [moving, setMoving] = useState(false);
   const [can, setCan] = useState({ forward: false, back: false });
@@ -379,6 +383,8 @@ function MapillaryViewer({ token, spot, onError, onMoved }: { token: string; spo
     let currentId = spot.id;
     let edgesFresh = false; // edges belong to the photo we're on
     let pending: 'forward' | 'back' | null = null;
+    let hold: 'forward' | 'back' | null = null; // a walk button held down
+    let glide: { to: { lat: number; lng: number }; left: number; lastDist: number } | null = null; // double-tap: go there
     let hintTimer = 0;
     const say = (t: string) => { setHint(t); window.clearTimeout(hintTimer); hintTimer = window.setTimeout(() => setHint(null), 1600); };
 
@@ -391,7 +397,9 @@ function MapillaryViewer({ token, spot, onError, onMoved }: { token: string; spo
         attribution: true,
         bearing: true,
         cache: true,
-        direction: { minWidth: 260, maxWidth: 520 },
+        // Mapillary's ground arrows: helpful with a mouse; on phones they sit on top of our walk bar
+        // (tap / double-tap / hold-to-walk cover it there).
+        direction: TOUCH || window.innerWidth <= 600 ? false : { minWidth: 260, maxWidth: 520 },
         // Our own keys below (consistent W/S/A/D + arrows); keep Mapillary's +/- zoom.
         keyboard: { keySequenceNavigation: false, keySpatialNavigation: false, keyZoom: true, keyPlay: false },
         zoom: true, sequence: false, spatial: false, tag: false, popup: false, slider: false, marker: false,
@@ -460,6 +468,7 @@ function MapillaryViewer({ token, spot, onError, onMoved }: { token: string; spo
       void orient();
       // A key pressed while the neighbours were still loading: act on it now.
       if (pending && !movingNow) { const d = pending; pending = null; walk(d); }
+      else continueGlide();
     };
     v.on('sequenceedges', (e) => { if (e.status.cached) { seqEdges = toEdges(e.status, true); onEdges(); } });
     v.on('spatialedges', (e) => { if (e.status.cached) { spatialEdges = toEdges(e.status, false); onEdges(); } });
@@ -485,6 +494,78 @@ function MapillaryViewer({ token, spot, onError, onMoved }: { token: string; spo
       else say(dir === 'forward' ? 'No road ahead — turn around or try another way' : 'Nothing behind you');
     };
     walkRef.current = walk;
+    holdRef.current = (dir) => { hold = dir; glide = null; setGliding(false); if (dir) walk(dir); else pending = null; };
+    turnRef.current = (deg) => { touched = true; panBy(deg, 380); };
+
+    // ── Tapping the street ──
+    const metres = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+      const k = Math.PI / 180, x = (b.lng - a.lng) * k * Math.cos(((a.lat + b.lat) / 2) * k), y = (b.lat - a.lat) * k;
+      return Math.hypot(x, y) * 6371000;
+    };
+    const stepToward = (to: { lat: number; lng: number }, maxDiff: number) => {
+      const e = best(bearingTo(here, to), maxDiff);
+      if (e) go(e.target);
+      return !!e;
+    };
+    const stopGlide = () => { glide = null; setGliding(false); };
+    /** Double-tap: keep stepping toward the spot until we're there (or the road runs out). */
+    function continueGlide() {
+      if (!glide || movingNow || !edgesFresh) return;
+      const d = metres(here, glide.to);
+      if (d < 7 || glide.left <= 0 || d > glide.lastDist + 3) { stopGlide(); return; }
+      glide.lastDist = d;
+      glide.left -= 1;
+      if (!stepToward(glide.to, 55)) { if (glide.left === 13) say('No road that way'); stopGlide(); }
+    }
+    const tapAt = async (px: [number, number], far: boolean) => {
+      touched = true;
+      const ll = await v.unproject(px).catch(() => null);
+      if (!ll || !Number.isFinite(ll.lat) || !Number.isFinite(ll.lng)) { say(`${Click} the road to walk that way`); return; }
+      if (far) {
+        glide = { to: ll, left: 14, lastDist: Infinity };
+        setGliding(true);
+        if (movingNow || !edgesFresh) return; // carries on when the current step lands
+        continueGlide();
+        return;
+      }
+      stopGlide();
+      if (movingNow || !edgesFresh) return;
+      if (!stepToward(ll, 50)) say('No road that way — try another direction');
+    };
+    // Our own tap detection (MapillaryJS has no double-click action, and iOS rarely sends dblclick):
+    // one tap = a step toward that spot; two quick taps = go there.
+    const el = host.current!;
+    let down: { x: number; y: number; t: number } | null = null;
+    let lastTap: { x: number; y: number; t: number } | null = null;
+    let tapTimer = 0, rippleId = 0;
+    const ripple = (x: number, y: number, far: boolean) => {
+      const id = ++rippleId;
+      setRipples((r) => [...r.slice(-3), { id, x, y, far }]);
+      window.setTimeout(() => setRipples((r) => r.filter((q) => q.id !== id)), 700);
+    };
+    const onDown = (e: PointerEvent) => {
+      down = e.target instanceof HTMLCanvasElement && e.isPrimary ? { x: e.clientX, y: e.clientY, t: performance.now() } : null;
+      if (down) { touched = true; if (glide) stopGlide(); }
+    };
+    const onUp = (e: PointerEvent) => {
+      const d = down;
+      down = null;
+      if (!d || Math.hypot(e.clientX - d.x, e.clientY - d.y) > (e.pointerType === 'touch' ? 12 : 6) || performance.now() - d.t > 450) return;
+      const r = el.getBoundingClientRect();
+      const px: [number, number] = [e.clientX - r.left, e.clientY - r.top];
+      const now = performance.now();
+      if (lastTap && now - lastTap.t < 320 && Math.hypot(px[0] - lastTap.x, px[1] - lastTap.y) < 45) {
+        window.clearTimeout(tapTimer);
+        lastTap = null;
+        ripple(px[0], px[1], true);
+        void tapAt(px, true);
+        return;
+      }
+      lastTap = { x: px[0], y: px[1], t: now };
+      tapTimer = window.setTimeout(() => { lastTap = null; ripple(px[0], px[1], false); void tapAt(px, false); }, 260);
+    };
+    el.addEventListener('pointerdown', onDown, true);
+    el.addEventListener('pointerup', onUp, true);
 
     const giveUp = window.setTimeout(() => { if (first) onError(); }, 20000);
     v.on('image', (e) => {
@@ -520,18 +601,12 @@ function MapillaryViewer({ token, spot, onError, onMoved }: { token: string; spo
       }
       // Keep walking if a key is held / a press was queued (runs once the new
       // photo's neighbours are known — see onEdges).
+      if (hold && !pending) pending = hold;
       if (pending && edgesFresh) { const next = pending; pending = null; requestAnimationFrame(() => walk(next)); }
+      else if (glide && edgesFresh) requestAnimationFrame(continueGlide);
     });
 
-    // Mouse: click the street to walk towards that point.
     v.on('mousedown', () => { touched = true; });
-    v.on('click', (e) => {
-      if (movingNow || !edgesFresh || !e.lngLat) { if (!e.lngLat) say(`${Click} the road to walk that way`); return; }
-      const heading = bearingTo(here, e.lngLat);
-      const edge = best(heading, 50);
-      if (edge) go(edge.target);
-      else say('No road that way');
-    });
 
     // Smooth turning while A/D or ←/→ is held: eases up to speed, glides to a stop.
     let turnDir = 0, turnVel = 0, raf = 0, last = 0;
@@ -558,6 +633,7 @@ function MapillaryViewer({ token, spot, onError, onMoved }: { token: string; spo
       if ((e.target as HTMLElement)?.closest?.('input, textarea')) return;
       const k = e.key.toLowerCase();
       touched = true;
+      if (glide) stopGlide();
       if (WALK.has(k) && !e.repeat) downAt = performance.now();
       if (k === 'w' || k === 'arrowup') { e.preventDefault(); walk('forward'); }
       else if (k === 's' || k === 'arrowdown') { e.preventDefault(); walk('back'); }
@@ -578,6 +654,9 @@ function MapillaryViewer({ token, spot, onError, onMoved }: { token: string; spo
     return () => {
       window.clearTimeout(giveUp);
       window.clearTimeout(hintTimer);
+      window.clearTimeout(tapTimer);
+      el.removeEventListener('pointerdown', onDown, true);
+      el.removeEventListener('pointerup', onUp, true);
       cancelAnimationFrame(raf);
       cancelAnimationFrame(panRaf);
       window.removeEventListener('keydown', onKey);
@@ -590,6 +669,14 @@ function MapillaryViewer({ token, spot, onError, onMoved }: { token: string; spo
   }, [spot.id, token]);
 
   const backToStart = () => { void viewerRef.current?.moveTo(spot.id).catch(() => null); };
+  // Walk buttons: press = one step, hold = keep walking until released.
+  const holdProps = (dir: 'forward' | 'back') => ({
+    onPointerDown: (e: React.PointerEvent) => { e.currentTarget.setPointerCapture?.(e.pointerId); holdRef.current(dir); },
+    onPointerUp: () => holdRef.current(null),
+    onPointerCancel: () => holdRef.current(null),
+    onLostPointerCapture: () => holdRef.current(null),
+    onKeyDown: (e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); walkRef.current(dir); } },
+  });
 
   return (
     <div className="sv-viewer">
@@ -602,16 +689,19 @@ function MapillaryViewer({ token, spot, onError, onMoved }: { token: string; spo
           </motion.div>
         )}
       </AnimatePresence>
+      {ripples.map((r) => <i key={r.id} className={`sv-ripple ${r.far ? 'far' : ''}`} style={{ left: r.x, top: r.y }} />)}
       <AnimatePresence>
         {hint && <motion.div className="sv-hint" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>{hint}</motion.div>}
       </AnimatePresence>
       {!loading && (
         <div className="sv-walk mly-walk">
-          <button onClick={() => walkRef.current('back')} disabled={!can.back} title="Step back (S / ↓)"><ChevronDown size={18} /></button>
-          <span className={moving ? 'is-moving' : ''}>{moving ? <><i className="sv-dot" /> Walking</> : <><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></>}</span>
-          <button onClick={() => walkRef.current('forward')} disabled={!can.forward} title="Step forward (W / ↑)"><ChevronUp size={18} /></button>
+          <button className="sv-turn" onClick={() => turnRef.current(-45)} title="Look left (A / ←)" aria-label="Look left"><RotateCcw size={16} /></button>
+          <button {...holdProps('back')} disabled={!can.back} title="Step back — hold to keep walking (S / ↓)" aria-label="Step back"><ChevronDown size={18} /></button>
+          <span className={moving || gliding ? 'is-moving' : ''}>{gliding ? <><i className="sv-dot" /> Going there</> : moving ? <><i className="sv-dot" /> Walking</> : TOUCH ? 'Hold to walk' : <><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></>}</span>
+          <button {...holdProps('forward')} disabled={!can.forward} title="Step forward — hold to keep walking (W / ↑)" aria-label="Step forward"><ChevronUp size={18} /></button>
+          <button className="sv-turn" onClick={() => turnRef.current(45)} title="Look right (D / →)" aria-label="Look right"><RotateCw size={16} /></button>
           <i className="sv-walk-sep" />
-          <button onClick={backToStart} title="Back to start"><LocateFixed size={16} /></button>
+          <button onClick={backToStart} title="Back to start" aria-label="Back to start"><LocateFixed size={16} /></button>
         </div>
       )}
     </div>
@@ -636,7 +726,27 @@ function pinEl(kind: 'guess' | 'answer', label?: string) {
   return el;
 }
 
-/** GeoGuessr-style mini map: small in the corner, grows on hover, click to drop a pin. */
+/** Make the basemap easier to guess on: bolder country borders, clearer country names. */
+function emphasiseCountries(m: maplibregl.Map) {
+  for (const layer of m.getStyle()?.layers ?? []) {
+    const id = layer.id;
+    try {
+      if (layer.type === 'line' && /boundary/.test(id) && !/disputed|admin_?[4-9]|_[3-9]$/.test(id)) {
+        m.setPaintProperty(id, 'line-color', '#5f6f8f');
+        m.setPaintProperty(id, 'line-width', ['interpolate', ['linear'], ['zoom'], 0, 0.9, 4, 1.6, 8, 2.2]);
+        m.setPaintProperty(id, 'line-opacity', 0.9);
+      }
+      if (layer.type === 'symbol' && /country/.test(id)) {
+        m.setPaintProperty(id, 'text-color', '#1f2a44');
+        m.setPaintProperty(id, 'text-halo-color', 'rgba(255,255,255,0.95)');
+        m.setPaintProperty(id, 'text-halo-width', 1.6);
+      }
+    } catch { /* a layer without that property — skip */ }
+  }
+}
+
+const SIZE_KEY = 'gq-guessmap-size';
+/** GeoGuessr-style mini map: small in the corner, grows on hover, click to drop a pin (drag to adjust). */
 function GuessMap({ round, guess, onPick, onGuess }: { round: number; guess: { lat: number; lng: number } | null; onPick: (lat: number, lng: number) => void; onGuess: () => void }) {
   const host = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -644,10 +754,15 @@ function GuessMap({ round, guess, onPick, onGuess }: { round: number; guess: { l
   const pickRef = useRef(onPick);
   pickRef.current = onPick;
   const [hover, setHover] = useState(false);
-  const [pinned, setPinned] = useState(false);
+  const leaveT = useRef(0);
+  const [pinned, setPinned] = useState(false); // touch: the map is open
   // Touch / small screens: a thumbnail in the corner; tap it to open the map, then guess.
   const [compact] = useState(() => TOUCH || window.innerWidth <= 600);
-  const big = (!compact && hover) || pinned;
+  // Desktop: three sizes (− / +), remembered; hovering the smallest one grows it a step.
+  const [level, setLevel] = useState(() => { try { return Math.min(2, Math.max(0, Number(localStorage.getItem(SIZE_KEY)) || 0)); } catch { return 0; } });
+  const changeLevel = (d: number) => setLevel((l) => { const n = Math.min(2, Math.max(0, l + d)); try { localStorage.setItem(SIZE_KEY, String(n)); } catch { /* ignore */ } return n; });
+  const size = compact ? (pinned ? 2 : 0) : Math.max(level, hover ? 1 : 0);
+  const big = compact ? pinned : size > 0;
 
   useEffect(() => {
     const m = new maplibregl.Map({
@@ -658,7 +773,7 @@ function GuessMap({ round, guess, onPick, onGuess }: { round: number; guess: { l
     collapseAttribution(host.current!);
     m.touchZoomRotate.disableRotation();
     m.on('click', (e) => pickRef.current(e.lngLat.lat, ((e.lngLat.lng + 540) % 360) - 180));
-    m.once('load', () => host.current?.parentElement?.classList.add('ready')); // stop the placeholder shimmer
+    m.once('load', () => { host.current?.parentElement?.classList.add('ready'); emphasiseCountries(m); }); // stop the placeholder shimmer
     const ro = new ResizeObserver(() => { m.resize(); m.redraw(); }) // repaint in the same frame, or the canvas stays blank while the dock grows;
     ro.observe(host.current!);
     map.current = m;
@@ -676,22 +791,29 @@ function GuessMap({ round, guess, onPick, onGuess }: { round: number; guess: { l
   useEffect(() => {
     if (!map.current) return;
     if (!guess) { marker.current?.remove(); marker.current = null; return; }
-    if (!marker.current) marker.current = new maplibregl.Marker({ element: pinEl('guess'), anchor: 'bottom' }).setLngLat([guess.lng, guess.lat]).addTo(map.current);
-    else marker.current.setLngLat([guess.lng, guess.lat]);
+    if (!marker.current) {
+      // Drag the pin to fine-tune the guess.
+      const mk = new maplibregl.Marker({ element: pinEl('guess'), anchor: 'bottom', draggable: true }).setLngLat([guess.lng, guess.lat]).addTo(map.current);
+      mk.on('dragend', () => { const p = mk.getLngLat(); pickRef.current(p.lat, ((p.lng + 540) % 360) - 180); });
+      marker.current = mk;
+    } else marker.current.setLngLat([guess.lng, guess.lat]);
   }, [guess]);
 
   return (
-    <div className={`guess-dock ${big ? 'big' : ''} ${compact ? 'compact' : ''}`} onMouseEnter={compact ? undefined : () => setHover(true)} onMouseLeave={compact ? undefined : () => setHover(false)}>
+    <div className={`guess-dock size-${size} ${big ? 'big' : ''} ${compact ? 'compact' : ''}`} onMouseEnter={compact ? undefined : () => { window.clearTimeout(leaveT.current); setHover(true); }} onMouseLeave={compact ? undefined : () => { leaveT.current = window.setTimeout(() => setHover(false), 380); }}>
       <div className="guess-map-wrap">
         <div ref={host} className="guess-map" />
         {compact && !big ? (
           <button className="gm-open" onClick={() => setPinned(true)} aria-label="Open the map to place your guess">
             <MapPin size={13} /> {guess ? 'Your pin' : `${Click} to guess`}
           </button>
+        ) : compact ? (
+          <button className="gm-pin" onClick={() => setPinned(false)} title="Back to the street" aria-label="Shrink map"><Minimize2 size={14} /></button>
         ) : (
-          <button className="gm-pin" onClick={() => setPinned((v) => !v)} title={pinned ? 'Shrink map' : 'Keep map large'} aria-label={pinned ? 'Shrink map' : 'Enlarge map'}>
-            {pinned ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-          </button>
+          <div className="gm-size" role="group" aria-label="Map size">
+            <button onClick={() => changeLevel(-1)} disabled={level === 0} title="Smaller map" aria-label="Smaller map"><Minimize2 size={13} /></button>
+            <button onClick={() => changeLevel(1)} disabled={level === 2} title="Bigger map" aria-label="Bigger map"><Maximize2 size={13} /></button>
+          </div>
         )}
       </div>
       {(!compact || big) && (
@@ -737,7 +859,15 @@ function ResultMap({ results, all }: { results: RoundResult[]; all: boolean }) {
     };
     m.on('move', draw);
     m.on('resize', draw);
-    m.once('load', () => host.current?.classList.add('ready'));
+    m.once('load', () => { host.current?.classList.add('ready'); emphasiseCountries(m); });
+    // How far off, written on the line (single round).
+    if (!all && rs[0]) {
+      const r = rs[0], mid: [number, number] = [(r.guess.lng + shortest(r.guess, r.answer)) / 2, (r.guess.lat + r.answer.lat) / 2];
+      const el = document.createElement('div');
+      el.className = 'rl-dist';
+      el.textContent = fmtKm(r.km);
+      new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat(mid).addTo(m);
+    }
     rs.forEach((r, i) => {
       new maplibregl.Marker({ element: pinEl('guess', all ? String(i + 1) : undefined), anchor: 'bottom' }).setLngLat([r.guess.lng, r.guess.lat]).addTo(m);
       new maplibregl.Marker({ element: pinEl('answer', all ? String(i + 1) : undefined), anchor: 'bottom' }).setLngLat([shortest(r.guess, r.answer), r.answer.lat]).addTo(m);
@@ -893,7 +1023,7 @@ export function StreetGame({ game, mlyToken, onPick, onGuess, onNext, onExit, on
       {game.status === 'play' && (
         <>
           <motion.div className="sv-instruction" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
-            Drag or <b>A D</b> to look · <b>W S</b> or click the road to walk · pin your guess on the map
+            Drag or <b>A D</b> to look · <b>W S</b>, click the road to step, <b>double-click</b> to go there · pin your guess on the map
           </motion.div>
           <GuessMap round={game.round * 100 + game.results.length} guess={game.guess} onPick={onPick} onGuess={onGuess} />
         </>
