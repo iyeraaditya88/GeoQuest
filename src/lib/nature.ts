@@ -25,7 +25,9 @@ export interface Lake { n: string; area: number; l: LngLat; p: LngLat[][][] }
 /** a = centre, b = one degree along the range's main axis, len = axis length in degrees */
 export interface Range { n: string; r: number; a: LngLat; b: LngLat; len: number }
 export interface Peak { n: string; r: number; e: number; a: LngLat }
-export interface Nature { rivers: River[]; lakes: Lake[]; ranges: Range[]; peaks: Peak[] }
+/** A mountain range's area (Natural Earth outline). r = importance (1 = Himalayas, Andes, Rockies…). */
+export interface RangeArea { n: string; r: number; p: LngLat[][]; bb: [number, number, number, number] }
+export interface Nature { rivers: River[]; lakes: Lake[]; ranges: Range[]; peaks: Peak[]; rp?: RangeArea[] }
 
 let naturePromise: Promise<Nature | null> | null = null;
 export function loadNature() {
@@ -38,7 +40,12 @@ export function rangeSpots(r: Range): [LngLat, LngLat][] {
   const dx = r.b[0] - r.a[0], dy = r.b[1] - r.a[1];
   const at = (t: number): LngLat => [r.a[0] + dx * t, r.a[1] + dy * t];
   const q = r.len * 0.25;
-  return r.len >= 6 ? [[r.a, r.b], [at(-q), at(-q + 1)], [at(q), at(q + 1)]] : [[r.a, r.b]];
+  const spots: [LngLat, LngLat][] = r.len >= 6 ? [[r.a, r.b], [at(-q), at(-q + 1)], [at(q), at(q + 1)]] : [[r.a, r.b]];
+  // Fallbacks a little to either side of the axis, for when peak labels sit along it.
+  const L = Math.hypot(dx, dy) || 1, off = Math.min(1.6, Math.max(0.6, r.len * 0.06));
+  const nx = (-dy / L) * off, ny = (dx / L) * off;
+  for (const sgn of [1, -1]) spots.push([[r.a[0] + nx * sgn, r.a[1] + ny * sgn], [r.b[0] + nx * sgn, r.b[1] + ny * sgn]]);
+  return spots;
 }
 
 type BBox = [number, number, number, number];
@@ -91,11 +98,14 @@ export function insideTest(cca3: string) {
 export const riverTier = (rank: number) => (rank <= 2 ? 0 : rank <= 4 ? 1 : 2);
 
 export type NatureStyle = 'political' | 'satellite' | 'daynight';
-const PALETTE: Record<NatureStyle, { river: string; glow: string; lake: string | null; lakeEdge: string }> = {
-  political: { river: 'rgba(37,99,180,0.9)', glow: 'rgba(147,197,253,0.3)', lake: '#6f9fcb', lakeEdge: 'rgba(52,118,196,0.6)' },
-  satellite: { river: 'rgba(150,212,255,0.75)', glow: 'rgba(56,189,248,0.1)', lake: null, lakeEdge: 'rgba(147,210,255,0.45)' },
-  daynight: { river: 'rgba(150,212,255,0.7)', glow: 'rgba(56,189,248,0.1)', lake: null, lakeEdge: 'rgba(125,170,255,0.3)' },
+const PALETTE: Record<NatureStyle, { river: string; glow: string; lake: string | null; lakeEdge: string; mtn: string; mtnGlow: string; mtnFill: string }> = {
+  political: { river: 'rgba(37,99,180,0.9)', glow: 'rgba(147,197,253,0.3)', lake: '#6f9fcb', lakeEdge: 'rgba(52,118,196,0.6)', mtn: 'rgba(139,72,48,0.62)', mtnGlow: 'rgba(139,72,48,0.12)', mtnFill: 'rgba(150,90,55,0.09)' },
+  satellite: { river: 'rgba(150,212,255,0.75)', glow: 'rgba(56,189,248,0.1)', lake: null, lakeEdge: 'rgba(147,210,255,0.45)', mtn: 'rgba(255,186,200,0.78)', mtnGlow: 'rgba(255,140,170,0.16)', mtnFill: 'rgba(255,170,190,0.08)' },
+  daynight: { river: 'rgba(150,212,255,0.7)', glow: 'rgba(56,189,248,0.1)', lake: null, lakeEdge: 'rgba(125,170,255,0.3)', mtn: 'rgba(255,186,200,0.62)', mtnGlow: 'rgba(255,140,170,0.12)', mtnFill: 'rgba(255,170,190,0.06)' },
 };
+// Mountain ranges: tiers by importance, shown progressively as you zoom (like rivers).
+const RANGE_ALT = [Infinity, 1.3, 0.7];
+const rangeTier = (r: number) => (r <= 2 ? 0 : r <= 4 ? 1 : 2);
 // Screen widths (px) per river tier — great rivers bold, tributaries fine — and their glow.
 const RIVER_W = [1.6, 1.15, 0.85];
 const GLOW_W = 2.6; // × the core width
@@ -123,6 +133,8 @@ export function createNatureLayer(scene: THREE.Scene, R: number, camera: THREE.C
   let wanted: string | null = null; // latest lift request (older async ones bail out)
   let picked: THREE.Group | null = null; // the selected river, drawn in gold
   const tierAlpha = [0, 0, 0];
+  const ranges: { fill: THREE.Mesh; glow: LineSegments2; core: LineSegments2 }[] = [];
+  const rangeAlpha = [0, 0, 0];
   let raf = 0;
 
   const lineMat = () => new THREE.LineBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
@@ -162,8 +174,34 @@ export function createNatureLayer(scene: THREE.Scene, R: number, camera: THREE.C
     return { fill, edge };
   }
 
+  /** One tier of mountain ranges: a soft fill and its outline. */
+  function rangeGeos(areas: RangeArea[]) {
+    const fills: THREE.BufferGeometry[] = [], edges: THREE.BufferGeometry[] = [];
+    for (const a of areas) for (const ring of a.p) {
+      let lo = Infinity, hi = -Infinity;
+      for (const [x] of ring) { if (x < lo) lo = x; if (x > hi) hi = x; }
+      if (hi - lo > 180) continue; // straddles the date line — skip rather than smear across the globe
+      const g = new ConicPolygonGeometry([ring] as number[][][], R * 1.0036, R * 1.004, false, true, false, 3).toNonIndexed();
+      g.clearGroups();
+      fills.push(g);
+      edges.push(new GeoJsonGeometry({ type: 'LineString', coordinates: ring } as never, R * 1.0051, 3));
+    }
+    if (!fills.length) return null;
+    const fill = mergeGeometries(fills, false)!, edge = mergeGeometries(edges.map((g) => (g.index ? g.toNonIndexed() : g)), false)!;
+    fills.forEach((g) => g.dispose()); edges.forEach((g) => g.dispose());
+    return { fill, edge };
+  }
+
   function applyColors() {
     const pal = PALETTE[style];
+    {
+      const c = rgba(pal.mtn), gl = rgba(pal.mtnGlow), f = rgba(pal.mtnFill);
+      for (const t of ranges) {
+        t.core.material.color.setRGB(c[0], c[1], c[2]);
+        t.glow.material.color.setRGB(gl[0], gl[1], gl[2]);
+        (t.fill.material as THREE.MeshBasicMaterial).color.setRGB(f[0], f[1], f[2]);
+      }
+    }
     const [r, g, b] = rgba(pal.river), gl = rgba(pal.glow);
     for (const t of tiers) { t.core.material.color.setRGB(r, g, b); t.glow.material.color.setRGB(gl[0], gl[1], gl[2]); }
     if (lakeFill) {
@@ -190,6 +228,21 @@ export function createNatureLayer(scene: THREE.Scene, R: number, camera: THREE.C
     // Lines thicken a little as you dive in, so rivers read as rivers at every scale.
     // Hairline at world scale, more weight as you dive in.
     const grow = 0.7 + 0.65 * Math.max(0, Math.min(1, (1.8 - alt) / 1.5));
+    // Mountain ranges: outline + soft fill, faded in by tier; a touch bolder up close.
+    const pal = PALETTE[style];
+    const mA = rgba(pal.mtn)[3], mG = rgba(pal.mtnGlow)[3], mF = rgba(pal.mtnFill)[3];
+    ranges.forEach((t, i) => {
+      const want = visible && alt < RANGE_ALT[i] ? 1 : 0;
+      rangeAlpha[i] += (want - rangeAlpha[i]) * 0.12;
+      if (Math.abs(want - rangeAlpha[i]) < 0.005) rangeAlpha[i] = want;
+      const k = rangeAlpha[i] * [1, 0.8, 0.6][i] * Math.min(1, 0.65 + (2.2 - Math.min(2.2, alt)) * 0.25); // minor ranges quieter
+      t.core.material.opacity = mA * k;
+      t.glow.material.opacity = mG * k;
+      (t.fill.material as THREE.MeshBasicMaterial).opacity = mF * k;
+      t.core.material.linewidth = 0.9 * grow;
+      t.glow.material.linewidth = 3.2 * grow;
+      t.core.visible = t.glow.visible = t.fill.visible = rangeAlpha[i] > 0.002;
+    });
     tiers.forEach((t, i) => {
       const want = visible && alt < TIER_ALT[i] ? 1 : 0;
       tierAlpha[i] += (want - tierAlpha[i]) * 0.12;
@@ -217,6 +270,19 @@ export function createNatureLayer(scene: THREE.Scene, R: number, camera: THREE.C
         const t = { glow: fat(geo2, RIVER_W[i] * GLOW_W, 3), core: fat(geo, RIVER_W[i], 3.1) };
         tiers.push(t); group.add(t.glow, t.core);
       });
+      if (data.rp?.length) {
+        const byTier: RangeArea[][] = [[], [], []];
+        for (const a of data.rp) byTier[rangeTier(a.r)].push(a);
+        for (const areas of byTier) {
+          const g = rangeGeos(areas);
+          if (!g) continue;
+          const fill = new THREE.Mesh(g.fill, new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
+          fill.renderOrder = 1.8; // over the hillshade, under borders and rivers
+          const glow = fat(g.edge, 3.2, 2.55), core = fat(g.edge.clone(), 0.9, 2.6);
+          ranges.push({ fill, glow, core });
+          group.add(fill, glow, core);
+        }
+      }
       const lk = lakeGeos(data.lakes, R * 1.0046, R * 1.0053);
       if (lk) {
         lakeFill = new THREE.Mesh(lk.fill, new THREE.MeshLambertMaterial({ transparent: true, opacity: 1, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));

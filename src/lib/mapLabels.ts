@@ -131,7 +131,8 @@ function buildNature(d: Nature): Label[] {
     out.push({
       kind: 'peak', text: p.n, lat: p.a[1], lng: p.a[0], v: unit(p.a[1], p.a[0]),
       w: measure(p.n, 'italic 600 10.5px Inter') + measure(elev, '500 9.5px Inter') + 22, h: 15,
-      cls: 'ml ml-peak clickable', feature: { kind: 'peak', name: p.n }, priority: (p.r + 1.2) * 1e9 - p.e * 1e3, rank: p.r, on: false,
+      cls: 'ml ml-peak clickable', feature: { kind: 'peak', name: p.n }, // Notable peaks (≥ 3,000 m) are placed before range names, which have other spots to go to.
+      priority: (p.r <= 3 ? 1.5 + p.r * 0.4 : p.r + 1.2) * 1e9 - p.e * 1e3, rank: p.r, on: false,
       extentDeg: p.e, // elevation, for the markup
     });
   }

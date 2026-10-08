@@ -23,24 +23,9 @@ const FRAG = /* glsl */ `
   uniform vec2 sun;          // lng, lat of the subsolar point (Day/Night)
   uniform float sunOn;
   uniform float fade;        // 0..1 show/hide
-  uniform vec3 mtnColor;     // mountain outline colour
-  uniform float mtnAmt;      // mountain outline strength
   varying vec2 vUv;
 
-  // A crisp line (in screen pixels) where elevation crosses 'level', plus a soft glow around it.
-  vec2 contour(float e, float level, float px) {
-    float d = abs(e - level) / max(fwidth(e), 1e-5);
-    return vec2(1.0 - smoothstep(0.0, px, d), 1.0 - smoothstep(0.0, px * 5.0, d));
-  }
-
   float h(vec2 uv) { return texture2D(heightMap, uv).r; }
-  // Lightly smoothed elevation (9 taps, ~1.5 texels): clean mountain outlines, no speckle.
-  float hs(vec2 uv) {
-    vec2 o = texel * 1.5;
-    return 0.25 * h(uv)
-      + 0.125 * (h(uv + vec2(o.x, 0.0)) + h(uv - vec2(o.x, 0.0)) + h(uv + vec2(0.0, o.y)) + h(uv - vec2(0.0, o.y)))
-      + 0.0625 * (h(uv + o) + h(uv - o) + h(uv + vec2(o.x, -o.y)) + h(uv + vec2(-o.x, o.y)));
-  }
   vec3 dir(vec2 lngLat) {
     float lng = radians(lngLat.x), lat = radians(lngLat.y);
     return vec3(cos(lat) * cos(lng), sin(lat), cos(lat) * sin(lng));
@@ -67,21 +52,6 @@ const FRAG = /* glsl */ `
     float outA = a + hi * (1.0 - a);
     vec3 outC = outA > 0.0 ? (col * a + tint * hi * (1.0 - a)) / outA : col;
 
-    // Mountains: a faint outline where land rises into mountains, a brighter one around the high
-    // ranges, and a gentle warm wash inside them — drawn from real elevation, so it follows each
-    // range's true shape (unlike a line between two points).
-    outA *= strength; // the hillshade's own opacity — outlines below keep theirs
-    // One outline where land rises into real mountains (Alps, Rockies, Andes, Caucasus,
-    // Himalaya, Ethiopian highlands…) with a soft glow, and a light wash inside the high ground.
-    float em = hs(vUv);
-    vec2 rim = contour(em, 0.26, 1.2);
-    float inside = smoothstep(0.25, 0.34, em);
-    float wash = inside * (0.13 + 0.08 * smoothstep(0.5, 0.85, em));
-    float cA = clamp(rim.x * 0.9 + rim.y * 0.24 + wash, 0.0, 1.0) * mtnAmt;
-    float mixA = cA + outA * (1.0 - cA);
-    outC = mixA > 0.0 ? (mtnColor * cA + outC * outA * (1.0 - cA)) / mixA : outC;
-    outA = mixA;
-
     // Day/Night: relief is mostly a daytime thing.
     if (sunOn > 0.5) {
       vec2 here = vec2(vUv.x * 360.0 - 180.0, vUv.y * 180.0 - 90.0);
@@ -89,14 +59,14 @@ const FRAG = /* glsl */ `
       outA *= mix(0.25, 1.0, smoothstep(-0.08, 0.12, s));
     }
 
-    gl_FragColor = vec4(outC, outA * fade);
+    gl_FragColor = vec4(outC, outA * strength * fade);
   }
 `;
 
-const STYLE: Record<MapStyle, { strength: number; tintAmt: number; mtn: string; mtnAmt: number }> = {
-  political: { strength: 0.55, tintAmt: 0.25, mtn: '#9a4a3a', mtnAmt: 0.7 },
-  satellite: { strength: 0.42, tintAmt: 0, mtn: '#ffb3c1', mtnAmt: 1 },
-  daynight: { strength: 0.45, tintAmt: 0, mtn: '#ffb3c1', mtnAmt: 0.9 },
+const STYLE: Record<MapStyle, { strength: number; tintAmt: number }> = {
+  political: { strength: 0.55, tintAmt: 0.25 },
+  satellite: { strength: 0.42, tintAmt: 0 },
+  daynight: { strength: 0.45, tintAmt: 0 },
 };
 
 /** A lng/lat grid sphere whose UVs line up with an equirectangular map (independent of three-globe's mesh). */
@@ -136,8 +106,6 @@ export function createReliefLayer(scene: THREE.Scene, R: number) {
       sun: { value: new THREE.Vector2() },
       sunOn: { value: 0 },
       fade: { value: 0 },
-      mtnColor: { value: new THREE.Color(STYLE.political.mtn) },
-      mtnAmt: { value: STYLE.political.mtnAmt },
     },
     vertexShader: VERT,
     fragmentShader: FRAG,
@@ -163,8 +131,6 @@ export function createReliefLayer(scene: THREE.Scene, R: number) {
       const s = STYLE[style];
       mat.uniforms.strength.value = s.strength;
       mat.uniforms.tintAmt.value = s.tintAmt;
-      (mat.uniforms.mtnColor.value as THREE.Color).set(s.mtn);
-      mat.uniforms.mtnAmt.value = s.mtnAmt;
       mat.uniforms.sunOn.value = style === 'daynight' ? 1 : 0;
     },
     setSun(lng: number, lat: number) { (mat.uniforms.sun.value as THREE.Vector2).set(lng, lat); },

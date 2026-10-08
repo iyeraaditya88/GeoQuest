@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import {
-  geoAzimuthalEquidistantRaw, geoGraticule10, geoNaturalEarth1, geoNaturalEarth1Raw, geoOrthographicRaw,
+  geoArea, geoAzimuthalEquidistantRaw, geoGraticule10, geoNaturalEarth1, geoNaturalEarth1Raw, geoOrthographicRaw,
   geoPath, geoProjection, type GeoProjection, type GeoRawProjection,
 } from 'd3-geo';
 import { select } from 'd3-selection';
@@ -141,12 +141,15 @@ interface NatCache {
   key: string;
   rivers: Path2D[]; // per tier
   lakes: Path2D;
+  ranges: Path2D[]; // mountain range areas, per tier
   labels: { kind: 'river' | 'lake' | 'range' | 'peak'; key: string; group?: string; text: string; x: number; y: number; ang: number; w: number; size: number; rank: number; elev?: string; ew?: number }[];
 }
 // Zoom at which each river tier's lines appear, and at which labels of each rank do.
 const RIVER_LINE_K = [0, 2.2, 5];
 const RIVER_LABEL_K = [1.6, 3.2, 6.5];
 const RANGE_K = [0, 1, 1.7, 3, 5.5, 9, 15];
+// Zoom at which each tier of mountain-range areas appears (major ranges always).
+const RANGE_AREA_K = [0, 1.8, 3.8];
 const PEAK_K = [0, 2.6, 4.5, 7.5, 12, 18];
 const ramp = (k: number, k0: number) => (k0 <= 0 ? 1 : Math.max(0, Math.min(1, (k - k0 * 0.8) / (k0 * 0.35))));
 
@@ -323,6 +326,15 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
       if (s.nat?.key !== key) s.nat = projectNature(s.nature, ctx, key);
       const N = s.nat;
       ctx.globalAlpha = s.natAlpha;
+      // Mountain ranges: a faint warm fill with a fine outline, more of them as you zoom in.
+      N.ranges.forEach((rp, i) => {
+        const a = ramp(k, RANGE_AREA_K[i]);
+        if (a <= 0) return;
+        ctx.globalAlpha = s.natAlpha * a * [1, 0.85, 0.7][i];
+        ctx.fillStyle = 'rgba(150,90,55,0.09)'; ctx.fill(rp);
+        ctx.strokeStyle = 'rgba(139,72,48,0.5)'; ctx.lineWidth = 0.8 / k; ctx.stroke(rp);
+      });
+      ctx.globalAlpha = s.natAlpha;
       ctx.fillStyle = '#a9cbe8'; ctx.fill(N.lakes);
       ctx.strokeStyle = 'rgba(52,118,196,0.45)'; ctx.lineWidth = 0.6 / k; ctx.stroke(N.lakes);
       const grow = 1 + 0.18 * Math.log2(Math.max(1, k));
@@ -420,6 +432,17 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
       const p = path({ type: 'MultiLineString', coordinates: r.c } as GeoJSON.MultiLineString);
       if (p) tiers[riverTier(r.r)].push(p);
     }
+    // Mountain ranges as areas. d3 reads a ring wound the "wrong" way as the whole globe minus
+    // the shape, so flip any ring whose spherical area comes out larger than a hemisphere.
+    const rangeD: string[][] = [[], [], []];
+    for (const a of d.rp ?? []) {
+      const rings = a.p.map((ring) => {
+        const poly = { type: 'Polygon', coordinates: [ring] } as GeoJSON.Polygon;
+        return geoArea(poly) > 2 * Math.PI ? [ring.slice().reverse()] : [ring];
+      });
+      const p = path({ type: 'MultiPolygon', coordinates: rings } as GeoJSON.MultiPolygon);
+      if (p) rangeD[a.r <= 2 ? 0 : a.r <= 4 ? 1 : 2].push(p);
+    }
     const lakeD: string[] = [];
     for (const l of d.lakes) {
       const p = path({ type: 'MultiPolygon', coordinates: l.p } as GeoJSON.MultiPolygon);
@@ -477,7 +500,7 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
       });
     }
     ctx.restore();
-    return { key, rivers: tiers.map((t) => new Path2D(t.join(''))), lakes: new Path2D(lakeD.join('')), labels };
+    return { key, rivers: tiers.map((t) => new Path2D(t.join(''))), lakes: new Path2D(lakeD.join('')), ranges: rangeD.map((t) => new Path2D(t.join(''))), labels };
   }
 
   /** Project the selected country's state label points and cities once (zoom 1). */
