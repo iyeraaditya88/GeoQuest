@@ -183,7 +183,6 @@ export function AskDock({ open, setOpen, country, request, keyRequest = 0, onAiC
           >
             <span className="fab-orb"><Sparkles size={16} /></span>
             Ask the Atlas{country ? ` about ${country.name}` : ' anything'}
-            <kbd>A</kbd>
           </motion.button>
         )}
       </AnimatePresence>

@@ -4,7 +4,7 @@ import confetti from 'canvas-confetti';
 import { GlobeView, type GlobeHandle, type GlobeView2D, type MapStyle, type Feedback } from './components/GlobeView';
 import { FlatAtlas, type AtlasHandle } from './components/FlatAtlas';
 import { CustomCursor } from './components/CustomCursor';
-import { Sidebar, ShortcutsSheet, SIDEBAR_W } from './components/Sidebar';
+import { Sidebar, SIDEBAR_W } from './components/Sidebar';
 import { cursor } from './lib/cursor';
 import type { GeoGame, Spot } from './components/StreetGame';
 
@@ -85,7 +85,6 @@ export default function App() {
   const [mobile, setMobile] = useState(() => window.innerWidth <= 900);
   const [vp, setVp] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }));
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [keyReq, setKeyReq] = useState(0);
   const [ai, setAi] = useState<boolean | null>(null);
   const [recents, setRecents] = useState<string[]>(() => { try { return JSON.parse(localStorage.getItem('gq-recents') ?? '[]'); } catch { return []; } });
@@ -560,41 +559,23 @@ export default function App() {
     if (to.cca3) confetti({ particleCount: 70, spread: 70, origin: { y: 0.25 }, colors: ['#5eead4', '#fde68a', '#34d399'], disableForReducedMotion: true });
   };
 
-  // ── Keyboard shortcuts ─────────────────────────────────
+  // ── Keyboard: search (⌘K / Ctrl+K, or /) and Esc to close things — nothing else ──
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const typing = (e.target as HTMLElement)?.closest?.('input, textarea');
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setSearchOpen(true); return; }
       if (typing) return;
-      if (liveRef.current.active) return; // a live match owns the keyboard
-      if (antiRef.current) {
-        // Esc skips a running dig, otherwise closes; P toggles the finder.
-        if (e.key === 'Escape') { if (antiRef.current.stage === 'dive') diveRun.current?.cancel(); else exitAntipode(); }
-        else if (e.key.toLowerCase() === 'p') exitAntipode();
-        return;
-      }
-      if (e.key.toLowerCase() === 'p') { void startAntipode(); return; }
-      if (geoRef.current) {
-        if (e.key === 'Escape') exitGeo();
-        else if (e.key === 'Enter') { if (geoRef.current.status === 'play') submitGuess(); else if (geoRef.current.status === 'result') nextGeo(); }
-        return;
-      }
-      if (e.key.toLowerCase() === 'g') { void startGeo(); return; }
-      if (e.key.toLowerCase() === 't') { if (play === 'top5') exitPlay(); else startPlay('top5'); return; }
-      if (e.key.toLowerCase() === 'c') { if (play === 'capitals') exitPlay(); else startPlay('capitals'); return; }
-      if (e.key.toLowerCase() === 'i') { if (play === 'trivia') exitPlay(); else startPlay('trivia'); return; }
-      if (e.key === '[') { setSbCollapsed(true); return; }
-      if (e.key === ']') { setSbCollapsed(false); return; }
-      if (e.key === '?') { setShortcutsOpen((v) => !v); return; }
-      if (e.key === '/') { e.preventDefault(); setSearchOpen(true); }
-      else if (e.key === 'Enter' && quiz?.result === 'reveal') { e.preventDefault(); nextQuiz(); }
-      else if (e.key === 'Escape') { if (shortcutsOpen) setShortcutsOpen(false); else if (drawerOpen) setDrawerOpen(false); else if (play) exitPlay(); else if (searchOpen) setSearchOpen(false); else if (dockOpen) setDockOpen(false); else if (quiz) exitQuiz(); else if (feature) setFeature(null); else { setSelected(null); setHighlighted([]); } }
-      else if (e.key.toLowerCase() === 'r' && !quiz) random();
-      else if (e.key.toLowerCase() === 'a') { e.preventDefault(); setDockOpen(true); }
-      else if (e.key.toLowerCase() === 'q') { if (quiz) exitQuiz(); else startQuiz(); }
-      else if (e.key.toLowerCase() === 'f') void toggleFlat();
-      else if (e.key === ' ' && !quiz && view === 'globe') { e.preventDefault(); setAutoRotate((v) => !v); }
-      else if (e.key.toLowerCase() === 'n') toggleNature();
+      if (e.key === '/') { e.preventDefault(); setSearchOpen(true); return; }
+      if (e.key !== 'Escape' || liveRef.current.active) return; // a live match handles its own Esc
+      if (antiRef.current) { if (antiRef.current.stage === 'dive') diveRun.current?.cancel(); else exitAntipode(); return; }
+      if (geoRef.current) { exitGeo(); return; }
+      if (drawerOpen) setDrawerOpen(false);
+      else if (play) exitPlay();
+      else if (searchOpen) setSearchOpen(false);
+      else if (dockOpen) setDockOpen(false);
+      else if (quiz) exitQuiz();
+      else if (feature) setFeature(null);
+      else { setSelected(null); setHighlighted([]); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -707,9 +688,7 @@ export default function App() {
         onNature={toggleNature}
         onReset={() => { setSelected(null); setHighlighted([]); cam.reset(); }}
         onPick={(c) => { if (quiz) exitQuiz(); select(c); }}
-        onShortcuts={() => setShortcutsOpen(true)}
       />
-      <ShortcutsSheet open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       <PeoplePanel open={peopleOpen} onClose={() => setPeopleOpen(false)} />
 
 

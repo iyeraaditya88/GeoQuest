@@ -86,14 +86,6 @@ function Picker({ from, onPick, onDig, onExit }: Props) {
     );
   };
 
-  // Enter digs (when nothing is being typed).
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && from && !(e.target as HTMLElement)?.closest?.('input')) { e.preventDefault(); onDig(); }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [from, onDig]);
 
   return (
     <motion.div className="game-card antipode" initial={{ y: -30, opacity: 0, scale: 0.98 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: -20, opacity: 0, scale: 0.98 }} transition={spring}>
@@ -158,7 +150,7 @@ function Picker({ from, onPick, onDig, onExit }: Props) {
       </AnimatePresence>
 
       <motion.button className="primary ap-dig" disabled={!from} onClick={onDig} whileTap={from ? { scale: 0.98 } : undefined}>
-        <Drill size={16} /> Dig to the antipode {from && <kbd>↵</kbd>}
+        <Drill size={16} /> Dig to the antipode
       </motion.button>
     </motion.div>
   );
@@ -194,7 +186,7 @@ function DiveHud({ from, tick, onSkip }: Props) {
     <motion.div className="dive-hud" initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }} transition={spring} role="status">
       <div className="dh-top">
         <span className="dh-status" ref={status}>Breaking ground…</span>
-        <button className="dh-skip" onClick={onSkip}>Skip <kbd>Esc</kbd></button>
+        <button className="dh-skip" onClick={onSkip}>Skip</button>
       </div>
       <div className="dh-main">
         <div className="dh-stat"><small>Depth</small><span ref={depth} className="dh-num">0 km</span></div>

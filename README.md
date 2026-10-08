@@ -33,11 +33,11 @@ GeoQuest installs like a native app on phones, tablets and desktops: in Safari u
 ## Features
 
 ### Explore
-- **3D globe and flat atlas** (`F` morphs between them). Styles: **Satellite**, **Political** and **Day/Night**, a live view of where it is day and night right now, with city lights on the night side and a marker where the sun is overhead.
-- **Rivers, lakes and mountains** (`N`): rivers drawn by importance, terrain relief shaded from real elevation data, range names lettered along each range, major peaks with elevations. Detail is revealed progressively as you zoom.
+- **3D globe and flat atlas**. Styles: **Satellite**, **Political** and **Day/Night**, a live view of where it is day and night right now, with city lights on the night side and a marker where the sun is overhead.
+- **Rivers, lakes and mountains**: rivers drawn by importance, terrain relief shaded from real elevation data, range names lettered along each range, major peaks with elevations. Detail is revealed progressively as you zoom.
 - **Country panel**: flag, capital, population, area, languages, currency, driving side, calling code, neighbours, longest river and highest peak, plus a GeoGuessr tab of tips. Selecting a country shows its states or provinces and main cities as you zoom in.
-- **Ask the Atlas** (`A`): ask anything about a country or the world. Countries in the answer light up on the globe.
-- **Antipode finder** (`P`): pick any place, then dig straight through the Earth's core and come out at its exact opposite point.
+- **Ask the Atlas**: ask anything about a country or the world. Countries in the answer light up on the globe.
+- **Antipode finder**: pick any place, then dig straight through the Earth's core and come out at its exact opposite point.
 
 ### Play
 - **Play with friends**: live head-to-head for up to 6 players.
@@ -46,27 +46,15 @@ GeoQuest installs like a native app on phones, tablets and desktops: in Safari u
   - At the end there's a podium and a rematch button. Recent matches and your record against each friend appear in the panel.
   - Works with every game below.
   - Locally there are no keys: open two windows at `?as=alice` and `?as=bob` and they play each other.
-- **Map quiz** (`Q`): *Find it*, *Flags* and *GeoGuessr clues*, with streaks.
-- **Street View challenge** (`G`): five GeoGuessr-style rounds on real street-level imagery from [Mapillary](https://www.mapillary.com) (falls back to [Panoramax](https://panoramax.fr)). Walk with `W`/`S`, look around with `A`/`D`, and pin your guess on the map.
-- **Name the Top 5** (`T`): lenient spelling, judged by meaning when Claude is connected.
-- **Capitals** (`C`): country ↔ capital, 10 a round.
-- **Geo Trivia** (`I`): adaptive difficulty (Easy → Impossible). Two right in a row levels you up, a miss eases you down. It always shows questions you haven't seen yet. Questions live in `geography_trivia_bank.json`.
+- **Map quiz**: *Find it*, *Flags* and *GeoGuessr clues*, with streaks.
+- **Street View challenge**: five GeoGuessr-style rounds on real street-level imagery from [Mapillary](https://www.mapillary.com) (falls back to [Panoramax](https://panoramax.fr)). Walk with `W`/`S`, look around with `A`/`D`, and pin your guess on the map.
+- **Name the Top 5**: lenient spelling, judged by meaning when Claude is connected.
+- **Capitals**: country ↔ capital, 10 a round.
+- **Geo Trivia**: adaptive difficulty (Easy → Impossible). Two right in a row levels you up, a miss eases you down. It always shows questions you haven't seen yet. Questions live in `geography_trivia_bank.json`.
 
-## Shortcuts
+## Keyboard
 
-| Key | Action |
-| --- | --- |
-| `⌘K` or `/` | Search |
-| `R` | Random country |
-| `A` | Ask the Atlas |
-| `P` | Antipode finder |
-| `Q` / `G` / `T` / `C` / `I` | Map quiz / Street View / Top 5 / Capitals / Geo Trivia |
-| `F` | Globe ↔ flat atlas |
-| `N` | Rivers & mountains on/off |
-| `Space` | Pause/resume rotation |
-| `[` / `]` | Collapse / expand the sidebar |
-| `?` | All shortcuts |
-| `Esc` | Close / deselect |
+`⌘K` (or `Ctrl+K`, or `/`) opens search, and `Esc` closes whatever is open. There are no other shortcuts.
 
 ## Data
 

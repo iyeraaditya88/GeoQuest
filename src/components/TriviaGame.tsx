@@ -94,18 +94,6 @@ export function TriviaGame({ onReveal, onExit }: Props) {
 
   const restart = () => { window.clearTimeout(timer.current); setPicked(null); setShift(null); setR(fresh(Math.max(0, r.level - 1))); };
 
-  // Keys: 1–4 answer · Enter = next now / play again.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement)?.closest?.('input, textarea')) return;
-      if (finished) { if (e.key === 'Enter') { e.preventDefault(); restart(); } return; }
-      if (e.key === 'Enter' && picked) { e.preventDefault(); advance(); return; }
-      const n = Number(e.key);
-      if (q && n >= 1 && n <= q.options.length) { e.preventDefault(); choose(q.options[n - 1]); }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  });
 
   const lv = LEVELS[r.level];
   return (
@@ -148,12 +136,12 @@ export function TriviaGame({ onReveal, onExit }: Props) {
               <h3>{q.question}</h3>
             </div>
             <div className="cap-options">
-              {q.options.map((o, n) => {
+              {q.options.map((o) => {
                 const state = !picked ? '' : o === q.answer ? 'right' : o === picked ? 'wrong' : 'dim';
                 return (
                   <motion.button key={o} className={`cap-opt ${state}`} onClick={() => choose(o)} disabled={!!picked} whileTap={!picked ? { scale: 0.98 } : undefined}
                     animate={state === 'wrong' ? { x: [0, -6, 6, -4, 4, 0] } : {}} transition={{ duration: 0.4 }}>
-                    <kbd>{n + 1}</kbd><span>{o}</span>
+                    <span>{o}</span>
                   </motion.button>
                 );
               })}
@@ -167,7 +155,7 @@ export function TriviaGame({ onReveal, onExit }: Props) {
                 )}
               </AnimatePresence>
               <span className="gc-spacer" />
-              {picked && <button className="tv-next" onClick={advance}>Next <kbd>↵</kbd></button>}
+              {picked && <button className="tv-next" onClick={advance}>Next</button>}
               <span className="gc-score">{r.score.toLocaleString('en-US')} pts</span>
             </div>
           </motion.div>
@@ -178,7 +166,7 @@ export function TriviaGame({ onReveal, onExit }: Props) {
               {r.correct}/{ROUND} correct · reached <b className={`tv-name l${r.peak}`}>{LEVELS[r.peak]}</b>
               {r.score >= best && r.score > 0 ? ' · new best!' : best ? ` · best ${best.toLocaleString('en-US')}` : ''}
             </span>
-            <button className="primary sm" onClick={restart} autoFocus><RotateCcw size={14} /> Play again <kbd>↵</kbd></button>
+            <button className="primary sm" onClick={restart} autoFocus><RotateCcw size={14} /> Play again</button>
           </motion.div>
         )}
       </AnimatePresence>

@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
-  Binoculars, Swords, Link2, Dices, Gamepad2, ListOrdered, Landmark, Globe2, History, Keyboard, KeyRound, Map as MapIcon, Mountain, Drill, Brain, SunMoon, LogOut, UserRound, Users, ChevronLeft, RotateCcw, RotateCw, Satellite, Search, Sparkles, X, Menu,
+  Binoculars, Swords, Link2, Dices, Gamepad2, ListOrdered, Landmark, Globe2, History, KeyRound, Map as MapIcon, Mountain, Drill, Brain, SunMoon, LogOut, UserRound, Users, ChevronLeft, RotateCcw, RotateCw, Satellite, Search, Sparkles, X, Menu,
 } from 'lucide-react';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import type { MapStyle } from './GlobeView';
@@ -52,7 +52,6 @@ interface Props {
   onNature: () => void;
   onReset: () => void;
   onPick: (cca3: string) => void;
-  onShortcuts: () => void;
 }
 
 const STYLES: { id: MapStyle; label: string; icon: typeof Satellite }[] = [
@@ -110,9 +109,9 @@ export function Sidebar(p: Props) {
 
         <div className="sb-scroll">
           <Section title="Explore" rail={rail}>
-            <Item icon={Dices} label="Random country" kbd="R" rail={rail} onClick={act(p.onRandom)} />
-            <Item icon={Sparkles} label="Ask the Atlas" kbd="A" rail={rail} onClick={act(p.onAsk)} accent />
-            <Item icon={Drill} label={p.antipodeOn ? 'Exit antipode finder' : 'Antipode finder'} sub={p.antipodeOn ? undefined : 'Dig straight through the Earth'} kbd="P" rail={rail} active={p.antipodeOn} onClick={act(p.onAntipode)} />
+            <Item icon={Dices} label="Random country" rail={rail} onClick={act(p.onRandom)} />
+            <Item icon={Sparkles} label="Ask the Atlas" rail={rail} onClick={act(p.onAsk)} accent />
+            <Item icon={Drill} label={p.antipodeOn ? 'Exit antipode finder' : 'Antipode finder'} sub={p.antipodeOn ? undefined : 'Dig straight through the Earth'} rail={rail} active={p.antipodeOn} onClick={act(p.onAntipode)} />
           </Section>
 
           <Section title="Play" rail={rail} action={p.onFriends && (
@@ -125,23 +124,23 @@ export function Sidebar(p: Props) {
           )}>
             {rail && p.onFriends && <Item icon={Swords} label="Challenge friends" rail onClick={act(p.onFriends)} active={p.matchOn} accent />}
             {rail && p.onInvite && <Item icon={Link2} label="Invite with a link" rail onClick={act(p.onInvite)} />}
-            <Item icon={Gamepad2} label={p.quizOn ? 'Exit quiz' : 'Map quiz'} sub={p.quizOn ? undefined : 'Find it · Flags · Clues'} kbd="Q" rail={rail} active={p.quizOn} onClick={act(p.onQuiz)} />
-            <Item icon={Binoculars} label="Street View challenge" sub="GeoGuessr-style, 5 rounds" kbd="G" rail={rail} onClick={act(p.onStreet)} />
-            <Item icon={ListOrdered} label={p.playOn === 'top5' ? 'Exit Top 5' : 'Name the Top 5'} sub={p.playOn === 'top5' ? undefined : 'Rivers, peaks, populations…'} kbd="T" rail={rail} active={p.playOn === 'top5'} onClick={act(p.onTop5)} />
-            <Item icon={Landmark} label={p.playOn === 'capitals' ? 'Exit Capitals' : 'Capitals'} sub={p.playOn === 'capitals' ? undefined : 'Country ↔ capital, 10 a round'} kbd="C" rail={rail} active={p.playOn === 'capitals'} onClick={act(p.onCapitals)} />
-            <Item icon={Brain} label={p.playOn === 'trivia' ? 'Exit Geo Trivia' : 'Geo Trivia'} sub={p.playOn === 'trivia' ? undefined : 'Adapts as you go · Easy → Impossible'} kbd="I" rail={rail} active={p.playOn === 'trivia'} onClick={act(p.onTrivia)} />
+            <Item icon={Gamepad2} label={p.quizOn ? 'Exit quiz' : 'Map quiz'} sub={p.quizOn ? undefined : 'Find it · Flags · Clues'} rail={rail} active={p.quizOn} onClick={act(p.onQuiz)} />
+            <Item icon={Binoculars} label="Street View challenge" sub="GeoGuessr-style, 5 rounds" rail={rail} onClick={act(p.onStreet)} />
+            <Item icon={ListOrdered} label={p.playOn === 'top5' ? 'Exit Top 5' : 'Name the Top 5'} sub={p.playOn === 'top5' ? undefined : 'Rivers, peaks, populations…'} rail={rail} active={p.playOn === 'top5'} onClick={act(p.onTop5)} />
+            <Item icon={Landmark} label={p.playOn === 'capitals' ? 'Exit Capitals' : 'Capitals'} sub={p.playOn === 'capitals' ? undefined : 'Country ↔ capital, 10 a round'} rail={rail} active={p.playOn === 'capitals'} onClick={act(p.onCapitals)} />
+            <Item icon={Brain} label={p.playOn === 'trivia' ? 'Exit Geo Trivia' : 'Geo Trivia'} sub={p.playOn === 'trivia' ? undefined : 'Adapts as you go · Easy → Impossible'} rail={rail} active={p.playOn === 'trivia'} onClick={act(p.onTrivia)} />
           </Section>
 
           <Section title="Map" rail={rail}>
             {rail ? (
               <>
-                <Item icon={p.view === 'globe' ? MapIcon : Globe2} label={p.view === 'globe' ? 'Flatten to atlas' : 'Back to globe'} kbd="F" rail onClick={p.onToggleView} active={p.view === 'flat'} />
+                <Item icon={p.view === 'globe' ? MapIcon : Globe2} label={p.view === 'globe' ? 'Flatten to atlas' : 'Back to globe'} rail onClick={p.onToggleView} active={p.view === 'flat'} />
                 <StyleFlyout style={p.style} disabled={p.view === 'flat'} onStyle={p.onStyle} />
               </>
             ) : (
               <>
                 <div className="sb-field">
-                  <span className="sb-field-label">View <kbd>F</kbd></span>
+                  <span className="sb-field-label">View</span>
                   <Segmented
                     value={p.view}
                     options={[{ id: 'globe', label: 'Globe', icon: Globe2 }, { id: 'flat', label: 'Atlas', icon: MapIcon }]}
@@ -157,7 +156,6 @@ export function Sidebar(p: Props) {
             <Item
               icon={RotateCw}
               label="Auto-rotate"
-              kbd={rail ? undefined : 'Space'}
               rail={rail}
               onClick={p.onAutoRotate}
               disabled={p.view === 'flat'}
@@ -168,7 +166,6 @@ export function Sidebar(p: Props) {
               icon={Mountain}
               label="Rivers & mountains"
               sub={rail ? undefined : 'Lakes, ranges and peaks'}
-              kbd={rail ? undefined : 'N'}
               rail={rail}
               onClick={p.onNature}
               trailing={rail ? undefined : <Switch on={p.nature} />}
@@ -207,7 +204,6 @@ export function Sidebar(p: Props) {
             </Fade>
           </button>
           <div className="sb-foot-row">
-            <button className="sb-icon" onClick={p.onShortcuts} aria-label="Keyboard shortcuts" data-tip="Shortcuts  ?"><Keyboard size={17} /></button>
             {p.user && (
               <>
                 <Fade show={!rail}><span className="sb-user" title={`Signed in as ${p.user}`}><UserRound size={13} /> {p.user}</span></Fade>
@@ -234,7 +230,7 @@ export function Sidebar(p: Props) {
           <motion.span animate={{ rotate: rail ? 180 : 0 }} transition={{ type: 'spring', stiffness: 400, damping: 30 }}>
             <ChevronLeft size={15} strokeWidth={2.5} />
           </motion.span>
-          <span className="sb-handle-tip">{rail ? 'Expand' : 'Collapse'} <kbd>{rail ? ']' : '['}</kbd></span>
+          <span className="sb-handle-tip">{rail ? 'Expand' : 'Collapse'}</span>
         </motion.button>
       )}
     </>
@@ -263,8 +259,8 @@ function Section({ title, rail, icon: Icon, action, children }: { title: string;
   );
 }
 
-function Item({ icon: Icon, label, sub, kbd, rail, onClick, active, disabled, trailing, accent }: {
-  icon: typeof Search; label: string; sub?: string; kbd?: string; rail: boolean; onClick: () => void;
+function Item({ icon: Icon, label, sub, rail, onClick, active, disabled, trailing, accent }: {
+  icon: typeof Search; label: string; sub?: string; rail: boolean; onClick: () => void;
   active?: boolean; disabled?: boolean; trailing?: ReactNode; accent?: boolean;
 }) {
   return (
@@ -274,7 +270,7 @@ function Item({ icon: Icon, label, sub, kbd, rail, onClick, active, disabled, tr
       disabled={disabled}
       aria-pressed={active}
       aria-label={label}
-      data-tip={rail ? (kbd ? `${label}  ${kbd}` : label) : undefined}
+      data-tip={rail ? label : undefined}
     >
       {active && <span className="sb-ind" />}
       <span className="sb-ico"><Icon size={18} /></span>
@@ -284,7 +280,7 @@ function Item({ icon: Icon, label, sub, kbd, rail, onClick, active, disabled, tr
           {sub && <span className="sb-sub">{sub}</span>}
         </span>
       </Fade>
-      {!rail && (trailing ?? (kbd && <kbd>{kbd}</kbd>))}
+      {!rail && trailing}
     </button>
   );
 }
@@ -333,54 +329,6 @@ function StyleFlyout({ style, disabled, onStyle }: { style: MapStyle; disabled: 
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
-  );
-}
-
-// ── Shortcuts sheet ────────────────────────────────────────
-const SHORTCUTS: [string, string][] = [
-  ['⌘K  /', 'Search countries'], ['R', 'Random country'], ['A', 'Ask the Atlas'], ['Q', 'Map quiz'],
-  ['G', 'Street View challenge'], ['T', 'Name the Top 5'], ['C', 'Capitals quiz'], ['I', 'Geo Trivia'], ['F', 'Globe ↔ flat atlas'], ['N', 'Rivers & mountains'], ['P', 'Antipode finder'], ['Space', 'Pause / resume rotation'],
-  ['[  ]', 'Collapse / expand sidebar'], ['Esc', 'Close / deselect'], ['?', 'This sheet'],
-];
-const STREET: [string, string][] = [['W  ↑', 'Walk forward'], ['S  ↓', 'Walk back'], ['A D  ← →', 'Turn'], ['Click road', 'Walk that way'], ['Enter', 'Guess / next round']];
-
-export function ShortcutsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
-  return (
-    <AnimatePresence>
-      {open && (
-        <motion.div className="scrim" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={onClose}>
-          <motion.div
-            className="sheet"
-            role="dialog"
-            aria-label="Keyboard shortcuts"
-            initial={{ y: 16, opacity: 0, scale: 0.98 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: 10, opacity: 0, scale: 0.98 }}
-            transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-            onMouseDown={(e) => e.stopPropagation()}
-          >
-            <header><Keyboard size={17} /> Keyboard shortcuts <button className="sb-icon" onClick={onClose} aria-label="Close"><X size={17} /></button></header>
-            <div className="sheet-cols">
-              <ShortcutList title="Everywhere" rows={SHORTCUTS} />
-              <ShortcutList title="Street View" rows={STREET} />
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-}
-
-function ShortcutList({ title, rows }: { title: string; rows: [string, string][] }) {
-  return (
-    <div>
-      <h4>{title}</h4>
-      <ul>
-        {rows.map(([k, d]) => (
-          <li key={d}><span>{d}</span><span className="keys">{k.split(/\s{2,}/).map((x) => <kbd key={x}>{x}</kbd>)}</span></li>
-        ))}
-      </ul>
     </div>
   );
 }

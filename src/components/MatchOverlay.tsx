@@ -326,15 +326,6 @@ function ChoiceStage({ s, script, session, globe }: StageProps) {
 
   useEffect(() => { if (s.phase === 'reveal') q.reveal(); }, [s.phase, q]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const n = Number(e.key);
-      if (n >= 1 && n <= q.options.length) { e.preventDefault(); choose(q.options[n - 1].v); }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [q, choose]);
-
   const othersRight = s.phase === 'reveal' ? s.players.filter((p) => p.name !== s.me && s.answers[s.qi]?.[p.name]?.ok).map((p) => p.name) : [];
   return (
     <motion.div className={`game-card ${trivia ? 'trivia' : 'capitals'} in-match`} {...card}>
@@ -345,12 +336,11 @@ function ChoiceStage({ s, script, session, globe }: StageProps) {
             <div className="tv-q"><span className={`tv-diff l${q.level}`}>{LEVELS[q.level]} · ×{TRIVIA_MULT[q.level]}</span>{q.prompt}</div>
           ) : <div className="cap-q">{q.prompt}</div>}
           <div className="cap-options">
-            {q.options.map((o, n) => {
+            {q.options.map((o) => {
               const state = !showRight ? '' : o.v === q.right ? 'right' : o.v === picked ? 'wrong' : 'dim';
               return (
                 <motion.button key={o.v} className={`cap-opt ${state}`} onClick={() => choose(o.v)} disabled={!!picked || !!mine || s.phase !== 'question'} whileTap={!picked ? { scale: 0.98 } : undefined}
                   animate={state === 'wrong' ? { x: [0, -6, 6, -4, 4, 0] } : {}} transition={{ duration: 0.4 }}>
-                  <kbd>{n + 1}</kbd>
                   {o.flag && <img src={flagUrl(o.flag, 80)} alt="" />}
                   <span>{o.label}</span>
                 </motion.button>

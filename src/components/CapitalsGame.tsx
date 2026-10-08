@@ -32,16 +32,6 @@ export function CapitalsGame({ onReveal, onExit }: Props) {
     window.setTimeout(() => { setPicked(null); setI((n) => n + 1); }, right ? 1100 : 1900);
   }, [picked, finished, q, onReveal]);
 
-  // Keys 1–4 answer.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (finished) { if (e.key === 'Enter') restart(); return; }
-      const n = Number(e.key);
-      if (n >= 1 && n <= 4 && q.options[n - 1]) { e.preventDefault(); choose(q.options[n - 1]); }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  });
 
   useEffect(() => {
     if (finished && score >= 8) confetti({ particleCount: 120, spread: 80, origin: { y: 0.25 }, colors: ['#fde68a', '#34d399', '#7dd3fc'], disableForReducedMotion: true });
@@ -91,12 +81,11 @@ export function CapitalsGame({ onReveal, onExit }: Props) {
               )}
             </div>
             <div className="cap-options">
-              {q.options.map((o, n) => {
+              {q.options.map((o) => {
                 const state = !picked ? '' : o.cca3 === q.country.cca3 ? 'right' : o.cca3 === picked ? 'wrong' : 'dim';
                 return (
                   <motion.button key={o.cca3} className={`cap-opt ${state}`} onClick={() => choose(o)} disabled={!!picked} whileTap={!picked ? { scale: 0.98 } : undefined}
                     animate={state === 'wrong' ? { x: [0, -6, 6, -4, 4, 0] } : {}} transition={{ duration: 0.4 }}>
-                    <kbd>{n + 1}</kbd>
                     {q.kind === 'country' && <img src={flagUrl(o.cca2, 80)} alt="" />}
                     <span>{q.kind === 'capital' ? o.capital[0] : o.name}</span>
                   </motion.button>
@@ -120,7 +109,7 @@ export function CapitalsGame({ onReveal, onExit }: Props) {
           <motion.div key="done" className="cap-done" initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}>
             <span className="t5-score">{score}<small>/{round.length}</small></span>
             <span className="t5-verdict">{score === round.length ? 'Perfect round!' : score >= 8 ? 'Capital expert.' : score >= 5 ? 'Nice work.' : 'Keep exploring the globe!'}</span>
-            <button className="primary sm" onClick={() => restart()} autoFocus><RotateCcw size={14} /> Play again <kbd>↵</kbd></button>
+            <button className="primary sm" onClick={() => restart()} autoFocus><RotateCcw size={14} /> Play again</button>
           </motion.div>
         )}
       </AnimatePresence>

@@ -108,7 +108,7 @@ export function QuizBar({ quiz, onMode, onSkip, onNext, onExit }: Props) {
               </motion.span>
             </AnimatePresence>
             {quiz.result === 'reveal'
-              ? <button className="quiz-next" onClick={onNext} autoFocus>Next country <ArrowRight size={14} /><kbd>↵</kbd></button>
+              ? <button className="quiz-next" onClick={onNext} autoFocus>Next country <ArrowRight size={14} /></button>
               : <button className="skip" onClick={onSkip}><SkipForward size={13} /> {quiz.misses ? 'Show me' : 'Skip'}</button>}
           </div>
         </motion.div>

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, animate } from 'motion/react';
-import { Viewer, CONSTANTS } from '@photo-sphere-viewer/core';
+import { Viewer } from '@photo-sphere-viewer/core';
 import { MarkersPlugin } from '@photo-sphere-viewer/markers-plugin';
 import { CompassPlugin } from '@photo-sphere-viewer/compass-plugin';
 import { VirtualTourPlugin, type VirtualTourNode } from '@photo-sphere-viewer/virtual-tour-plugin';
@@ -20,7 +20,6 @@ import type { MapillarySpot } from '../lib/mapillary';
 import { api } from '../lib/api';
 import { Click, TOUCH } from '../lib/touch';
 
-const { ACTIONS } = CONSTANTS;
 
 export interface RoundResult {
   km: number;
@@ -108,7 +107,6 @@ function PanoramaxViewer({ item, onError, onMoved }: { item: StreetItem; onError
     let overArrow = false;
     let dragging = false;
 
-    const walk = (dir: 'forward' | 'back') => moveRef.current(dir);
     const v = new Viewer({
       container: host.current!,
       navbar: false,
@@ -119,16 +117,7 @@ function PanoramaxViewer({ item, onError, onMoved }: { item: StreetItem; onError
       touchmoveTwoFingers: false,
       moveInertia: 0.92,
       moveSpeed: 1.2,
-      // Smooth, continuous keyboard control (held keys keep turning / walking).
-      keyboard: 'always',
-      keyboardActions: {
-        ArrowLeft: ACTIONS.ROTATE_LEFT, a: ACTIONS.ROTATE_LEFT, A: ACTIONS.ROTATE_LEFT,
-        ArrowRight: ACTIONS.ROTATE_RIGHT, d: ACTIONS.ROTATE_RIGHT, D: ACTIONS.ROTATE_RIGHT,
-        PageUp: ACTIONS.ROTATE_UP, PageDown: ACTIONS.ROTATE_DOWN,
-        '+': ACTIONS.ZOOM_IN, '=': ACTIONS.ZOOM_IN, '-': ACTIONS.ZOOM_OUT,
-        ArrowUp: () => walk('forward'), w: () => walk('forward'), W: () => walk('forward'),
-        ArrowDown: () => walk('back'), s: () => walk('back'), S: () => walk('back'),
-      },
+      keyboard: false,
       plugins: [
         [MarkersPlugin, {}],
         [CompassPlugin, { size: '84px', position: 'top left', navigation: false }],
@@ -240,15 +229,6 @@ function PanoramaxViewer({ item, onError, onMoved }: { item: StreetItem; onError
       else window.setTimeout(() => sharpen(it), 350);
     });
 
-    // Taps queue up a step; releasing a *held* key stops walking straight away.
-    const WALK_KEYS = ['w', 'W', 's', 'S', 'ArrowUp', 'ArrowDown'];
-    let downAt = 0;
-    const markDown = (e: KeyboardEvent) => { if (WALK_KEYS.includes(e.key) && !e.repeat) downAt = performance.now(); };
-    const stopQueue = (e: KeyboardEvent) => {
-      if (WALK_KEYS.includes(e.key) && performance.now() - downAt > 350) pendingRef.current = null;
-    };
-    window.addEventListener('keydown', markDown);
-    window.addEventListener('keyup', stopQueue);
 
     function go(target: string) {
       movingRef.current = true;
@@ -286,8 +266,6 @@ function PanoramaxViewer({ item, onError, onMoved }: { item: StreetItem; onError
     return () => {
       window.clearTimeout(giveUp);
       window.removeEventListener('pointerup', onUp);
-      window.removeEventListener('keyup', stopQueue);
-      window.removeEventListener('keydown', markDown);
       v.destroy();
       viewer.current = null;
     };
@@ -320,9 +298,9 @@ function PanoramaxViewer({ item, onError, onMoved }: { item: StreetItem; onError
       </AnimatePresence>
       {!loading && canWalk && (
         <div className="sv-walk">
-          <button onClick={() => moveRef.current('back')} title="Step back (S / ↓)"><ChevronDown size={18} /></button>
-          <span className={moving ? 'is-moving' : ''}>{moving ? <><i className="sv-dot" /> Walking</> : <><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></>}</span>
-          <button onClick={() => moveRef.current('forward')} title="Step forward (W / ↑)"><ChevronUp size={18} /></button>
+          <button onClick={() => moveRef.current('back')} title="Step back"><ChevronDown size={18} /></button>
+          <span className={moving ? 'is-moving' : ''}>{moving ? <><i className="sv-dot" /> Walking</> : 'Walk'}</span>
+          <button onClick={() => moveRef.current('forward')} title="Step forward"><ChevronUp size={18} /></button>
           <i className="sv-walk-sep" />
           <button onClick={backToStart} title="Back to start"><LocateFixed size={16} /></button>
         </div>
@@ -400,8 +378,7 @@ function MapillaryViewer({ token, spot, onError, onMoved }: { token: string; spo
         // Mapillary's ground arrows: helpful with a mouse; on phones they sit on top of our walk bar
         // (tap / double-tap / hold-to-walk cover it there).
         direction: TOUCH || window.innerWidth <= 600 ? false : { minWidth: 260, maxWidth: 520 },
-        // Our own keys below (consistent W/S/A/D + arrows); keep Mapillary's +/- zoom.
-        keyboard: { keySequenceNavigation: false, keySpatialNavigation: false, keyZoom: true, keyPlay: false },
+        keyboard: false,
         zoom: true, sequence: false, spatial: false, tag: false, popup: false, slider: false, marker: false,
       },
     });
@@ -608,48 +585,7 @@ function MapillaryViewer({ token, spot, onError, onMoved }: { token: string; spo
 
     v.on('mousedown', () => { touched = true; });
 
-    // Smooth turning while A/D or ←/→ is held: eases up to speed, glides to a stop.
-    let turnDir = 0, turnVel = 0, raf = 0, last = 0;
-    const MAX = 95; // degrees per second
-    const turnLoop = (now: number) => {
-      const dt = Math.min(0.05, (now - (last || now)) / 1000);
-      last = now;
-      const target = turnDir * MAX;
-      turnVel += (target - turnVel) * Math.min(1, dt * (turnDir ? 7 : 9));
-      if (!turnDir && Math.abs(turnVel) < 1) { turnVel = 0; raf = 0; last = 0; return; }
-      rotate(-turnVel * dt * DEG);
-      raf = requestAnimationFrame(turnLoop);
-    };
-    const startTurn = (d: number) => {
-      touched = true;
-      cancelAnimationFrame(panRaf);
-      turnDir = d;
-      if (!raf) raf = requestAnimationFrame(turnLoop);
-    };
-
-    const WALK = new Set(['w', 'arrowup', 's', 'arrowdown']);
-    let downAt = 0;
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement)?.closest?.('input, textarea')) return;
-      const k = e.key.toLowerCase();
-      touched = true;
-      if (glide) stopGlide();
-      if (WALK.has(k) && !e.repeat) downAt = performance.now();
-      if (k === 'w' || k === 'arrowup') { e.preventDefault(); walk('forward'); }
-      else if (k === 's' || k === 'arrowdown') { e.preventDefault(); walk('back'); }
-      else if (k === 'a' || k === 'arrowleft') { e.preventDefault(); startTurn(-1); }
-      else if (k === 'd' || k === 'arrowright') { e.preventDefault(); startTurn(1); }
-    };
-    const onKeyUp = (e: KeyboardEvent) => {
-      const k = e.key.toLowerCase();
-      if ((k === 'a' || k === 'arrowleft') && turnDir === -1) turnDir = 0;
-      if ((k === 'd' || k === 'arrowright') && turnDir === 1) turnDir = 0;
-      // Releasing a *held* walk key stops; quick taps stay queued.
-      if (WALK.has(k) && performance.now() - downAt > 350) pending = null;
-    };
-    const onBlur = () => { turnDir = 0; pending = null; };
-    window.addEventListener('keydown', onKey);
-    window.addEventListener('keyup', onKeyUp);
+    const onBlur = () => { pending = null; hold = null; };
     window.addEventListener('blur', onBlur);
     return () => {
       window.clearTimeout(giveUp);
@@ -657,10 +593,7 @@ function MapillaryViewer({ token, spot, onError, onMoved }: { token: string; spo
       window.clearTimeout(tapTimer);
       el.removeEventListener('pointerdown', onDown, true);
       el.removeEventListener('pointerup', onUp, true);
-      cancelAnimationFrame(raf);
       cancelAnimationFrame(panRaf);
-      window.removeEventListener('keydown', onKey);
-      window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', onBlur);
       v.remove();
       viewerRef.current = null;
@@ -695,11 +628,11 @@ function MapillaryViewer({ token, spot, onError, onMoved }: { token: string; spo
       </AnimatePresence>
       {!loading && (
         <div className="sv-walk mly-walk">
-          <button className="sv-turn" onClick={() => turnRef.current(-45)} title="Look left (A / ←)" aria-label="Look left"><RotateCcw size={16} /></button>
-          <button {...holdProps('back')} disabled={!can.back} title="Step back — hold to keep walking (S / ↓)" aria-label="Step back"><ChevronDown size={18} /></button>
-          <span className={moving || gliding ? 'is-moving' : ''}>{gliding ? <><i className="sv-dot" /> Going there</> : moving ? <><i className="sv-dot" /> Walking</> : TOUCH ? 'Hold to walk' : <><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></>}</span>
-          <button {...holdProps('forward')} disabled={!can.forward} title="Step forward — hold to keep walking (W / ↑)" aria-label="Step forward"><ChevronUp size={18} /></button>
-          <button className="sv-turn" onClick={() => turnRef.current(45)} title="Look right (D / →)" aria-label="Look right"><RotateCw size={16} /></button>
+          <button className="sv-turn" onClick={() => turnRef.current(-45)} title="Look left" aria-label="Look left"><RotateCcw size={16} /></button>
+          <button {...holdProps('back')} disabled={!can.back} title="Step back — hold to keep walking" aria-label="Step back"><ChevronDown size={18} /></button>
+          <span className={moving || gliding ? 'is-moving' : ''}>{gliding ? <><i className="sv-dot" /> Going there</> : moving ? <><i className="sv-dot" /> Walking</> : 'Hold to walk'}</span>
+          <button {...holdProps('forward')} disabled={!can.forward} title="Step forward — hold to keep walking" aria-label="Step forward"><ChevronUp size={18} /></button>
+          <button className="sv-turn" onClick={() => turnRef.current(45)} title="Look right" aria-label="Look right"><RotateCw size={16} /></button>
           <i className="sv-walk-sep" />
           <button onClick={backToStart} title="Back to start" aria-label="Back to start"><LocateFixed size={16} /></button>
         </div>
@@ -818,7 +751,7 @@ function GuessMap({ round, guess, onPick, onGuess }: { round: number; guess: { l
       </div>
       {(!compact || big) && (
         <motion.button className="sv-guess" disabled={!guess} onClick={onGuess} whileTap={guess ? { scale: 0.98 } : undefined}>
-          <MapPin size={16} /> {guess ? <>Guess <kbd>↵</kbd></> : 'Place your pin on the map'}
+          <MapPin size={16} /> {guess ? 'Guess' : 'Place your pin on the map'}
         </motion.button>
       )}
     </div>
@@ -1023,7 +956,7 @@ export function StreetGame({ game, mlyToken, onPick, onGuess, onNext, onExit, on
       {game.status === 'play' && (
         <>
           <motion.div className="sv-instruction" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
-            Drag or <b>A D</b> to look · <b>W S</b>, click the road to step, <b>double-click</b> to go there · pin your guess on the map
+            Drag to look · click the road to step, <b>double-click</b> to go there · pin your guess on the map
           </motion.div>
           <GuessMap round={game.round * 100 + game.results.length} guess={game.guess} onPick={onPick} onGuess={onGuess} />
         </>
@@ -1048,7 +981,7 @@ export function StreetGame({ game, mlyToken, onPick, onGuess, onNext, onExit, on
               )}
             </div>
             <div className="svr-bar"><motion.i initial={{ width: 0 }} animate={{ width: `${(last.score / 5000) * 100}%` }} transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }} /></div>
-            {match ? <div className="sv-match-note">{match.note}</div> : <button className="primary" onClick={onNext}>{game.round >= game.totalRounds ? <><Flag size={15} /> See final score</> : <>Next round <kbd>↵</kbd></>}</button>}
+            {match ? <div className="sv-match-note">{match.note}</div> : <button className="primary" onClick={onNext}>{game.round >= game.totalRounds ? <><Flag size={15} /> See final score</> : 'Next round'}</button>}
           </motion.div>
         )}
       </AnimatePresence>
