@@ -47,7 +47,7 @@ GeoQuest installs like a native app on phones, tablets and desktops: in Safari u
   - Works with every game below.
   - Locally there are no keys: open two windows at `?as=alice` and `?as=bob` and they play each other.
 - **Map quiz**: *Find it*, *Flags* and *GeoGuessr clues*, with streaks.
-- **Street View challenge**: five GeoGuessr-style rounds on real street-level imagery from [Mapillary](https://www.mapillary.com) (falls back to [Panoramax](https://panoramax.fr)). Walk with `W`/`S`, look around with `A`/`D`, and pin your guess on the map.
+- **Street View challenge**: five GeoGuessr-style rounds on real street-level imagery from [Mapillary](https://www.mapillary.com) (falls back to [Panoramax](https://panoramax.fr)). Drag to look around, tap the road to step (double-tap to go further, or hold the arrows), and pin your guess on the map.
 - **Name the Top 5**: lenient spelling, judged by meaning when Claude is connected.
 - **Capitals**: country ↔ capital, 10 a round.
 - **Geo Trivia**: adaptive difficulty (Easy → Impossible). Two right in a row levels you up, a miss eases you down. It always shows questions you haven't seen yet. Questions live in `geography_trivia_bank.json`.
