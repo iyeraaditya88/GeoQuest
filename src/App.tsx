@@ -66,7 +66,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { localName } from './lib/live';
 import { panelWidth } from './lib/layout';
 import { MusicButton } from './components/MusicButton';
-import { music, musicMuted } from './lib/music';
+import { music } from './lib/music';
 
 function loadBest() { try { return Number(localStorage.getItem('gq-best') ?? 0); } catch { return 0; } }
 function saveBest(n: number) { try { localStorage.setItem('gq-best', String(n)); } catch { /* ignore */ } }
@@ -581,19 +581,14 @@ export default function App() {
   };
 
   // Background music: browsers allow sound only after an interaction, so start on the first one.
-  // iPhones only allow it from a completed tap (touchend / click), so keep trying on each
-  // interaction until the audio is actually running.
+  // iPhones only allow it from a completed tap (touchend / click), and can stop it later (calls,
+  // switching apps) — so every interaction checks, and picks the music back up if it stopped.
+  // (Cheap: once it's playing, music.unlock() returns straight away.)
   useEffect(() => {
-    const EVENTS = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'] as const;
-    let timer = 0;
-    const off = () => { for (const ev of EVENTS) window.removeEventListener(ev, unlock, true); };
-    function unlock() {
-      music.unlock();
-      window.clearTimeout(timer);
-      timer = window.setTimeout(() => { if (music.running() || musicMuted()) off(); }, 400);
-    }
+    const EVENTS = ['pointerup', 'touchend', 'click', 'keydown'] as const;
+    const unlock = () => music.unlock();
     for (const ev of EVENTS) window.addEventListener(ev, unlock, true);
-    return () => { off(); window.clearTimeout(timer); };
+    return () => { for (const ev of EVENTS) window.removeEventListener(ev, unlock, true); };
   }, []);
 
   // ── Keyboard: search (⌘K / Ctrl+K, or /) and Esc to close things — nothing else ──

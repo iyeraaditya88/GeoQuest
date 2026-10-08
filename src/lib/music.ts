@@ -94,6 +94,17 @@ class Engine {
     this.stopTimer = window.setTimeout(() => { window.clearInterval(this.timer); this.timer = 0; void this.ctx.suspend(); }, fade * 1000 + 100);
   }
 
+  /**
+   * Restart the audio clock. iPhone: when the page's audio session switches to "playback" after
+   * the music has started (the silent <audio> below begins playing a moment later, especially in
+   * the installed app), Web Audio keeps reporting "running" but stays silent until it's suspended
+   * and resumed — which is why muting and unmuting used to fix it.
+   */
+  restart() {
+    if (!this.playing) return;
+    void this.ctx.suspend().then(() => this.ctx.resume()).catch(() => null);
+  }
+
   /** Pause/resume the audio clock (e.g. while the tab is hidden) without changing state. */
   suspend(on: boolean) {
     if (on) void this.ctx.suspend();
@@ -239,7 +250,11 @@ const emit = () => { for (const l of listeners) l(); };
 
 // A hidden tab doesn't need music (and phones thank you for it).
 if (typeof document !== 'undefined') {
-  document.addEventListener('visibilitychange', () => engine?.suspend(document.hidden));
+  document.addEventListener('visibilitychange', () => {
+    engine?.suspend(document.hidden);
+    // Back from the background: phones may have paused the silent loop; pick it up again.
+    if (!document.hidden && engine?.playing && silentEl?.paused) void silentEl.play().catch(() => null);
+  });
 }
 
 // iPhone: web audio is silenced by the ring/silent switch unless the page plays "media". Declare
@@ -260,7 +275,13 @@ function mediaPlayback(on: boolean) {
   try { const s = (navigator as unknown as { audioSession?: { type: string } }).audioSession; if (s && on) s.type = 'playback'; } catch { /* unsupported */ }
   try {
     if (!on) { silentEl?.pause(); return; }
-    if (!silentEl) { silentEl = new Audio(silentWav()); silentEl.loop = true; silentEl.setAttribute('playsinline', ''); }
+    if (!silentEl) {
+      silentEl = new Audio(silentWav());
+      silentEl.loop = true;
+      silentEl.setAttribute('playsinline', '');
+      // Each time the media session (re)starts, restart the music so it's routed through it.
+      silentEl.addEventListener('playing', () => engine?.restart());
+    }
     void silentEl.play().catch(() => null);
   } catch { /* no <audio> */ }
 }
@@ -274,6 +295,7 @@ export const music = {
   unlock() {
     unlocked = true;
     if (musicMuted()) { emit(); return; }
+    if (engine?.running && engine.playing && silentEl && !silentEl.paused) return; // already playing
     mediaPlayback(true);
     get()?.start();
     emit();
