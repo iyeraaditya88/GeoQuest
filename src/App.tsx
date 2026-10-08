@@ -8,6 +8,7 @@ import { Sidebar, SIDEBAR_W } from './components/Sidebar';
 import { cursor } from './lib/cursor';
 import type { GeoGame, Spot } from './components/StreetGame';
 import { fresh } from './lib/chunks';
+import { startAnalytics, track } from './lib/analytics';
 
 // Games load on demand: Street View alone brings MapillaryJS (with its own three.js),
 // MapLibre and Photo Sphere Viewer — none of that belongs in the first paint.
@@ -46,6 +47,7 @@ import { findLocation, haversineKm, scoreFor } from './lib/streetview';
 import { countryAt } from './lib/data';
 import { CountryPanel } from './components/CountryPanel';
 import { PeoplePanel } from './components/PeoplePanel';
+const ActivityPanel = lazy(() => fresh(import('./components/ActivityPanel')).then((m) => ({ default: m.ActivityPanel })));
 import { FeaturePanel } from './components/FeaturePanel';
 import { featureInfo, type FeatureInfo, type FeatureRef } from './lib/features';
 import { AntipodeCard, type AntipodeStage } from './components/AntipodeCard';
@@ -98,7 +100,7 @@ export default function App() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
   useEffect(() => {
-    const check = () => api('/api/health').then((r) => r.json()).then((d) => { setAi(!!d.ai); setUser(d.user ?? null); setRole(d.role ?? null); setLiveMode(d.live === 'ably' || d.live === 'local' ? d.live : null); }).catch(() => setAi(false));
+    const check = () => api('/api/health').then((r) => r.json()).then((d) => { setAi(!!d.ai); setUser(d.user ?? null); startAnalytics(); setRole(d.role ?? null); setLiveMode(d.live === 'ably' || d.live === 'local' ? d.live : null); }).catch(() => setAi(false));
     void check();
     window.addEventListener('focus', check);
     return () => window.removeEventListener('focus', check);
@@ -148,6 +150,7 @@ export default function App() {
   const [user, setUser] = useState<string | null>(null);
   const [role, setRole] = useState<'owner' | 'member' | null>(null);
   const [peopleOpen, setPeopleOpen] = useState(false);
+  const [activityOpen, setActivityOpen] = useState(false);
   // Live head-to-head (see LivePlay): hosted over Ably, locally between tabs.
   const [liveMode, setLiveMode] = useState<'ably' | 'local' | null>(null);
   const [liveState, setLiveState] = useState<LiveState>({ active: false, quiz: false, immersive: false, online: 0, ready: false });
@@ -179,6 +182,7 @@ export default function App() {
     setSelected(cca3);
     setFeature(null);
     if (cca3) {
+      track('country', { c: cca3 });
       cam.flyTo(cca3);
       setRecents((r) => {
         const next = [cca3, ...r.filter((x) => x !== cca3)].slice(0, 6);
@@ -195,6 +199,7 @@ export default function App() {
     const n = ++featureReq.current;
     const info = await featureInfo(ref);
     if (!info || n !== featureReq.current) return;
+    track('feature', { k: info.kind, n: info.name });
     setSelected(null);
     setHighlighted([]);
     setDockOpen(false);
@@ -210,6 +215,7 @@ export default function App() {
   }, []);
 
   const ask = useCallback((prompt: string) => {
+    track('ask');
     setDockOpen(true);
     if (prompt) setAskReq((r) => ({ prompt, n: (r?.n ?? 0) + 1 }));
   }, []);
@@ -264,6 +270,7 @@ export default function App() {
 
   // ── Quiz ────────────────────────────────────────────────
   const startQuiz = (mode: QuizMode = 'find') => {
+    track('game', { g: 'quiz', m: mode });
     setPlay(null);
     setSelected(null);
     setHighlighted([]);
@@ -385,6 +392,7 @@ export default function App() {
 
   const startGeo = async () => {
     if (morphing.current) return;
+    track('game', { g: 'street' });
     if (viewRef.current === 'flat') await toggleFlat();
     setPlay(null);
     exitQuiz();
@@ -453,7 +461,11 @@ export default function App() {
   const nextGeo = () => {
     const g = geoRef.current;
     if (!g || g.status !== 'result') return;
-    if (g.round >= g.totalRounds) { setGeo({ ...g, status: 'final', item: null }); return; }
+    if (g.round >= g.totalRounds) {
+      track('score', { g: 'street', s: g.results.reduce((t, r) => t + r.score, 0), of: g.totalRounds * 5000 });
+      setGeo({ ...g, status: 'final', item: null });
+      return;
+    }
     void loadRound(g.round + 1, g.results);
   };
 
@@ -467,6 +479,7 @@ export default function App() {
 
   // ── Word games (Top 5, Capitals) ───────────────────────
   const startPlay = (g: 'top5' | 'capitals' | 'trivia') => {
+    track('game', { g });
     if (geoRef.current) exitGeo();
     if (antiRef.current) exitAntipode();
     exitQuiz();
@@ -533,6 +546,7 @@ export default function App() {
 
   const startAntipode = async () => {
     if (morphing.current) return;
+    track('game', { g: 'antipode' });
     if (geoRef.current) exitGeo();
     if (viewRef.current === 'flat') await toggleFlat(); // the dig needs the 3D globe
     setPlay(null);
@@ -586,7 +600,7 @@ export default function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const typing = (e.target as HTMLElement)?.closest?.('input, textarea');
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setSearchOpen(true); return; }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setSearchOpen(true); track('search'); return; }
       if (typing) return;
       if (e.key === '/') { e.preventDefault(); setSearchOpen(true); return; }
       if (e.key !== 'Escape' || liveRef.current.active) return; // a live match handles its own Esc
@@ -691,7 +705,9 @@ export default function App() {
         user={user}
         onSignOut={signOut}
         onPeople={role === 'owner' ? () => setPeopleOpen(true) : undefined}
-        onSearch={() => setSearchOpen(true)}
+        // (on your own machine there's no sign-in, so you're effectively the owner)
+        onActivity={role === 'owner' || liveMode === 'local' ? () => setActivityOpen(true) : undefined}
+        onSearch={() => { setSearchOpen(true); track('search'); }}
         onRandom={() => { if (quiz) exitQuiz(); random(); }}
         onAsk={() => { if (quiz) exitQuiz(); setDockOpen(true); }}
         onConnect={() => { if (quiz) exitQuiz(); setDockOpen(true); setKeyReq((n) => n + 1); }}
@@ -715,6 +731,7 @@ export default function App() {
         onPick={(c) => { if (quiz) exitQuiz(); select(c); }}
       />
       <PeoplePanel open={peopleOpen} onClose={() => setPeopleOpen(false)} />
+      {activityOpen && <Suspense fallback={null}><ErrorBoundary name="Activity" onClose={() => setActivityOpen(false)}><ActivityPanel open={activityOpen} onClose={() => setActivityOpen(false)} /></ErrorBoundary></Suspense>}
 
 
       {/* Onboarding hint */}

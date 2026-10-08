@@ -16,6 +16,7 @@ import type { MatchGlobe } from './LivePlay';
 import { Click, buzz } from '../lib/touch';
 import { music } from '../lib/music';
 import { fresh } from '../lib/chunks';
+import { track } from '../lib/analytics';
 
 const StreetGame = lazy(() => fresh(import('./StreetGame')).then((m) => ({ default: m.StreetGame })));
 const ICONS: Record<GameId, typeof Swords> = { quiz: Gamepad2, capitals: Landmark, trivia: Brain, top5: ListOrdered, street: Binoculars };
@@ -229,6 +230,7 @@ function Results({ s, onLeave, onRematch }: { s: Snapshot; onLeave: () => void; 
   const iWon = !!top && top.name === s.me && !tie;
   const aborted = s.phase === 'aborted';
   const n = s.script?.qs.length ?? 0;
+  useEffect(() => { track('match', { g: s.game, n: ranked.length, r: ranked.findIndex((p) => p.name === s.me) + 1, s: ranked.find((p) => p.name === s.me)?.score ?? 0 }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (iWon && !aborted) confetti({ particleCount: 160, spread: 90, origin: { y: 0.3 }, colors: ['#fde68a', '#fbbf24', '#34d399', '#7dd3fc', '#f9a8d4'], disableForReducedMotion: true });
   }, [iWon, aborted]);

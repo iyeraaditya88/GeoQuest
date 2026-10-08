@@ -18,6 +18,7 @@ Object.assign(process.env, {
   GQ_USERS_FILE: join(dir, 'users.json'),
   GQ_MATCHES_FILE: join(dir, 'matches.json'),
   GQ_PREFS_FILE: join(dir, 'prefs.json'),
+  GQ_ANALYTICS_FILE: join(dir, 'analytics.json'),
 });
 delete process.env.BLOB_READ_WRITE_TOKEN;
 delete process.env.BLOB_STORE_ID;
@@ -222,6 +223,30 @@ describe('live play', () => {
   it('only records a result from the match host', async () => {
     const players = [{ name: 'bob', score: 9999 }, { name: 'owner', score: 0 }];
     expect((await call('POST', '/api/matches/abcdefgh/result', { cookie: bob, body: { ticket: 'junk', game: 'capitals', players } })).status).toBe(403);
+  });
+});
+
+describe('activity analytics', () => {
+  const visit = (extra: object = {}) => ({ sid: 'abc123def4', start: Date.now() - 60_000, active: 45, device: 'phone', os: 'iOS', browser: 'Safari', pwa: true,
+    events: [[3, 'country', { c: 'FRA' }], [20, 'game', { g: 'street' }], [9, '<script>', {}], [30, 'score', { g: 'street', s: 12345, evil: 'x'.repeat(500) }]], ...extra });
+
+  it('records a player\'s visit under their own name, tidied', async () => {
+    expect((await call('POST', '/api/analytics', { cookie: bob, body: visit({ user: 'owner' }) })).status).toBe(200);
+    const r = await call('GET', '/api/analytics?days=7', { cookie: owner });
+    const s = (r.body.sessions as { user: string; events: unknown[]; active: number }[]).find((x) => x.user === 'bob')!;
+    expect(s).toBeTruthy(); // filed under bob, whatever the body claimed
+    expect(s.events).toEqual([[3, 'country', { c: 'FRA' }], [20, 'game', { g: 'street' }], [30, 'score', { g: 'street', s: 12345, evil: 'x'.repeat(48) }]]); // bad names dropped, long values cut
+    expect(s.active).toBe(45);
+  });
+
+  it('shows activity to the owner only', async () => {
+    expect((await call('GET', '/api/analytics', { cookie: bob })).status).toBe(403);
+    expect((await call('GET', '/api/analytics')).status).toBe(401);
+  });
+
+  it('rejects implausible visits', async () => {
+    expect((await call('POST', '/api/analytics', { cookie: bob, body: visit({ sid: '../../etc' }) })).status).toBe(400);
+    expect((await call('POST', '/api/analytics', { cookie: bob, body: visit({ start: Date.now() - 9 * 86400_000 }) })).status).toBe(400);
   });
 });
 

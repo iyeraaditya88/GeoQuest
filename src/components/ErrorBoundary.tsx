@@ -1,6 +1,7 @@
 import { Component, type ReactNode } from 'react';
 import { AlertTriangle, RotateCw, X } from 'lucide-react';
 import { isChunkError } from '../lib/chunks';
+import { track } from '../lib/analytics';
 
 interface Props {
   /** What this area is, for the message ("Street View", "Capitals"…) */
@@ -24,6 +25,7 @@ export class ErrorBoundary extends Component<Props, { failed: boolean; stale: bo
 
   componentDidCatch(error: unknown) {
     console.error(`[geoquest] ${this.props.name} crashed:`, error);
+    track('crash', { w: this.props.name, e: String((error as Error)?.message ?? error).slice(0, 48) });
   }
 
   private close = () => {

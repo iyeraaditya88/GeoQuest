@@ -4,6 +4,7 @@ import { Flame, Landmark, RotateCcw, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { flagUrl, type Country } from '../lib/data';
 import { makeRound, type Level } from '../lib/capitals';
+import { track } from '../lib/analytics';
 
 interface Props {
   onReveal: (cca3: string) => void;
@@ -33,6 +34,7 @@ export function CapitalsGame({ onReveal, onExit }: Props) {
   }, [picked, finished, q, onReveal]);
 
 
+  useEffect(() => { if (finished) track('score', { g: 'capitals', s: score, of: round.length }); }, [finished, score, round.length]);
   useEffect(() => {
     if (finished && score >= 8) confetti({ particleCount: 120, spread: 80, origin: { y: 0.25 }, colors: ['#fde68a', '#34d399', '#7dd3fc'], disableForReducedMotion: true });
   }, [finished, score]);

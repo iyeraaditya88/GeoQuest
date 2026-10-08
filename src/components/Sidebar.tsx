@@ -1,8 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import {
-  Binoculars, Swords, Link2, Dices, Gamepad2, ListOrdered, Landmark, Globe2, History, KeyRound, Map as MapIcon, Mountain, Drill, Brain, SunMoon, LogOut, UserRound, Users, ChevronLeft, RotateCcw, RotateCw, Satellite, Search, Sparkles, X, Menu,
-} from 'lucide-react';
+import { BarChart3, Binoculars, Brain, ChevronLeft, Dices, Drill, Gamepad2, Globe2, History, KeyRound, Landmark, Link2, ListOrdered, LogOut, Map as MapIcon, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, Sparkles, SunMoon, Swords, UserRound, Users, X } from 'lucide-react';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import type { MapStyle } from './GlobeView';
 
@@ -33,6 +31,7 @@ interface Props {
   onSignOut?: () => void;
   /** Owner on the hosted site: open the People panel. */
   onPeople?: () => void;
+  onActivity?: () => void;
   onQuiz: () => void;
   onStreet: () => void;
   antipodeOn: boolean;
@@ -207,10 +206,12 @@ export function Sidebar(p: Props) {
             {p.user && (
               <>
                 <Fade show={!rail}><span className="sb-user" title={`Signed in as ${p.user}`}><UserRound size={13} /> {p.user}</span></Fade>
+                {p.onActivity && <button className="sb-icon" onClick={p.onActivity} aria-label="Activity" data-tip="Activity — who’s playing"><BarChart3 size={16} /></button>}
                 {p.onPeople && <button className="sb-icon" onClick={p.onPeople} aria-label="People" data-tip="People — invite friends"><Users size={16} /></button>}
                 <button className="sb-icon sb-signout" onClick={p.onSignOut} aria-label="Sign out" data-tip="Sign out"><LogOut size={16} /></button>
               </>
             )}
+            {!p.user && p.onActivity && <button className="sb-icon" onClick={p.onActivity} aria-label="Activity" data-tip="Activity — who’s playing"><BarChart3 size={16} /></button>}
           </div>
         </div>
       </motion.nav>

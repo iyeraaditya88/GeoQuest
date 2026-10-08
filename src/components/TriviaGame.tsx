@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { Brain, ChevronsDown, ChevronsUp, Flame, RotateCcw, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { LEVELS, POINTS, ROUND, UP_AFTER, loadBest, nextQuestion, saveBest, type TriviaQ } from '../lib/trivia';
+import { track } from '../lib/analytics';
 
 interface Props {
   /** Show the answer on the globe (when it's a country or a known city). */
@@ -87,6 +88,7 @@ export function TriviaGame({ onReveal, onExit }: Props) {
   // End of round: best score + a little celebration.
   useEffect(() => {
     if (!finished) return;
+    track('score', { g: 'trivia', s: r.score });
     if (r.score > best) { saveBest(r.score); setBest(r.score); }
     if (r.correct >= 8) confetti({ particleCount: 120, spread: 80, origin: { y: 0.25 }, colors: ['#fde68a', '#34d399', '#7dd3fc'], disableForReducedMotion: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
