@@ -1,7 +1,7 @@
 // The live match on screen: lobby → 3-2-1 → questions with a live scoreboard → podium.
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowRight, Binoculars, Brain, Check, Crown, Flag, Gamepad2, Heart, Landmark, Lightbulb, ListOrdered, Loader2, LogOut, RotateCcw, Sparkles, Swords, X } from 'lucide-react';
+import { ArrowRight, Copy, Share2, Binoculars, Brain, Check, Crown, Flag, Gamepad2, Heart, Landmark, Lightbulb, ListOrdered, Loader2, LogOut, RotateCcw, Sparkles, Swords, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import { GAMES, QUIZ_MODES, speedPoints, type GameId, type MatchSession, type Player, type Script, type Snapshot } from '../lib/match';
@@ -99,10 +99,11 @@ function Lobby({ s, session, onLeave }: { s: Snapshot; session: MatchSession; on
         <span className="gc-badge"><Icon size={15} /></span>
         <div className="gc-title">
           <b>{GAMES[s.game].label}{mode ? ` · ${mode}` : ''}</b>
-          <span>{s.phase === 'preparing' ? 'Setting up the questions…' : s.isHost ? `Waiting for players · ${left}s` : `${s.host}’s match · waiting to start`}</span>
+          <span>{s.phase === 'preparing' ? 'Setting up the questions…' : s.isHost ? (s.open ? `Open lobby · ${joined - 1} joined` : `Waiting for players · ${left}s`) : `${s.host}’s match · waiting to start`}</span>
         </div>
         <button className="icon-btn" onClick={onLeave} aria-label={s.isHost ? 'Cancel match' : 'Leave'}><X size={17} /></button>
       </header>
+      {s.isHost && s.open && s.link && s.phase === 'lobby' && <ShareLink link={s.link} game={GAMES[s.game].label} />}
       <ul className="mt-players">
         {s.players.map((p) => (
           <motion.li key={p.name} layout className={`st-${p.status}`}>
@@ -114,12 +115,33 @@ function Lobby({ s, session, onLeave }: { s: Snapshot; session: MatchSession; on
       </ul>
       {s.isHost ? (
         <button className="primary mt-start" disabled={joined < 2 || s.phase === 'preparing'} onClick={() => void session.startNow()}>
-          {s.phase === 'preparing' ? <><Loader2 size={15} className="spin" /> Getting ready…</> : joined < 2 ? 'Waiting for someone to accept…' : <>Start now <ArrowRight size={15} /></>}
+          {s.phase === 'preparing' ? <><Loader2 size={15} className="spin" /> Getting ready…</> : joined < 2 ? (s.open ? 'Waiting for friends to join…' : 'Waiting for someone to accept…') : <>Start {s.open ? `with ${joined} players` : 'now'} <ArrowRight size={15} /></>}
         </button>
       ) : (
-        <p className="mt-wait">{s.phase === 'preparing' ? 'Getting the questions ready…' : `${s.host} starts the match — it begins automatically once everyone’s in.`}</p>
+        <p className="mt-wait">{s.phase === 'preparing' ? 'Getting the questions ready…' : s.open ? `You’re in! ${s.host} starts the match when everyone’s here.` : `${s.host} starts the match — it begins automatically once everyone’s in.`}</p>
       )}
     </motion.div>
+  );
+}
+
+/** The invite link, with copy and (on phones) the share sheet. */
+function ShareLink({ link, game }: { link: string; game: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(link); } catch { /* the field is selectable */ }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  };
+  const canShare = typeof navigator.share === 'function';
+  return (
+    <div className="mt-share">
+      <p>Send this link to friends — anyone signed in to GeoQuest who opens it joins this lobby.</p>
+      <div className="pp-copy">
+        <input readOnly value={link} onFocus={(e) => e.currentTarget.select()} aria-label="Invite link" />
+        <button className="ap-btn gold" onClick={() => void copy()}>{copied ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}</button>
+        {canShare && <button className="ap-btn" onClick={() => void navigator.share({ title: 'GeoQuest', text: `Play ${game} with me on GeoQuest!`, url: link }).catch(() => null)} aria-label="Share"><Share2 size={14} /></button>}
+      </div>
+    </div>
   );
 }
 

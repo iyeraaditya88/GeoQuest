@@ -66,8 +66,47 @@ export async function buildScript(game: GameId, opts: MatchOpts): Promise<Script
 export const speedPoints = (fracLeft: number) => Math.round(500 + 500 * Math.max(0, Math.min(1, fracLeft)));
 
 // ── Invitations ──
-export interface Invite { id: string; from: string; game: GameId; opts: MatchOpts; players: string[]; at: number; ticket?: string }
+export interface Invite {
+  id: string; from: string; game: GameId; opts: MatchOpts; players: string[]; at: number; ticket?: string;
+  /** Open lobby from a shared link: whoever opens the link joins (up to 6) */
+  open?: boolean;
+  /** The shareable link (host only) */
+  link?: string;
+}
 export const INVITE_MS = 30_000;
+/** How long an open lobby waits for people to arrive via the link */
+export const OPEN_MS = 15 * 60_000;
+const MAX_PLAYERS = 6;
+
+const b64 = (o: object) => btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const unb64 = (s: string) => JSON.parse(decodeURIComponent(escape(atob(s.replace(/-/g, '+').replace(/_/g, '/')))));
+const joinLink = (token: string) => `${location.origin}/?join=${encodeURIComponent(token)}`;
+
+/** Create a lobby anyone can join with the link (hosted: the server signs the link). */
+export async function createOpenInvite(live: Live, game: GameId, opts: MatchOpts): Promise<Invite> {
+  if (live.mode === 'ably') {
+    const r = await api('/api/invites', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ game, opts }) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error ?? 'Couldn’t create the invite link.');
+    return { id: d.id, from: live.me, game, opts, players: [live.me], at: Date.now(), ticket: d.ticket, open: true, link: joinLink(d.token) };
+  }
+  const id = Math.random().toString(36).slice(2, 12);
+  return { id, from: live.me, game, opts, players: [live.me], at: Date.now(), open: true, link: joinLink(b64({ m: id, host: live.me, game, opts, exp: Date.now() + 30 * 60_000 })) };
+}
+
+/** Join a lobby from a shared link. */
+export async function joinOpenInvite(live: Live, token: string): Promise<Invite> {
+  if (live.mode === 'ably') {
+    const r = await api('/api/invites/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error ?? 'Couldn’t join that match.');
+    return { id: d.id, from: d.host, game: d.game, opts: d.opts ?? {}, players: [d.host, live.me], at: Date.now(), ticket: d.ticket, open: true };
+  }
+  const t = unb64(token) as { m: string; host: string; game: GameId; opts: MatchOpts; exp: number };
+  if (!t?.m || t.exp < Date.now()) throw new Error('This invite link has expired — ask for a new one.');
+  if (t.host === live.me) throw new Error('That’s your own invite link — send it to a friend.');
+  return { id: t.m, from: t.host, game: t.game, opts: t.opts ?? {}, players: [t.host, live.me], at: Date.now(), open: true };
+}
 
 /** Challenge friends: hosted, the server delivers the invites; locally, we post to their tab. */
 export async function sendChallenge(live: Live, to: string[], game: GameId, opts: MatchOpts): Promise<Invite> {
@@ -118,6 +157,9 @@ export interface Snapshot {
   answers: Record<number, Record<string, Answer>>;
   reason?: string;
   error?: string;
+  /** Open lobby (joined by link) and, for its host, the link to share */
+  open: boolean;
+  link?: string;
 }
 
 const COUNTDOWN = 3200;
@@ -143,8 +185,9 @@ export class MatchSession {
       phase: 'lobby',
       players: inv.players.map((name) => ({ name, status: name === inv.from ? 'joined' : 'invited', score: 0 })),
       script: null, qi: 0,
-      inviteEndsAt: inv.at + INVITE_MS, countdownEndsAt: 0, qStartedAt: 0, qEndsAt: 0, revealEndsAt: 0,
+      inviteEndsAt: inv.at + (inv.open ? OPEN_MS : INVITE_MS), countdownEndsAt: 0, qStartedAt: 0, qEndsAt: 0, revealEndsAt: 0,
       answers: {},
+      open: !!inv.open, link: inv.link,
     };
     this.ticket = inv.ticket;
   }
@@ -177,13 +220,31 @@ export class MatchSession {
     if (this.s.isHost) {
       this.after(Math.max(0, this.s.inviteEndsAt - Date.now()), () => {
         for (const p of this.s.players) if (p.status === 'invited') this.setStatus(p.name, 'missed');
-        this.maybeStart();
+        if (this.s.open && this.s.phase === 'lobby' && this.active().length < 2) void this.ch?.publish('abort', { reason: 'Nobody joined from the link' });
+        else this.maybeStart();
       });
+    } else if (this.s.open) {
+      // Joined by link: if the host's lobby isn't there, say so instead of waiting forever.
+      this.after(9000, () => { if (!this.seen.has(this.s.host) && this.s.phase === 'lobby') this.set({ phase: 'aborted', reason: 'That match isn’t open any more — ask for a new link' }); });
     }
   }
 
   private onMembers(ms: Member[]) {
     const here = new Set(ms.map((m) => m.name));
+    // Open lobby: whoever arrives through the link joins (until it starts or fills up).
+    if (this.s.open) {
+      const known = new Set(this.s.players.map((p) => p.name));
+      const fresh = [...here].filter((n) => !known.has(n));
+      if (fresh.length) {
+        if (this.s.phase === 'lobby') {
+          const room = Math.max(0, MAX_PLAYERS - this.s.players.length);
+          this.set({ players: [...this.s.players, ...fresh.slice(0, room).map((name) => ({ name, status: 'joined' as PStatus, score: 0 }))] });
+          if (this.s.isHost) for (const n of fresh.slice(room)) void this.ch?.publish('closed', { to: n, reason: 'That match is full' });
+        } else if (this.s.isHost && this.s.phase !== 'done' && this.s.phase !== 'aborted') {
+          for (const n of fresh) void this.ch?.publish('closed', { to: n, reason: 'That match has already started' });
+        }
+      }
+    }
     for (const p of this.s.players) {
       if (here.has(p.name)) {
         this.seen.add(p.name);
@@ -206,6 +267,9 @@ export class MatchSession {
     switch (name) {
       case 'decline':
         if (s.phase === 'lobby') { this.setStatus(from, d?.busy ? 'busy' : 'declined'); if (s.isHost) this.maybeStart(); }
+        break;
+      case 'closed':
+        if (from === s.host && d?.to === s.me) this.set({ phase: 'aborted', reason: String(d.reason ?? 'That match isn’t open') });
         break;
       case 'prep':
         if (from === s.host && s.phase === 'lobby') this.set({ phase: 'preparing' });
@@ -266,7 +330,7 @@ export class MatchSession {
   // ── Host ──
   private maybeStart() {
     const s = this.s;
-    if (!s.isHost || s.phase !== 'lobby') return;
+    if (!s.isHost || s.phase !== 'lobby' || s.open) return; // open lobbies start when the host says so
     const guests = s.players.filter((p) => p.name !== s.host);
     if (guests.some((p) => p.status === 'invited')) return; // still waiting on someone
     if (!guests.some((p) => p.status === 'joined')) { void this.ch?.publish('abort', { reason: 'Nobody accepted the challenge' }); return; }

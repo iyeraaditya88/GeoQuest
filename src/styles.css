@@ -1448,3 +1448,29 @@ html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent
 .guess-dock.compact:not(.big) { bottom: calc(84px + var(--sb)); }
 .guess-dock.compact:not(.big) .maplibregl-ctrl-attrib, .guess-dock.compact:not(.big) .maplibregl-ctrl-bottom-left { display: none; }
 .result-layer .maplibregl-ctrl-top-right { top: var(--st); right: var(--sr); }
+
+/* Play header: Challenge / Invite buttons */
+.sb-section h4 .sb-play-actions { margin-left: auto; display: flex; gap: 4px; letter-spacing: 0; text-transform: none; }
+.sb-pill { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px; border-radius: 999px; font: 600 11.5px 'Inter', sans-serif; color: var(--gold-soft);
+  background: rgba(251, 191, 36, 0.1); box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.28); transition: background 0.18s, box-shadow 0.18s, transform 0.18s var(--ease); }
+.sb-pill:hover { background: rgba(251, 191, 36, 0.18); box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.5); transform: translateY(-1px); }
+.sb-pill.on { color: #1a1205; background: var(--gold); box-shadow: none; }
+.sb-pill .sb-online { margin-left: 2px; font-size: 11px; }
+/* Friends / invite panels */
+.people.friends.narrow { width: min(460px, 100%); }
+.fr-star { width: 30px; height: 30px; flex-shrink: 0; border-radius: 9px; display: grid; place-items: center; color: var(--dim); transition: color 0.18s, background 0.18s, transform 0.18s var(--ease); }
+.fr-star:hover { color: var(--gold-soft); background: rgba(251, 191, 36, 0.1); }
+.fr-star.on { color: var(--gold); }
+.fr-star:active { transform: scale(0.88); }
+.fr-duel { display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 11px; border-radius: 10px; flex-shrink: 0; font-weight: 600; font-size: 12.5px; color: #1a1205;
+  background: linear-gradient(135deg, var(--gold-soft), var(--gold) 55%, #f59e0b); transition: transform 0.18s var(--ease); }
+.fr-duel:hover { transform: translateY(-1px); }
+.fr-duel:disabled { opacity: 0.6; transform: none; }
+.fr-dot.away { background: #475569; }
+.fr-row.off .fr-star { opacity: 1; }
+.fr-tip { margin: -2px 0 0; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--dim); line-height: 1.45; }
+.live-notice { position: fixed; top: calc(16px + var(--st)); left: 50%; translate: -50% 0; z-index: 61; max-width: calc(100vw - 32px); padding: 10px 16px; border-radius: 14px;
+  font-size: 13px; color: var(--text); background: rgba(9, 14, 30, 0.96); box-shadow: var(--shadow), 0 0 0 1px rgba(248, 113, 113, 0.35); cursor: pointer; }
+/* Lobby share link */
+.mt-share { padding: 12px; border-radius: 14px; background: rgba(251, 191, 36, 0.07); box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.25); }
+.mt-share p { margin: 0 0 10px; font-size: 12.5px; line-height: 1.5; color: var(--muted); }

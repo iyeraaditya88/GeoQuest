@@ -149,6 +149,7 @@ export default function App() {
   const liveRef = useRef(liveState);
   liveRef.current = liveState;
   const [friendsReq, setFriendsReq] = useState(0);
+  const [inviteReq, setInviteReq] = useState(0);
   const matchClick = useRef<((cca3: string | null) => void) | null>(null);
   const signOut = () => { void api('/api/logout', { method: 'POST' }).finally(() => location.replace('/login')); };
   const [nature, setNature] = useState(() => { try { return localStorage.getItem('gq-nature') !== '0'; } catch { return true; } });
@@ -689,6 +690,7 @@ export default function App() {
         onCapitals={() => (play === 'capitals' ? exitPlay() : startPlay('capitals'))}
         onTrivia={() => (play === 'trivia' ? exitPlay() : startPlay('trivia'))}
         onFriends={liveMode && liveMe ? () => setFriendsReq((n) => n + 1) : undefined}
+        onInvite={liveMode && liveMe ? () => setInviteReq((n) => n + 1) : undefined}
         friendsOnline={liveState.online}
         matchOn={liveState.active}
         onToggleView={() => void toggleFlat()}
@@ -744,7 +746,7 @@ export default function App() {
       <FeaturePanel feature={quiz || geo || play || anti || liveState.active ? null : feature} onClose={() => setFeature(null)} onSelectCountry={select} onAsk={ask} />
       <CountryPanel country={quiz || geo || play || anti || liveState.active ? null : country} onClose={() => setSelected(null)} onSelect={select} onAsk={ask} />
       {chrome && !quiz && !geo && !play && !anti && !liveState.active && <AskDock open={dockOpen} setOpen={setDockOpen} country={country} request={askReq} keyRequest={keyReq} onAiChange={setAi} onHosted={setHosted} onHighlight={highlight} onSelect={select} />}
-      <LivePlay mode={liveMode} me={liveMe} ai={ai} friendsReq={friendsReq} globe={matchGlobe} clickRef={matchClick} onState={setLiveState} />
+      <LivePlay mode={liveMode} me={liveMe} ai={ai} friendsReq={friendsReq} inviteReq={inviteReq} globe={matchGlobe} clickRef={matchClick} onState={setLiveState} />
       <CustomCursor />
       <SearchPalette open={searchOpen} onClose={() => setSearchOpen(false)} onPick={(c) => { if (quiz) exitQuiz(); select(c); }} />
     </div>

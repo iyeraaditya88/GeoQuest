@@ -28,3 +28,4 @@ dist-ssr
 .claude/
 .users.local.json
 .matches.local.json
+.prefs.local.json

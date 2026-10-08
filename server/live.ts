@@ -48,3 +48,12 @@ export async function tokenRequest(user: string, tickets: unknown) {
 export async function sendInvite(to: string, data: object) {
   await client().channels.get(`inbox:${to}`).publish('invite', data);
 }
+
+// ── Open invite links: anyone signed in who has the link may join that host's lobby ──
+export interface OpenInvite { m: string; host: string; game: GameId; opts: object; exp: number }
+const OPEN_MINUTES = 30;
+export const issueOpenInvite = (t: Omit<OpenInvite, 'exp'>) => signData('open-invite', { ...t, exp: Date.now() + OPEN_MINUTES * 60_000 } satisfies OpenInvite);
+export async function readOpenInvite(token: unknown) {
+  const t = await verifyData<OpenInvite>('open-invite', token);
+  return t && typeof t.m === 'string' && typeof t.host === 'string' && GAMES.includes(t.game) && t.exp > Date.now() ? t : null;
+}

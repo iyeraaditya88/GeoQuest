@@ -7,6 +7,7 @@ import type { GameId, Invite, MatchOpts, MatchSession, Snapshot } from '../lib/m
 import type { Feedback } from './GlobeView';
 
 const FriendsPanel = lazy(() => import('./FriendsPanel').then((m) => ({ default: m.FriendsPanel })));
+const InvitePanel = lazy(() => import('./FriendsPanel').then((m) => ({ default: m.InvitePanel })));
 const ChallengeToasts = lazy(() => import('./ChallengeToasts').then((m) => ({ default: m.ChallengeToasts })));
 const MatchOverlay = lazy(() => import('./MatchOverlay').then((m) => ({ default: m.MatchOverlay })));
 
@@ -26,6 +27,8 @@ interface Props {
   me: string | null;
   ai: boolean | null;
   friendsReq: number;
+  /** Bumped to open the "invite with a link" panel */
+  inviteReq: number;
   globe: MatchGlobe;
   /** Set while a Map-quiz question wants globe clicks */
   clickRef: MutableRefObject<((cca3: string | null) => void) | null>;
@@ -34,11 +37,13 @@ interface Props {
 
 const noop = () => () => {};
 
-export function LivePlay({ mode, me, ai, friendsReq, globe, clickRef, onState }: Props) {
+export function LivePlay({ mode, me, ai, friendsReq, inviteReq, globe, clickRef, onState }: Props) {
   const [live, setLive] = useState<Live | null>(null);
   const [online, setOnline] = useState<Map<string, { s?: string }>>(new Map());
   const [invites, setInvites] = useState<Invite[]>([]);
   const [friendsOpen, setFriendsOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const [session, setSession] = useState<MatchSession | null>(null);
   const [immersive, setImmersive] = useState(false);
   const sessionRef = useRef(session);
@@ -76,6 +81,8 @@ export function LivePlay({ mode, me, ai, friendsReq, globe, clickRef, onState }:
   useEffect(() => { void live?.channel('lobby').update({ s: inMatch ? 'playing' : 'idle' }).catch(() => null); }, [live, inMatch]);
 
   useEffect(() => { if (friendsReq) setFriendsOpen(true); }, [friendsReq]);
+  useEffect(() => { if (inviteReq) setInviteOpen(true); }, [inviteReq]);
+  useEffect(() => { if (!notice) return; const t = window.setTimeout(() => setNotice(null), 6000); return () => window.clearTimeout(t); }, [notice]);
 
   useEffect(() => {
     onState({ active: inMatch, quiz: inMatch && snap?.game === 'quiz', immersive: inMatch && immersive, online: online.size, ready: !!live });
@@ -88,6 +95,7 @@ export function LivePlay({ mode, me, ai, friendsReq, globe, clickRef, onState }:
     const s = new MatchSession(live, inv);
     setSession(s);
     setFriendsOpen(false);
+    setInviteOpen(false);
     setInvites((v) => v.filter((i) => i.id !== inv.id));
     try { await s.open(); } catch (err) { console.warn('[live] could not join the match', err); }
   }, [live]);
@@ -97,6 +105,25 @@ export function LivePlay({ mode, me, ai, friendsReq, globe, clickRef, onState }:
     const { sendChallenge } = await loadMatch();
     const inv = await sendChallenge(live, to, game, opts);
     await begin(inv);
+  }, [live, begin]);
+
+  const createLink = useCallback(async (game: GameId, opts: MatchOpts) => {
+    if (!live) throw new Error('Not connected yet — try again in a moment.');
+    const inv = await (await loadMatch()).createOpenInvite(live, game, opts);
+    await begin(inv);
+  }, [live, begin]);
+
+  // Opened an invite link (?join=…): join that lobby once connected, then tidy the address bar.
+  const joined = useRef(false);
+  useEffect(() => {
+    if (!live || joined.current) return;
+    const token = new URLSearchParams(location.search).get('join');
+    if (!token) return;
+    joined.current = true;
+    const url = new URL(location.href);
+    url.searchParams.delete('join');
+    history.replaceState(null, '', url.pathname + url.search + url.hash);
+    void loadMatch().then((m) => m.joinOpenInvite(live, token)).then(begin).catch((err: Error) => setNotice(err.message));
   }, [live, begin]);
 
   const decline = useCallback(async (inv: Invite) => {
@@ -139,6 +166,10 @@ export function LivePlay({ mode, me, ai, friendsReq, globe, clickRef, onState }:
           />
         )}
       </Suspense>
+      <Suspense fallback={null}>
+        {inviteOpen && <InvitePanel open={inviteOpen} onClose={() => setInviteOpen(false)} connected={!!live} onCreate={createLink} />}
+      </Suspense>
+      {notice && <div className="live-notice" role="status" onClick={() => setNotice(null)}>{notice}</div>}
       <Suspense fallback={null}>
         {invites.length > 0 && <ChallengeToasts invites={invites} onAccept={(i) => void begin(i)} onDecline={(i) => void decline(i)} onExpire={(i) => setInvites((v) => v.filter((x) => x.id !== i.id))} />}
       </Suspense>

@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
-  Binoculars, Swords, Dices, Gamepad2, ListOrdered, Landmark, Globe2, History, Keyboard, KeyRound, Map as MapIcon, Mountain, Drill, Brain, SunMoon, LogOut, UserRound, Users, ChevronLeft, RotateCcw, RotateCw, Satellite, Search, Sparkles, X, Menu,
+  Binoculars, Swords, Link2, Dices, Gamepad2, ListOrdered, Landmark, Globe2, History, Keyboard, KeyRound, Map as MapIcon, Mountain, Drill, Brain, SunMoon, LogOut, UserRound, Users, ChevronLeft, RotateCcw, RotateCw, Satellite, Search, Sparkles, X, Menu,
 } from 'lucide-react';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import type { MapStyle } from './GlobeView';
@@ -42,6 +42,7 @@ interface Props {
   onTrivia: () => void;
   /** Live head-to-head (absent when live play isn't available) */
   onFriends?: () => void;
+  onInvite?: () => void;
   friendsOnline?: number;
   matchOn?: boolean;
   onToggleView: () => void;
@@ -114,11 +115,16 @@ export function Sidebar(p: Props) {
             <Item icon={Drill} label={p.antipodeOn ? 'Exit antipode finder' : 'Antipode finder'} sub={p.antipodeOn ? undefined : 'Dig straight through the Earth'} kbd="P" rail={rail} active={p.antipodeOn} onClick={act(p.onAntipode)} />
           </Section>
 
-          <Section title="Play" rail={rail}>
-            {p.onFriends && (
-              <Item icon={Swords} label="Play with friends" sub={p.matchOn ? 'Match in progress' : 'Live head-to-head'} rail={rail} active={p.matchOn} onClick={act(p.onFriends)} accent
-                trailing={p.friendsOnline ? <span className="sb-online" title={`${p.friendsOnline} online`}><i />{p.friendsOnline}</span> : undefined} />
-            )}
+          <Section title="Play" rail={rail} action={p.onFriends && (
+            <span className="sb-play-actions">
+              <button className={`sb-pill ${p.matchOn ? 'on' : ''}`} onClick={act(p.onFriends)} title="Challenge friends who are online">
+                <Swords size={12} /> Challenge{p.friendsOnline ? <span className="sb-online" aria-label={`${p.friendsOnline} online`}><i />{p.friendsOnline}</span> : null}
+              </button>
+              {p.onInvite && <button className="sb-pill" onClick={act(p.onInvite)} title="Invite anyone with a link"><Link2 size={12} /> Invite</button>}
+            </span>
+          )}>
+            {rail && p.onFriends && <Item icon={Swords} label="Challenge friends" rail onClick={act(p.onFriends)} active={p.matchOn} accent />}
+            {rail && p.onInvite && <Item icon={Link2} label="Invite with a link" rail onClick={act(p.onInvite)} />}
             <Item icon={Gamepad2} label={p.quizOn ? 'Exit quiz' : 'Map quiz'} sub={p.quizOn ? undefined : 'Find it · Flags · Clues'} kbd="Q" rail={rail} active={p.quizOn} onClick={act(p.onQuiz)} />
             <Item icon={Binoculars} label="Street View challenge" sub="GeoGuessr-style, 5 rounds" kbd="G" rail={rail} onClick={act(p.onStreet)} />
             <Item icon={ListOrdered} label={p.playOn === 'top5' ? 'Exit Top 5' : 'Name the Top 5'} sub={p.playOn === 'top5' ? undefined : 'Rivers, peaks, populations…'} kbd="T" rail={rail} active={p.playOn === 'top5'} onClick={act(p.onTop5)} />
@@ -248,10 +254,10 @@ function Fade({ show, children }: { show: boolean; children: ReactNode }) {
   );
 }
 
-function Section({ title, rail, icon: Icon, children }: { title: string; rail: boolean; icon?: typeof Search; children: ReactNode }) {
+function Section({ title, rail, icon: Icon, action, children }: { title: string; rail: boolean; icon?: typeof Search; action?: ReactNode; children: ReactNode }) {
   return (
     <section className="sb-section">
-      {rail ? <div className="sb-divider" /> : <h4>{Icon && <Icon size={12} />}{title}</h4>}
+      {rail ? <div className="sb-divider" /> : <h4>{Icon && <Icon size={12} />}{title}{action}</h4>}
       <div className="sb-items">{children}</div>
     </section>
   );
