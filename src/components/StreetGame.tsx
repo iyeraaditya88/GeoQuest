@@ -984,7 +984,12 @@ export function StreetGame({ game, mlyToken, onPick, onGuess, onNext, onExit, on
               )}
             </div>
             <div className="svr-bar"><motion.i initial={{ width: 0 }} animate={{ width: `${(last.score / 5000) * 100}%` }} transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }} /></div>
-            {match ? <div className="sv-match-note">{match.note}</div> : <button className="primary" onClick={onNext}>{game.round >= game.totalRounds ? <><Flag size={15} /> See final score</> : 'Next round'}</button>}
+            {match ? <div className="sv-match-note">{match.note}</div> : (
+              <div className="svr-actions">
+                <button className="ghost-cta" onClick={onExit}>Exit game</button>
+                <button className="primary" onClick={onNext}>{game.round >= game.totalRounds ? <><Flag size={15} /> See final score</> : 'Next round'}</button>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
