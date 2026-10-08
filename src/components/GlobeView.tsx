@@ -480,9 +480,12 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
     if (hover && !quiz) { const id = hover; const t = window.setTimeout(() => prefetchCountry(id, BY_CCA3.get(id)?.cca2), 120); return () => window.clearTimeout(t); }
   }, [hover, active, layerReady, quiz]);
   useEffect(() => {
-    countryLayer.current?.setBorder(political ? 'rgba(71,85,105,0.55)' : 'rgba(255,255,255,0.2)');
+    // Games lean on borders (find the country!), so they get a touch more contrast.
+    const game = quiz || pickMode;
+    if (political) countryLayer.current?.setBorder(game ? 'rgba(30,41,59,0.85)' : 'rgba(51,65,85,0.7)', 'rgba(255,255,255,0.35)');
+    else countryLayer.current?.setBorder(game ? 'rgba(255,247,228,0.85)' : 'rgba(255,247,228,0.6)', game ? 'rgba(3,7,18,0.5)' : 'rgba(3,7,18,0.38)');
     hoverFx.current?.setOutlineColor(political ? 'rgba(30,41,59,0.9)' : 'rgba(255,250,235,0.95)');
-  }, [political, layerReady]);
+  }, [political, layerReady, quiz, pickMode]);
 
   // States / provinces of the selected country, drawn on its raised surface.
   const adminColor = political ? 'rgba(120,53,15,0.55)' : 'rgba(255,248,230,0.72)';

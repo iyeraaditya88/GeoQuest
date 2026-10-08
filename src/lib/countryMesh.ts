@@ -8,6 +8,9 @@ import * as THREE from 'three';
 import ConicPolygonGeometry from 'three-conic-polygon-geometry';
 import GeoJsonGeometry from 'three-geojson-geometry';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js';
+import { LineSegmentsGeometry } from 'three/examples/jsm/lines/LineSegmentsGeometry.js';
+import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import type { CountryFeature } from './data';
 
 export type RGBA = [number, number, number, number];
@@ -37,7 +40,8 @@ export interface CountryLayer {
   paintAll: (color: (cca3: string | null) => RGBA) => void;
   /** Recolour just these countries (cheap partial GPU upload). */
   paint: (ids: (string | null)[], color: (cca3: string | null) => RGBA) => void;
-  setBorder: (css: string) => void;
+  /** Border colours: a fine core line over a soft halo that keeps it readable on any terrain. */
+  setBorder: (core: string, halo: string) => void;
   dispose: () => void;
 }
 
@@ -78,14 +82,28 @@ export function buildCountryLayer(features: CountryFeature[], R: number): Countr
     vertexColors: true, transparent: true, depthWrite: false,
     polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1,
   });
-  const lineMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2, depthWrite: false });
-
+  // Borders in real pixel widths (WebGL's own lines are always a hairline): a soft dark halo
+  // underneath and a fine light core on top, so they read over desert, snow and ocean alike.
+  const segs = new LineSegmentsGeometry().setPositions(lineGeo.getAttribute('position').array as Float32Array);
+  lineGeo.dispose();
+  const mat = (width: number) => new LineMaterial({ linewidth: width, transparent: true, depthWrite: false, worldUnits: false });
+  const haloMat = mat(3), coreMat = mat(1);
+  const halo = new LineSegments2(segs, haloMat);
+  const core = new LineSegments2(segs, coreMat);
   const fillMesh = new THREE.Mesh(fillGeo, fillMat);
-  const lineMesh = new THREE.LineSegments(lineGeo, lineMat);
   fillMesh.renderOrder = 1;
-  lineMesh.renderOrder = 2;
+  halo.renderOrder = 2;
+  core.renderOrder = 2.1;
+  // Finer from far away (borders crowd together), crisper as you zoom in.
+  // (LineSegments2 keeps its own resolution in sync; the fills render first, so set widths there.)
+  fillMesh.onBeforeRender = (_renderer, _scene, camera) => {
+    const alt = camera.position.length() / R - 1;
+    const t = Math.max(0, Math.min(1, (1.9 - alt) / 1.5)); // 0 = whole globe, 1 = zoomed in
+    coreMat.linewidth = 0.9 + 0.6 * t;
+    haloMat.linewidth = 2.4 + 1.4 * t;
+  };
   const group = new THREE.Group();
-  group.add(fillMesh, lineMesh);
+  group.add(fillMesh, halo, core);
 
   const write = (id: string | null, c: RGBA) => {
     for (const [start, count] of ranges.get(id) ?? []) {
@@ -114,13 +132,16 @@ export function buildCountryLayer(features: CountryFeature[], R: number): Countr
       for (const id of new Set(ids)) write(id, color(id));
       colorAttr.needsUpdate = true;
     },
-    setBorder(css) {
-      const [r, g, b, a] = rgba(css);
-      lineMat.color.setRGB(r, g, b);
-      lineMat.opacity = a;
+    setBorder(coreCss, haloCss) {
+      for (const [m, css] of [[coreMat, coreCss], [haloMat, haloCss]] as const) {
+        const [r, g, b, a] = rgba(css);
+        m.color.setRGB(r, g, b);
+        m.opacity = a;
+        m.visible = a > 0;
+      }
     },
     dispose() {
-      fillGeo.dispose(); lineGeo.dispose(); fillMat.dispose(); lineMat.dispose();
+      fillGeo.dispose(); segs.dispose(); fillMat.dispose(); haloMat.dispose(); coreMat.dispose();
     },
   };
 }
