@@ -1615,3 +1615,67 @@ html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent
   .ac-time { width: 64px; }
   .ac-devs { display: none; }
 }
+
+/* ── Match chat ── */
+.mc { position: fixed; z-index: 40; right: calc(16px + var(--sr)); bottom: calc(18px + var(--sb)); display: flex; align-items: flex-end; gap: 10px; pointer-events: none; }
+.mc > * { pointer-events: auto; }
+.mc.playing { bottom: calc(84px + var(--sb)); } /* above the scoreboard */
+.mc.playing .mc-panel { height: min(360px, calc(100vh - 220px)); }
+.mc.top { top: calc(64px + var(--st)); bottom: auto; align-items: flex-start; }
+.mc-fab { position: relative; width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; color: #1a1205;
+  background: linear-gradient(135deg, var(--gold-soft), var(--gold)); box-shadow: 0 10px 28px -8px rgba(251, 191, 36, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1); }
+.mc-badge { position: absolute; top: -3px; right: -3px; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 99px; display: grid; place-items: center;
+  font: 700 11px var(--display); color: #fff; background: #ef4444; box-shadow: 0 0 0 2px rgba(9, 14, 30, 0.95); }
+.mc-bubbles { display: grid; gap: 6px; justify-items: end; pointer-events: none; }
+.mc-bubble { max-width: min(260px, 60vw); padding: 7px 11px; border-radius: 14px 14px 4px 14px; font-size: 13px; line-height: 1.35; overflow-wrap: anywhere;
+  background: rgba(9, 14, 30, 0.92); box-shadow: var(--shadow), inset 0 0 0 1px var(--line); backdrop-filter: blur(8px); }
+.mc-bubble b { color: var(--gold-soft); font-weight: 600; margin-right: 3px; }
+.mc-panel { width: 320px; height: min(400px, calc(100vh - 120px)); display: grid; grid-template-rows: auto 1fr auto auto; border-radius: 20px; overflow: hidden;
+  background: rgba(9, 14, 30, 0.96); box-shadow: var(--shadow), inset 0 0 0 1px var(--line); backdrop-filter: blur(12px); }
+.mc-panel header { display: flex; align-items: center; gap: 7px; padding: 10px 8px 8px 14px; font-size: 13px; border-bottom: 1px solid var(--line); }
+.mc-panel header > svg { color: var(--gold); }
+.mc-panel header span { flex: 1; font-size: 11.5px; color: var(--dim); }
+.mc-list { overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px; overscroll-behavior: contain; }
+.mc-empty { margin: auto; font-size: 12.5px; color: var(--dim); text-align: center; }
+.mc-msg { max-width: 82%; display: grid; justify-items: start; margin-top: 6px; }
+.mc-msg.cont { margin-top: 0; }
+.mc-msg.me { align-self: flex-end; justify-items: end; }
+.mc-from { font-size: 11px; color: var(--dim); margin: 0 0 2px 8px; }
+.mc-msg p { margin: 0; padding: 7px 11px; border-radius: 15px; font-size: 13.5px; line-height: 1.35; overflow-wrap: anywhere; background: rgba(255, 255, 255, 0.07); }
+.mc-msg.me p { color: #1a1205; background: linear-gradient(135deg, var(--gold-soft), var(--gold)); }
+.mc-msg.emoji p { padding: 0 2px; font-size: 28px; background: none !important; }
+.mc-react { display: flex; gap: 4px; padding: 6px 10px 0; }
+.mc-react button { flex: 1; height: 30px; border-radius: 9px; font-size: 16px; background: rgba(255, 255, 255, 0.05); transition: transform 0.15s var(--ease), background 0.15s; }
+.mc-react button:last-child { font: 700 11.5px var(--display); color: var(--gold-soft); }
+.mc-react button:hover { background: rgba(255, 255, 255, 0.1); transform: translateY(-1px); }
+.mc-react button:active { transform: scale(0.9); }
+.mc-input { display: flex; gap: 6px; padding: 8px 10px 10px; }
+.mc-input input { flex: 1; min-width: 0; height: 38px; padding: 0 12px; border: 0; outline: none; border-radius: 12px; color: var(--text); font: 500 14px Inter, sans-serif;
+  background: rgba(255, 255, 255, 0.06); box-shadow: inset 0 0 0 1px var(--line); }
+.mc-input input:focus { box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.55); }
+.mc-send { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; color: #1a1205; background: linear-gradient(135deg, var(--gold-soft), var(--gold)); }
+.mc-send:disabled { opacity: 0.4; }
+@media (max-width: 640px) {
+  .mc { right: calc(12px + var(--sr)); }
+  .mc.playing:not(.top) { bottom: calc(96px + var(--sb)); }
+  .mc-fab { width: 44px; height: 44px; }
+  .mc-panel { position: fixed; left: calc(8px + var(--sl)); right: calc(8px + var(--sr)); bottom: calc(8px + var(--sb)); width: auto; height: min(56vh, 420px); }
+  .mc.top .mc-panel { top: calc(64px + var(--st)); bottom: auto; }
+  .mc-input input { font-size: 16px; } /* no zoom-on-focus on iPhone */
+}
+
+/* Results: rematch offer and "another game" */
+.mt-rematch { position: relative; overflow: hidden; display: grid; gap: 10px; padding: 12px; border-radius: 14px; text-align: left;
+  background: rgba(251, 191, 36, 0.08); box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.3); }
+.mt-rm-text { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
+.mt-rm-text svg { color: var(--gold); flex-shrink: 0; }
+.mt-rm-actions { display: flex; gap: 8px; }
+.mt-rm-actions .primary { flex: 1; }
+.mt-rm-actions .ghost-cta { width: auto; margin: 0; padding: 0 16px; }
+.mt-rm-time { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: var(--gold); transform-origin: left; animation: mt-rm-shrink linear forwards; }
+@keyframes mt-rm-shrink { to { transform: scaleX(0); } }
+.mt-other { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; font-size: 12px; color: var(--dim); }
+.mt-other span { width: 100%; }
+.mt-other button { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 99px; font-size: 12px; color: var(--muted);
+  background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 0 0 1px var(--line); transition: all 0.15s var(--ease); }
+.mt-other button:hover { color: var(--text); background: rgba(255, 255, 255, 0.09); }

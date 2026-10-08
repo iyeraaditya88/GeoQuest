@@ -129,6 +129,7 @@ export function LivePlay({ mode, me, ai, friendsReq, inviteReq, globe, clickRef,
     void loadMatch().then((m) => m.joinOpenInvite(live, token)).then(begin).catch((err: Error) => setNotice(err.message));
   }, [live, begin]);
 
+  const dropInvite = useCallback((inv: Invite) => setInvites((v) => v.filter((x) => x.id !== inv.id)), []);
   const decline = useCallback(async (inv: Invite) => {
     setInvites((v) => v.filter((i) => i.id !== inv.id));
     if (live) await (await loadMatch()).declineInvite(live, inv);
@@ -143,12 +144,17 @@ export function LivePlay({ mode, me, ai, friendsReq, inviteReq, globe, clickRef,
     globe.highlight([]);
   }, [clickRef, globe]);
 
-  const rematch = useCallback((s: Snapshot) => {
-    const others = s.players.filter((p) => p.name !== s.me && (p.status === 'joined')).map((p) => p.name);
+  const rematch = useCallback((s: Snapshot, game: GameId = s.game) => {
+    // Everyone who played — including anyone who dropped out for a moment (a locked phone); if
+    // they're really gone, the challenge just times out.
+    const others = s.players.filter((p) => p.name !== s.me && (p.status === 'joined' || p.status === 'left')).map((p) => p.name);
     leave();
-    if (others.length) void challenge(others, s.game, s.opts).catch(() => setFriendsOpen(true));
+    if (others.length) void challenge(others, game, game === s.game ? s.opts : {}).catch(() => setFriendsOpen(true));
     else setFriendsOpen(true);
   }, [leave, challenge]);
+  // A rematch challenge from someone in the match I've just finished shows on the results, not as a pop-up.
+  const ended = !!snap && (snap.phase === 'done' || snap.phase === 'aborted');
+  const rematchInvite = ended ? invites.find((i) => snap.players.some((p) => p.name === i.from)) : undefined;
 
   // Leaving the page mid-match tells the others.
   useEffect(() => () => sessionRef.current?.close(), []);
@@ -174,7 +180,7 @@ export function LivePlay({ mode, me, ai, friendsReq, inviteReq, globe, clickRef,
       </Suspense>
       {notice && <div className="live-notice" role="status" onClick={() => setNotice(null)}>{notice}</div>}
       <Suspense fallback={null}>
-        {invites.length > 0 && <ChallengeToasts invites={invites} onAccept={(i) => void begin(i)} onDecline={(i) => void decline(i)} onExpire={(i) => setInvites((v) => v.filter((x) => x.id !== i.id))} />}
+        {invites.some((i) => i !== rematchInvite) && <ChallengeToasts invites={invites.filter((i) => i !== rematchInvite)} onAccept={(i) => void begin(i)} onDecline={(i) => void decline(i)} onExpire={(i) => setInvites((v) => v.filter((x) => x.id !== i.id))} />}
       </Suspense>
       <AnimatePresence>
         {session && snap && (
@@ -187,7 +193,11 @@ export function LivePlay({ mode, me, ai, friendsReq, inviteReq, globe, clickRef,
               clickRef={clickRef}
               onImmersive={setImmersive}
               onLeave={leave}
-              onRematch={() => rematch(snap)}
+              onRematch={(g) => rematch(snap, g)}
+              rematch={rematchInvite}
+              onAcceptRematch={(i) => void begin(i)}
+              onDeclineRematch={(i) => void decline(i)}
+              onExpireRematch={dropInvite}
             />
           </Suspense>
         )}

@@ -4,7 +4,8 @@ import { AnimatePresence, motion } from 'motion/react';
 import { ArrowRight, Copy, Share2, Binoculars, Brain, Check, Crown, Flag, Gamepad2, Heart, Landmark, Lightbulb, ListOrdered, Loader2, LogOut, RotateCcw, Sparkles, Swords, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { BY_CCA3, flagUrl } from '../lib/data';
-import { GAMES, QUIZ_MODES, speedPoints, type GameId, type MatchSession, type Player, type Script, type Snapshot } from '../lib/match';
+import { GAMES, INVITE_MS, QUIZ_MODES, speedPoints, type GameId, type Invite, type MatchSession, type Player, type Script, type Snapshot } from '../lib/match';
+import { MatchChat } from './MatchChat';
 import { LEVELS } from '../lib/trivia';
 import { TOP5, matchAnswer, norm } from '../lib/top5';
 import { haversineKm, scoreFor } from '../lib/streetview';
@@ -29,7 +30,13 @@ interface Props {
   clickRef: MutableRefObject<((cca3: string | null) => void) | null>;
   onImmersive: (on: boolean) => void;
   onLeave: () => void;
-  onRematch: () => void;
+  /** Challenge the same players again — to this game, or another one */
+  onRematch: (game?: GameId) => void;
+  /** Someone from this match challenged me to a rematch */
+  rematch?: Invite;
+  onAcceptRematch: (inv: Invite) => void;
+  onDeclineRematch: (inv: Invite) => void;
+  onExpireRematch: (inv: Invite) => void;
 }
 
 /** A clock that ticks while something is counting down. */
@@ -58,7 +65,7 @@ function useTimeUp(s: Snapshot, fn: () => void) {
   }, [s.phase, s.qi, s.qEndsAt, answered]);
 }
 
-export function MatchOverlay({ session, snap, ai, globe, clickRef, onImmersive, onLeave, onRematch }: Props) {
+export function MatchOverlay({ session, snap, ai, globe, clickRef, onImmersive, onLeave, onRematch, rematch, onAcceptRematch, onDeclineRematch, onExpireRematch }: Props) {
   const s = snap;
   const playing = s.phase === 'countdown' || s.phase === 'question' || s.phase === 'reveal';
   const [confirmLeave, setConfirmLeave] = useState(false);
@@ -101,7 +108,8 @@ export function MatchOverlay({ session, snap, ai, globe, clickRef, onImmersive, 
       )}
       <AnimatePresence>{s.phase === 'countdown' && <Countdown key="cd" s={s} />}</AnimatePresence>
       {playing && <Hud s={s} confirmLeave={confirmLeave} onLeave={leave} />}
-      <AnimatePresence>{(s.phase === 'done' || s.phase === 'aborted') && <Results key="res" s={s} onLeave={onLeave} onRematch={onRematch} />}</AnimatePresence>
+      <AnimatePresence>{(s.phase === 'done' || s.phase === 'aborted') && <Results key="res" s={s} onLeave={onLeave} onRematch={onRematch} rematch={rematch} onAccept={onAcceptRematch} onDecline={onDeclineRematch} onExpire={onExpireRematch} />}</AnimatePresence>
+      <MatchChat s={s} session={session} />
     </>
   );
 }
@@ -223,7 +231,7 @@ function Hud({ s, confirmLeave, onLeave }: { s: Snapshot; confirmLeave: boolean;
 }
 
 // ── Results ──
-function Results({ s, onLeave, onRematch }: { s: Snapshot; onLeave: () => void; onRematch: () => void }) {
+function Results({ s, onLeave, onRematch, rematch, onAccept, onDecline, onExpire }: { s: Snapshot; onLeave: () => void; onRematch: (game?: GameId) => void; rematch?: Invite; onAccept: (inv: Invite) => void; onDecline: (inv: Invite) => void; onExpire: (inv: Invite) => void }) {
   const ranked = [...s.players].filter((p) => p.status === 'joined' || p.status === 'left').sort((a, b) => b.score - a.score);
   const top = ranked[0];
   const tie = ranked.length > 1 && ranked[1].score === top?.score;
@@ -256,11 +264,42 @@ function Results({ s, onLeave, onRematch }: { s: Snapshot; onLeave: () => void; 
             </motion.li>
           ))}
         </ol>}
+        <AnimatePresence>
+          {rematch && <RematchOffer key={rematch.id} inv={rematch} game={s.game} onAccept={onAccept} onDecline={onDecline} onExpire={onExpire} />}
+        </AnimatePresence>
         <div className="mt-r-actions">
-          {canRematch && <button className="primary" onClick={onRematch}><RotateCcw size={15} /> Rematch</button>}
+          {canRematch && !rematch && <button className="primary" onClick={() => onRematch()}><RotateCcw size={15} /> Rematch</button>}
           <button className="ghost-cta" onClick={onLeave}>Back to the globe</button>
         </div>
+        {canRematch && !rematch && (
+          <div className="mt-other">
+            <span>Or challenge them to</span>
+            {(Object.keys(GAMES) as GameId[]).filter((g) => g !== s.game).map((g) => {
+              const Icon = ICONS[g];
+              return <button key={g} onClick={() => onRematch(g)}><Icon size={13} /> {GAMES[g].label}</button>;
+            })}
+          </div>
+        )}
       </motion.section>
+    </motion.div>
+  );
+}
+
+/** "sam wants a rematch!" — with the time left to say yes. */
+function RematchOffer({ inv, game, onAccept, onDecline, onExpire }: { inv: Invite; game: GameId; onAccept: (i: Invite) => void; onDecline: (i: Invite) => void; onExpire: (i: Invite) => void }) {
+  const [ms] = useState(() => Math.min(INVITE_MS, Math.max(5000, INVITE_MS - (Date.now() - inv.at))));
+  useEffect(() => { const t = window.setTimeout(() => onExpire(inv), ms); return () => window.clearTimeout(t); }, [inv, ms, onExpire]);
+  return (
+    <motion.div className="mt-rematch" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+      <div className="mt-rm-text">
+        <Swords size={16} />
+        <span><b>{inv.from}</b> wants a rematch{inv.game !== game ? ` — ${GAMES[inv.game].label}` : ''}!</span>
+      </div>
+      <div className="mt-rm-actions">
+        <button className="primary" onClick={() => onAccept(inv)}>Play again</button>
+        <button className="ghost-cta" onClick={() => onDecline(inv)}>No thanks</button>
+      </div>
+      <i className="mt-rm-time" style={{ animationDuration: `${ms}ms` }} />
     </motion.div>
   );
 }

@@ -146,6 +146,8 @@ export type Phase = 'lobby' | 'preparing' | 'countdown' | 'question' | 'reveal' 
 export type PStatus = 'invited' | 'joined' | 'declined' | 'busy' | 'missed' | 'left';
 export interface Player { name: string; status: PStatus; score: number }
 export interface Answer { pts: number; ok: boolean; d?: unknown }
+export interface ChatMsg { id: number; from: string; text: string; at: number }
+export const CHAT_MAX = 200;
 
 export interface Snapshot {
   id: string;
@@ -171,6 +173,8 @@ export interface Snapshot {
   open: boolean;
   link?: string;
   signup?: boolean;
+  /** Banter between the players (lobby, during the game, and after) */
+  chat: ChatMsg[];
 }
 
 const COUNTDOWN = 3200;
@@ -198,7 +202,7 @@ export class MatchSession {
       script: null, qi: 0,
       inviteEndsAt: inv.at + (inv.open ? OPEN_MS : INVITE_MS), countdownEndsAt: 0, qStartedAt: 0, qEndsAt: 0, revealEndsAt: 0,
       answers: {},
-      open: !!inv.open, link: inv.link, signup: inv.signup,
+      open: !!inv.open, link: inv.link, signup: inv.signup, chat: [],
     };
     this.ticket = inv.ticket;
   }
@@ -276,6 +280,13 @@ export class MatchSession {
   private onMessage(name: string, d: Record<string, unknown>, from: string) {
     const s = this.s;
     switch (name) {
+      case 'chat': {
+        // Only players in this match; plain text, trimmed (rendered as text, never as HTML).
+        const text = typeof d?.t === 'string' ? d.t.trim().slice(0, CHAT_MAX) : '';
+        if (!text || !s.players.some((p) => p.name === from)) return;
+        this.set({ chat: [...s.chat, { id: ++this.chatSeq, from, text, at: Date.now() }].slice(-100) });
+        break;
+      }
       case 'decline':
         if (s.phase === 'lobby') { this.setStatus(from, d?.busy ? 'busy' : 'declined'); if (s.isHost) this.maybeStart(); }
         break;
@@ -393,6 +404,17 @@ export class MatchSession {
   }
 
   // ── Everyone ──
+  private chatSeq = 0;
+  private lastSaid = 0;
+  /** Say something to the other players (a short pause between messages keeps it from flooding). */
+  say(text: string) {
+    const t = text.trim().slice(0, CHAT_MAX);
+    if (!t || Date.now() - this.lastSaid < 400) return false;
+    this.lastSaid = Date.now();
+    void this.ch?.publish('chat', { t }); // comes back to us too, like everyone else's
+    return true;
+  }
+
   /** Submit my answer for the current question (once). */
   answer(pts: number, ok: boolean, d?: unknown) {
     const s = this.s;

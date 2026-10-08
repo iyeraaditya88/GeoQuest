@@ -65,4 +65,23 @@ describe('live match', () => {
     alice.close();
     bob.close();
   });
+
+  it('carries chat between the players, and only theirs', async () => {
+    const alice = await connectLive('local', 'alice3');
+    const bob = await connectLive('local', 'bob3');
+    const eve = await connectLive('local', 'eve3');
+    const inv: Invite = { id: `c${Date.now()}`, from: 'alice3', game: 'capitals', opts: {}, players: ['alice3', 'bob3'], at: Date.now() };
+    const a = new MatchSession(alice, inv), b = new MatchSession(bob, inv);
+    await a.open(); await b.open();
+    expect(a.say('  good luck 😄  ')).toBe(true);
+    expect(a.say('again')).toBe(false); // too fast
+    await eve.channel(`match:${inv.id}`).publish('chat', { t: 'I am not in this match' });
+    await until(() => b.get().chat.length === 1 && a.get().chat.length === 1);
+    await new Promise((r) => setTimeout(r, 100));
+    expect(b.get().chat.map((m) => [m.from, m.text])).toEqual([['alice3', 'good luck 😄']]);
+    b.say('x'.repeat(500));
+    await until(() => a.get().chat.length === 2);
+    expect(a.get().chat[1].text.length).toBe(200);
+    a.close(); b.close(); alice.close(); bob.close(); eve.close();
+  });
 });
