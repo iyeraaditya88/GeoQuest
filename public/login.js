@@ -6,7 +6,8 @@
         var card = $('card'), peek = $('peek'), note = $('note'), foot = $('foot');
         var q = new URLSearchParams(location.search);
         var mode = location.pathname === '/welcome' ? 'welcome' : location.pathname === '/setup' ? 'setup' : 'login';
-        var label = { login: 'Sign in', welcome: 'Join GeoQuest', setup: 'Create owner account' }[mode];
+        var LABELS = { login: 'Sign in', welcome: 'Join GeoQuest', setup: 'Create owner account', signup: 'Create account & join' };
+        var label = LABELS[mode];
         // Only ever return to a path on this site.
         var nxt = q.get('next') || '/';
         if (nxt.charAt(0) !== '/' || nxt.charAt(1) === '/' || nxt.charAt(1) === '\\') nxt = '/';
@@ -23,14 +24,42 @@
         function getJSON(url) { return fetch(url, { credentials: 'same-origin' }).then(function (r) { return r.json(); }); }
         var esc = function (t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
 
+        // New password (welcome, setup, sign-up) vs. signing in with an existing one.
+        function newPassword(on) {
+          show($('p2Label'), on);
+          p.setAttribute('autocomplete', on ? 'new-password' : 'current-password');
+          p.placeholder = on ? 'At least 8 characters' : '';
+        }
         setBusy(false);
-        if (mode !== 'login') {
-          show($('p2Label'), true);
-          p.setAttribute('autocomplete', 'new-password');
-          p.placeholder = 'At least 8 characters';
+        if (mode !== 'login') newPassword(true);
+
+        // A game link (/?join=…) opened while signed out: say who's inviting, and — on the owner's
+        // links — let a newcomer create an account right here and drop straight into the lobby.
+        var joinToken = /^\/\?/.test(nxt) ? new URLSearchParams(nxt.slice(2)).get('join') : null;
+        var GAME_NAMES = { quiz: 'Map quiz', capitals: 'Capitals', trivia: 'Geo Trivia', top5: 'Name the Top 5', street: 'Street View' };
+        var invite = null;
+        function joinMode(m) {
+          mode = m; label = LABELS[m]; setBusy(false); err.textContent = '';
+          newPassword(m === 'signup');
+          u.setAttribute('autocomplete', m === 'signup' ? 'off' : 'username');
+          u.placeholder = m === 'signup' ? 'e.g. maya or sam.k' : '';
+          $('sub').textContent = m === 'signup' ? 'Create an account to join the game' : 'Sign in to join the game';
+          foot.innerHTML = m === 'signup'
+            ? 'Already have an account? <a href="#" id="swap">Sign in</a>'
+            : invite.signup ? 'New to GeoQuest? <a href="#" id="swap">Create an account</a>' : 'Need an account? Ask ' + esc(invite.host) + ' for an invite.';
+          var swap = $('swap');
+          if (swap) swap.addEventListener('click', function (e) { e.preventDefault(); joinMode(mode === 'signup' ? 'login' : 'signup'); u.focus(); });
         }
 
-        if (mode === 'login' && q.get('ready')) say('Your owner account is ready — sign in with it here.');
+        if (mode === 'login' && joinToken) {
+          getJSON('/api/invites/info?token=' + encodeURIComponent(joinToken)).then(function (d) {
+            if (!d.valid) { say('This game link has expired — sign in, or ask for a fresh link.'); return; }
+            invite = d;
+            $('title').textContent = d.host + ' invited you to play!';
+            say('<b>' + esc(GAME_NAMES[d.game] || 'A game') + '</b> · live match');
+            joinMode(d.signup ? 'signup' : 'login');
+          }).catch(function () {});
+        } else if (mode === 'login' && q.get('ready')) say('Your owner account is ready — sign in with it here.');
         else if (mode === 'login') {
           getJSON('/api/setup').then(function (d) {
             if (d.needsSetup) say('GeoQuest isn’t set up yet.' + (d.setupUrl ? ' Owner? <a href="' + esc(d.setupUrl) + '">Finish setup →</a>' : ''));
@@ -72,18 +101,20 @@
           e.preventDefault();
           if (!u.value.trim() || !p.value) { fail(mode === 'login' ? 'Enter your username and password.' : 'Choose a username and password.'); (u.value.trim() ? p : u).focus(); return; }
           if (mode !== 'login') {
+            if (mode === 'signup' && !/^[a-z0-9._-]{2,32}$/i.test(u.value.trim())) { fail('Usernames are 2–32 letters, digits, dots, dashes or underscores.'); u.focus(); return; }
             if (p.value.length < 8) { fail('Use at least 8 characters.'); p.focus(); return; }
             if (p.value !== p2.value) { fail('The passwords don’t match.'); p2.focus(); return; }
           }
           err.textContent = '';
-          setBusy(true, mode === 'login' ? 'Signing in…' : 'Setting up…');
-          var url = mode === 'login' ? '/api/login' : mode === 'welcome' ? '/api/invite/accept' : '/api/setup';
+          setBusy(true, mode === 'login' ? 'Signing in…' : mode === 'signup' ? 'Creating your account…' : 'Setting up…');
+          var url = { login: '/api/login', welcome: '/api/invite/accept', setup: '/api/setup', signup: '/api/invites/signup' }[mode];
           var payload = { username: u.value.trim(), password: p.value };
           if (mode === 'welcome') payload.token = q.get('t') || '';
+          if (mode === 'signup') payload.token = joinToken;
           fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(payload) })
             .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, d: d }; }); })
             .then(function (x) {
-              if (x.ok) { goText.textContent = 'Welcome!'; location.replace(mode === 'login' ? nxt : (x.d.next || '/')); return; }
+              if (x.ok) { goText.textContent = 'Welcome!'; location.replace(mode === 'login' || mode === 'signup' ? nxt : (x.d.next || '/')); return; }
               fail(x.d.error || 'Something went wrong — try again.');
               if (mode === 'login' && x.d.error && /password/i.test(x.d.error)) p.select();
             })

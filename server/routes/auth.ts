@@ -2,6 +2,7 @@
 import type express from 'express';
 import * as accounts from '../users.js';
 import * as prefs from '../prefs.js';
+import * as live from '../live.js';
 import { KEY_COOKIE, SESSION_COOKIE, authConfigured, verifySession } from '../session.js';
 import { HOSTED, MLY_COOKIE, authLimit, clearCookie, cookie, fail, signIn } from '../http.js';
 
@@ -51,6 +52,26 @@ export function registerAuth(app: express.Express) {
     if (!accounts.validPassword(password)) { fail(res, 400, 'Use a password of at least 8 characters.'); return; }
     try {
       const u = await accounts.acceptInvite(username, token, password);
+      await signIn(res, u);
+      res.json({ ok: true, user: u.name });
+    } catch (err) { fail(res, 400, err); }
+  });
+
+  // Game links, opened while signed out: who's inviting to what — and, for the owner's links, a
+  // way to create an account right there and go straight into the lobby.
+  app.get('/api/invites/info', authLimit(60), async (req, res) => {
+    const t = await live.readOpenInvite(req.query.token);
+    res.json(t ? { valid: true, host: t.host, game: t.game, signup: !!t.signup } : { valid: false });
+  });
+  app.post('/api/invites/signup', authLimit(10), async (req, res) => {
+    if (!HOSTED || !(await authConfigured())) { fail(res, 503, 'Sign-in isn’t set up yet.'); return; }
+    const { token, username, password } = (req.body ?? {}) as { token?: unknown; username?: unknown; password?: unknown };
+    const t = await live.readOpenInvite(token);
+    if (!t) { fail(res, 400, 'This game link has expired — ask for a new one.'); return; }
+    if (!t.signup) { fail(res, 403, 'This link is for existing players — sign in to join.'); return; }
+    if (!accounts.validPassword(password)) { fail(res, 400, 'Use a password of at least 8 characters.'); return; }
+    try {
+      const u = await accounts.createMember(username, password, t.m);
       await signIn(res, u);
       res.json({ ok: true, user: u.name });
     } catch (err) { fail(res, 400, err); }

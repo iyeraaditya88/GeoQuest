@@ -123,7 +123,7 @@ function Lobby({ s, session, onLeave }: { s: Snapshot; session: MatchSession; on
         </div>
         <button className="icon-btn" onClick={onLeave} aria-label={s.isHost ? 'Cancel match' : 'Leave'}><X size={17} /></button>
       </header>
-      {s.isHost && s.open && s.link && s.phase === 'lobby' && <ShareLink link={s.link} game={GAMES[s.game].label} />}
+      {s.isHost && s.open && s.link && s.phase === 'lobby' && <ShareLink link={s.link} game={GAMES[s.game].label} signup={!!s.signup} />}
       <ul className="mt-players">
         {s.players.map((p) => (
           <motion.li key={p.name} layout className={`st-${p.status}`}>
@@ -145,7 +145,7 @@ function Lobby({ s, session, onLeave }: { s: Snapshot; session: MatchSession; on
 }
 
 /** The invite link, with copy and (on phones) the share sheet. */
-function ShareLink({ link, game }: { link: string; game: string }) {
+function ShareLink({ link, game, signup }: { link: string; game: string; signup: boolean }) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try { await navigator.clipboard.writeText(link); } catch { /* the field is selectable */ }
@@ -155,7 +155,7 @@ function ShareLink({ link, game }: { link: string; game: string }) {
   const canShare = typeof navigator.share === 'function';
   return (
     <div className="mt-share">
-      <p>Send this link to friends — anyone signed in to GeoQuest who opens it joins this lobby.</p>
+      <p>{signup ? 'Send this link to friends — they join this lobby, and anyone new can sign up right from it.' : 'Send this link to friends — anyone signed in to GeoQuest who opens it joins this lobby.'}</p>
       <div className="pp-copy">
         <input readOnly value={link} onFocus={(e) => e.currentTarget.select()} aria-label="Invite link" />
         <button className="ap-btn gold" onClick={() => void copy()}>{copied ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}</button>

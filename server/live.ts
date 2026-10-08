@@ -50,7 +50,8 @@ export async function sendInvite(to: string, data: object) {
 }
 
 // ── Open invite links: anyone signed in who has the link may join that host's lobby ──
-export interface OpenInvite { m: string; host: string; game: GameId; opts: object; exp: number }
+/** `signup`: the owner's links also let someone without an account create one (members' links don't). */
+export interface OpenInvite { m: string; host: string; game: GameId; opts: object; exp: number; signup?: boolean }
 const OPEN_MINUTES = 30;
 export const issueOpenInvite = (t: Omit<OpenInvite, 'exp'>) => signData('open-invite', { ...t, exp: Date.now() + OPEN_MINUTES * 60_000 } satisfies OpenInvite);
 export async function readOpenInvite(token: unknown) {

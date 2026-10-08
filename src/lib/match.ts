@@ -70,6 +70,8 @@ export interface Invite {
   id: string; from: string; game: GameId; opts: MatchOpts; players: string[]; at: number; ticket?: string;
   /** Open lobby from a shared link: whoever opens the link joins (up to 6) */
   open?: boolean;
+  /** The owner's links: people without an account can sign up from them */
+  signup?: boolean;
   /** The shareable link (host only) */
   link?: string;
 }
@@ -88,7 +90,7 @@ export async function createOpenInvite(live: Live, game: GameId, opts: MatchOpts
     const r = await api('/api/invites', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ game, opts }) });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error ?? 'Couldn’t create the invite link.');
-    return { id: d.id, from: live.me, game, opts, players: [live.me], at: Date.now(), ticket: d.ticket, open: true, link: joinLink(d.token) };
+    return { id: d.id, from: live.me, game, opts, players: [live.me], at: Date.now(), ticket: d.ticket, open: true, signup: !!d.signup, link: joinLink(d.token) };
   }
   const id = Math.random().toString(36).slice(2, 12);
   return { id, from: live.me, game, opts, players: [live.me], at: Date.now(), open: true, link: joinLink(b64({ m: id, host: live.me, game, opts, exp: Date.now() + 30 * 60_000 })) };
@@ -160,6 +162,7 @@ export interface Snapshot {
   /** Open lobby (joined by link) and, for its host, the link to share */
   open: boolean;
   link?: string;
+  signup?: boolean;
 }
 
 const COUNTDOWN = 3200;
@@ -187,7 +190,7 @@ export class MatchSession {
       script: null, qi: 0,
       inviteEndsAt: inv.at + (inv.open ? OPEN_MS : INVITE_MS), countdownEndsAt: 0, qStartedAt: 0, qEndsAt: 0, revealEndsAt: 0,
       answers: {},
-      open: !!inv.open, link: inv.link,
+      open: !!inv.open, link: inv.link, signup: inv.signup,
     };
     this.ticket = inv.ticket;
   }

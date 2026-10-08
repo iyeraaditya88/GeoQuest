@@ -25,6 +25,8 @@ export interface UserRecord {
   lastLogin?: number;
   /** session version: bumped when the password is reset, which signs out every old session */
   sv?: number;
+  /** the game link they signed up through (each link admits only a few new accounts) */
+  via?: string;
 }
 type Db = { users: Record<string, UserRecord> };
 
@@ -202,6 +204,21 @@ export async function acceptInvite(nameRaw: unknown, token: unknown, pw: string)
     delete u.invite;
     u.lastLogin = Date.now();
     return { name, role: u.role, sv: u.sv ?? 0 };
+  });
+}
+
+// ── Sign-up from the owner's game link ──
+/** New accounts one game link may create. */
+export const SIGNUPS_PER_LINK = 5;
+export async function createMember(nameRaw: unknown, pw: string, via: string) {
+  const name = normName(nameRaw);
+  if (!validName(name)) throw new Error('Pick a username of 2–32 letters, digits, dots, dashes or underscores.');
+  const password = await hashPassword(pw);
+  return update((db) => {
+    if (db.users[name]) throw new Error('That username is taken — pick another (or sign in if it’s yours).');
+    if (Object.values(db.users).filter((u) => u.via === via).length >= SIGNUPS_PER_LINK) throw new Error('This link has already been used to sign up several people — ask for a new one.');
+    db.users[name] = { role: 'member', createdAt: Date.now(), password, lastLogin: Date.now(), via };
+    return { name, role: 'member' as Role, sv: 0 };
   });
 }
 

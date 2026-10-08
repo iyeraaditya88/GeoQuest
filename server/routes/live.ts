@@ -36,7 +36,8 @@ export function registerLive(app: express.Express) {
     if (!live.GAMES.includes(game)) { fail(res, 400, 'Unknown game.'); return; }
     const opts = typeof body.opts === 'object' && body.opts ? body.opts : {};
     const id = live.newMatchId();
-    res.json({ id, token: await live.issueOpenInvite({ m: id, host: req.user!, game, opts }), ticket: await live.issueTicket({ m: id, host: req.user!, players: [req.user!], game }) });
+    const signup = req.role === 'owner'; // only the owner brings new people in
+    res.json({ id, signup, token: await live.issueOpenInvite({ m: id, host: req.user!, game, opts, signup }), ticket: await live.issueTicket({ m: id, host: req.user!, players: [req.user!], game }) });
   });
   app.post('/api/invites/join', rateLimit(60, 10 * 60_000), async (req, res) => {
     if (!HOSTED || !live.liveConfigured()) { fail(res, 404, 'Live play isn’t set up.'); return; }

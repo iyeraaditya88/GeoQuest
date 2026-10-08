@@ -33,11 +33,13 @@ interface Props {
   /** Set while a Map-quiz question wants globe clicks */
   clickRef: MutableRefObject<((cca3: string | null) => void) | null>;
   onState: (s: LiveState) => void;
+  /** The owner's invite links also let newcomers sign up */
+  owner?: boolean;
 }
 
 const noop = () => () => {};
 
-export function LivePlay({ mode, me, ai, friendsReq, inviteReq, globe, clickRef, onState }: Props) {
+export function LivePlay({ mode, me, ai, friendsReq, inviteReq, globe, clickRef, onState, owner = false }: Props) {
   const [live, setLive] = useState<Live | null>(null);
   const [online, setOnline] = useState<Map<string, { s?: string }>>(new Map());
   const [invites, setInvites] = useState<Invite[]>([]);
@@ -167,7 +169,7 @@ export function LivePlay({ mode, me, ai, friendsReq, inviteReq, globe, clickRef,
         )}
       </Suspense>
       <Suspense fallback={null}>
-        {inviteOpen && <InvitePanel open={inviteOpen} onClose={() => setInviteOpen(false)} connected={!!live} onCreate={createLink} />}
+        {inviteOpen && <InvitePanel open={inviteOpen} onClose={() => setInviteOpen(false)} connected={!!live} owner={owner} onCreate={createLink} />}
       </Suspense>
       {notice && <div className="live-notice" role="status" onClick={() => setNotice(null)}>{notice}</div>}
       <Suspense fallback={null}>

@@ -13,7 +13,7 @@ setSecretSource(sessionSecret);
 // Reachable without signing in: the sign-in page (which also handles invites and first-time
 // setup) and what it needs.
 const PAGES = new Set(['/login', '/welcome', '/setup']);
-const PUBLIC = new Set(['/login.html', '/login.js', '/api/login', '/api/logout', '/api/setup', '/api/invite', '/api/invite/accept', '/favicon.svg', '/textures/loader-earth.jpg', '/manifest.webmanifest', '/sw.js']);
+const PUBLIC = new Set(['/login.html', '/login.js', '/api/login', '/api/logout', '/api/setup', '/api/invite', '/api/invite/accept', '/api/invites/info', '/api/invites/signup', '/favicon.svg', '/textures/loader-earth.jpg', '/manifest.webmanifest', '/sw.js']);
 // App icons are public too: the home screen and the sign-in page need them.
 const PUBLIC_PREFIX = ['/icons/'];
 

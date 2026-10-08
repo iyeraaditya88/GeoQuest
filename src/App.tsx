@@ -758,7 +758,7 @@ export default function App() {
       </ErrorBoundary>
       {chrome && !quiz && !geo && !play && !anti && !liveState.active && <ErrorBoundary name="Ask the Atlas" onClose={() => setDockOpen(false)}><AskDock open={dockOpen} setOpen={setDockOpen} country={country} request={askReq} keyRequest={keyReq} onAiChange={setAi} onHosted={setHosted} onHighlight={highlight} onSelect={select} /></ErrorBoundary>}
       <ErrorBoundary name="Live play">
-        <LivePlay mode={liveMode} me={liveMe} ai={ai} friendsReq={friendsReq} inviteReq={inviteReq} globe={matchGlobe} clickRef={matchClick} onState={setLiveState} />
+        <LivePlay mode={liveMode} me={liveMe} ai={ai} friendsReq={friendsReq} inviteReq={inviteReq} globe={matchGlobe} clickRef={matchClick} onState={setLiveState} owner={role === 'owner'} />
       </ErrorBoundary>
       {/* Music on/off — top right (in Street View it moves into that screen's own top bar) */}
       {chrome && !geo && !liveState.immersive && <MusicButton className="music-fab" />}

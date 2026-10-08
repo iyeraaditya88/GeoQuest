@@ -191,6 +191,33 @@ describe('live play', () => {
     expect((await call('POST', '/api/invites/join', { cookie: bob, body: { token: `${token}x` } })).status).toBe(400);
   });
 
+  it('lets newcomers sign up from the owner\'s game link only, a few per link', async () => {
+    const inv = await call('POST', '/api/invites', { cookie: owner, body: { game: 'capitals' } });
+    expect(inv.body.signup).toBe(true);
+    const token = String(inv.body.token);
+    expect((await call('GET', `/api/invites/info?token=${encodeURIComponent(token)}`)).body).toEqual({ valid: true, host: 'owner', game: 'capitals', signup: true });
+    expect((await call('GET', '/api/invites/info?token=junk')).body).toEqual({ valid: false });
+
+    const pw = 'newbie-pass-123';
+    const r = await call('POST', '/api/invites/signup', { body: { token, username: 'Newbie', password: pw } });
+    expect(r.status).toBe(200);
+    const nb = sessionOf(r);
+    expect((await call('POST', '/api/invites/join', { cookie: nb, body: { token } })).body).toEqual(expect.objectContaining({ host: 'owner', game: 'capitals' }));
+    expect((await call('POST', '/api/invites/signup', { body: { token, username: 'newbie', password: pw } })).status).toBe(400); // taken
+    expect((await call('POST', '/api/invites/signup', { body: { token: `${token}x`, username: 'forger', password: pw } })).status).toBe(400);
+
+    // A member's link doesn't let anyone new in, even if the request claims otherwise.
+    const mine = await call('POST', '/api/invites', { cookie: bob, body: { game: 'capitals', signup: true } });
+    expect(mine.body.signup).toBe(false);
+    expect((await call('POST', '/api/invites/signup', { body: { token: mine.body.token, username: 'sneaky', password: pw } })).status).toBe(403);
+
+    // Each link admits only a handful of new accounts.
+    for (const n of ['nb2', 'nb3', 'nb4', 'nb5']) expect((await call('POST', '/api/invites/signup', { body: { token, username: n, password: pw } })).status).toBe(200);
+    const sixth = await call('POST', '/api/invites/signup', { body: { token, username: 'nb6', password: pw } });
+    expect(sixth.status).toBe(400);
+    expect(String(sixth.body.error)).toMatch(/new one/);
+  });
+
   it('only records a result from the match host', async () => {
     const players = [{ name: 'bob', score: 9999 }, { name: 'owner', score: 0 }];
     expect((await call('POST', '/api/matches/abcdefgh/result', { cookie: bob, body: { ticket: 'junk', game: 'capitals', players } })).status).toBe(403);

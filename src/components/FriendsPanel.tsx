@@ -240,7 +240,7 @@ export function FriendsPanel({ open, onClose, me, mode, connected, online, onCha
 }
 
 /** Pick a game, get a link; anyone signed in who opens it joins your lobby. */
-export function InvitePanel({ open, onClose, connected, onCreate }: { open: boolean; onClose: () => void; connected: boolean; onCreate: (game: GameId, opts: MatchOpts) => Promise<void> }) {
+export function InvitePanel({ open, onClose, connected, owner, onCreate }: { open: boolean; onClose: () => void; connected: boolean; owner: boolean; onCreate: (game: GameId, opts: MatchOpts) => Promise<void> }) {
   const choice = useGameChoice();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -264,7 +264,7 @@ export function InvitePanel({ open, onClose, connected, onCreate }: { open: bool
       <button className="primary fr-send" disabled={busy || !connected} onClick={() => void create()}>
         {busy ? <Loader2 size={15} className="spin" /> : <Link2 size={15} />} {connected ? 'Create invite link' : 'Connecting…'}
       </button>
-      <p className="fr-tip">You’ll wait in a lobby while friends join (up to 6 players). Start whenever you’re ready. They need a GeoQuest account.</p>
+      <p className="fr-tip">You’ll wait in a lobby while friends join (up to 6 players). Start whenever you’re ready. {owner ? 'Friends without an account can create one right from the link.' : 'They need a GeoQuest account.'}</p>
     </Shell>
   );
 }
