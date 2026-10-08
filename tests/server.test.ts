@@ -125,7 +125,8 @@ describe('accounts', () => {
   });
 
   it('rejects a tampered session', async () => {
-    const forged = bob.replace(/.$/, (c) => (c === 'A' ? 'B' : 'A'));
+    // Change a character inside the signature (the very last one only carries padding bits).
+    const forged = bob.replace(/(.)(....)$/, (_, c: string, rest: string) => (c === 'A' ? 'B' : 'A') + rest);
     expect((await call('GET', '/api/health', { cookie: forged })).status).toBe(401);
   });
 });

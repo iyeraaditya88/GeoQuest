@@ -101,3 +101,20 @@ describe('stale-version detection', async () => {
     expect(isChunkError(new Error('Cannot read properties of undefined'))).toBe(false);
   });
 });
+
+describe('Street View locations', async () => {
+  const { pickCountry } = await import('../src/lib/mapillary');
+  it('never repeats a country within a game', () => {
+    for (let game = 0; game < 200; game++) {
+      const seen = new Set<string>();
+      for (let round = 0; round < 5; round++) seen.add(pickCountry(seen));
+      expect(seen.size).toBe(5);
+    }
+  });
+  it('doesn’t lean heavily on any one country', () => {
+    const n: Record<string, number> = {};
+    for (let i = 0; i < 20000; i++) { const c = pickCountry(new Set()); n[c] = (n[c] ?? 0) + 1; }
+    expect(n.USA / 20000).toBeLessThan(0.08); // was ~34% when towns, not countries, were picked
+    expect(Object.keys(n).length).toBeGreaterThan(50);
+  });
+});

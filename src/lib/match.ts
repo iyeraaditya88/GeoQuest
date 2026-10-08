@@ -13,6 +13,7 @@ import { shuffledQuestions } from './top5';
 import { QUIZ_POOL, CLUE_POOL, clueFor } from './quiz';
 import { findMapillarySpot } from './mapillary';
 import { findLocation } from './streetview';
+import { countryAt } from './data';
 import { DEFAULT_MAPILLARY_TOKEN } from '../config';
 import type { Spot } from '../components/StreetGame';
 
@@ -54,9 +55,16 @@ export async function buildScript(game: GameId, opts: MatchOpts): Promise<Script
       return { game, qs: shuffledQuestions().slice(0, n).map((q) => q.id) };
     case 'street': {
       // Everyone opens the same images, so use the built-in Mapillary token (anyone can view).
-      const one = (): Promise<Spot> => findMapillarySpot(DEFAULT_MAPILLARY_TOKEN)
-        .catch(() => findLocation().then((it) => ({ ...it, provider: 'panoramax' as const })));
-      const spots = await Promise.all(Array.from({ length: n }, one));
+      const one = (avoid: string[] = []): Promise<Spot> => findMapillarySpot(DEFAULT_MAPILLARY_TOKEN, undefined, avoid)
+        .catch(() => findLocation(undefined, avoid).then((it) => ({ ...it, provider: 'panoramax' as const })));
+      // Found in parallel (fast); any that repeat a country are replaced with a new one.
+      const spots = await Promise.all(Array.from({ length: n }, () => one()));
+      const used: string[] = [];
+      for (let i = 0; i < spots.length; i++) {
+        let c = countryAt(spots[i].lat, spots[i].lng);
+        if (c && used.includes(c)) { spots[i] = await one(used); c = countryAt(spots[i].lat, spots[i].lng); }
+        if (c) used.push(c);
+      }
       return { game, qs: spots };
     }
   }

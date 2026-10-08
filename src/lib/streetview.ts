@@ -133,13 +133,17 @@ async function search(bbox: number[], only360: boolean, signal?: AbortSignal) {
 
 const hasLinks = (f: RawFeature) => f.links.some((l) => (l.rel === 'next' || l.rel === 'prev') && l.id);
 
-async function tryCountry(country: string, only360: boolean, signal?: AbortSignal): Promise<StreetItem> {
+async function tryCountry(country: string, only360: boolean, signal?: AbortSignal, avoid: string[] = []): Promise<StreetItem> {
   const pt = randomPointIn(country);
   if (!pt) throw new Error('no point');
   const r = only360 ? 2.5 : 2;
   const feats = await search([pt[0] - r, pt[1] - r * 0.7, pt[0] + r, pt[1] + r * 0.7], only360, signal);
   // Must be walkable (part of a sequence) and actually inside a country.
-  const pool = feats.filter((f) => (f.assets?.sd || f.assets?.hd) && hasLinks(f) && countryAt(f.geometry.coordinates[1], f.geometry.coordinates[0]));
+  const pool = feats.filter((f) => {
+    if (!(f.assets?.sd || f.assets?.hd) || !hasLinks(f)) return false;
+    const c = countryAt(f.geometry.coordinates[1], f.geometry.coordinates[0]);
+    return !!c && !avoid.includes(c); // not at sea, nor over a border into a country already played
+  });
   if (!pool.length) throw new Error('no imagery');
   const item = parse(pool[Math.floor(Math.random() * pool.length)]);
   itemCache.set(item.id, item);
@@ -161,7 +165,7 @@ export async function findLocation(signal?: AbortSignal, avoid: string[] = []): 
       return c;
     });
     try {
-      return await Promise.any(countries.map((c) => tryCountry(c, only360, signal)));
+      return await Promise.any(countries.map((c) => tryCountry(c, only360, signal, avoid)));
     } catch {
       if (signal?.aborted) throw new DOMException('aborted', 'AbortError');
     }

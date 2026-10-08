@@ -340,8 +340,9 @@ export default function App() {
   const nextLocation = (): Promise<Spot> => {
     const ctl = geoAbort.current ?? new AbortController();
     geoAbort.current = ctl;
-    if (mlyToken.current && !useOpenImagery.current) return findMapillarySpot(mlyToken.current, ctl.signal);
-    return findLocation(ctl.signal, seen.current.slice(-3)).then((it) => ({ ...it, provider: 'panoramax' as const }));
+    // A new country every round: skip every country this game has already shown.
+    if (mlyToken.current && !useOpenImagery.current) return findMapillarySpot(mlyToken.current, ctl.signal, seen.current);
+    return findLocation(ctl.signal, seen.current).then((it) => ({ ...it, provider: 'panoramax' as const }));
   };
 
   const loadRound = async (round: number, results: GeoGame['results']) => {

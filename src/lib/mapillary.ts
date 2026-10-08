@@ -30,17 +30,25 @@ const WEIGHTS: Record<string, number> = {
   RUS: 1, KAZ: 1, MNG: 1, ISR: 1, ARE: 1,
 };
 
-// Towns and cities in those countries — street imagery lives where people do.
-const PLACES = (citiesRaw as City[])
-  .filter(([, , , , rank, , iso]) => WEIGHTS[iso] && rank >= 2) // ordinary towns over mega-cities
-  .map(([, lat, lng, , , , iso]) => ({ lat, lng, w: WEIGHTS[iso] }));
-const TOTAL = PLACES.reduce((s, p) => s + p.w, 0);
-
-function randomPlace() {
-  let r = Math.random() * TOTAL;
-  for (const p of PLACES) if ((r -= p.w) <= 0) return p;
-  return PLACES[0];
+// Towns and cities in those countries — street imagery lives where people do. Grouped by
+// country: the country is picked first (by its weight), then a town in it — otherwise countries
+// with many towns in the data (the US had ~a third of all picks) would come up again and again.
+const PLACES = new Map<string, { lat: number; lng: number }[]>();
+for (const [, lat, lng, , rank, , iso] of citiesRaw as City[]) {
+  if (!WEIGHTS[iso] || rank < 2) continue; // ordinary towns over mega-cities
+  if (!PLACES.has(iso)) PLACES.set(iso, []);
+  PLACES.get(iso)!.push({ lat, lng });
 }
+
+/** A weighted-random country with towns to search, skipping `not` (unless that leaves none). */
+export function pickCountry(not: Set<string>) {
+  let pool = [...PLACES.keys()].filter((c) => !not.has(c));
+  if (!pool.length) pool = [...PLACES.keys()];
+  let r = Math.random() * pool.reduce((s, c) => s + WEIGHTS[c], 0);
+  for (const c of pool) if ((r -= WEIGHTS[c]) <= 0) return c;
+  return pool[0];
+}
+const randomTown = (iso: string) => { const list = PLACES.get(iso)!; return list[Math.floor(Math.random() * list.length)]; };
 
 const Z = 14; // finest zoom of the image-point layer
 function tileOf(lat: number, lng: number) {
@@ -89,7 +97,7 @@ async function assertReadable(token: string, id: string, signal?: AbortSignal) {
   throw new Error(`Image ${id} unavailable (${r.status})`);
 }
 
-async function spotNear(token: string, lat: number, lng: number, wantPano: boolean, signal?: AbortSignal): Promise<MapillarySpot> {
+async function spotNear(token: string, lat: number, lng: number, wantPano: boolean, signal?: AbortSignal, avoid: string[] = []): Promise<MapillarySpot> {
   const { x, y } = tileOf(lat, lng);
   const r = await fetchWithTimeout(`https://tiles.mapillary.com/maps/vtp/mly1_public/2/${Z}/${x}/${y}?access_token=${encodeURIComponent(token)}`, signal);
   if (r.status === 401 || r.status === 403) throw new MapillaryTokenError('Mapillary rejected this token — reconnect it.');
@@ -111,24 +119,29 @@ async function spotNear(token: string, lat: number, lng: number, wantPano: boole
   for (let tries = 0; tries < 6; tries++) {
     const f = layer.feature(picks[Math.floor(Math.random() * picks.length)]);
     const [lngF, latF] = (f.toGeoJSON(x, y, Z).geometry as GeoJSON.Point).coordinates;
-    if (!countryAt(latF, lngF)) continue;
+    const c = countryAt(latF, lngF);
+    if (!c || avoid.includes(c)) continue; // at sea, or over a border into a country already played
     return { provider: 'mapillary', id: String(f.properties.id), lat: latF, lng: lngF, pano: !!f.properties.is_pano };
   }
   throw new Error('empty');
 }
 
 /**
- * Random playable spot: a random town (weighted by coverage), jittered up to ~8 km,
- * then an image from the coverage tile there. Four towns in parallel; 360° first.
+ * Random playable spot: a random country (weighted by coverage), a town in it jittered up to
+ * ~8 km, then an image from the coverage tile there. Four countries in parallel; 360° first.
+ * `avoid`: countries already used this game — the spot is never in one of them.
  */
-export async function findMapillarySpot(token: string, signal?: AbortSignal): Promise<MapillarySpot> {
+export async function findMapillarySpot(token: string, signal?: AbortSignal, avoid: string[] = []): Promise<MapillarySpot> {
+  const tried = new Set(avoid);
   for (let batch = 0; batch < 6; batch++) {
     if (signal?.aborted) throw new DOMException('aborted', 'AbortError');
     const pano = batch < 4;
     const tries = Array.from({ length: 4 }, () => {
-      const p = randomPlace();
+      const c = pickCountry(tried);
+      tried.add(c); // four different countries per batch
+      const p = randomTown(c);
       const j = () => (Math.random() - 0.5) * 0.14;
-      return spotNear(token, p.lat + j(), p.lng + j(), pano, signal);
+      return spotNear(token, p.lat + j(), p.lng + j(), pano, signal, avoid);
     });
     let spot: MapillarySpot;
     try {
