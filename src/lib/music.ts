@@ -14,8 +14,8 @@ export const musicMuted = () => { try { return localStorage.getItem(KEY) === 'of
 
 export type MusicMode = 'explore' | 'match';
 const MODES: Record<MusicMode, { bpm: number; volume: number }> = {
-  explore: { bpm: 88, volume: 0.085 },
-  match: { bpm: 104, volume: 0.16 },
+  explore: { bpm: 88, volume: 0.102 },
+  match: { bpm: 104, volume: 0.192 },
 };
 // Chord progressions (MIDI root, third, fifth): I–vi–IV–V, vi–IV–I–V, IV–V–iii–vi in C major.
 const PROGRESSIONS = [
