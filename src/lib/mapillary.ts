@@ -62,15 +62,31 @@ async function fetchWithTimeout(url: string, signal?: AbortSignal, ms = 10000) {
   }
 }
 
-/** Mapillary's viewer loads images through the Graph API — make sure this token can. */
+const NO_READ = 'Your Mapillary token can’t read images. Re-register the app with **Read** access enabled and paste its **Client Token** (not the Client Secret).';
+/** A long-lived public image: if the token can read this, the token is fine. */
+const KNOWN_IMAGE = '500609427720893';
+const tokenOk = new Map<string, Promise<boolean>>();
+function tokenCanRead(token: string) {
+  if (!tokenOk.has(token)) {
+    tokenOk.set(token, fetchWithTimeout(`https://graph.mapillary.com/${KNOWN_IMAGE}?access_token=${encodeURIComponent(token)}&fields=id`)
+      .then((r) => r.ok || (r.status !== 401 && r.status !== 403 && r.status !== 400))
+      .catch(() => true)); // offline: don't blame the token
+  }
+  return tokenOk.get(token)!;
+}
+
+/**
+ * Mapillary's viewer loads images through the Graph API — make sure this one can be read.
+ * Error code 100 means "doesn't exist or can't be loaded": usually a photo removed since the
+ * coverage tiles were built, *not* a bad token — so only blame the token if it can't read a
+ * known public image either.
+ */
 async function assertReadable(token: string, id: string, signal?: AbortSignal) {
   const r = await fetchWithTimeout(`https://graph.mapillary.com/${id}?access_token=${encodeURIComponent(token)}&fields=id`, signal);
   if (r.ok) return;
   const body = await r.json().catch(() => ({}));
-  if (body?.error?.code === 100 || r.status === 401 || r.status === 403) {
-    throw new MapillaryTokenError('Your Mapillary token can’t read images. Re-register the app with **Read** access enabled and paste its **Client Token** (not the Client Secret).');
-  }
-  throw new Error(`Mapillary returned ${r.status}`);
+  if (r.status === 401 || r.status === 403 || ((body?.error?.code === 100 || body?.error?.code === 190) && !(await tokenCanRead(token)))) throw new MapillaryTokenError(NO_READ);
+  throw new Error(`Image ${id} unavailable (${r.status})`);
 }
 
 async function spotNear(token: string, lat: number, lng: number, wantPano: boolean, signal?: AbortSignal): Promise<MapillarySpot> {
@@ -124,7 +140,12 @@ export async function findMapillarySpot(token: string, signal?: AbortSignal): Pr
       if (signal?.aborted) throw new DOMException('aborted', 'AbortError');
       continue;
     }
-    await assertReadable(token, spot.id, signal);
+    try {
+      await assertReadable(token, spot.id, signal);
+    } catch (err) {
+      if (err instanceof MapillaryTokenError || signal?.aborted) throw err;
+      continue; // that photo is gone — find another
+    }
     return spot;
   }
   throw new Error('Couldn’t find street imagery right now — check your connection and try again.');

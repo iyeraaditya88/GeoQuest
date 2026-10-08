@@ -14,6 +14,7 @@ const displayRiver = (n: string) => displayName({ kind: 'river', name: n });
 import { createDayNightMaterial, loadTexture, updateSun } from '../lib/daynight';
 import { createReliefLayer } from '../lib/relief';
 import { panelWidth, sidePanel } from '../lib/layout';
+import { escapeHtml } from '../lib/html';
 
 export type MapStyle = 'satellite' | 'political' | 'daynight';
 export type Feedback = { cca3: string; kind: 'good' | 'bad' | 'reveal' } | null;
@@ -639,7 +640,7 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
           const el = document.createElement('div');
           if (it.kind === 'capital') {
             el.className = 'cap-pin';
-            el.innerHTML = `<i></i><span>★ ${it.name}</span>`;
+            el.innerHTML = `<i></i><span>★ ${escapeHtml(it.name ?? '')}</span>`;
           } else if (it.kind === 'sun') {
             el.className = 'sun-pin';
             el.title = `The sun is directly overhead here (${it.name})`;

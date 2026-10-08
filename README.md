@@ -14,6 +14,30 @@ npm run dev            # http://localhost:5173
 
 No key yet? Open **Ask the Atlas → Connect Claude** and paste your key. The server checks it with Anthropic and saves it to this project's `.env` (gitignored, readable only by you); the browser never stores it. Without a key, the Atlas still answers data questions offline (capitals, populations, borders, superlatives, driving side, landlocked countries, languages).
 
+## Checks
+
+```bash
+npm test            # unit + API + live-match tests (Vitest)
+npm run typecheck   # app and server
+npm run check       # typecheck, lint and tests together — run before pushing
+```
+
+The API tests start the real server in hosted mode against temporary files: sign-in, invites, session revocation, cross-site blocking, live-play tickets, favourites, input validation and rate limits. `npm run build && npx vite preview` serves the production build with the same security headers as Vercel (from `vercel.json`).
+
+## Code layout
+
+- `src/` — the app (React + three.js). `components/` are UI; `lib/` holds the logic (data, map layers, games, live play) and is unit-tested.
+- `server/` — the API (Express). `app.ts` wires it together; `routes/` has auth, live play and AI; `users.ts`, `matches.ts`, `prefs.ts` are the stores; `storage.ts` wraps private Blob storage; `session.ts` signs sessions and seals keys (Web Crypto, shared with `middleware.ts`).
+- `api/index.ts` runs the server as a Vercel function; `middleware.ts` puts the whole site behind sign-in.
+
+## Security
+
+- **Sign-in:** every page and API call needs a signed session cookie (HttpOnly, Secure, SameSite=Lax, 30 days). Passwords are scrypt-hashed; invite links are single-use and stored only as hashes. Re-inviting someone (a password reset) signs out all their old sessions.
+- **Requests:** writes from other sites are refused (Origin check). Inputs are validated and size-limited; sign-in and API calls are rate-limited. Server errors never reveal internals.
+- **Browser:** a Content-Security-Policy allows scripts only from this site (`'unsafe-eval'` is needed by MapillaryJS), no framing, and no plugins; plus `nosniff`, HSTS, a strict referrer policy and a Permissions-Policy.
+- **Keys:** each user's Anthropic key is encrypted (AES-GCM) into an HttpOnly cookie, never stored on the server; the owner's key is never used when hosted. Live-play tokens only reach the lobby, your own inbox, and matches you hold a signed ticket for.
+- **Data:** account changes use conditional writes, so two changes at once can't undo each other and a failed read can never wipe the accounts.
+
 ## Hosting & accounts (Vercel)
 
 The hosted site sits **entirely behind a sign-in** (`middleware.ts`). Accounts live in a private Vercel Blob store (`server/users.ts`); only password hashes are stored.

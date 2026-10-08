@@ -13,7 +13,7 @@ export const UP_AFTER = 2;
 export interface TriviaQ { id: number; difficulty: Level; question: string; options: string[]; answer: string }
 
 // Only well-formed questions make it in (answer must be one of the options).
-export const QUESTIONS: TriviaQ[] = (bank as TriviaQ[]).filter(
+const QUESTIONS: TriviaQ[] = (bank as TriviaQ[]).filter(
   (q) => LEVELS.includes(q.difficulty) && q.options.length >= 2 && q.options.includes(q.answer),
 );
 

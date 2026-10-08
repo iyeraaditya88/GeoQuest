@@ -7,7 +7,7 @@
 import { createHash, randomBytes, scrypt as scryptCb, timingSafeEqual } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
-import { get, put } from '@vercel/blob';
+import { BlobPreconditionFailedError, blobEnabled, readBlobDoc, readBlobTextLenient, writeBlob } from './storage.js';
 
 const scrypt = promisify(scryptCb) as (pw: string, salt: Buffer, len: number) => Promise<Buffer>;
 const KEYLEN = 32;
@@ -23,38 +23,60 @@ export interface UserRecord {
   /** sha256 of the outstanding invite token, and when it expires */
   invite?: { sha: string; exp: number };
   lastLogin?: number;
+  /** session version: bumped when the password is reset, which signs out every old session */
+  sv?: number;
 }
 type Db = { users: Record<string, UserRecord> };
 
-// Connected store: classic read-write token, or (newer projects) store ID + Vercel OIDC.
-const useBlob = () => !!(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
 const localFile = () => process.env.GQ_USERS_FILE ?? '.users.local.json';
 
 // Short cache: reads are on every API call (to cut off removed users at once), writes are rare.
 let cache: { db: Db; at: number } | null = null;
 const TTL = 5000;
 
+/**
+ * The accounts document and its version. "Not there yet" is an empty list (first run); a failed
+ * read throws — carrying on with an empty list and saving it would wipe every account.
+ */
+async function readDb(): Promise<{ db: Db; etag?: string }> {
+  let db: Db = { users: {} }, etag: string | undefined;
+  if (blobEnabled()) {
+    const doc = await readBlobDoc(BLOB_PATH);
+    if (doc) { db = JSON.parse(doc.text) as Db; etag = doc.etag; }
+  } else {
+    try { db = JSON.parse(await readFile(localFile(), 'utf8')) as Db; } catch (err) { if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err; }
+  }
+  db.users ??= {};
+  return { db, etag };
+}
+
 async function load(fresh = false): Promise<Db> {
   if (!fresh && cache && Date.now() - cache.at < TTL) return cache.db;
-  let db: Db = { users: {} };
-  try {
-    if (useBlob()) {
-      const r = await get(BLOB_PATH, { access: 'private', useCache: false });
-      if (r && r.statusCode === 200) db = JSON.parse(await new Response(r.stream).text()) as Db;
-    } else {
-      db = JSON.parse(await readFile(localFile(), 'utf8')) as Db;
-    }
-  } catch { /* first run: no accounts yet */ }
-  db.users ??= {};
+  const { db } = await readDb();
   cache = { db, at: Date.now() };
   return db;
 }
 
-async function save(db: Db) {
-  const body = JSON.stringify(db);
-  if (useBlob()) await put(BLOB_PATH, body, { access: 'private', allowOverwrite: true, addRandomSuffix: false, contentType: 'application/json', cacheControlMaxAge: 0 });
-  else await writeFile(localFile(), body, { mode: 0o600 });
-  cache = { db, at: Date.now() };
+/**
+ * Change the accounts safely: read the latest version, apply `fn`, and write only if nobody else
+ * wrote in between (otherwise re-read and retry) — so two changes at once can't undo each other.
+ */
+async function update<T>(fn: (db: Db) => T | Promise<T>): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    const { db, etag } = await readDb();
+    const out = await fn(db);
+    const body = JSON.stringify(db);
+    try {
+      if (blobEnabled()) await writeBlob(BLOB_PATH, body, etag ? { ifMatch: etag } : { overwrite: false });
+      else await writeFile(localFile(), body, { mode: 0o600 });
+      cache = { db, at: Date.now() };
+      return out;
+    } catch (err) {
+      // Someone else wrote first (or created it first): try again on top of their version.
+      const conflict = err instanceof BlobPreconditionFailedError || (!etag && /exist/i.test((err as Error).message));
+      if (!conflict || attempt >= 4) throw err;
+    }
+  }
 }
 
 // ── Session signing key ──
@@ -63,20 +85,19 @@ async function save(db: Db) {
 const SECRET_PATH = 'auth/session-secret';
 let secretCache: string | null = null;
 async function readSecret() {
-  const r = await get(SECRET_PATH, { access: 'private', useCache: false }).catch(() => null);
-  return r && r.statusCode === 200 ? (await new Response(r.stream).text()).trim() : null;
+  return (await readBlobTextLenient(SECRET_PATH))?.trim() || null;
 }
 export async function sessionSecret(): Promise<string | null> {
   const env = process.env.SESSION_SECRET;
   if (env && env.length >= 32) return env;
   if (secretCache) return secretCache;
-  if (!useBlob()) return null;
+  if (!blobEnabled()) return null;
   try {
     secretCache = await readSecret();
     if (secretCache) return secretCache;
     const fresh = randomBytes(32).toString('base64url');
     try {
-      await put(SECRET_PATH, fresh, { access: 'private', allowOverwrite: false, addRandomSuffix: false, contentType: 'text/plain', cacheControlMaxAge: 0 });
+      await writeBlob(SECRET_PATH, fresh, { overwrite: false, contentType: 'text/plain' });
       secretCache = fresh;
     } catch {
       secretCache = await readSecret(); // another instance created it first — use theirs
@@ -126,24 +147,23 @@ export async function listUsers() {
 // ── Sign-in ──
 export async function checkLogin(nameRaw: unknown, pw: unknown) {
   const name = normName(nameRaw);
-  const db = await load(true);
-  const u = db.users[name];
+  const u = (await load(true)).users[name];
   const ok = await passwordMatches(typeof pw === 'string' ? pw : '', u?.password);
   if (!u?.password || !ok) return null;
-  u.lastLogin = Date.now();
-  await save(db).catch(() => null); // best effort
-  return { name, role: u.role };
+  void update((db) => { if (db.users[name]) db.users[name].lastLogin = Date.now(); }).catch(() => null); // best effort
+  return { name, role: u.role, sv: u.sv ?? 0 };
 }
 
 // ── Owner setup (once) ──
 export async function createOwner(nameRaw: unknown, pw: string) {
   const name = normName(nameRaw);
   if (!validName(name)) throw new Error('Pick a username of 2–32 letters, digits, dots, dashes or underscores.');
-  const db = await load(true);
-  if (Object.values(db.users).some((u) => u.role === 'owner' && u.password)) throw new Error('GeoQuest is already set up.');
-  db.users[name] = { role: 'owner', createdAt: Date.now(), password: await hashPassword(pw) };
-  await save(db);
-  return { name, role: 'owner' as Role };
+  const password = await hashPassword(pw);
+  await update((db) => {
+    if (Object.values(db.users).some((u) => u.role === 'owner' && u.password)) throw new Error('GeoQuest is already set up.');
+    db.users[name] = { role: 'owner', createdAt: Date.now(), password };
+  });
+  return { name, role: 'owner' as Role, sv: 0 };
 }
 
 // ── Invites ──
@@ -151,39 +171,46 @@ export async function createOwner(nameRaw: unknown, pw: string) {
 export async function invite(nameRaw: unknown) {
   const name = normName(nameRaw);
   if (!validName(name)) throw new Error('Use 2–32 letters, digits, dots, dashes or underscores (e.g. “bob” or “maya.k”).');
-  const db = await load(true);
-  const existing = db.users[name];
-  if (existing?.role === 'owner') throw new Error('That’s the owner account.');
   const token = randomBytes(24).toString('base64url');
-  db.users[name] = { role: 'member', createdAt: existing?.createdAt ?? Date.now(), invite: { sha: sha(token), exp: Date.now() + INVITE_DAYS * 86400000 } };
-  // (Re-inviting someone resets their password: they choose a new one from the link.)
-  await save(db);
+  await update((db) => {
+    const existing = db.users[name];
+    if (existing?.role === 'owner') throw new Error('That’s the owner account.');
+    // Re-inviting someone who already has a password resets it (they choose a new one from the
+    // link) — and signs out their old sessions.
+    const sv = (existing?.sv ?? 0) + (existing?.password ? 1 : 0);
+    db.users[name] = { role: 'member', createdAt: existing?.createdAt ?? Date.now(), invite: { sha: sha(token), exp: Date.now() + INVITE_DAYS * 86400000 }, sv };
+  });
   return { name, token, days: INVITE_DAYS };
 }
 
 export async function inviteValid(nameRaw: unknown, token: unknown) {
-  const u = (await load(true)).users[normName(nameRaw)];
-  return !!(u?.invite && typeof token === 'string' && u.invite.exp > Date.now() && timingSafeEqual(Buffer.from(sha(token)), Buffer.from(u.invite.sha)));
+  return tokenMatches((await load(true)).users[normName(nameRaw)], token);
 }
+
+const tokenMatches = (u: UserRecord | undefined, token: unknown) =>
+  !!(u?.invite && typeof token === 'string' && u.invite.exp > Date.now() && timingSafeEqual(Buffer.from(sha(token)), Buffer.from(u.invite.sha)));
 
 export async function acceptInvite(nameRaw: unknown, token: unknown, pw: string) {
   const name = normName(nameRaw);
-  if (!(await inviteValid(name, token))) throw new Error('This invite link has expired or was already used — ask for a new one.');
-  const db = await load(true);
-  const u = db.users[name];
-  u.password = await hashPassword(pw);
-  delete u.invite;
-  u.lastLogin = Date.now();
-  await save(db);
-  return { name, role: u.role };
+  const EXPIRED = 'This invite link has expired or was already used — ask for a new one.';
+  if (!(await inviteValid(name, token))) throw new Error(EXPIRED);
+  const password = await hashPassword(pw);
+  return update((db) => {
+    const u = db.users[name];
+    if (!tokenMatches(u, token)) throw new Error(EXPIRED); // re-checked on the latest version
+    u.password = password;
+    delete u.invite;
+    u.lastLogin = Date.now();
+    return { name, role: u.role, sv: u.sv ?? 0 };
+  });
 }
 
 export async function removeUser(nameRaw: unknown) {
   const name = normName(nameRaw);
-  const db = await load(true);
-  if (!db.users[name]) return false;
-  if (db.users[name].role === 'owner') throw new Error('The owner account can’t be removed.');
-  delete db.users[name];
-  await save(db);
-  return true;
+  return update((db) => {
+    if (!db.users[name]) return false;
+    if (db.users[name].role === 'owner') throw new Error('The owner account can’t be removed.');
+    delete db.users[name];
+    return true;
+  });
 }

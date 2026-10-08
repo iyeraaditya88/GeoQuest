@@ -804,7 +804,7 @@ html.custom-cursor.cur-drag .globe-wrap, html.custom-cursor.cur-drag .globe-wrap
 .sb-flyout button:hover { background: rgba(255, 255, 255, 0.06); color: var(--text); }
 .sb-flyout button.on { color: var(--gold); background: rgba(251, 191, 36, 0.1); }
 /* Focus */
-.sidebar button:focus-visible, .sheet button:focus-visible { outline: 2px solid rgba(251, 191, 36, 0.7); outline-offset: 2px; }
+.sidebar button:focus-visible { outline: 2px solid rgba(251, 191, 36, 0.7); outline-offset: 2px; }
 /* Mobile drawer */
 .sb-burger {
   position: fixed; top: 12px; left: 12px; z-index: 14; width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; color: var(--text);
@@ -812,17 +812,6 @@ html.custom-cursor.cur-drag .globe-wrap, html.custom-cursor.cur-drag .globe-wrap
 }
 .sb-scrim { position: fixed; inset: 0; z-index: 14; background: rgba(2, 4, 12, 0.55); backdrop-filter: blur(3px); }
 .sidebar.is-drawer { box-shadow: 30px 0 80px rgba(0, 0, 0, 0.7); }
-/* Shortcuts sheet */
-.sheet { width: min(640px, calc(100vw - 32px)); height: fit-content; border-radius: 20px; padding: 6px 6px 18px; background: rgba(9, 14, 30, 0.97); box-shadow: var(--shadow); }
-.sheet header { display: flex; align-items: center; gap: 10px; padding: 12px 10px 12px 16px; font: 600 15px var(--display); border-bottom: 1px solid var(--line); }
-.sheet header svg { color: var(--gold); }
-.sheet header button { margin-left: auto; }
-.sheet-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; padding: 12px 18px 0; }
-.sheet h4 { margin: 8px 0 8px; font: 600 10.5px 'Inter', sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); }
-.sheet ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
-.sheet li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; font-size: 13px; color: var(--muted); border-bottom: 1px dashed rgba(148, 163, 184, 0.1); }
-.sheet .keys { display: flex; gap: 4px; }
-@media (max-width: 640px) { .sheet-cols { grid-template-columns: 1fr; } }
 
 /* ── Responsive ───────────────────────── */
 @media (max-width: 900px) {
@@ -1526,3 +1515,12 @@ html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent
 .quiz-next { white-space: nowrap; flex-shrink: 0; }
 .quiz-foot { gap: 10px; }
 @media (max-width: 600px) { .quiz-msg { font-size: 12px; text-align: left; } }
+
+/* A feature that crashed (the rest of the app keeps running) */
+.crash-card { position: fixed; z-index: 70; top: calc(18px + var(--st)); left: 50%; translate: -50% 0; display: flex; align-items: center; gap: 12px;
+  width: min(420px, calc(100vw - 24px)); padding: 12px 12px 12px 16px; border-radius: 16px; color: var(--text);
+  background: rgba(9, 14, 30, 0.97); box-shadow: var(--shadow), 0 0 0 1px rgba(248, 113, 113, 0.35); }
+.crash-card > svg { color: #fca5a5; flex-shrink: 0; }
+.crash-card div { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.crash-card b { font: 600 14px var(--display); }
+.crash-card span { font-size: 12.5px; color: var(--muted); }

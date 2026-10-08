@@ -59,6 +59,7 @@ import { CLUE_POOL, QUIZ_POOL, clueFor, pickRandom } from './lib/quiz';
 import { missHint, takeaway } from './lib/quizCoach';
 import { buzz } from './lib/touch';
 import { LivePlay, type LiveState, type MatchGlobe } from './components/LivePlay';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { localName } from './lib/live';
 import { panelWidth } from './lib/layout';
 
@@ -227,6 +228,8 @@ export default function App() {
   const toggleFlat = async () => {
     if (morphing.current || !ready) return;
     morphing.current = true;
+    // Safety net: never let a stalled or failed transition block the rest of the app.
+    window.setTimeout(() => { morphing.current = false; }, 4000);
     if (viewRef.current === 'globe') {
       const v = globe.current?.getView();
       if (!v) { morphing.current = false; return; }
@@ -641,9 +644,11 @@ export default function App() {
       {/* Top bar */}
       <AnimatePresence>
         {geo && (
-          <Suspense key="street" fallback={<StreetSkeleton />}>
-          <StreetGame game={geo} mlyToken={mlyTokenState} onPick={placeGuess} onGuess={submitGuess} onNext={nextGeo} onExit={exitGeo} onRestart={restartGeo} onSkip={skipGeo} onMapillary={connectMapillary} onFallback={playOpenImagery} />
-          </Suspense>
+          <ErrorBoundary key="street" name="Street View" onClose={exitGeo}>
+            <Suspense fallback={<StreetSkeleton />}>
+              <StreetGame game={geo} mlyToken={mlyTokenState} onPick={placeGuess} onGuess={submitGuess} onNext={nextGeo} onExit={exitGeo} onRestart={restartGeo} onSkip={skipGeo} onMapillary={connectMapillary} onFallback={playOpenImagery} />
+            </Suspense>
+          </ErrorBoundary>
         )}
       </AnimatePresence>
 
@@ -706,9 +711,9 @@ export default function App() {
 
 
       <AnimatePresence>
-        {play === 'top5' && <Suspense key="top5" fallback={<GameCardSkeleton />}><Top5Game ai={ai} onHighlight={(ids) => (ids.length ? highlight(ids) : setHighlighted([]))} onExit={exitPlay} /></Suspense>}
-        {play === 'trivia' && <Suspense key="trivia" fallback={<GameCardSkeleton />}><TriviaGame onReveal={revealTrivia} onExit={exitPlay} /></Suspense>}
-        {play === 'capitals' && <Suspense key="capitals" fallback={<GameCardSkeleton />}><CapitalsGame onReveal={(c) => { setHighlighted([c]); cam.flyTo(c); }} onExit={exitPlay} /></Suspense>}
+        {play === 'top5' && <ErrorBoundary key="top5" name="Name the Top 5" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><Top5Game ai={ai} onHighlight={(ids) => (ids.length ? highlight(ids) : setHighlighted([]))} onExit={exitPlay} /></Suspense></ErrorBoundary>}
+        {play === 'trivia' && <ErrorBoundary key="trivia" name="Geo Trivia" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><TriviaGame onReveal={revealTrivia} onExit={exitPlay} /></Suspense></ErrorBoundary>}
+        {play === 'capitals' && <ErrorBoundary key="capitals" name="Capitals" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><CapitalsGame onReveal={(c) => { setHighlighted([c]); cam.flyTo(c); }} onExit={exitPlay} /></Suspense></ErrorBoundary>}
       </AnimatePresence>
       <QuizBar quiz={quiz} onMode={(m) => startQuiz(m)} onSkip={skip} onNext={nextQuiz} onExit={exitQuiz} />
       <AnimatePresence>
@@ -729,10 +734,14 @@ export default function App() {
           />
         )}
       </AnimatePresence>
-      <FeaturePanel feature={quiz || geo || play || anti || liveState.active ? null : feature} onClose={() => setFeature(null)} onSelectCountry={select} onAsk={ask} />
-      <CountryPanel country={quiz || geo || play || anti || liveState.active ? null : country} onClose={() => setSelected(null)} onSelect={select} onAsk={ask} />
-      {chrome && !quiz && !geo && !play && !anti && !liveState.active && <AskDock open={dockOpen} setOpen={setDockOpen} country={country} request={askReq} keyRequest={keyReq} onAiChange={setAi} onHosted={setHosted} onHighlight={highlight} onSelect={select} />}
-      <LivePlay mode={liveMode} me={liveMe} ai={ai} friendsReq={friendsReq} inviteReq={inviteReq} globe={matchGlobe} clickRef={matchClick} onState={setLiveState} />
+      <ErrorBoundary name="This panel" onClose={() => { setFeature(null); setSelected(null); }}>
+        <FeaturePanel feature={quiz || geo || play || anti || liveState.active ? null : feature} onClose={() => setFeature(null)} onSelectCountry={select} onAsk={ask} />
+        <CountryPanel country={quiz || geo || play || anti || liveState.active ? null : country} onClose={() => setSelected(null)} onSelect={select} onAsk={ask} />
+      </ErrorBoundary>
+      {chrome && !quiz && !geo && !play && !anti && !liveState.active && <ErrorBoundary name="Ask the Atlas" onClose={() => setDockOpen(false)}><AskDock open={dockOpen} setOpen={setDockOpen} country={country} request={askReq} keyRequest={keyReq} onAiChange={setAi} onHosted={setHosted} onHighlight={highlight} onSelect={select} /></ErrorBoundary>}
+      <ErrorBoundary name="Live play">
+        <LivePlay mode={liveMode} me={liveMe} ai={ai} friendsReq={friendsReq} inviteReq={inviteReq} globe={matchGlobe} clickRef={matchClick} onState={setLiveState} />
+      </ErrorBoundary>
       <CustomCursor />
       <SearchPalette open={searchOpen} onClose={() => setSearchOpen(false)} onPick={(c) => { if (quiz) exitQuiz(); select(c); }} />
     </div>

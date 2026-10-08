@@ -8,6 +8,7 @@ import { insideTest, rangeSpots, riverTier, type Nature } from './nature';
 import type { AdminData } from './globeOverlays';
 import { displayName } from './features';
 import citiesRaw from '../data/cities.json';
+import { escapeHtml } from './html';
 
 type City = [name: string, lat: number, lng: number, pop: number, rank: number, capital: 0 | 1, iso3: string];
 
@@ -82,7 +83,7 @@ function buildLabels(): Label[] {
   return labels.sort((a, b) => a.priority - b.priority);
 }
 
-const esc = (t: string) => t.replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[ch]!);
+const esc = escapeHtml;
 
 /**
  * Labels for the selected country's interior: states/provinces and its main cities.

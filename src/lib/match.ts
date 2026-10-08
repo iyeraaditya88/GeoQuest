@@ -276,6 +276,9 @@ export class MatchSession {
         break;
       case 'start': {
         if (from !== s.host) return;
+        // Shape check: a malformed script from another player must not break this game.
+        const sc = d?.script as Script | undefined;
+        if (!sc || sc.game !== s.game || !Array.isArray(sc.qs) || !sc.qs.length || sc.qs.length > 20 || !Array.isArray(d.players)) return;
         const inGame = new Set(d.players as string[]);
         this.set({
           script: d.script as Script, phase: 'countdown', countdownEndsAt: Date.now() + COUNTDOWN, qi: 0, answers: {},
@@ -287,6 +290,7 @@ export class MatchSession {
       case 'q': {
         if (from !== s.host) return;
         const i = Number(d.i);
+        if (!Number.isInteger(i) || i < 0 || i >= (s.script?.qs.length ?? 0)) return;
         const now = Date.now();
         this.set({ phase: 'question', qi: i, qStartedAt: now, qEndsAt: now + GAMES[s.game].ms });
         if (s.isHost) this.after(GAMES[s.game].ms + GRACE, () => this.reveal(i));
@@ -294,6 +298,7 @@ export class MatchSession {
       }
       case 'ans': {
         const i = Number(d.i);
+        if (!Number.isInteger(i) || i < 0 || i >= 20) return;
         if (!s.players.some((p) => p.name === from)) return;
         if (s.answers[i]?.[from]) return; // first answer counts
         const ans: Answer = { pts: Math.max(0, Math.min(6000, Math.round(Number(d.pts) || 0))), ok: !!d.ok, d: d.d };

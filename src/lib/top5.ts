@@ -56,7 +56,7 @@ const NICK: Record<string, string[]> = {
   ESP: ['spain', 'espana'], IND: ['india', 'bharat'], BRA: ['brazil', 'brasil'], MEX: ['mexico'], JPN: ['japan', 'nippon'],
   KAZ: ['kazakstan'], KGZ: ['kirgizstan', 'kyrgyzstan'], STP: ['sao tome'], KNA: ['st kitts'], LCA: ['st lucia'], VCT: ['st vincent'],
 };
-export const countryAnswer = (c: Country, detail?: string): Top5Answer => ({
+const countryAnswer = (c: Country, detail?: string): Top5Answer => ({
   name: c.name, cca3: c.cca3, detail,
   aliases: [c.official, ...(NICK[c.cca3] ?? []), c.cca3, c.demonym ? c.demonym : ''].filter(Boolean) as string[],
 });

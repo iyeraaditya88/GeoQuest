@@ -24,12 +24,12 @@ export const EARTH_R_KM = 6371;
 export const antipodeOf = (lat: number, lng: number) => ({ lat: -lat, lng: lng > 0 ? lng - 180 : lng + 180 });
 
 const rad = Math.PI / 180;
-export function distanceKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
+function distanceKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
   const s = Math.sin(((b.lat - a.lat) * rad) / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(((b.lng - a.lng) * rad) / 2) ** 2;
   return 2 * EARTH_R_KM * Math.asin(Math.min(1, Math.sqrt(s)));
 }
 
-export function nearestCity(lat: number, lng: number) {
+function nearestCity(lat: number, lng: number) {
   let best: City | null = null, bd = Infinity;
   for (const c of CITIES) {
     if (Math.abs(c[1] - lat) > 40) continue; // cheap reject before the trig
@@ -41,7 +41,7 @@ export function nearestCity(lat: number, lng: number) {
 }
 
 /** Rough but friendly ocean names (good enough for "you'd surface in the …"). */
-export function oceanAt(lat: number, lng: number) {
+function oceanAt(lat: number, lng: number) {
   if (lat > 66) return 'Arctic Ocean';
   if (lat < -58) return 'Southern Ocean';
   if (lat > 30 && lat < 46 && lng > -6 && lng < 36) return 'Mediterranean Sea';

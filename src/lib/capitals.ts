@@ -1,7 +1,7 @@
 // Capitals quiz: ten questions, each "capital of X?" or "X is the capital of…?".
 import { COUNTRIES, MAPPABLE, type Country } from './data';
 
-export const ROUND = 10;
+const ROUND = 10;
 export type Level = 'easy' | 'all';
 
 export interface CapitalsQ {
@@ -10,7 +10,7 @@ export interface CapitalsQ {
   options: Country[];
 }
 
-export const shuffle = <T,>(xs: T[]) => { const a = [...xs]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const shuffle = <T,>(xs: T[]) => { const a = [...xs]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
 export function makeRound(level: Level, n = ROUND): CapitalsQ[] {
   const pool = COUNTRIES.filter((c) => c.independent && MAPPABLE.has(c.cca3) && c.capital[0] && (level === 'all' || c.population >= 8e6));

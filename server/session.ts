@@ -41,13 +41,14 @@ async function hmacKey(s: string) {
   return crypto.subtle.importKey('raw', enc.encode(s), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']);
 }
 
-export interface Session { u: string; exp: number }
+/** u = username, exp = expiry (ms), v = the account's session version (bumped to sign everyone out) */
+export interface Session { u: string; exp: number; v?: number }
 
 /** A signed, expiring session token: base64url(payload).base64url(hmac). */
-export async function signSession(user: string, days = SESSION_DAYS) {
+export async function signSession(user: string, version = 0, days = SESSION_DAYS) {
   const s = await secret();
   if (!s) throw new Error('No session key available');
-  const payload = b64url(enc.encode(JSON.stringify({ u: user, exp: Date.now() + days * 86400000 } satisfies Session)));
+  const payload = b64url(enc.encode(JSON.stringify({ u: user, exp: Date.now() + days * 86400000, v: version } satisfies Session)));
   const sig = new Uint8Array(await crypto.subtle.sign('HMAC', await hmacKey(s), enc.encode(payload)));
   return `${payload}.${b64url(sig)}`;
 }

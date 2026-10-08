@@ -125,7 +125,7 @@ export function autoTips(c: Country): Tip[] {
 
 // ── Political map colouring ───────────────────────────────
 // Greedy graph colouring over land borders so neighbours never share a colour.
-export const POLITICAL_PALETTE = ['#f3d9a8', '#cfe6c3', '#f6cdc8', '#d9cff0', '#f8e7a1', '#f7c9a6', '#c6e0dc'];
+const POLITICAL_PALETTE = ['#f3d9a8', '#cfe6c3', '#f6cdc8', '#d9cff0', '#f8e7a1', '#f7c9a6', '#c6e0dc'];
 export const POLITICAL_COLOR: Map<string, string> = (() => {
   const out = new Map<string, string>();
   const order = [...COUNTRIES].sort((a, b) => b.borders.length - a.borders.length || b.area - a.area);

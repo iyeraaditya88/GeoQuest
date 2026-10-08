@@ -7,7 +7,7 @@ import * as THREE from 'three';
  * Standard low-precision solar formulas — accurate to a fraction of a degree, plenty
  * for drawing the terminator.
  */
-export function subsolarPoint(date = new Date()) {
+function subsolarPoint(date = new Date()) {
   const start = Date.UTC(date.getUTCFullYear(), 0, 0);
   const day = (date.getTime() - start) / 86400000; // day of year (fractional)
   const g = (2 * Math.PI / 365) * (day - 1 + (date.getUTCHours() - 12) / 24); // fractional year (rad)

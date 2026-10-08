@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { cursor } from '../lib/cursor';
 import { flagUrl } from '../lib/data';
+import { escapeHtml } from '../lib/html';
 
 // The cursor itself is a native CSS cursor (drawn by the OS, so it never lags);
 // this component only swaps its state via classes and moves a small name card
@@ -28,7 +29,7 @@ export function CustomCursor() {
       const key = s.country ? s.country.cca2 + s.country.name : '';
       if (key && key !== last) {
         last = key;
-        c.innerHTML = `${s.country!.cca2 ? `<img src="${flagUrl(s.country!.cca2, 80)}" alt="" />` : `<i class="cur-glyph">${s.country!.glyph ?? '•'}</i>`}<b>${s.country!.name}</b><span>${s.country!.sub}</span>`;
+        c.innerHTML = `${s.country!.cca2 ? `<img src="${flagUrl(s.country!.cca2, 80)}" alt="" />` : `<i class="cur-glyph">${escapeHtml(s.country!.glyph ?? '•')}</i>`}<b>${escapeHtml(s.country!.name)}</b><span>${escapeHtml(s.country!.sub ?? '')}</span>`;
       }
     };
 

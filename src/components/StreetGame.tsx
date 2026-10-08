@@ -19,6 +19,7 @@ import { getItem, prefetchAround, type StreetItem } from '../lib/streetview';
 import type { MapillarySpot } from '../lib/mapillary';
 import { api } from '../lib/api';
 import { Click, TOUCH } from '../lib/touch';
+import { escapeHtml } from '../lib/html';
 
 
 export interface RoundResult {
@@ -655,7 +656,7 @@ function collapseAttribution(root: HTMLElement) {
 function pinEl(kind: 'guess' | 'answer', label?: string) {
   const el = document.createElement('div');
   el.className = `game-pin map ${kind}`;
-  el.innerHTML = `<span></span>${label ? `<b>${label}</b>` : ''}`;
+  el.innerHTML = `<span></span>${label ? `<b>${escapeHtml(label)}</b>` : ''}`;
   return el;
 }
 
