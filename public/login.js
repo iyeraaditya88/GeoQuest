@@ -5,8 +5,8 @@
         var form = $('form'), u = $('u'), p = $('p'), p2 = $('p2'), go = $('go'), goText = $('goText'), err = $('err');
         var card = $('card'), peek = $('peek'), note = $('note'), foot = $('foot');
         var q = new URLSearchParams(location.search);
-        var mode = location.pathname === '/welcome' ? 'welcome' : location.pathname === '/setup' ? 'setup' : 'login';
-        var LABELS = { login: 'Sign in', welcome: 'Join GeoQuest', setup: 'Create owner account', signup: 'Create account & join' };
+        var mode = location.pathname === '/welcome' ? 'welcome' : location.pathname === '/setup' ? 'setup' : location.pathname === '/join' ? 'group' : 'login';
+        var LABELS = { login: 'Sign in', welcome: 'Join GeoQuest', setup: 'Create owner account', signup: 'Create account & join', group: 'Join GeoQuest' };
         var label = LABELS[mode];
         // Only ever return to a path on this site.
         var nxt = q.get('next') || '/';
@@ -79,6 +79,21 @@
             .catch(function () { lock('Couldn’t check this invite — check your connection and reload.'); });
         }
 
+        // A group invite link (one link for a whole chat): pick your own username and password.
+        if (mode === 'group') {
+          $('title').textContent = 'You’re invited!';
+          $('sub').textContent = 'Pick a username and password to join GeoQuest';
+          u.placeholder = 'e.g. maya or sam.k';
+          u.setAttribute('autocomplete', 'off');
+          foot.innerHTML = 'Already have an account? <a href="/login">Sign in</a>';
+          getJSON('/api/group?code=' + encodeURIComponent(q.get('code') || ''))
+            .then(function (d) {
+              if (!d.valid) lock('This group link has expired or is full. Ask whoever shared it for a new one — or <a href="/login">sign in</a> if you’ve already joined.');
+              else $('sub').textContent = d.by + ' invited you — pick a username and password to join GeoQuest';
+            })
+            .catch(function () { lock('Couldn’t check this link — check your connection and reload.'); });
+        }
+
         if (mode === 'setup') {
           $('title').textContent = 'Set up GeoQuest';
           $('sub').textContent = 'Create the owner account — you’ll invite everyone else from the app';
@@ -101,16 +116,17 @@
           e.preventDefault();
           if (!u.value.trim() || !p.value) { fail(mode === 'login' ? 'Enter your username and password.' : 'Choose a username and password.'); (u.value.trim() ? p : u).focus(); return; }
           if (mode !== 'login') {
-            if (mode === 'signup' && !/^[a-z0-9._-]{2,32}$/i.test(u.value.trim())) { fail('Usernames are 2–32 letters, digits, dots, dashes or underscores.'); u.focus(); return; }
+            if ((mode === 'signup' || mode === 'group') && !/^[a-z0-9._-]{2,32}$/i.test(u.value.trim())) { fail('Usernames are 2–32 letters, digits, dots, dashes or underscores.'); u.focus(); return; }
             if (p.value.length < 8) { fail('Use at least 8 characters.'); p.focus(); return; }
             if (p.value !== p2.value) { fail('The passwords don’t match.'); p2.focus(); return; }
           }
           err.textContent = '';
-          setBusy(true, mode === 'login' ? 'Signing in…' : mode === 'signup' ? 'Creating your account…' : 'Setting up…');
-          var url = { login: '/api/login', welcome: '/api/invite/accept', setup: '/api/setup', signup: '/api/invites/signup' }[mode];
+          setBusy(true, mode === 'login' ? 'Signing in…' : mode === 'signup' || mode === 'group' ? 'Creating your account…' : 'Setting up…');
+          var url = { login: '/api/login', welcome: '/api/invite/accept', setup: '/api/setup', signup: '/api/invites/signup', group: '/api/group/join' }[mode];
           var payload = { username: u.value.trim(), password: p.value };
           if (mode === 'welcome') payload.token = q.get('t') || '';
           if (mode === 'signup') payload.token = joinToken;
+          if (mode === 'group') payload.code = q.get('code') || '';
           fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(payload) })
             .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, d: d }; }); })
             .then(function (x) {

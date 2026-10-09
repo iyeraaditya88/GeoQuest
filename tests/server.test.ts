@@ -358,6 +358,40 @@ describe('my places', () => {
   });
 });
 
+describe('group invite links', () => {
+  const code = (link: unknown) => new URL(String(link)).searchParams.get('code')!;
+  const pw = 'group-member-pass-1';
+  it('only the owner can make one', async () => {
+    expect((await call('POST', '/api/groups', { cookie: bob, body: { max: 10, days: 7 } })).status).toBe(403);
+    expect((await call('POST', '/api/groups', { cookie: owner, body: { max: 500, days: 7 } })).status).toBe(400);
+  });
+  it('lets people join with their own usernames, up to the limit', async () => {
+    const g = await call('POST', '/api/groups', { cookie: owner, body: { max: 2, days: 7 } });
+    expect(g.status).toBe(200);
+    expect(String(g.body.link)).toMatch(/^https:\/\/play\.test\/join\?code=/);
+    const c = code(g.body.link);
+    expect((await call('GET', `/api/group?code=${encodeURIComponent(c)}`)).body).toEqual({ valid: true, by: 'owner', left: 2 });
+    const a = await call('POST', '/api/group/join', { body: { code: c, username: 'Ravi', password: pw } });
+    expect(a.status).toBe(200);
+    expect((await call('GET', '/api/players', { cookie: sessionOf(a) })).status).toBe(200); // signed in
+    expect((await call('POST', '/api/group/join', { body: { code: c, username: 'ravi', password: pw } })).status).toBe(400); // taken
+    expect((await call('POST', '/api/group/join', { body: { code: c, username: 'meera', password: pw } })).status).toBe(200);
+    const full = await call('POST', '/api/group/join', { body: { code: c, username: 'third', password: pw } });
+    expect(full.status).toBe(400);
+    expect(String(full.body.error)).toMatch(/full/);
+    const list = (await call('GET', '/api/groups', { cookie: owner })).body.groups as { used: number; max: number; active: boolean }[];
+    expect(list[0]).toEqual(expect.objectContaining({ used: 2, max: 2, active: false }));
+  });
+  it('stops working once revoked, and refuses made-up codes', async () => {
+    const g = await call('POST', '/api/groups', { cookie: owner, body: { max: 10, days: 1 } });
+    const c = code(g.body.link);
+    expect((await call('DELETE', `/api/groups/${g.body.id}`, { cookie: owner })).body).toEqual({ revoked: true });
+    expect((await call('POST', '/api/group/join', { body: { code: c, username: 'late', password: pw } })).status).toBe(400);
+    expect((await call('GET', '/api/group?code=abcdefgh.xxxxxxxxxxxxxxxxxxxxxxxxxx')).body).toEqual({ valid: false });
+    expect((await call('GET', `/api/group?code=${encodeURIComponent(c.split('.')[0] + '.' + 'y'.repeat(32))}`)).body).toEqual({ valid: false });
+  });
+});
+
 describe('rate limiting', () => {
   it('slows down repeated sign-in attempts', async () => {
     const codes: number[] = [];

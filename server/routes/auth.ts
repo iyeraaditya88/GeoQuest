@@ -77,6 +77,21 @@ export function registerAuth(app: express.Express) {
     } catch (err) { fail(res, 400, err); }
   });
 
+  // Group invite links (one link for a whole chat): check it, and join through it.
+  app.get('/api/group', authLimit(60), async (req, res) => {
+    try { res.json(await accounts.groupInfo(req.query.code)); } catch (err) { fail(res, 500, err); }
+  });
+  app.post('/api/group/join', authLimit(10), async (req, res) => {
+    if (!HOSTED || !(await authConfigured())) { fail(res, 503, 'Sign-in isn’t set up yet.'); return; }
+    const { code, username, password } = (req.body ?? {}) as { code?: unknown; username?: unknown; password?: unknown };
+    if (!accounts.validPassword(password)) { fail(res, 400, 'Use a password of at least 8 characters.'); return; }
+    try {
+      const u = await accounts.joinGroup(code, username, password);
+      await signIn(res, u);
+      res.json({ ok: true, user: u.name });
+    } catch (err) { fail(res, 400, err); }
+  });
+
   app.post('/api/logout', (_req, res) => {
     for (const c of [SESSION_COOKIE, KEY_COOKIE, MLY_COOKIE]) clearCookie(res, c);
     res.json({ ok: true });
@@ -112,6 +127,20 @@ export function registerAuth(app: express.Express) {
       res.json({ name: r.name, link: inviteLink(req, r.name, r.token), days: r.days });
     } catch (err) { fail(res, 400, err); }
   });
+  // Group links (owner): make one, see how they're going, switch one off.
+  const groupLink = (req: express.Request, code: string) => `https://${process.env.PUBLIC_HOST || req.headers.host}/join?code=${code}`;
+  app.get('/api/groups', ownerOnly, async (_req, res) => { res.json({ groups: await accounts.listGroups() }); });
+  app.post('/api/groups', ownerOnly, async (req, res) => {
+    const b = (req.body ?? {}) as { max?: unknown; days?: unknown; label?: unknown };
+    try {
+      const g = await accounts.createGroup(req.user!, Number(b.max ?? 30), Number(b.days ?? 7), typeof b.label === 'string' ? b.label.trim() : undefined);
+      res.json({ id: g.id, link: groupLink(req, g.code), max: g.max, days: g.days });
+    } catch (err) { fail(res, 400, err); }
+  });
+  app.delete('/api/groups/:id', ownerOnly, async (req, res) => {
+    try { res.json({ revoked: await accounts.revokeGroup(String(req.params.id)) }); } catch (err) { fail(res, 400, err); }
+  });
+
   app.delete('/api/people/:name', ownerOnly, async (req, res) => {
     try { res.json({ removed: await accounts.removeUser(req.params.name) }); } catch (err) { fail(res, 400, err); }
   });

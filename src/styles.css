@@ -1830,3 +1830,23 @@ html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent
 .pl-del.sure { font-size: 13px; font-weight: 600; }
 .pl-private { margin: -2px 0 0; text-align: center; font-size: 11.5px; color: var(--dim); }
 @media (max-width: 640px) { .pl-field input, .pl-field textarea { font-size: 16px; } }
+
+/* People: group invite link */
+.gi { display: grid; gap: 10px; padding: 12px; border-radius: 16px; background: rgba(255, 255, 255, 0.03); box-shadow: inset 0 0 0 1px var(--line); }
+.gi-head { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; align-items: center; }
+.gi-head svg { color: #6ee7b7; }
+.gi-head b { font: 600 14px var(--display); }
+.gi-head span { grid-column: 2; font-size: 12px; color: var(--dim); }
+.gi-opts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 12.5px; color: var(--muted); }
+.gi-make { justify-content: center; }
+.gi-wa { justify-self: start; display: inline-block; margin-top: 8px; font-size: 12.5px; font-weight: 600; color: #6ee7b7; }
+.gi-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.gi-list li { display: flex; align-items: center; gap: 10px; padding: 8px 4px; }
+.gi-list li.ended { opacity: 0.55; }
+.gi-bar { width: 44px; height: 6px; flex-shrink: 0; border-radius: 99px; overflow: hidden; background: rgba(255, 255, 255, 0.08); }
+.gi-bar i { display: block; height: 100%; background: linear-gradient(90deg, #34d399, var(--gold)); }
+.gi-text { flex: 1; min-width: 0; display: grid; }
+.gi-text b { font-size: 13px; }
+.gi-text span { font-size: 11.5px; color: var(--dim); }
+.gi-revoke { font-size: 12px; font-weight: 600; color: #fca5a5; padding: 4px 8px; border-radius: 8px; }
+.gi-revoke:hover { background: rgba(248, 113, 113, 0.12); }

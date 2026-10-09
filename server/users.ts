@@ -28,7 +28,9 @@ export interface UserRecord {
   /** the game link they signed up through (each link admits only a few new accounts) */
   via?: string;
 }
-type Db = { users: Record<string, UserRecord> };
+/** A group invite link (one link for a whole chat): up to `max` people may join before `exp`. */
+export interface GroupLink { sha: string; max: number; used: number; exp: number; createdAt: number; by: string; label?: string; revoked?: boolean }
+type Db = { users: Record<string, UserRecord>; groups?: Record<string, GroupLink> };
 
 const localFile = () => process.env.GQ_USERS_FILE ?? '.users.local.json';
 
@@ -218,6 +220,67 @@ export async function createMember(nameRaw: unknown, pw: string, via: string) {
     if (db.users[name]) throw new Error('That username is taken — pick another (or sign in if it’s yours).');
     if (Object.values(db.users).filter((u) => u.via === via).length >= SIGNUPS_PER_LINK) throw new Error('This link has already been used to sign up several people — ask for a new one.');
     db.users[name] = { role: 'member', createdAt: Date.now(), password, lastLogin: Date.now(), via };
+    return { name, role: 'member' as Role, sv: 0 };
+  });
+}
+
+// ── Group invite links (owner only) ──
+// One link to post in a group chat: each person picks their own username and password. Only a
+// fingerprint of the link is stored (like single invites), so it's shown once, when made.
+export const GROUP_MAX = 200;
+export const GROUP_DAYS = 30;
+const groupId = () => randomBytes(6).toString('base64url').replace(/[-_]/g, 'x');
+const splitCode = (code: unknown) => {
+  const [id, token] = typeof code === 'string' ? code.split('.') : [];
+  return id && token && /^[A-Za-z0-9]{6,12}$/.test(id) && /^[A-Za-z0-9_-]{20,64}$/.test(token) ? { id, token } : null;
+};
+const groupOk = (g: GroupLink | undefined, token: string) =>
+  !!g && !g.revoked && g.exp > Date.now() && g.used < g.max && timingSafeEqual(Buffer.from(sha(token)), Buffer.from(g.sha));
+
+export async function createGroup(by: string, max: number, days: number, label?: string) {
+  const m = Math.round(max), d = Math.round(days);
+  if (!(m >= 2 && m <= GROUP_MAX) || !(d >= 1 && d <= GROUP_DAYS)) throw new Error('Pick between 2 and 200 people, and 1 to 30 days.');
+  const id = groupId(), token = randomBytes(24).toString('base64url');
+  await update((db) => {
+    db.groups ??= {};
+    // Tidy: forget group links that ended over a month ago.
+    for (const [k, g] of Object.entries(db.groups)) if (g.exp < Date.now() - 30 * 86400000) delete db.groups[k];
+    db.groups[id] = { sha: sha(token), max: m, used: 0, exp: Date.now() + d * 86400000, createdAt: Date.now(), by, ...(label ? { label: label.slice(0, 60) } : {}) };
+  });
+  return { id, code: `${id}.${token}`, max: m, days: d };
+}
+
+export async function listGroups() {
+  const db = await load(true);
+  return Object.entries(db.groups ?? {}).map(([id, g]) => ({ id, max: g.max, used: g.used, exp: g.exp, createdAt: g.createdAt, label: g.label ?? null, active: !g.revoked && g.exp > Date.now() && g.used < g.max, revoked: !!g.revoked }))
+    .sort((a, b) => b.createdAt - a.createdAt);
+}
+
+export async function revokeGroup(id: string) {
+  return update((db) => { const g = db.groups?.[id]; if (!g) return false; g.revoked = true; return true; });
+}
+
+/** Can this group link still be used? (and who it's from, to greet people) */
+export async function groupInfo(code: unknown) {
+  const c = splitCode(code);
+  const g = c ? (await load(true)).groups?.[c.id] : undefined;
+  return c && groupOk(g, c.token) ? { valid: true, by: g!.by, left: g!.max - g!.used } : { valid: false };
+}
+
+/** Join through a group link: a new member account, counted against the link (atomically). */
+export async function joinGroup(code: unknown, nameRaw: unknown, pw: string) {
+  const c = splitCode(code);
+  const name = normName(nameRaw);
+  const ENDED = 'This group link has expired or is full — ask for a new one.';
+  if (!c) throw new Error(ENDED);
+  if (!validName(name)) throw new Error('Pick a username of 2–32 letters, digits, dots, dashes or underscores.');
+  const password = await hashPassword(pw);
+  return update((db) => {
+    const g = db.groups?.[c.id];
+    if (!groupOk(g, c.token)) throw new Error(ENDED);
+    if (db.users[name]) throw new Error('That username is taken — pick another (or sign in if it’s yours).');
+    g!.used += 1;
+    db.users[name] = { role: 'member', createdAt: Date.now(), password, lastLogin: Date.now(), via: `g:${c.id}` };
     return { name, role: 'member' as Role, sv: 0 };
   });
 }
