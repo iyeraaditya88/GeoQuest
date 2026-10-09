@@ -89,7 +89,7 @@ GeoQuest installs like a native app on phones, tablets and desktops: in Safari u
 
 ## Daily challenge & morning reminders
 
-Every day there's a **Daily challenge**: the same 5 countries for everyone, picked from the date (Find it, Flags or Clues, rotating). It's scored 3/2/1/0 per country, one attempt a day, with streaks and today's board.
+Every day there's a **Daily challenge**: the same 5 countries for everyone, picked from the date — find each one on the globe. It's scored 3/2/1/0 per country, one attempt a day, with streaks and today's board.
 
 Players can turn on a **morning reminder** (Web Push) at a time they choose, in their own time zone:
 - **Where it works:** iPhone needs the installed app (Add to Home Screen, iOS 16.4+). Android and computers work in the browser.

@@ -15,8 +15,8 @@ export const addDays = (date: string, n: number) => new Date(dayMs(date) + n * 8
 
 /** "Daily #42" */
 export const dailyNumber = (date: string) => Math.round((dayMs(date) - LAUNCH) / 86400_000) + 1;
-/** Find it → Flags → Clues, a different one each day. */
-export const themeOf = (date: string): DailyTheme => (['find', 'flag', 'clue'] as const)[((dailyNumber(date) % 3) + 3) % 3];
+/** Every Daily is "find the country on the globe" (`date` kept for a future change of theme). */
+export const themeOf = (_date: string): DailyTheme => 'find';
 export const THEME_LABEL: Record<DailyTheme, string> = { find: 'Find it', flag: 'Flags', clue: 'Clues' };
 
 // A small seeded random generator (same seed → same sequence on every device).

@@ -129,10 +129,10 @@ describe('Daily challenge', async () => {
     expect(a.every((c) => QUIZ_POOL.includes(c))).toBe(true);
     expect(d.dailyPicks('2026-10-10', QUIZ_POOL).targets).not.toEqual(a);
   });
-  it('numbers the days, rotates the theme, and scores', () => {
+  it('numbers the days, sets the theme, and scores', () => {
     expect(d.dailyNumber('2026-10-09')).toBe(1);
     expect(d.dailyNumber('2026-10-12')).toBe(4);
-    expect(new Set(['2026-10-09', '2026-10-10', '2026-10-11'].map(d.themeOf)).size).toBe(3);
+    expect(['2026-10-09', '2026-10-10', '2026-10-11'].map(d.themeOf)).toEqual(['find', 'find', 'find']); // always "find the country"
     expect([d.pointsFor(0, false), d.pointsFor(1, false), d.pointsFor(2, false), d.pointsFor(1, true)]).toEqual([3, 2, 1, 0]);
     expect(d.shareLine('2026-10-09', [3, 3, 2, 0, 1])).toBe('GeoQuest Daily #1 🟩🟩🟨⬛🟧 9/15');
     expect(d.validPoints([3, 3, 3, 3, 4])).toBe(false);

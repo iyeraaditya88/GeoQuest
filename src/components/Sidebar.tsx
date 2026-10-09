@@ -134,7 +134,7 @@ export function Sidebar(p: Props) {
           )}>
             {rail && p.onFriends && <Item icon={Swords} label="Challenge friends" rail onClick={act(p.onFriends)} active={p.matchOn} accent />}
             {rail && p.onInvite && <Item icon={Link2} label="Invite with a link" rail onClick={act(p.onInvite)} />}
-            <Item icon={CalendarDays} label={p.dailyOn ? 'Exit Daily' : 'Daily challenge'} active={p.dailyOn} sub={p.dailyOn ? undefined : p.daily ? (p.daily.done ? `Done today${p.daily.streak > 1 ? ` · 🔥 ${p.daily.streak}` : ''}` : `5 countries · ${p.daily.theme}${p.daily.streak > 1 ? ` · 🔥 ${p.daily.streak}` : ''}`) : '5 countries, new every day'}
+            <Item icon={CalendarDays} label={p.dailyOn ? 'Exit Daily' : 'Daily challenge'} active={p.dailyOn} sub={p.dailyOn ? undefined : p.daily ? (p.daily.done ? `Done today${p.daily.streak > 1 ? ` · 🔥 ${p.daily.streak}` : ''}` : `Find 5 countries on the globe${p.daily.streak > 1 ? ` · 🔥 ${p.daily.streak}` : ''}`) : 'Find 5 countries, new every day'}
               rail={rail} onClick={act(p.onDaily)} accent
               trailing={!p.dailyOn && p.daily && (p.daily.done ? <span className="sb-done" aria-label="Done today"><Check size={13} /></span> : <span className="sb-new">New</span>)} />
             <Item icon={Gamepad2} label={p.quizOn ? 'Exit quiz' : 'Map quiz'} sub={p.quizOn ? undefined : 'Find it · Flags · Clues'} rail={rail} active={p.quizOn} onClick={act(p.onQuiz)} />
