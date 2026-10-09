@@ -103,7 +103,13 @@ export function registerAuth(app: express.Express) {
   app.use('/api', async (req, res, next) => {
     if (!HOSTED) { next(); return; }
     const s = await verifySession(cookie(req, SESSION_COOKIE));
-    const u = s ? await accounts.getUser(s.u) : null;
+    let u = s ? await accounts.getUser(s.u) : null;
+    // Someone who has only just joined (or reset their password) may not be in this server's copy
+    // yet — the store can lag a moment behind a write. Look again, fresh, before turning them away.
+    if (s && (!u?.password || (s.v ?? 0) !== (u.sv ?? 0))) {
+      await new Promise((r) => setTimeout(r, 400));
+      u = await accounts.getUser(s.u, true);
+    }
     // Removed accounts, and sessions from before a password reset, are signed out at once.
     if (!s || !u?.password || (s.v ?? 0) !== (u.sv ?? 0)) { res.status(401).json({ error: 'Please sign in.' }); return; }
     req.user = s.u;

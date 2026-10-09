@@ -76,12 +76,18 @@ async function update<T>(fn: (db: Db) => T | Promise<T>): Promise<T> {
       cache = { db, at: Date.now() };
       return out;
     } catch (err) {
-      // Someone else wrote first (or created it first): try again on top of their version.
+      // Someone else wrote first (or created it first) — or, right after a write, the read still
+      // returned the previous version for a moment. Either way: wait a little (longer each time,
+      // so the store can catch up) and try again on top of the latest version.
       const conflict = err instanceof BlobPreconditionFailedError || (!etag && /exist/i.test((err as Error).message));
-      if (!conflict || attempt >= 4) throw err;
+      if (!conflict) throw err;
+      if (attempt >= RETRY_MS.length) throw new Error('GeoQuest is busy saving another change — please try again in a moment.');
+      await new Promise((r) => setTimeout(r, RETRY_MS[attempt] * (0.75 + Math.random() * 0.5)));
     }
   }
 }
+// Pauses between retries of a conflicting write (about 6 s in all).
+const RETRY_MS = [150, 300, 600, 1000, 1500, 2500];
 
 // ── Session signing key ──
 // SESSION_SECRET if set; otherwise a random key generated on first use and kept in the same
@@ -136,8 +142,9 @@ const sha = (s: string) => createHash('sha256').update(s).digest('base64url');
 export async function hasOwner() {
   return Object.values((await load(true)).users).some((u) => u.role === 'owner' && u.password);
 }
-export async function getUser(name: string) {
-  return (await load()).users[name] ?? null;
+/** A user's record (`fresh`: skip the short cache and read the store again). */
+export async function getUser(name: string, fresh = false) {
+  return (await load(fresh)).users[name] ?? null;
 }
 export async function listUsers() {
   const db = await load(true);
