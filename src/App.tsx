@@ -1,5 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
+import { BellRing, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { GlobeView, type GlobeHandle, type GlobeView2D, type MapStyle, type Feedback } from './components/GlobeView';
 import { FlatAtlas, type AtlasHandle } from './components/FlatAtlas';
@@ -59,6 +60,9 @@ import { QuizBar, type QuizMode, type QuizState } from './components/QuizBar';
 import { BY_CCA3 } from './lib/data';
 import { api } from './lib/api';
 import { CLUE_POOL, QUIZ_POOL, clueFor, pickRandom } from './lib/quiz';
+import { DAILY_N, dailyNumber, dailyPicks, localDate, pointsFor, themeOf, THEME_LABEL } from './lib/daily';
+import { DailyResult, type DailyBoardRow } from './components/DailyResult';
+import { Reminders } from './components/Reminders';
 import { missHint, takeaway } from './lib/quizCoach';
 import { buzz } from './lib/touch';
 import { LivePlay, type LiveState, type MatchGlobe } from './components/LivePlay';
@@ -70,6 +74,18 @@ import { music } from './lib/music';
 
 function loadBest() { try { return Number(localStorage.getItem('gq-best') ?? 0); } catch { return 0; } }
 function saveBest(n: number) { try { localStorage.setItem('gq-best', String(n)); } catch { /* ignore */ } }
+
+/** Today's Daily challenge as a quiz: the same five countries for everyone, in today's theme. */
+function dailyQuiz(date: string): QuizState {
+  const mode = themeOf(date);
+  const { targets, pick } = dailyPicks(date, mode === 'clue' ? CLUE_POOL : QUIZ_POOL);
+  const clues = mode === 'clue' ? targets.map((t, k) => clueFor(t, pick(k))) : [];
+  return {
+    mode, target: targets[0], clue: clues[0], result: 'idle', misses: 0, streak: 0, best: 0, score: 0, rounds: 0,
+    daily: { date, no: dailyNumber(date), targets, clues, i: 0, points: [] },
+  };
+}
+const dailyTargets = (date: string) => dailyPicks(date, themeOf(date) === 'clue' ? CLUE_POOL : QUIZ_POOL).targets;
 
 function newRound(mode: QuizMode, prev?: QuizState): QuizState {
   const pool = mode === 'clue' ? CLUE_POOL : QUIZ_POOL;
@@ -166,6 +182,11 @@ export default function App() {
   const [dockOpen, setDockOpen] = useState(false);
   const [askReq, setAskReq] = useState<{ prompt: string; n: number } | null>(null);
   const [quiz, setQuiz] = useState<QuizState | null>(null);
+  // The Daily challenge: today's status (from the server), and the result card.
+  const [daily, setDaily] = useState<{ date: string; mine: number[] | null; streak: { count: number; best: number }; board: DailyBoardRow[] } | null>(null);
+  const [dailyCard, setDailyCard] = useState<{ date: string; points: number[]; fresh: boolean } | null>(null);
+  const [remindersOpen, setRemindersOpen] = useState(false);
+  const [remindersOn, setRemindersOn] = useState(false);
   const [play, setPlay] = useState<null | 'top5' | 'capitals' | 'trivia'>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const timer = useRef<number | undefined>(undefined);
@@ -279,22 +300,31 @@ export default function App() {
     setTimeout(() => cam.reset(), 60);
   };
 
+  const finishDaily = useRef<(q: QuizState) => void>(() => {});
   const nextRound = useCallback((q: QuizState, delay = 1700) => {
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => {
       setFeedback(null);
-      setQuiz(newRound(q.mode, q));
+      if (q.daily) {
+        // The Daily: today's next country, or the result after the fifth.
+        const i = q.daily.i + 1;
+        if (i >= q.daily.targets.length) { finishDaily.current(q); return; }
+        setQuiz({ ...q, target: q.daily.targets[i], clue: q.daily.clues[i], result: 'idle', misses: 0, hint: undefined, takeaway: undefined, daily: { ...q.daily, i } });
+      } else setQuiz(newRound(q.mode, q));
       cam.reset();
     }, delay);
   }, [cam]);
+  /** The Daily: record this country's points (3 first try … 0 revealed). */
+  const scored = (q: QuizState, revealed: boolean): QuizState =>
+    q.daily && q.daily.points.length === q.daily.i ? { ...q, daily: { ...q.daily, points: [...q.daily.points, pointsFor(q.misses, revealed)] } } : q;
 
   const quizClick = (cca3: string | null) => {
     if (!quiz || !cca3 || quiz.result === 'good' || quiz.result === 'reveal') return;
     if (cca3 === quiz.target) {
       const streak = quiz.streak + 1;
       const best = Math.max(streak, quiz.best);
-      saveBest(best);
-      const q = { ...quiz, streak, best, score: quiz.score + 1, rounds: quiz.rounds + 1, result: 'good' as const };
+      if (!quiz.daily) saveBest(best);
+      const q = scored({ ...quiz, streak, best, score: quiz.score + 1, rounds: quiz.rounds + 1, result: 'good' as const }, false);
       buzz('good');
       setQuiz(q);
       setFeedback({ cca3, kind: 'good' });
@@ -306,7 +336,7 @@ export default function App() {
       if (misses >= 3) {
         // Learn it: show where it is and something to remember, then move on when ready.
         window.clearTimeout(timer.current);
-        const q = { ...quiz, misses, streak: 0, rounds: quiz.rounds + 1, result: 'reveal' as const, takeaway: takeaway(quiz.target) };
+        const q = scored({ ...quiz, misses, streak: 0, rounds: quiz.rounds + 1, result: 'reveal' as const, takeaway: takeaway(quiz.target) }, true);
         setQuiz(q);
         setFeedback({ cca3: quiz.target, kind: 'reveal' });
         cam.flyTo(quiz.target, 1200);
@@ -322,7 +352,7 @@ export default function App() {
   const skip = () => {
     if (!quiz || quiz.result === 'good' || quiz.result === 'reveal') return;
     window.clearTimeout(timer.current);
-    setQuiz({ ...quiz, streak: 0, rounds: quiz.rounds + 1, result: 'reveal' as const, takeaway: takeaway(quiz.target) });
+    setQuiz(scored({ ...quiz, streak: 0, rounds: quiz.rounds + 1, result: 'reveal' as const, takeaway: takeaway(quiz.target) }, true));
     setFeedback({ cca3: quiz.target, kind: 'reveal' });
     cam.flyTo(quiz.target, 1200);
   };
@@ -330,6 +360,55 @@ export default function App() {
   const nextQuiz = () => { if (quiz?.result === 'reveal') nextRound(quiz, 0); };
 
   const exitQuiz = () => { window.clearTimeout(timer.current); setQuiz(null); setFeedback(null); };
+
+  // ── Daily challenge ────────────────────────────────────
+  const loadDaily = useCallback(() => {
+    const date = localDate();
+    return api(`/api/daily?date=${date}`).then((r) => (r.ok ? r.json() : null)).then((d) => { if (d) setDaily(d); return d; }).catch(() => null);
+  }, []);
+  useEffect(() => { void loadDaily(); }, [loadDaily, user]);
+  const startDaily = () => {
+    const date = localDate();
+    // Done today already: show the result (and the board) instead.
+    if (daily?.date === date && daily.mine) { setDailyCard({ date, points: daily.mine, fresh: false }); void loadDaily(); return; }
+    track('game', { g: 'daily' });
+    if (geoRef.current) exitGeo();
+    if (antiRef.current) exitAntipode();
+    setPlay(null);
+    setSelected(null);
+    setHighlighted([]);
+    setDockOpen(false);
+    setFeedback(null);
+    setQuiz(dailyQuiz(date));
+    setTimeout(() => cam.reset(), 60);
+  };
+  finishDaily.current = (q) => {
+    const { date, points } = q.daily!;
+    setQuiz(null);
+    setDailyCard({ date, points, fresh: true });
+    track('score', { g: 'daily', s: points.reduce((s, p) => s + p, 0), of: DAILY_N * 3 });
+    void api('/api/daily', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date, points }) })
+      .then(async (r) => {
+        const d = await r.json().catch(() => ({}));
+        if (r.ok) setDaily({ date, mine: points, streak: d.streak, board: d.board });
+        else void loadDaily(); // e.g. already played on another device: show what's recorded
+      }).catch(() => null);
+  };
+  // Opened from the morning notification (?daily=1, or a message from the service worker).
+  const startDailyRef = useRef(startDaily);
+  startDailyRef.current = startDaily;
+  useEffect(() => {
+    const open = () => window.setTimeout(() => startDailyRef.current(), 600);
+    const url = new URL(location.href);
+    if (url.searchParams.get('daily')) {
+      url.searchParams.delete('daily');
+      history.replaceState(null, '', url.pathname + url.search + url.hash);
+      void loadDaily().then(open);
+    }
+    const onMsg = (e: MessageEvent) => { if ((e.data as { type?: string })?.type === 'open-daily') void loadDaily().then(open); };
+    navigator.serviceWorker?.addEventListener('message', onMsg);
+    return () => navigator.serviceWorker?.removeEventListener('message', onMsg);
+  }, [loadDaily]);
 
   const random = () => {
     const pick = pickRandom(QUIZ_POOL, selected ?? undefined);
@@ -691,7 +770,8 @@ export default function App() {
         view={view}
         style={style}
         autoRotate={autoRotate}
-        quizOn={!!quiz}
+        quizOn={!!quiz && !quiz.daily}
+        dailyOn={!!quiz?.daily}
         playOn={play}
         selected={selected}
         recents={recents}
@@ -707,6 +787,10 @@ export default function App() {
         onAsk={() => { if (quiz) exitQuiz(); setDockOpen(true); }}
         onConnect={() => { if (quiz) exitQuiz(); setDockOpen(true); setKeyReq((n) => n + 1); }}
         onQuiz={() => (quiz ? exitQuiz() : startQuiz())}
+        daily={daily ? { done: !!daily.mine && daily.date === localDate(), streak: daily.streak?.count ?? 0, theme: THEME_LABEL[themeOf(localDate())] } : { done: false, streak: 0, theme: THEME_LABEL[themeOf(localDate())] }}
+        onDaily={() => (quiz?.daily ? exitQuiz() : startDaily())}
+        onReminders={() => setRemindersOpen(true)}
+        remindersOn={remindersOn}
         onStreet={() => void startGeo()}
         antipodeOn={!!anti}
         onAntipode={() => (anti ? exitAntipode() : void startAntipode())}
@@ -746,6 +830,27 @@ export default function App() {
         {play === 'top5' && <ErrorBoundary key="top5" name="Name the Top 5" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><Top5Game ai={ai} onHighlight={(ids) => (ids.length ? highlight(ids) : setHighlighted([]))} onExit={exitPlay} /></Suspense></ErrorBoundary>}
         {play === 'trivia' && <ErrorBoundary key="trivia" name="Geo Trivia" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><TriviaGame onReveal={revealTrivia} onExit={exitPlay} /></Suspense></ErrorBoundary>}
         {play === 'capitals' && <ErrorBoundary key="capitals" name="Capitals" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><CapitalsGame onReveal={(c) => { setHighlighted([c]); cam.flyTo(c); }} onExit={exitPlay} /></Suspense></ErrorBoundary>}
+      </AnimatePresence>
+      <AnimatePresence>
+        {dailyCard && (
+          <DailyResult key="daily" date={dailyCard.date} targets={dailyTargets(dailyCard.date)} points={dailyCard.points} fresh={dailyCard.fresh}
+            streak={daily?.date === dailyCard.date ? daily.streak : null} board={daily?.date === dailyCard.date ? daily.board : null}
+            me={user ?? 'you'} onClose={() => setDailyCard(null)} onReminder={setRemindersOn} />
+        )}
+        {remindersOpen && (
+          <motion.div key="reminders" className="people-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setRemindersOpen(false)}>
+            <motion.section className="people reminders" role="dialog" aria-label="Morning reminder" onClick={(e) => e.stopPropagation()}
+              initial={{ y: 16, scale: 0.97, opacity: 0 }} animate={{ y: 0, scale: 1, opacity: 1 }} exit={{ y: 10, opacity: 0 }}>
+              <header className="gc-head">
+                <span className="gc-badge"><BellRing size={16} /></span>
+                <div className="gc-title"><b>Morning reminder</b><span>The Daily challenge, every morning</span></div>
+                <span className="gc-spacer" />
+                <button className="icon-btn" onClick={() => setRemindersOpen(false)} aria-label="Close"><X size={17} /></button>
+              </header>
+              <Reminders onChange={setRemindersOn} />
+            </motion.section>
+          </motion.div>
+        )}
       </AnimatePresence>
       <QuizBar quiz={quiz} onMode={(m) => startQuiz(m)} onSkip={skip} onNext={nextQuiz} onExit={exitQuiz} />
       <AnimatePresence>

@@ -118,3 +118,24 @@ describe('Street View locations', async () => {
     expect(Object.keys(n).length).toBeGreaterThan(50);
   });
 });
+
+describe('Daily challenge', async () => {
+  const d = await import('../src/lib/daily');
+  const { QUIZ_POOL } = await import('../src/lib/quiz');
+  it('gives everyone the same five countries on a day, and different ones the next', () => {
+    const a = d.dailyPicks('2026-10-09', QUIZ_POOL).targets;
+    expect(a).toEqual(d.dailyPicks('2026-10-09', [...QUIZ_POOL].reverse()).targets); // order of the pool doesn't matter
+    expect(new Set(a).size).toBe(5);
+    expect(a.every((c) => QUIZ_POOL.includes(c))).toBe(true);
+    expect(d.dailyPicks('2026-10-10', QUIZ_POOL).targets).not.toEqual(a);
+  });
+  it('numbers the days, rotates the theme, and scores', () => {
+    expect(d.dailyNumber('2026-10-09')).toBe(1);
+    expect(d.dailyNumber('2026-10-12')).toBe(4);
+    expect(new Set(['2026-10-09', '2026-10-10', '2026-10-11'].map(d.themeOf)).size).toBe(3);
+    expect([d.pointsFor(0, false), d.pointsFor(1, false), d.pointsFor(2, false), d.pointsFor(1, true)]).toEqual([3, 2, 1, 0]);
+    expect(d.shareLine('2026-10-09', [3, 3, 2, 0, 1])).toBe('GeoQuest Daily #1 🟩🟩🟨⬛🟧 9/15');
+    expect(d.validPoints([3, 3, 3, 3, 4])).toBe(false);
+    expect(d.addDays('2026-12-31', 1)).toBe('2027-01-01');
+  });
+});

@@ -86,3 +86,14 @@ GeoQuest installs like a native app on phones, tablets and desktops: in Safari u
 - Borders, provinces, cities, rivers, lakes, ranges and peaks: [Natural Earth](https://www.naturalearthdata.com) (public domain).
 - Earth textures: three-globe examples / NASA Blue Marble and Black Marble. Flags: flagcdn.com. Maps in Street View: OpenFreeMap.
 - `geography_trivia_bank.json`: the Geo Trivia question bank (edit it to add questions).
+
+## Daily challenge & morning reminders
+
+Every day there's a **Daily challenge**: the same 5 countries for everyone, picked from the date (Find it, Flags or Clues, rotating). It's scored 3/2/1/0 per country, one attempt a day, with streaks and today's board.
+
+Players can turn on a **morning reminder** (Web Push) at a time they choose, in their own time zone:
+- **Where it works:** iPhone needs the installed app (Add to Home Screen, iOS 16.4+). Android and computers work in the browser.
+- **Signing keys:** generated on first use and kept in the private Blob store.
+- **Scheduler:** `.github/workflows/morning.yml` calls `POST /api/cron/morning` every hour. Vercel's free plan only runs scheduled jobs daily.
+
+One-time setup: make a random secret (`openssl rand -hex 32`) and add it as `CRON_SECRET` both in Vercel (Production; then redeploy) and in GitHub → Settings → Secrets and variables → Actions. Without it the endpoint refuses every call and the workflow skips.

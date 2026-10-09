@@ -3,7 +3,8 @@
 //  • Built assets, textures, icons, fonts: cache first (their URLs are versioned or never change).
 //  • Map data (nature.json, admin1/*): served from cache, refreshed in the background.
 //  • /api and the sign-in pages: never cached.
-const VERSION = 'v1';
+// Also shows the morning reminders (Web Push) and opens the Daily challenge when one is tapped.
+const VERSION = 'v2';
 const PAGES = `gq-pages-${VERSION}`;
 const STATIC = `gq-static-${VERSION}`;
 const DATA = `gq-data-${VERSION}`;
@@ -72,4 +73,35 @@ self.addEventListener('fetch', (event) => {
   if (req.mode === 'navigate') { event.respondWith(page(req)); return; }
   if (isStatic(url)) { event.respondWith(cacheFirst(req)); return; }
   if (isData(url)) { event.respondWith(staleWhileRevalidate(req, event)); return; }
+});
+
+// ── Morning reminders ──
+self.addEventListener('push', (event) => {
+  let note = {};
+  try { note = event.data ? event.data.json() : {}; } catch { /* not JSON */ }
+  const url = typeof note.url === 'string' && note.url.startsWith('/') ? note.url : '/?daily=1';
+  event.waitUntil(self.registration.showNotification(note.title || 'GeoQuest', {
+    body: note.body || 'Today’s Daily challenge is waiting.',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/badge-96.png',
+    tag: note.tag || 'daily', // a newer one replaces an older one
+    renotify: false,
+    data: { url },
+  }));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = new URL((event.notification.data && event.notification.data.url) || '/?daily=1', self.location.origin);
+  event.waitUntil((async () => {
+    // Reuse an open GeoQuest (and tell it to open the Daily); otherwise open one.
+    const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const w of wins) {
+      if (new URL(w.url).origin !== self.location.origin) continue;
+      await w.focus();
+      w.postMessage({ type: 'open-daily' });
+      return;
+    }
+    await self.clients.openWindow(url.href);
+  })());
 });

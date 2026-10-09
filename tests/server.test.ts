@@ -1,12 +1,24 @@
 // @vitest-environment node
 // The API in hosted mode (as on Vercel), against temporary local files instead of Blob storage.
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { request as httpRequest, type Server } from 'node:http';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AddressInfo } from 'node:net';
 import { randomBytes } from 'node:crypto';
+
+// Notifications: nothing is really sent — record who'd get one (and simulate a dead device).
+const pushes = vi.hoisted(() => ({ sent: [] as string[], gone: new Set<string>() }));
+vi.mock('web-push', () => ({
+  default: {
+    generateVAPIDKeys: () => ({ publicKey: 'BTestPublicKey', privateKey: 'test-private' }),
+    sendNotification: async (s: { endpoint: string }) => {
+      if (pushes.gone.has(s.endpoint)) throw Object.assign(new Error('gone'), { statusCode: 410 });
+      pushes.sent.push(s.endpoint);
+    },
+  },
+}));
 
 const dir = mkdtempSync(join(tmpdir(), 'gq-test-'));
 Object.assign(process.env, {
@@ -19,6 +31,10 @@ Object.assign(process.env, {
   GQ_MATCHES_FILE: join(dir, 'matches.json'),
   GQ_PREFS_FILE: join(dir, 'prefs.json'),
   GQ_ANALYTICS_FILE: join(dir, 'analytics.json'),
+  GQ_DAILY_FILE: join(dir, 'daily.json'),
+  GQ_PUSH_FILE: join(dir, 'push.json'),
+  GQ_VAPID_FILE: join(dir, 'vapid.json'),
+  CRON_SECRET: 'test-cron-secret-0123456789abcdef',
 });
 delete process.env.BLOB_READ_WRITE_TOKEN;
 delete process.env.BLOB_STORE_ID;
@@ -28,7 +44,7 @@ let server: Server;
 let port = 0;
 
 interface Res { status: number; headers: Record<string, string | string[] | undefined>; body: Record<string, unknown> }
-function call(method: string, path: string, opts: { body?: unknown; cookie?: string; host?: string; origin?: string } = {}): Promise<Res> {
+function call(method: string, path: string, opts: { body?: unknown; cookie?: string; host?: string; origin?: string; auth?: string } = {}): Promise<Res> {
   return new Promise((resolve, reject) => {
     const data = opts.body === undefined ? undefined : JSON.stringify(opts.body);
     const req = httpRequest({
@@ -38,6 +54,7 @@ function call(method: string, path: string, opts: { body?: unknown; cookie?: str
         ...(data ? { 'content-type': 'application/json', 'content-length': Buffer.byteLength(data) } : {}),
         ...(opts.cookie ? { cookie: opts.cookie } : {}),
         ...(opts.origin ? { origin: opts.origin } : {}),
+        ...(opts.auth ? { authorization: opts.auth } : {}),
       },
     }, (res) => {
       let raw = '';
@@ -255,6 +272,69 @@ describe('activity analytics', () => {
   it('rejects implausible visits', async () => {
     expect((await call('POST', '/api/analytics', { cookie: bob, body: visit({ sid: '../../etc' }) })).status).toBe(400);
     expect((await call('POST', '/api/analytics', { cookie: bob, body: visit({ start: Date.now() - 9 * 86400_000 }) })).status).toBe(400);
+  });
+});
+
+describe('daily challenge', () => {
+  const today = new Date().toISOString().slice(0, 10);
+  it('records a result once, with the streak and today\'s board', async () => {
+    const r = await call('POST', '/api/daily', { cookie: bob, body: { date: today, points: [3, 2, 3, 0, 1] } });
+    expect(r.status).toBe(200);
+    expect(r.body.streak).toEqual({ count: 1, best: 1 });
+    expect(r.body.board).toEqual([{ name: 'bob', points: [3, 2, 3, 0, 1], total: 9 }]);
+    expect((await call('POST', '/api/daily', { cookie: bob, body: { date: today, points: [3, 3, 3, 3, 3] } })).status).toBe(409); // one go a day
+    const g = await call('GET', `/api/daily?date=${today}`, { cookie: bob });
+    expect(g.body.mine).toEqual([3, 2, 3, 0, 1]);
+  });
+  it('refuses odd days and impossible scores', async () => {
+    expect((await call('POST', '/api/daily', { cookie: owner, body: { date: '2020-01-01', points: [3, 3, 3, 3, 3] } })).status).toBe(400);
+    expect((await call('POST', '/api/daily', { cookie: owner, body: { date: today, points: [9, 3, 3, 3, 3] } })).status).toBe(400);
+    expect((await call('GET', '/api/daily?date=nope', { cookie: owner })).status).toBe(400);
+  });
+  it('keeps streaks going, breaks them, and remembers the best', async () => {
+    const { nextStreak, currentStreak } = await import('../server/daily');
+    let s = nextStreak({ last: null, count: 0, best: 0 }, '2026-10-09');
+    s = nextStreak(s, '2026-10-10');
+    s = nextStreak(s, '2026-10-11');
+    expect(s).toEqual({ last: '2026-10-11', count: 3, best: 3 });
+    expect(nextStreak(s, '2026-10-11')).toEqual(s); // same day again: no change
+    expect(nextStreak(s, '2026-10-14')).toEqual({ last: '2026-10-14', count: 1, best: 3 }); // missed days
+    expect(currentStreak(s, '2026-10-12').count).toBe(3); // still alive today
+    expect(currentStreak(s, '2026-10-13').count).toBe(0); // missed yesterday
+  });
+});
+
+describe('morning reminders', () => {
+  const sub = (id: string) => ({ endpoint: `https://push.example/${id}`, keys: { p256dh: 'p256dh-key', auth: 'auth-key' } });
+  const nowHour = () => new Date().getUTCHours();
+
+  it('checks a device before saving it', async () => {
+    expect((await call('POST', '/api/push', { cookie: owner, body: { subscription: { endpoint: 'http://x', keys: {} }, hour: 8, tz: 'UTC' } })).status).toBe(400);
+    expect((await call('POST', '/api/push', { cookie: owner, body: { subscription: sub('o1'), hour: 25, tz: 'UTC' } })).status).toBe(400);
+    expect((await call('POST', '/api/push', { cookie: owner, body: { subscription: sub('o1'), hour: 8, tz: 'Mars/Base' } })).status).toBe(400);
+    expect((await call('GET', '/api/push', { cookie: owner })).body.key).toBe('BTestPublicKey');
+  });
+
+  it('only lets the scheduler in with the right secret', async () => {
+    expect((await call('POST', '/api/cron/morning')).status).toBe(401);
+    expect((await call('POST', '/api/cron/morning', { auth: 'Bearer wrong-secret-0123456789abcdef' })).status).toBe(401);
+  });
+
+  it('nudges whoever\'s morning it is — once, not if they\'ve played, and forgets dead devices', async () => {
+    const h = nowHour();
+    await call('POST', '/api/push', { cookie: owner, body: { subscription: sub('owner-phone'), hour: h, tz: 'UTC' } });
+    await call('POST', '/api/push', { cookie: owner, body: { subscription: sub('owner-old'), hour: h, tz: 'UTC' } });
+    await call('POST', '/api/push', { cookie: bob, body: { subscription: sub('bob-phone'), hour: h, tz: 'UTC' } }); // bob played today
+    pushes.gone.add('https://push.example/owner-old');
+    pushes.sent.length = 0;
+    const r = await call('POST', '/api/cron/morning', { auth: 'Bearer test-cron-secret-0123456789abcdef' });
+    expect(r.status).toBe(200);
+    expect(r.body).toEqual({ nudged: 1, skipped: 1 });
+    expect(pushes.sent).toEqual(['https://push.example/owner-phone']);
+    const again = await call('POST', '/api/cron/morning', { auth: 'Bearer test-cron-secret-0123456789abcdef' });
+    expect(again.body).toEqual({ nudged: 0, skipped: 0 }); // already sent today
+    const devices = (await call('GET', '/api/push', { cookie: owner })).body.endpoints;
+    expect(devices).toEqual(['https://push.example/owner-phone']); // the dead one is gone
   });
 });
 

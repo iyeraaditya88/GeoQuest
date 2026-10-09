@@ -15,6 +15,7 @@ import { HOSTED } from './http.js';
 import { registerAuth } from './routes/auth.js';
 import { registerLive } from './routes/live.js';
 import { registerAnalytics } from './routes/analytics.js';
+import { registerCron, registerDaily } from './routes/daily.js';
 import { registerAi, checkAi } from './routes/ai.js';
 
 declare module 'express-serve-static-core' {
@@ -46,9 +47,11 @@ app.use((req, res, next) => {
 });
 app.use(express.json({ limit: '256kb' }));
 
+registerCron(app); // public: the hourly scheduler (checks its own secret)
 registerAuth(app); // sign-in & invites (public), then the session guard, then people (owner)
 registerLive(app);
 registerAnalytics(app);
+registerDaily(app);
 registerAi(app);
 
 export { checkAi };

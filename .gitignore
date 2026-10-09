@@ -30,3 +30,6 @@ dist-ssr
 .matches.local.json
 .prefs.local.json
 .analytics.local.json
+.daily.local.json
+.push.local.json
+.vapid.local.json

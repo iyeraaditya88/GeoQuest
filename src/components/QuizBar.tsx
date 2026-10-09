@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowRight, Flag, Flame, Lightbulb, MapPinned, SkipForward, X } from 'lucide-react';
+import { ArrowRight, CalendarDays, Flag, Flame, Lightbulb, MapPinned, SkipForward, X } from 'lucide-react';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import { Click } from '../lib/touch';
 
@@ -18,6 +18,8 @@ export interface QuizState {
   hint?: string;
   /** Shown with the answer: where it is, in words worth remembering */
   takeaway?: string[];
+  /** The Daily challenge: today's fixed five, and the points so far */
+  daily?: { date: string; no: number; targets: string[]; clues: string[]; i: number; points: number[] };
 }
 
 const MODES: { id: QuizMode; label: string; icon: typeof Flag }[] = [
@@ -47,18 +49,30 @@ export function QuizBar({ quiz, onMode, onSkip, onNext, onExit }: Props) {
           transition={{ type: 'spring', stiffness: 300, damping: 28 }}
         >
           <div className="quiz-top">
-            <div className="quiz-modes">
-              {MODES.map((m) => (
-                <button key={m.id} className={quiz.mode === m.id ? 'on' : ''} onClick={() => onMode(m.id)}>
-                  <m.icon size={13} /> {m.label}
-                </button>
-              ))}
-            </div>
-            <div className="quiz-score">
-              <span title="Current streak"><Flame size={14} /> {quiz.streak}</span>
-              <span className="muted">best {quiz.best}</span>
-              <span className="muted">{quiz.score}/{quiz.rounds}</span>
-            </div>
+            {quiz.daily ? (
+              <div className="quiz-daily">
+                <span className="qd-tag"><CalendarDays size={13} /> Daily #{quiz.daily.no}</span>
+                <span className="qd-steps" aria-label={`Country ${quiz.daily.i + 1} of ${quiz.daily.targets.length}`}>
+                  {quiz.daily.targets.map((_, k) => <i key={k} className={k < quiz.daily!.points.length ? `p${quiz.daily!.points[k]}` : k === quiz.daily!.i ? 'now' : ''} />)}
+                </span>
+                <span className="muted">{quiz.daily.points.reduce((s, p) => s + p, 0)} pts</span>
+              </div>
+            ) : (
+              <>
+                <div className="quiz-modes">
+                  {MODES.map((m) => (
+                    <button key={m.id} className={quiz.mode === m.id ? 'on' : ''} onClick={() => onMode(m.id)}>
+                      <m.icon size={13} /> {m.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="quiz-score">
+                  <span title="Current streak"><Flame size={14} /> {quiz.streak}</span>
+                  <span className="muted">best {quiz.best}</span>
+                  <span className="muted">{quiz.score}/{quiz.rounds}</span>
+                </div>
+              </>
+            )}
             <button className="icon-btn" onClick={onExit} aria-label="Exit quiz"><X size={16} /></button>
           </div>
 
@@ -101,14 +115,14 @@ export function QuizBar({ quiz, onMode, onSkip, onNext, onExit }: Props) {
           <div className="quiz-foot">
             <AnimatePresence mode="wait">
               <motion.span key={quiz.result + quiz.misses} className="quiz-msg" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
-                {quiz.result === 'good' && <>✓ Correct — {target.name}!{quiz.misses ? ' Nice recovery.' : ''}</>}
+                {quiz.result === 'good' && <>✓ Correct — {target.name}!{quiz.daily ? ` +${3 - quiz.misses}` : quiz.misses ? ' Nice recovery.' : ''}</>}
                 {quiz.result === 'bad' && <>Not quite — {3 - quiz.misses} more {3 - quiz.misses === 1 ? 'try' : 'tries'}</>}
                 {quiz.result === 'reveal' && <>Take a look at where it is on the globe</>}
                 {quiz.result === 'idle' && (quiz.misses ? `${3 - quiz.misses} ${3 - quiz.misses === 1 ? 'try' : 'tries'} left` : quiz.mode === 'clue' ? 'Tip: open the GeoGuessr tab to study these clues' : ' ')}
               </motion.span>
             </AnimatePresence>
             {quiz.result === 'reveal'
-              ? <button className="quiz-next" onClick={onNext} autoFocus>Next country <ArrowRight size={14} /></button>
+              ? <button className="quiz-next" onClick={onNext} autoFocus>{quiz.daily && quiz.daily.i + 1 >= quiz.daily.targets.length ? 'See my result' : 'Next country'} <ArrowRight size={14} /></button>
               : <button className="skip" onClick={onSkip}><SkipForward size={13} /> {quiz.misses ? 'Show me' : 'Skip'}</button>}
           </div>
         </motion.div>

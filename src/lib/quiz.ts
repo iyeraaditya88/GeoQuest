@@ -6,10 +6,11 @@ export const QUIZ_POOL = COUNTRIES.filter((c) => c.un && MAPPABLE.has(c.cca3) &&
 export const CLUE_POOL = Object.keys(CURATED).filter((k) => MAPPABLE.has(k));
 export const pickRandom = <T,>(xs: T[], not?: T) => { let x: T; do { x = xs[Math.floor(Math.random() * xs.length)]; } while (xs.length > 1 && x === not); return x; };
 
-/** One of the country's curated tips, with its name and demonym blanked out. */
-export function clueFor(target: string) {
+/** One of the country's curated tips (a given one, or random), with its name and demonym blanked out. */
+export function clueFor(target: string, seed?: number) {
   const c = BY_CCA3.get(target)!;
-  let clue = pickRandom(CURATED[target].tips.map((t) => t.t));
+  const tips = CURATED[target].tips.map((t) => t.t);
+  let clue = seed === undefined ? pickRandom(tips) : tips[seed % tips.length];
   for (const w of [c.name, c.demonym].filter(Boolean)) clue = clue.replace(new RegExp(w, 'gi'), '▢▢▢');
   return clue;
 }

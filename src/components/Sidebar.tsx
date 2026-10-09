@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { BarChart3, Binoculars, Brain, ChevronLeft, Dices, Drill, Gamepad2, Globe2, History, KeyRound, Landmark, Link2, ListOrdered, LogOut, Map as MapIcon, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, Sparkles, SunMoon, Swords, UserRound, Users, X } from 'lucide-react';
+import { BarChart3, BellRing, Binoculars, Brain, CalendarDays, Check, ChevronLeft, Dices, Drill, Gamepad2, Globe2, History, KeyRound, Landmark, Link2, ListOrdered, LogOut, Map as MapIcon, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, Sparkles, SunMoon, Swords, UserRound, Users, X } from 'lucide-react';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import type { MapStyle } from './GlobeView';
 
@@ -33,6 +33,13 @@ interface Props {
   onPeople?: () => void;
   onActivity?: () => void;
   onQuiz: () => void;
+  /** Today's Daily challenge: done yet, the streak, and the theme */
+  daily?: { done: boolean; streak: number; theme: string };
+  dailyOn?: boolean;
+  onDaily: () => void;
+  /** Morning reminders (notifications) */
+  onReminders?: () => void;
+  remindersOn?: boolean;
   onStreet: () => void;
   antipodeOn: boolean;
   onAntipode: () => void;
@@ -123,6 +130,9 @@ export function Sidebar(p: Props) {
           )}>
             {rail && p.onFriends && <Item icon={Swords} label="Challenge friends" rail onClick={act(p.onFriends)} active={p.matchOn} accent />}
             {rail && p.onInvite && <Item icon={Link2} label="Invite with a link" rail onClick={act(p.onInvite)} />}
+            <Item icon={CalendarDays} label={p.dailyOn ? 'Exit Daily' : 'Daily challenge'} active={p.dailyOn} sub={p.dailyOn ? undefined : p.daily ? (p.daily.done ? `Done today${p.daily.streak > 1 ? ` · 🔥 ${p.daily.streak}` : ''}` : `5 countries · ${p.daily.theme}${p.daily.streak > 1 ? ` · 🔥 ${p.daily.streak}` : ''}`) : '5 countries, new every day'}
+              rail={rail} onClick={act(p.onDaily)} accent
+              trailing={!p.dailyOn && p.daily && (p.daily.done ? <span className="sb-done" aria-label="Done today"><Check size={13} /></span> : <span className="sb-new">New</span>)} />
             <Item icon={Gamepad2} label={p.quizOn ? 'Exit quiz' : 'Map quiz'} sub={p.quizOn ? undefined : 'Find it · Flags · Clues'} rail={rail} active={p.quizOn} onClick={act(p.onQuiz)} />
             <Item icon={Binoculars} label="Street View challenge" sub="GeoGuessr-style, 5 rounds" rail={rail} onClick={act(p.onStreet)} />
             <Item icon={ListOrdered} label={p.playOn === 'top5' ? 'Exit Top 5' : 'Name the Top 5'} sub={p.playOn === 'top5' ? undefined : 'Rivers, peaks, populations…'} rail={rail} active={p.playOn === 'top5'} onClick={act(p.onTop5)} />
@@ -206,11 +216,13 @@ export function Sidebar(p: Props) {
             {p.user && (
               <>
                 <Fade show={!rail}><span className="sb-user" title={`Signed in as ${p.user}`}><UserRound size={13} /> {p.user}</span></Fade>
+                {p.onReminders && <button className={`sb-icon ${p.remindersOn ? 'lit' : ''}`} onClick={p.onReminders} aria-label="Morning reminder" data-tip={p.remindersOn ? 'Morning reminder: on' : 'Morning reminder'}><BellRing size={16} /></button>}
                 {p.onActivity && <button className="sb-icon" onClick={p.onActivity} aria-label="Activity" data-tip="Activity — who’s playing"><BarChart3 size={16} /></button>}
                 {p.onPeople && <button className="sb-icon" onClick={p.onPeople} aria-label="People" data-tip="People — invite friends"><Users size={16} /></button>}
                 <button className="sb-icon sb-signout" onClick={p.onSignOut} aria-label="Sign out" data-tip="Sign out"><LogOut size={16} /></button>
               </>
             )}
+            {!p.user && p.onReminders && <button className={`sb-icon ${p.remindersOn ? 'lit' : ''}`} onClick={p.onReminders} aria-label="Morning reminder" data-tip="Morning reminder"><BellRing size={16} /></button>}
             {!p.user && p.onActivity && <button className="sb-icon" onClick={p.onActivity} aria-label="Activity" data-tip="Activity — who’s playing"><BarChart3 size={16} /></button>}
           </div>
         </div>
