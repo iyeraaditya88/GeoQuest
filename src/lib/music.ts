@@ -45,6 +45,8 @@ class Engine {
   constructor() {
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     this.ctx = new Ctx();
+    // Tell the music button when sound actually starts or stops (e.g. "waiting for a tap").
+    this.ctx.addEventListener?.('statechange', () => notify());
     this.master = this.ctx.createGain();
     this.master.gain.value = 0;
     this.filter = this.ctx.createBiquadFilter();
@@ -102,6 +104,7 @@ class Engine {
    */
   restart() {
     if (!this.playing) return;
+    // If iOS refuses the resume (it isn't during a tap), the music waits and the next tap resumes it.
     void this.ctx.suspend().then(() => this.ctx.resume()).catch(() => null);
   }
 
@@ -271,6 +274,8 @@ function silentWav() {
   for (const b of buf) bin += String.fromCharCode(b);
   return `data:audio/wav;base64,${btoa(bin)}`;
 }
+const hasAudioSession = () => typeof navigator !== 'undefined' && 'audioSession' in navigator;
+function notify() { emit(); }
 function mediaPlayback(on: boolean) {
   try { const s = (navigator as unknown as { audioSession?: { type: string } }).audioSession; if (s && on) s.type = 'playback'; } catch { /* unsupported */ }
   try {
@@ -279,8 +284,10 @@ function mediaPlayback(on: boolean) {
       silentEl = new Audio(silentWav());
       silentEl.loop = true;
       silentEl.setAttribute('playsinline', '');
-      // Each time the media session (re)starts, restart the music so it's routed through it.
-      silentEl.addEventListener('playing', () => engine?.restart());
+      // Older iPhones (no audioSession API): each time the media session (re)starts, restart the
+      // music so it's routed through it. Newer ones set "playback" before the music starts (above),
+      // so there's nothing to fix — and restarting outside a tap would leave it paused.
+      silentEl.addEventListener('playing', () => { if (!hasAudioSession()) engine?.restart(); });
     }
     void silentEl.play().catch(() => null);
   } catch { /* no <audio> */ }
@@ -302,6 +309,8 @@ export const music = {
   },
   /** Is sound actually flowing (the browser allowed it)? */
   running() { return !!engine?.running; },
+  /** For the music button: 'off' (muted), 'on' (playing) or 'waiting' (wanted, needs a tap). */
+  status(): 'off' | 'on' | 'waiting' { return musicMuted() ? 'off' : engine?.running && engine.playing ? 'on' : 'waiting'; },
   /** Explore while browsing, match during live challenges. */
   setMode(mode: MusicMode) {
     get()?.setMode(mode);

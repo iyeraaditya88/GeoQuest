@@ -54,4 +54,17 @@ describe('background music', () => {
     expect([calls.length, plays]).toEqual(before);
     music.setMuted(true);
   });
+
+  it('doesn\'t restart the music on phones that can set "playback" up front (a restart outside a tap would leave it paused)', async () => {
+    const { music } = await import('../src/lib/music');
+    music.setMuted(false);
+    Object.defineProperty(navigator, 'audioSession', { value: { type: 'auto' }, configurable: true });
+    const before = calls.length;
+    document.querySelector('audio')?.dispatchEvent(new Event('playing'));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(calls.slice(before)).not.toContain('suspend');
+    expect(music.status()).toBe('on');
+    delete (navigator as unknown as { audioSession?: unknown }).audioSession;
+    music.setMuted(true);
+  });
 });
