@@ -35,7 +35,7 @@ The API tests start the real server in hosted mode against temporary files: sign
 - **Sign-in:** every page and API call needs a signed session cookie (HttpOnly, Secure, SameSite=Lax, 30 days). Passwords are scrypt-hashed; invite links are single-use and stored only as hashes. Re-inviting someone (a password reset) signs out all their old sessions.
 - **Requests:** writes from other sites are refused (Origin check). Inputs are validated and size-limited; sign-in and API calls are rate-limited. Server errors never reveal internals.
 - **Browser:** a Content-Security-Policy allows scripts only from this site (`'unsafe-eval'` is needed by MapillaryJS), no framing, and no plugins; plus `nosniff`, HSTS, a strict referrer policy and a Permissions-Policy.
-- **Keys:** each user's Anthropic key is encrypted (AES-GCM) into an HttpOnly cookie, never stored on the server; the owner's key is never used when hosted. Live-play tokens only reach the lobby, your own inbox, and matches you hold a signed ticket for.
+- **Keys:** the owner's Anthropic key (`ANTHROPIC_API_KEY` in Vercel) serves every player, server-side only — it never reaches a browser. Every call uses Claude Haiku 5.5 (no fallbacks to other models), with a per-player cap of 40 questions per 10 minutes and 150 a day. Without that variable, players can connect their own key, encrypted (AES-GCM) into an HttpOnly cookie, never stored on the server. Live-play tokens only reach the lobby, your own inbox, and matches you hold a signed ticket for.
 - **Data:** account changes use conditional writes, so two changes at once can't undo each other and a failed read can never wipe the accounts.
 
 ## Hosting & accounts (Vercel)
@@ -48,7 +48,7 @@ The hosted site sits **entirely behind a sign-in** (`middleware.ts`). Accounts l
 
 **Live play with friends:** create a free app at [ably.com](https://ably.com), copy its API key (the root key, or one with publish, subscribe, presence and token-request rights), and add it in Vercel → Settings → Environment Variables as `ABLY_API_KEY`, then redeploy. The key stays on the server. Browsers get short-lived tokens that only reach the lobby, their own inbox, and matches they hold a signed ticket for. Until the key is set, **Play with friends** doesn't appear.
 
-On the hosted site each user connects **their own** Anthropic key from Ask the Atlas. It's checked with Anthropic and kept encrypted in an httpOnly cookie in their browser, never stored on the server; the owner's key is never used. Locally (`npm run dev`) there's no login and the key lives in `.env` as before.
+On the hosted site, set `ANTHROPIC_API_KEY` in Vercel (Settings → Environment Variables) and redeploy: everyone then uses the Atlas without being asked for a key, on Claude Haiku 5.5 only. Without it, each user can connect **their own** key from Ask the Atlas (encrypted in an httpOnly cookie in their browser, never stored on the server). Locally (`npm run dev`) there's no login and the key lives in `.env` as before.
 
 ## Install as an app (PWA)
 

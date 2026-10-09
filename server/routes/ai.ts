@@ -16,17 +16,32 @@ const ENV_PATH = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '
 
 const byCca3 = new Map((countries as { cca3: string }[]).map((c) => [c.cca3, c]));
 
+/**
+ * Every Claude call uses this one model — Haiku: fast and inexpensive, which matters now that the
+ * hosted site runs on the owner's key. (No automatic fallbacks either: they could switch to a
+ * pricier model.)
+ */
+export const MODEL = 'claude-haiku-5-5';
+
 let client: Anthropic | null = null;
 let keySource: 'env' | 'app' | null = null;
 let aiReady: boolean | null = null;
 
 async function verify(c: Anthropic) {
-  await c.models.retrieve('claude-opus-5-5');
+  await c.models.retrieve(MODEL);
 }
 
-/** The Anthropic client for this request: the server's (locally) or the user's own key (hosted). */
+// Hosted: the owner's key (ANTHROPIC_API_KEY in Vercel) serves everyone, so nobody is asked for
+// one. Without it, a player can still connect their own (sealed in a cookie in their browser).
+let shared: Anthropic | null = null;
+const sharedKey = () => (HOSTED ? process.env.ANTHROPIC_API_KEY?.trim() || null : null);
+const sharedClient = () => { const k = sharedKey(); if (!k) return null; shared ??= new Anthropic({ apiKey: k }); return shared; };
+
+/** The Anthropic client for this request: the server's key, or (hosted, without one) the user's own. */
 async function clientFor(req: express.Request): Promise<Anthropic | null> {
   if (!HOSTED) return (await checkAi()) ? client : null;
+  const s = sharedClient();
+  if (s) return s;
   const key = await openKey(cookie(req, KEY_COOKIE), req.user!);
   return key ? new Anthropic({ apiKey: key }) : null;
 }
@@ -138,8 +153,9 @@ export function registerAi(app: express.Express) {
 
   app.get('/api/health', async (req, res) => {
     if (HOSTED) {
-      const ai = !!(await openKey(cookie(req, KEY_COOKIE), req.user!));
-      res.json({ ai, source: ai ? 'user' : null, hosted: true, user: req.user, role: req.role, live: live.liveConfigured() ? 'ably' : null });
+      const server = !!sharedKey();
+      const ai = server || !!(await openKey(cookie(req, KEY_COOKIE), req.user!));
+      res.json({ ai, source: server ? 'server' : ai ? 'user' : null, hosted: true, user: req.user, role: req.role, live: live.liveConfigured() ? 'ably' : null });
       return;
     }
     res.json({ ai: await checkAi(), source: keySource, hosted: false, user: null, live: 'local' });
@@ -156,7 +172,7 @@ export function registerAi(app: express.Express) {
       await verify(c);
     } catch (err) {
       const msg = err instanceof Anthropic.AuthenticationError ? 'Anthropic rejected this key.'
-        : err instanceof Anthropic.PermissionDeniedError ? 'This key doesn’t have access to Claude Opus 5.5.'
+        : err instanceof Anthropic.PermissionDeniedError ? 'This key doesn’t have access to Claude Haiku 5.5.'
           : 'Couldn’t reach Anthropic to check the key — try again.';
       res.status(400).json({ error: msg });
       return;
@@ -185,7 +201,9 @@ export function registerAi(app: express.Express) {
     res.json({ ai: false, source: null });
   });
 
-  app.post('/api/ask', rateLimit(60, 10 * 60_000), async (req, res) => {
+  // Questions cost money on the owner's key: a fair-use cap per player (per day, as well as bursts).
+  const askDaily = rateLimit(150, 24 * 3600_000, 'You’ve asked the Atlas a lot today — it’ll be back for you tomorrow!');
+  app.post('/api/ask', rateLimit(40, 10 * 60_000), askDaily, async (req, res) => {
     const { messages, country } = req.body as AskBody;
     const ok = Array.isArray(messages) && messages.length > 0 && messages.length <= 40 && messages.every((m) =>
       m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.length <= 8000);
@@ -213,17 +231,15 @@ export function registerAi(app: express.Express) {
     req.on('close', () => { aborted = true; current?.abort(); });
 
     try {
-      const convo: Anthropic.Beta.BetaMessageParam[] = messages.slice(-12).map((m) => ({ role: m.role, content: m.content }));
-      // Server-side web search can pause long turns; resume a few times.
-      for (let turn = 0; turn < 4 && !aborted; turn++) {
-        const stream = ai.beta.messages.stream({
-          model: 'claude-opus-5-5',
-          max_tokens: 6000,
-          betas: ['server-side-fallback-2026-07-01'],
-          fallbacks: 'default',
+      const convo: Anthropic.MessageParam[] = messages.slice(-12).map((m) => ({ role: m.role, content: m.content }));
+      // Server-side web search can pause long turns; resume a couple of times.
+      for (let turn = 0; turn < 3 && !aborted; turn++) {
+        const stream = ai.messages.stream({
+          model: MODEL,
+          max_tokens: 1500, // answers are a few sentences
           output_config: { effort: 'low' },
           system: SYSTEM + ctx,
-          tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 3 }],
+          tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 2 }],
           messages: convo,
         });
         current = stream;
@@ -242,13 +258,13 @@ export function registerAi(app: express.Express) {
     } catch (err) {
       if (aborted) return;
       if (err instanceof Anthropic.AuthenticationError) {
-        if (HOSTED) { if (!res.headersSent) clearCookie(res, KEY_COOKIE); } // their key stopped working
+        if (HOSTED) { if (!sharedKey() && !res.headersSent) clearCookie(res, KEY_COOKIE); } // their key stopped working
         else { aiReady = false; client = null; keySource = null; }
       }
       const msg = err instanceof Anthropic.RateLimitError
         ? 'The Atlas is a bit busy — try again in a moment.'
         : err instanceof Anthropic.AuthenticationError
-          ? 'Your Anthropic key was rejected — reconnect it from the Atlas header.'
+          ? (sharedKey() ? 'The Atlas is unavailable right now — try again later.' : 'Your Anthropic key was rejected — reconnect it from the Atlas header.')
           : err instanceof Anthropic.APIError
             ? `The Atlas hit an error (${err.status ?? 'network'}).`
             : 'The Atlas lost its connection.';
@@ -265,8 +281,8 @@ export function registerAi(app: express.Express) {
     if (!ai) { res.json({ match: null }); return; }
     try {
       const msg = await ai.messages.create({
-        model: 'claude-opus-5-5',
-        max_tokens: 1500,
+        model: MODEL,
+        max_tokens: 60, // just the option text
         output_config: { effort: 'low' },
         system: 'You grade answers in a geography trivia game. Be lenient about spelling, abbreviations, alternative or historical names and translations, but do not accept a genuinely different place. Reply with ONLY the exact matching option text, or NONE.',
         messages: [{

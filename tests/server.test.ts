@@ -22,7 +22,7 @@ Object.assign(process.env, {
 });
 delete process.env.BLOB_READ_WRITE_TOKEN;
 delete process.env.BLOB_STORE_ID;
-delete process.env.ANTHROPIC_API_KEY;
+process.env.ANTHROPIC_API_KEY = ''; // (not deleted: .env would fill it back in with a real key)
 
 let server: Server;
 let port = 0;
@@ -151,6 +151,14 @@ describe('request hygiene', () => {
     expect((await call('POST', '/api/ask', { cookie: bob, body: { messages: [{ role: 'user', content: 'x'.repeat(9000) }] } })).status).toBe(400);
     // well-formed, but this user hasn't connected a key
     expect((await call('POST', '/api/ask', { cookie: bob, body: { messages: [{ role: 'user', content: 'Capital of Peru?' }] } })).status).toBe(503);
+  });
+
+  it('uses the owner\'s key for everyone once it\'s set (nobody is asked for theirs)', async () => {
+    expect((await call('GET', '/api/health', { cookie: bob })).body).toEqual(expect.objectContaining({ ai: false, source: null }));
+    process.env.ANTHROPIC_API_KEY = 'sk-ant-test-not-a-real-key-000000000000';
+    try {
+      expect((await call('GET', '/api/health', { cookie: bob })).body).toEqual(expect.objectContaining({ ai: true, source: 'server' }));
+    } finally { process.env.ANTHROPIC_API_KEY = ''; }
   });
 });
 
