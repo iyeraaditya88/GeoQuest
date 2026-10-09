@@ -94,8 +94,13 @@ export function insideTest(cca3: string) {
   return { box, inside };
 }
 
-/** Rivers come in three tiers: the great rivers, major rivers, and tributaries. */
-export const riverTier = (rank: number) => (rank <= 2 ? 0 : rank <= 4 ? 1 : 2);
+/**
+ * Rivers come in four tiers: the great rivers, major rivers, tributaries, and regional rivers
+ * (Natural Earth's detailed set — the Cauvery, the Tungabhadra… — seen only zoomed in to a region).
+ */
+export const riverTier = (rank: number) => (rank <= 2 ? 0 : rank <= 4 ? 1 : rank <= 6 ? 2 : 3);
+/** The smallest river tier showing at this camera altitude (so a tap can't pick an unseen river). */
+export const riverTierAt = (alt: number) => TIER_ALT.reduce((max, a, i) => (alt < a ? i : max), 0);
 
 export type NatureStyle = 'political' | 'satellite' | 'daynight';
 const PALETTE: Record<NatureStyle, { river: string; glow: string; lake: string | null; lakeEdge: string; mtn: string; mtnGlow: string; mtnFill: string }> = {
@@ -107,10 +112,10 @@ const PALETTE: Record<NatureStyle, { river: string; glow: string; lake: string |
 const RANGE_ALT = [Infinity, 1.3, 0.7];
 const rangeTier = (r: number) => (r <= 2 ? 0 : r <= 4 ? 1 : 2);
 // Screen widths (px) per river tier — great rivers bold, tributaries fine — and their glow.
-const RIVER_W = [1.6, 1.15, 0.85];
+const RIVER_W = [1.6, 1.15, 0.85, 0.7];
 const GLOW_W = 2.6; // × the core width
 // Camera altitude (globe radii) below which each river tier appears.
-const TIER_ALT = [Infinity, 1.25, 0.6];
+const TIER_ALT = [Infinity, 1.25, 0.6, 0.32];
 
 const ease = (t: number) => 1 - Math.pow(1 - t, 3);
 
@@ -132,7 +137,7 @@ export function createNatureLayer(scene: THREE.Scene, R: number, camera: THREE.C
   let lifted: { id: string; group: THREE.Group } | null = null;
   let wanted: string | null = null; // latest lift request (older async ones bail out)
   let picked: THREE.Group | null = null; // the selected river, drawn in gold
-  const tierAlpha = [0, 0, 0];
+  const tierAlpha = [0, 0, 0, 0];
   const ranges: { fill: THREE.Mesh; glow: LineSegments2; core: LineSegments2 }[] = [];
   const rangeAlpha = [0, 0, 0];
   let raf = 0;
@@ -243,6 +248,13 @@ export function createNatureLayer(scene: THREE.Scene, R: number, camera: THREE.C
       t.glow.material.linewidth = 3.2 * grow;
       t.core.visible = t.glow.visible = t.fill.visible = rangeAlpha[i] > 0.002;
     });
+    // Regional rivers on the raised (selected) country follow the regional tier's fade.
+    if (lifted) lifted.group.traverse((o) => {
+      if (!o.userData.regional) return;
+      const m = (o as THREE.Mesh).material as THREE.Material & { opacity: number };
+      m.opacity = ((o.userData.target as number | undefined) ?? 1) * tierAlpha[3];
+      o.visible = tierAlpha[3] > 0.002;
+    });
     tiers.forEach((t, i) => {
       const want = visible && alt < TIER_ALT[i] ? 1 : 0;
       tierAlpha[i] += (want - tierAlpha[i]) * 0.12;
@@ -261,7 +273,7 @@ export function createNatureLayer(scene: THREE.Scene, R: number, camera: THREE.C
     async init() {
       data = await loadNature();
       if (!data) return;
-      const byTier: River[][] = [[], [], []];
+      const byTier: River[][] = [[], [], [], []];
       for (const r of data.rivers) byTier[riverTier(r.r)].push(r);
       byTier.forEach((rs, i) => {
         const geo = riverGeo(rs, R * 1.0056);
@@ -341,10 +353,15 @@ export function createNatureLayer(scene: THREE.Scene, R: number, camera: THREE.C
       });
       const top = R * (1 + lift);
       const g = new THREE.Group();
-      const rg = riverGeo(riv, top * 1.0009), rg2 = riverGeo(riv, top * 1.0008);
-      if (rg && rg2) {
-        const glow = fat(rg2, RIVER_W[1] * GLOW_W * 1.3, 7); glow.userData.kind = 'riverGlow';
-        const core = fat(rg, RIVER_W[1] * 1.3, 7.1); core.userData.kind = 'river';
+      // The country's own rivers ride on its raised cap; its regional rivers (thinner) only
+      // fade in once you're zoomed in close, like everywhere else.
+      const main = riv.filter((r) => riverTier(r.r) <= 2), regional = riv.filter((r) => riverTier(r.r) === 3);
+      for (const [set, w, reg] of [[main, RIVER_W[1] * 1.3, false], [regional, RIVER_W[3] * 1.2, true]] as const) {
+        const rg = riverGeo(set, top * 1.0009), rg2 = riverGeo(set, top * 1.0008);
+        if (!rg || !rg2) continue;
+        const glow = fat(rg2, w * GLOW_W, 7); glow.userData.kind = 'riverGlow';
+        const core = fat(rg, w, 7.1); core.userData.kind = 'river';
+        glow.userData.regional = core.userData.regional = reg;
         g.add(glow, core);
       }
       const lk = lakeGeos(lakes, top * 1.0001, top * 1.0006);

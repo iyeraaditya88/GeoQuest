@@ -160,7 +160,7 @@ function buildNature(d: Nature): Label[] {
 // Camera altitude below which each kind/rank appears (index = rank / tier).
 const RANGE_ALT = [9, 2.6, 1.5, 0.9, 0.5, 0.32, 0.2];
 const PEAK_ALT = [9, 1.2, 0.75, 0.48, 0.3, 0.2];
-const RIVER_ALT = [2.2, 1.05, 0.5];
+const RIVER_ALT = [2.2, 1.05, 0.5, 0.26];
 
 // Which city ranks are allowed at a given camera altitude (in globe radii).
 function maxCityRank(alt: number) {

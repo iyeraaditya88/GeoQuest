@@ -145,12 +145,14 @@ interface NatCache {
   labels: { kind: 'river' | 'lake' | 'range' | 'peak'; key: string; group?: string; text: string; x: number; y: number; ang: number; w: number; size: number; rank: number; elev?: string; ew?: number }[];
 }
 // Zoom at which each river tier's lines appear, and at which labels of each rank do.
-const RIVER_LINE_K = [0, 2.2, 5];
-const RIVER_LABEL_K = [1.6, 3.2, 6.5];
+const RIVER_LINE_K = [0, 2.2, 5, 11];
+const RIVER_LABEL_K = [1.6, 3.2, 6.5, 13];
 const RANGE_K = [0, 1, 1.7, 3, 5.5, 9, 15];
 // Zoom at which each tier of mountain-range areas appears (major ranges always).
 const RANGE_AREA_K = [0, 1.8, 3.8];
 const PEAK_K = [0, 2.6, 4.5, 7.5, 12, 18];
+/** The smallest river tier drawn at this zoom (so a click can't pick an unseen river). */
+const atlasTier = (k: number) => RIVER_LINE_K.reduce((max, k0, i) => (ramp(k, k0) > 0 ? i : max), 0);
 const ramp = (k: number, k0: number) => (k0 <= 0 ? 1 : Math.max(0, Math.min(1, (k - k0 * 0.8) / (k0 * 0.35))));
 
 function cityMaxRank(k: number) {
@@ -338,7 +340,7 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
       ctx.fillStyle = '#a9cbe8'; ctx.fill(N.lakes);
       ctx.strokeStyle = 'rgba(52,118,196,0.45)'; ctx.lineWidth = 0.6 / k; ctx.stroke(N.lakes);
       const grow = 1 + 0.18 * Math.log2(Math.max(1, k));
-      [1.15, 0.85, 0.65].forEach((w, i) => {
+      [1.15, 0.85, 0.65, 0.55].forEach((w, i) => {
         const a = ramp(k, RIVER_LINE_K[i]);
         if (a <= 0) return;
         ctx.globalAlpha = s.natAlpha * a * 0.85;
@@ -427,7 +429,7 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
     const proj = geoNaturalEarth1().rotate([-s.lambda0, 0]).scale(s.S1).translate(s.T1).precision(0.3);
     const path = geoPath(proj);
     const pxPerDeg = (s.S1 * Math.PI) / 180;
-    const tiers: string[][] = [[], [], []];
+    const tiers: string[][] = [[], [], [], []];
     for (const r of d.rivers) {
       const p = path({ type: 'MultiLineString', coordinates: r.c } as GeoJSON.MultiLineString);
       if (p) tiers[riverTier(r.r)].push(p);
@@ -1105,7 +1107,7 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
     if (label) { cursor.set({ country: { name: displayName(label), cca2: '', glyph: glyph[label.kind], sub: `${kindText[label.kind]} · click for details` } }); s.hover = null; return; }
     if (g) {
       const perDeg = (s.S1 * s.transform.k * Math.PI) / 180;
-      void riverNear(g.lat, g.lng, 7 / perDeg).then((r) => {
+      void riverNear(g.lat, g.lng, 7 / perDeg, atlasTier(s.transform.k)).then((r) => {
         if (r) { cursor.set({ country: { name: displayName({ kind: 'river', name: r.n }), cca2: '', glyph: '〰', sub: 'River · click for details' } }); s.hover = null; }
       });
     }
@@ -1129,7 +1131,7 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
       // Right on a river line?
       if (g) {
         const perDeg = (s.S1 * s.transform.k * Math.PI) / 180;
-        void riverNear(g.lat, g.lng, (e.pointerType === 'touch' ? 2.5 : 7) / perDeg).then((r) => (r ? L.onFeature!({ kind: 'river', name: r.id }) : choose()));
+        void riverNear(g.lat, g.lng, (e.pointerType === 'touch' ? 2.5 : 7) / perDeg, atlasTier(s.transform.k)).then((r) => (r ? L.onFeature!({ kind: 'river', name: r.id }) : choose()));
         return;
       }
     }

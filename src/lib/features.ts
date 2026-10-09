@@ -1,7 +1,7 @@
 // Rivers, ranges, peaks and lakes as selectable things: hit-testing (click near a river line),
 // facts we can compute ourselves (countries crossed, highest peaks), and a Wikipedia summary.
 import { BY_CCA3, countryAt } from './data';
-import { loadNature, type Lake, type Nature, type Peak, type Range, type River } from './nature';
+import { loadNature, riverTier, type Lake, type Nature, type Peak, type Range, type River } from './nature';
 
 export type FeatureKind = 'river' | 'range' | 'peak' | 'lake';
 export interface FeatureRef { kind: FeatureKind; name: string }
@@ -39,8 +39,8 @@ function riverGrid(d: Nature) {
   return grid;
 }
 
-/** The named river whose line passes within `tolDeg` of a point, if any. */
-export async function riverNear(lat: number, lng: number, tolDeg: number): Promise<River | null> {
+/** The named river whose line passes within `tolDeg` of a point, if any (up to tier `maxTier`). */
+export async function riverNear(lat: number, lng: number, tolDeg: number, maxTier = 3): Promise<River | null> {
   const d = await loadNature();
   if (!d) return null;
   const g = riverGrid(d);
@@ -55,7 +55,7 @@ export async function riverNear(lat: number, lng: number, tolDeg: number): Promi
         const dx = bx - ax, dy = by - ay;
         const t = Math.max(0, Math.min(1, -(ax * dx + ay * dy) / (dx * dx + dy * dy || 1)));
         const dist = Math.hypot(ax + t * dx, ay + t * dy);
-        if (dist < bestD) { bestD = dist; best = s.r; }
+        if (dist < bestD && riverTier(s.r.r) <= maxTier) { bestD = dist; best = s.r; }
       }
     }
   }

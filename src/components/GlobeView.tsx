@@ -7,7 +7,7 @@ import { createLabelLayer } from '../lib/mapLabels';
 import { cursor } from '../lib/cursor';
 import { buildCountryLayer, rgba, type CountryLayer, type RGBA } from '../lib/countryMesh';
 import { createAdminLayer, createHoverFx, createZoomAdminLayer, loadAdmin, prefetchCountry } from '../lib/globeOverlays';
-import { createNatureLayer, loadNature } from '../lib/nature';
+import { createNatureLayer, loadNature, riverTierAt } from '../lib/nature';
 import { runDive, type DiveHooks } from '../lib/antipode';
 import { displayName, riverNear, type FeatureInfo, type FeatureRef } from '../lib/features';
 const displayRiver = (n: string) => displayName({ kind: 'river', name: n });
@@ -158,7 +158,7 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
       cursor.set({ country: c ? { name: c.name, cca2: c.cca2, sub: `${c.capital[0] ?? '—'} · ${fmtCompact(c.population)}` } : null });
       // Right on a river line? Name it (a click will open its details).
       if (geo && natureRef.current && !quiz && !pickMode) {
-        void riverNear(geo.lat, geo.lng, pxTol(geo, 7)).then((r) => {
+        void riverNear(geo.lat, geo.lng, pxTol(geo, 7), riverTierAt(globe.current?.pointOfView().altitude ?? 9)).then((r) => {
           if (!r || dragging.current) return;
           cursor.set({ country: { name: displayRiver(r.n), cca2: '', glyph: '〰', sub: 'River · click for details' } });
         });
@@ -187,7 +187,7 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
     // A click right on a river line opens the river; anywhere else, the country.
     if (geo && natureRef.current && !quiz && onFeature) {
       // A fingertip is imprecise: on touch only a near-exact hit on the line counts (labels stay tappable).
-      void riverNear(geo.lat, geo.lng, pxTol(geo, e.pointerType === 'touch' ? 2.5 : 7)).then((r) => (r ? onFeature({ kind: 'river', name: r.id }) : choose()));
+      void riverNear(geo.lat, geo.lng, pxTol(geo, e.pointerType === 'touch' ? 2.5 : 7), riverTierAt(g.pointOfView().altitude)).then((r) => (r ? onFeature({ kind: 'river', name: r.id }) : choose()));
       return;
     }
     choose();
