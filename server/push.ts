@@ -109,7 +109,7 @@ export function morningNote(date: string, streak: number): Note {
 /** Send to every device of a player; returns the devices that still work (dead ones dropped). */
 export async function sendTo(p: PushPrefs, note: Note): Promise<{ alive: Sub[]; sent: number }> {
   const { publicKey: pub, privateKey } = await loadKeys();
-  const subject = `https://${process.env.PUBLIC_HOST || 'geoquest-app.vercel.app'}`;
+  const subject = `https://${process.env.PUBLIC_HOST || 'playgeoquest.app'}`;
   const alive: Sub[] = [];
   let sent = 0;
   await Promise.all(p.subs.map(async (s) => {

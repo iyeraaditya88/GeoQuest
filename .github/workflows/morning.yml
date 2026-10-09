@@ -23,4 +23,4 @@ jobs:
           if [ -z "$CRON_SECRET" ]; then echo "CRON_SECRET isn't set yet — skipping."; exit 0; fi
           curl --fail-with-body --silent --show-error --retry 3 --retry-all-errors --max-time 90 \
             -X POST -H "Authorization: Bearer $CRON_SECRET" \
-            https://geoquest-app.vercel.app/api/cron/morning
+            https://playgeoquest.app/api/cron/morning
