@@ -63,8 +63,10 @@ import { CLUE_POOL, QUIZ_POOL, clueFor, pickRandom } from './lib/quiz';
 import { DAILY_N, dailyNumber, dailyPicks, localDate, pointsFor, themeOf, THEME_LABEL } from './lib/daily';
 import { DailyResult, type DailyBoardRow } from './components/DailyResult';
 import { Reminders } from './components/Reminders';
+import { PlacesPanel } from './components/PlacesPanel';
+import { kindOf, usePlaces } from './lib/places';
 import { missHint, takeaway } from './lib/quizCoach';
-import { buzz } from './lib/touch';
+import { Click, buzz } from './lib/touch';
 import { LivePlay, type LiveState, type MatchGlobe } from './components/LivePlay';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { localName } from './lib/live';
@@ -187,6 +189,12 @@ export default function App() {
   const [dailyCard, setDailyCard] = useState<{ date: string; points: number[]; fresh: boolean } | null>(null);
   const [remindersOpen, setRemindersOpen] = useState(false);
   const [remindersOn, setRemindersOn] = useState(false);
+  // My places: the panel, a point just picked on the globe, and a pin just tapped.
+  const [placesOpen, setPlacesOpen] = useState(false);
+  const [placesPick, setPlacesPick] = useState<{ lat: number; lng: number; n: number } | null>(null);
+  const [placesFocus, setPlacesFocus] = useState<{ id: string; n: number } | null>(null);
+  const [placesDraft, setPlacesDraft] = useState<{ lat: number; lng: number } | null>(null); // a new pin being named
+  const { places: myPlaces } = usePlaces();
   const [play, setPlay] = useState<null | 'top5' | 'capitals' | 'trivia'>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const timer = useRef<number | undefined>(undefined);
@@ -608,6 +616,27 @@ export default function App() {
     return () => { window.clearTimeout(t); globe.current?.resume(); };
   }, [liveState.immersive]);
 
+  // ── My places ──────────────────────────────────────────
+  const startPlaces = async () => {
+    if (placesOpen) { setPlacesOpen(false); return; }
+    if (morphing.current) return;
+    if (geoRef.current) exitGeo();
+    if (antiRef.current) exitAntipode();
+    if (viewRef.current === 'flat') await toggleFlat(); // pins live on the globe
+    exitQuiz();
+    setPlay(null);
+    setSelected(null);
+    setHighlighted([]);
+    setFeature(null);
+    setDockOpen(false);
+    setAutoRotate(false);
+    setPlacesPick(null);
+    setPlacesOpen(true);
+    track('game', { g: 'places' });
+  };
+  const openPlace = (id: string) => { setPlacesOpen(true); setPlacesFocus({ id, n: Date.now() }); setAutoRotate(false); };
+  const placePins = useMemo(() => myPlaces.map((p) => ({ lat: p.lat, lng: p.lng, kind: 'place' as const, id: p.id, name: p.name, emoji: kindOf(p.kind).emoji, tone: p.kind })), [myPlaces]);
+
   // ── Antipode finder ────────────────────────────────────
   // (pins: where you start, and — once you've surfaced — where you came out)
   const [anti, setAnti] = useState<{ stage: AntipodeStage; from: Place | null; to: Place | null } | null>(null);
@@ -615,6 +644,8 @@ export default function App() {
   antiRef.current = anti;
   const diveRun = useRef<{ cancel: () => void } | null>(null);
   const diveTick = useRef<(p: number) => void>(() => {});
+  // Starting a game puts the pins away.
+  useEffect(() => { if (quiz || geo || play || anti || liveState.active) setPlacesOpen(false); }, [quiz, geo, play, anti, liveState.active]);
   const antiPins = useMemo(() => {
     if (!anti) return [];
     const pins: { lat: number; lng: number; kind: 'from' | 'to' }[] = [];
@@ -712,10 +743,11 @@ export default function App() {
         feedback={feedback}
         quiz={!!quiz || liveState.quiz}
         liftUp={(dockOpen && !quiz) || (!!quiz && vp.w <= 600 && vp.h > vp.w)}
-        dropDown={!!play || (!!anti && anti.stage !== 'dive') || (!!quiz && !(vp.w <= 600 && vp.h > vp.w))}
-        pickMode={!!anti && anti.stage !== 'dive'}
-        onPick={pickAntipode}
-        pins={antiPins}
+        dropDown={!!play || placesOpen || (!!anti && anti.stage !== 'dive') || (!!quiz && !(vp.w <= 600 && vp.h > vp.w))}
+        pickMode={(!!anti && anti.stage !== 'dive') || placesOpen}
+        onPick={(lat, lng) => (placesOpen ? setPlacesPick({ lat, lng, n: Date.now() }) : pickAntipode(lat, lng))}
+        pins={anti ? antiPins : quiz || geo || play || liveState.active ? [] : placesOpen && placesDraft ? [...placePins, { ...placesDraft, kind: 'guess' as const }] : placePins}
+        onPin={openPlace}
         leftInset={leftInset}
         nature={nature}
         hidden={globeHidden || !!geo || liveState.immersive}
@@ -787,6 +819,8 @@ export default function App() {
         onAsk={() => { if (quiz) exitQuiz(); setDockOpen(true); }}
         onConnect={() => { if (quiz) exitQuiz(); setDockOpen(true); setKeyReq((n) => n + 1); }}
         onQuiz={() => (quiz ? exitQuiz() : startQuiz())}
+        onPlaces={() => void startPlaces()}
+        placesOn={placesOpen}
         daily={daily ? { done: !!daily.mine && daily.date === localDate(), streak: daily.streak?.count ?? 0, theme: THEME_LABEL[themeOf(localDate())] } : { done: false, streak: 0, theme: THEME_LABEL[themeOf(localDate())] }}
         onDaily={() => (quiz?.daily ? exitQuiz() : startDaily())}
         onReminders={() => setRemindersOpen(true)}
@@ -818,7 +852,9 @@ export default function App() {
         {chrome && !selected && !quiz && !dockOpen && !geo && !play && !anti && !liveState.active && (
           <motion.div className="hint" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ delay: 0.9 }}>
             <span className="pulse-dot" />{' '}
-            {view === 'globe' && style === 'daynight'
+            {placesOpen
+              ? `${Click} anywhere on the globe to drop a pin · tap a pin to open it`
+              : view === 'globe' && style === 'daynight'
               ? 'Live: the lit side is in daylight right now, the dark side is night · ☀ marks midday'
               : <>{view === 'globe' ? 'Drag to spin' : 'Drag to pan'} · Scroll to zoom · Click any country</>}
           </motion.div>
@@ -853,6 +889,13 @@ export default function App() {
         )}
       </AnimatePresence>
       <QuizBar quiz={quiz} onMode={(m) => startQuiz(m)} onSkip={skip} onNext={nextQuiz} onExit={exitQuiz} />
+      <AnimatePresence>
+        {placesOpen && (
+          <ErrorBoundary key="places" name="My places" onClose={() => setPlacesOpen(false)}>
+            <PlacesPanel picked={placesPick} focus={placesFocus} onDraft={setPlacesDraft} onFly={(lat, lng) => globe.current?.frame(lat, lng, 0.55)} onExit={() => setPlacesOpen(false)} />
+          </ErrorBoundary>
+        )}
+      </AnimatePresence>
       <AnimatePresence>
         {anti && (
           <AntipodeCard

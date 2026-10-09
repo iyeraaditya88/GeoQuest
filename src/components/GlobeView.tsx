@@ -53,7 +53,9 @@ interface Props {
   /** Street-view game: clicks drop a pin instead of selecting countries. */
   pickMode?: boolean;
   sideView?: boolean;
-  pins?: { lat: number; lng: number; kind: 'guess' | 'answer' | 'from' | 'to' }[];
+  pins?: ({ lat: number; lng: number; kind: 'guess' | 'answer' | 'from' | 'to' } | { lat: number; lng: number; kind: 'place'; id: string; emoji: string; name: string; tone: string })[];
+  /** One of "My places" was tapped on the globe */
+  onPin?: (id: string) => void;
   arcs?: { startLat: number; startLng: number; endLat: number; endLng: number }[];
   onPick?: (lat: number, lng: number) => void;
   /** A river / range / peak / lake was clicked. */
@@ -95,7 +97,7 @@ function angularDistance(a: { lat: number; lng: number }, b: { lat: number; lng:
 }
 
 export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
-  { selected, highlighted, style, autoRotate, feedback, quiz, liftUp, dropDown = false, hidden, nature = true, leftInset = 0, pickMode = false, sideView = false, pins = [], arcs = [], onPick, onFeature, feature = null, onSelect, onInteract, onReady }, ref,
+  { selected, highlighted, style, autoRotate, feedback, quiz, liftUp, dropDown = false, hidden, nature = true, leftInset = 0, pickMode = false, sideView = false, pins = [], arcs = [], onPick, onPin, onFeature, feature = null, onSelect, onInteract, onReady }, ref,
 ) {
   const globe = useRef<GlobeMethods | undefined>(undefined);
   const labelLayer = useRef<HTMLDivElement>(null);
@@ -107,6 +109,8 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
   const featureCb = useRef(onFeature);
   featureCb.current = onFeature;
   const styleRef = useRef(style), hiddenRef = useRef(hidden), natureRef = useRef(nature);
+  const onPinRef = useRef(onPin);
+  onPinRef.current = onPin;
   styleRef.current = style; hiddenRef.current = hidden; natureRef.current = nature;
 
   const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight });
@@ -633,12 +637,22 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
         ringRepeatPeriod={1100}
         ringAltitude={0.042}
         htmlElementsData={htmlItems}
-        htmlAltitude={(d) => { const k = (d as { kind: string }).kind; return k === 'capital' ? 0.045 : k === 'sun' ? 0.02 : 0.012; }}
+        htmlAltitude={(d) => { const k = (d as { kind: string }).kind; return k === 'capital' ? 0.045 : k === 'sun' ? 0.02 : k === 'place' ? 0.008 : 0.012; }}
         htmlTransitionDuration={0}
+        // Pins round the back of the globe: hidden (and not tappable), not floating faintly in space.
+        htmlElementVisibilityModifier={(el, visible) => {
+          el.style.opacity = visible ? '' : '0';
+          el.style.visibility = visible ? '' : 'hidden';
+        }}
         htmlElement={(d) => {
-          const it = d as { kind: string; name?: string };
+          const it = d as { kind: string; name?: string; id?: string; emoji?: string; tone?: string };
           const el = document.createElement('div');
-          if (it.kind === 'capital') {
+          if (it.kind === 'place') {
+            // My places: an emoji pin with its name; tap to open it.
+            el.className = `place-pin k-${it.tone ?? ''}`;
+            el.innerHTML = `<button type="button" aria-label="${escapeHtml(it.name ?? '')}"><i><b>${escapeHtml(it.emoji ?? '📍')}</b></i><span>${escapeHtml(it.name ?? '')}</span></button>`;
+            el.querySelector('button')!.addEventListener('click', (e) => { e.stopPropagation(); onPinRef.current?.(it.id ?? ''); });
+          } else if (it.kind === 'capital') {
             el.className = 'cap-pin';
             el.innerHTML = `<i></i><span>★ ${escapeHtml(it.name ?? '')}</span>`;
           } else if (it.kind === 'sun') {

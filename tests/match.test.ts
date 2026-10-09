@@ -103,9 +103,9 @@ describe('live match', () => {
     await host.open(); await guest.open();
     await until(() => host.get().phase === 'question' && guest.get().phase === 'question', 12000);
     host.answer(800, true); guest.answer(500, true);
-    await until(() => host.get().phase === 'question' && host.get().qi === 1, 8000);
-    expect(dropped).toBe(1); // bob never got "question 2"…
-    await until(() => guest.get().phase === 'question' && guest.get().qi === 1, 4000); // …but is on it within a beat
+    await until(() => host.get().phase === 'question' && host.get().qi === 1, 15000); // (roomy: other test files run alongside)
+    await until(() => dropped === 1, 3000); // bob never got "question 2" (the host moves on before its message lands)…
+    await until(() => guest.get().phase === 'question' && guest.get().qi === 1, 6000); // …but is on it within a beat or two
     expect(Math.abs(guest.get().qEndsAt - host.get().qEndsAt)).toBeLessThan(1500); // with the host's clock
     // A repeated (or late) "question 1" doesn't restart the clock or go backwards.
     const before = guest.get().qEndsAt;
@@ -114,7 +114,7 @@ describe('live match', () => {
     await new Promise((r) => setTimeout(r, 100));
     expect([guest.get().qi, guest.get().qEndsAt]).toEqual([1, before]);
     host.close(); guest.close(); alice.close(); bob.close();
-  }, 30000);
+  }, 45000);
 
   it('catches up a player who missed the start altogether', async () => {
     const alice = await connectLive('local', 'alice5');

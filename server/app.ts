@@ -16,6 +16,7 @@ import { registerAuth } from './routes/auth.js';
 import { registerLive } from './routes/live.js';
 import { registerAnalytics } from './routes/analytics.js';
 import { registerCron, registerDaily } from './routes/daily.js';
+import { registerPlaces } from './routes/places.js';
 import { registerAi, checkAi } from './routes/ai.js';
 
 declare module 'express-serve-static-core' {
@@ -52,6 +53,7 @@ registerAuth(app); // sign-in & invites (public), then the session guard, then p
 registerLive(app);
 registerAnalytics(app);
 registerDaily(app);
+registerPlaces(app);
 registerAi(app);
 
 export { checkAi };

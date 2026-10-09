@@ -33,3 +33,4 @@ dist-ssr
 .daily.local.json
 .push.local.json
 .vapid.local.json
+.places.local.json

@@ -32,6 +32,7 @@ Object.assign(process.env, {
   GQ_PREFS_FILE: join(dir, 'prefs.json'),
   GQ_ANALYTICS_FILE: join(dir, 'analytics.json'),
   GQ_DAILY_FILE: join(dir, 'daily.json'),
+  GQ_PLACES_FILE: join(dir, 'places.json'),
   GQ_PUSH_FILE: join(dir, 'push.json'),
   GQ_VAPID_FILE: join(dir, 'vapid.json'),
   CRON_SECRET: 'test-cron-secret-0123456789abcdef',
@@ -335,6 +336,25 @@ describe('morning reminders', () => {
     expect(again.body).toEqual({ nudged: 0, skipped: 0 }); // already sent today
     const devices = (await call('GET', '/api/push', { cookie: owner })).body.endpoints;
     expect(devices).toEqual(['https://push.example/owner-phone']); // the dead one is gone
+  });
+});
+
+describe('my places', () => {
+  const home = { id: 'home000001', lat: 18.52, lng: 73.86, name: 'Home', kind: 'home', note: 'Where it all starts', at: 1 };
+  it('keeps each player\'s pins to themselves', async () => {
+    expect((await call('PUT', '/api/places', { cookie: bob, body: { places: [home] } })).status).toBe(200);
+    expect((await call('GET', '/api/places', { cookie: bob })).body.places).toEqual([home]);
+    expect((await call('GET', '/api/places', { cookie: owner })).body.places).toEqual([]); // not bob's
+    expect((await call('GET', '/api/places')).status).toBe(401);
+  });
+  it('refuses nonsense and a second Home, and tidies names', async () => {
+    const bad = (places: unknown) => call('PUT', '/api/places', { cookie: bob, body: { places } }).then((r) => r.status);
+    expect(await bad([{ ...home, lat: 120 }])).toBe(400);
+    expect(await bad([home, { ...home, id: 'home000002' }])).toBe(400); // two homes
+    expect(await bad([home, home])).toBe(400); // same id twice
+    expect(await bad(Array.from({ length: 101 }, (_, i) => ({ ...home, id: `p${String(i).padStart(9, '0')}`, kind: 'favorite' })))).toBe(400);
+    const r = await call('PUT', '/api/places', { cookie: bob, body: { places: [{ ...home, name: '  Snehil\u0007’s place  ', kind: 'weird' }] } });
+    expect(r.body.places[0]).toEqual(expect.objectContaining({ name: 'Snehil ’s place', kind: 'favorite' }));
   });
 });
 

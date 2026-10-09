@@ -1780,3 +1780,53 @@ html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent
 .rm-ios { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 12.5px; color: var(--muted); }
 .rm-ios svg { vertical-align: -2px; }
 .people.reminders { width: min(400px, 100%); gap: 12px; }
+
+/* My places — pins on the globe */
+.place-pin { transform: translate(-50%, -100%); pointer-events: auto; }
+.place-pin button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 0; cursor: pointer; animation: pinDrop 0.45s var(--ease) both; }
+.place-pin i { font-style: normal; width: 30px; height: 30px; display: grid; place-items: center; font-size: 16px; border-radius: 50% 50% 50% 6px; rotate: -45deg;
+  background: rgba(9, 14, 30, 0.92); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.55), 0 0 0 2px var(--pin, #fbbf24); transition: transform 0.2s var(--ease); }
+.place-pin i b { rotate: 45deg; font-weight: 400; }
+.place-pin span { max-width: 120px; padding: 2px 7px; border-radius: 99px; font: 600 11px/1.3 var(--display); color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  background: rgba(9, 14, 30, 0.85); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12); }
+.place-pin button:hover i { transform: scale(1.12); }
+.place-pin.k-home { --pin: #f59e0b; } .place-pin.k-family { --pin: #facc15; } .place-pin.k-friend { --pin: #38bdf8; }
+.place-pin.k-favorite { --pin: #fbbf24; } .place-pin.k-memory { --pin: #f472b6; } .place-pin.k-dream { --pin: #34d399; }
+
+/* My places panel */
+.game-card.places { display: grid; gap: 12px; }
+.pl-find { display: flex; gap: 8px; align-items: center; }
+.pl-find .ap-search { flex: 1; min-width: 0; }
+.pl-hint { margin: -4px 0 0; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--dim); }
+.pl-list-wrap, .pl-edit { display: grid; gap: 10px; }
+.pl-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; max-height: min(320px, 42vh); overflow-y: auto; }
+.pl-list li { display: flex; align-items: center; gap: 4px; }
+.pl-row { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 12px; text-align: left; color: inherit; }
+.pl-row:hover { background: rgba(255, 255, 255, 0.05); }
+.pl-emoji { width: 34px; height: 34px; flex-shrink: 0; display: grid; place-items: center; font-size: 17px; border-radius: 11px; background: rgba(255, 255, 255, 0.06); }
+.pl-emoji.k-home { background: rgba(245, 158, 11, 0.16); }
+.pl-text { min-width: 0; display: grid; }
+.pl-text b { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-text span { font-size: 11.5px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-text em { font-style: normal; font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-empty { display: grid; gap: 6px; justify-items: center; padding: 14px 8px; text-align: center; border-radius: 14px; background: rgba(255, 255, 255, 0.03); }
+.pl-empty span { font-size: 20px; letter-spacing: 4px; }
+.pl-empty p { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+.pl-kinds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.pl-kinds button { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 4px; border-radius: 12px; font-size: 11.5px; font-weight: 600; color: var(--muted);
+  background: rgba(255, 255, 255, 0.04); box-shadow: inset 0 0 0 1px var(--line); transition: all 0.15s var(--ease); }
+.pl-kinds button span { font-size: 19px; }
+.pl-kinds button.on { color: var(--gold-soft); background: rgba(251, 191, 36, 0.1); box-shadow: inset 0 0 0 1.5px rgba(251, 191, 36, 0.6); }
+.pl-field { display: grid; gap: 5px; font-size: 12px; font-weight: 500; color: var(--muted); }
+.pl-field em { font-style: normal; color: var(--dim); font-weight: 400; }
+.pl-field input, .pl-field textarea { width: 100%; padding: 9px 12px; border: 0; outline: none; border-radius: 11px; resize: none; color: var(--text); font: 500 14px Inter, sans-serif;
+  background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 0 0 1px var(--line); }
+.pl-field input:focus, .pl-field textarea:focus { box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.55); }
+.pl-dist { margin: -2px 0 0; font-size: 12px; color: var(--dim); }
+.pl-actions { display: flex; gap: 8px; }
+.pl-actions .primary { flex: 1; justify-content: center; }
+.pl-del { height: 40px; min-width: 40px; padding: 0 12px; border-radius: 12px; display: grid; place-items: center; color: var(--muted); background: rgba(255, 255, 255, 0.05); }
+.pl-del:hover, .pl-del.sure { color: #fecaca; background: rgba(248, 113, 113, 0.16); }
+.pl-del.sure { font-size: 13px; font-weight: 600; }
+.pl-private { margin: -2px 0 0; text-align: center; font-size: 11.5px; color: var(--dim); }
+@media (max-width: 640px) { .pl-field input, .pl-field textarea { font-size: 16px; } }

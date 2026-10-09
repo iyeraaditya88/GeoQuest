@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { BarChart3, BellRing, Binoculars, Brain, CalendarDays, Check, ChevronLeft, Dices, Drill, Gamepad2, Globe2, History, KeyRound, Landmark, Link2, ListOrdered, LogOut, Map as MapIcon, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, Sparkles, SunMoon, Swords, UserRound, Users, X } from 'lucide-react';
+import { BarChart3, BellRing, Binoculars, Brain, CalendarDays, Check, ChevronLeft, Dices, Drill, Gamepad2, Globe2, History, KeyRound, Landmark, Link2, ListOrdered, LogOut, Map as MapIcon, MapPinned, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, Sparkles, SunMoon, Swords, UserRound, Users, X } from 'lucide-react';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import type { MapStyle } from './GlobeView';
 
@@ -42,6 +42,9 @@ interface Props {
   remindersOn?: boolean;
   onStreet: () => void;
   antipodeOn: boolean;
+  /** My places: pins for home, friends and favourite spots */
+  onPlaces: () => void;
+  placesOn?: boolean;
   onAntipode: () => void;
   onTop5: () => void;
   onCapitals: () => void;
@@ -118,6 +121,7 @@ export function Sidebar(p: Props) {
             <Item icon={Dices} label="Random country" rail={rail} onClick={act(p.onRandom)} />
             <Item icon={Sparkles} label="Ask the Atlas" rail={rail} onClick={act(p.onAsk)} accent />
             <Item icon={Drill} label={p.antipodeOn ? 'Exit antipode finder' : 'Antipode finder'} sub={p.antipodeOn ? undefined : 'Dig straight through the Earth'} rail={rail} active={p.antipodeOn} onClick={act(p.onAntipode)} />
+            <Item icon={MapPinned} label={p.placesOn ? 'Close My places' : 'My places'} sub={p.placesOn ? undefined : 'Pin home, friends & favourite spots'} rail={rail} active={p.placesOn} onClick={act(p.onPlaces)} />
           </Section>
 
           <Section title="Play" rail={rail} action={p.onFriends && (
