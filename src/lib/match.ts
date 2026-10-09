@@ -179,6 +179,29 @@ export interface Snapshot {
 
 const COUNTDOWN = 3200;
 const GRACE = 1500; // after the clock runs out, wait this long for late answers
+const SYNC_MS = 2500; // the host's "here's where we are" beat while a match runs
+
+/**
+ * Where a match is, as one number that only ever moves forward: countdown 0, question i = 2i+1,
+ * its reveal = 2i+2, over = a lot. A message that would move it backwards (a repeat, or one that
+ * arrived late) is ignored.
+ */
+const stepOf = (phase: Phase, qi: number) =>
+  phase === 'countdown' ? 0 : phase === 'question' ? 2 * qi + 1 : phase === 'reveal' ? 2 * qi + 2 : phase === 'done' || phase === 'aborted' ? 1e6 : -1;
+/** Everyone's answers, from two views of the match (the first answer for each question counts). */
+function mergeAnswers(a: Snapshot['answers'], b: unknown): Snapshot['answers'] {
+  if (!b || typeof b !== 'object') return a;
+  const out = { ...a };
+  for (const [k, row] of Object.entries(b as Record<string, Record<string, Answer>>)) {
+    const i = Number(k);
+    if (!Number.isInteger(i) || i < 0 || i >= 20 || !row || typeof row !== 'object') continue;
+    for (const [name, ans] of Object.entries(row)) {
+      if (out[i]?.[name] || !ans || typeof ans !== 'object') continue;
+      out[i] = { ...(out[i] ?? {}), [name]: { pts: Math.max(0, Math.min(6000, Math.round(Number(ans.pts) || 0))), ok: !!ans.ok, d: ans.d } };
+    }
+  }
+  return out;
+}
 
 export class MatchSession {
   private s: Snapshot;
@@ -189,6 +212,10 @@ export class MatchSession {
   private revealed = new Set<number>();
   private seen = new Set<string>(); // players we've seen present at least once
   private saved = false;
+  private roster = new Set<string>(); // who's playing, once it starts
+  private beat = 0; // host: the sync interval
+  private asked = 0; // guest: when we last asked the host for the questions
+  private doneBeats = 0; // host: a few more beats after the end, for anyone who missed it
 
   private live: Live;
 
@@ -235,7 +262,7 @@ export class MatchSession {
     if (this.s.isHost) {
       this.after(Math.max(0, this.s.inviteEndsAt - Date.now()), () => {
         for (const p of this.s.players) if (p.status === 'invited') this.setStatus(p.name, 'missed');
-        if (this.s.open && this.s.phase === 'lobby' && this.active().length < 2) void this.ch?.publish('abort', { reason: 'Nobody joined from the link' });
+        if (this.s.open && this.s.phase === 'lobby' && this.active().length < 2) this.hostSend('abort', { reason: 'Nobody joined from the link' });
         else this.maybeStart();
       });
     } else if (this.s.open) {
@@ -264,6 +291,8 @@ export class MatchSession {
       if (here.has(p.name)) {
         this.seen.add(p.name);
         if (p.status === 'invited' && this.s.phase === 'lobby') this.setStatus(p.name, 'joined');
+        // Back after a dropped connection: still in the game.
+        if (p.status === 'left' && this.roster.has(p.name) && stepOf(this.s.phase, this.s.qi) >= 0 && stepOf(this.s.phase, this.s.qi) < 1e6) this.setStatus(p.name, 'joined');
       } else if (this.seen.has(p.name) && p.status === 'joined' && p.name !== this.s.me && this.s.phase !== 'done' && this.s.phase !== 'aborted') {
         this.setStatus(p.name, 'left');
         if (p.name === this.s.host && !this.s.isHost) this.set({ phase: 'aborted', reason: `${this.s.host} left the match` });
@@ -273,7 +302,7 @@ export class MatchSession {
       if (this.s.phase === 'lobby') this.maybeStart();
       else if (this.s.phase === 'question') this.checkAllAnswered();
       // Everyone else left mid-game → wrap up with the scores so far.
-      if (['countdown', 'question', 'reveal'].includes(this.s.phase) && this.active().length < 2) void this.ch?.publish('end', { early: true });
+      if (['countdown', 'question', 'reveal'].includes(this.s.phase) && this.active().length < 2) this.hostSend('end', { early: true, answers: this.s.answers });
     }
   }
 
@@ -297,25 +326,33 @@ export class MatchSession {
         if (from === s.host && s.phase === 'lobby') this.set({ phase: 'preparing' });
         break;
       case 'start': {
-        if (from !== s.host) return;
+        if (from !== s.host || s.script) return; // already started (a repeat, or our own echo)
         // Shape check: a malformed script from another player must not break this game.
         const sc = d?.script as Script | undefined;
         if (!sc || sc.game !== s.game || !Array.isArray(sc.qs) || !sc.qs.length || sc.qs.length > 20 || !Array.isArray(d.players)) return;
         const inGame = new Set(d.players as string[]);
+        this.roster = inGame;
+        const left = Math.max(0, Math.min(COUNTDOWN, Number(d.left ?? COUNTDOWN)));
         this.set({
-          script: d.script as Script, phase: 'countdown', countdownEndsAt: Date.now() + COUNTDOWN, qi: 0, answers: {},
+          script: d.script as Script, phase: 'countdown', countdownEndsAt: Date.now() + left, qi: 0, answers: {},
           players: s.players.map((p) => (inGame.has(p.name) ? { ...p, status: 'joined', score: 0 } : p.status === 'invited' || p.status === 'joined' ? { ...p, status: 'missed' } : p)),
         });
-        if (s.isHost) this.after(COUNTDOWN, () => void this.ch?.publish('q', { i: 0 }));
+        if (s.isHost) {
+          this.after(COUNTDOWN, () => this.hostSend('q', { i: 0, left: GAMES[s.game].ms }));
+          this.beat = window.setInterval(() => this.sendSync(), SYNC_MS);
+        }
         break;
       }
       case 'q': {
         if (from !== s.host) return;
         const i = Number(d.i);
         if (!Number.isInteger(i) || i < 0 || i >= (s.script?.qs.length ?? 0)) return;
+        if (2 * i + 1 <= stepOf(s.phase, s.qi)) return; // a repeat, or already past it
+        const ms = GAMES[s.game].ms;
+        const left = Math.max(0, Math.min(ms, Number(d.left ?? ms)));
         const now = Date.now();
-        this.set({ phase: 'question', qi: i, qStartedAt: now, qEndsAt: now + GAMES[s.game].ms });
-        if (s.isHost) this.after(GAMES[s.game].ms + GRACE, () => this.reveal(i));
+        this.set({ phase: 'question', qi: i, qStartedAt: now - (ms - left), qEndsAt: now + left });
+        if (s.isHost) this.after(left + GRACE, () => this.reveal(i));
         break;
       }
       case 'ans': {
@@ -331,21 +368,66 @@ export class MatchSession {
       }
       case 'rev': {
         if (from !== s.host) return;
-        this.set({ phase: 'reveal', qi: Number(d.i), revealEndsAt: Date.now() + GAMES[s.game].revealMs });
+        const i = Number(d.i);
+        if (!Number.isInteger(i) || i < 0 || i >= (s.script?.qs.length ?? 0)) return;
+        if (2 * i + 2 <= stepOf(s.phase, s.qi)) return;
+        // The host's answers are the record — fills in any we missed.
+        const answers = mergeAnswers(s.answers, d.answers);
+        const rms = GAMES[s.game].revealMs;
+        const left = Math.max(0, Math.min(rms, Number(d.left ?? rms)));
+        this.set({ phase: 'reveal', qi: i, revealEndsAt: Date.now() + left, answers, players: s.players.map((p) => ({ ...p, score: total(answers, p.name) })) });
         if (s.isHost) {
-          const i = Number(d.i);
-          this.after(GAMES[s.game].revealMs, () => {
-            if (this.s.phase !== 'reveal') return;
-            if (i + 1 < (this.s.script?.qs.length ?? 0)) void this.ch?.publish('q', { i: i + 1 });
-            else void this.ch?.publish('end', {});
+          this.after(left, () => {
+            if (this.s.phase !== 'reveal' || this.s.qi !== i) return;
+            if (i + 1 < (this.s.script?.qs.length ?? 0)) this.hostSend('q', { i: i + 1, left: GAMES[s.game].ms });
+            else this.hostSend('end', { answers: this.s.answers });
           });
         }
         break;
       }
-      case 'end':
-        if (from !== s.host) return;
-        this.set({ phase: 'done', reason: d?.early ? 'Everyone else left — final scores so far' : undefined });
+      case 'end': {
+        if (from !== s.host || s.phase === 'done' || s.phase === 'aborted') return;
+        const answers = mergeAnswers(s.answers, d?.answers);
+        this.set({ phase: 'done', answers, players: s.players.map((p) => ({ ...p, score: total(answers, p.name) })), reason: d?.early ? 'Everyone else left — final scores so far' : undefined });
         if (s.isHost) void this.save();
+        break;
+      }
+      case 'sync': {
+        // The host's regular "here's where we are": catch up on anything we missed, and line our
+        // clock up with the host's.
+        if (from !== s.host || s.isHost) return;
+        if (!s.script) {
+          if (Date.now() - this.asked > SYNC_MS) { this.asked = Date.now(); void this.ch?.publish('need', {}); }
+          return;
+        }
+        if (d.phase === 'done' || d.phase === 'aborted') {
+          if (d.phase === 'done') this.onMessage('end', { answers: d.answers }, s.host);
+          else if (s.phase !== 'aborted') this.set({ phase: 'aborted', reason: 'The match was cancelled' });
+          return;
+        }
+        // The host never got my answer to this question (lost on a bad connection)? Send it again.
+        const myAns = s.answers[s.qi]?.[s.me];
+        const theirs = (d.answers as Snapshot['answers'] | undefined)?.[s.qi]?.[s.me];
+        if (myAns && !theirs && s.phase === 'question' && Number(d.qi) === s.qi) void this.ch?.publish('ans', { i: s.qi, pts: myAns.pts, ok: myAns.ok, d: myAns.d });
+        const answers = mergeAnswers(s.answers, d.answers);
+        const patch: Partial<Snapshot> = {};
+        if (answers !== s.answers) Object.assign(patch, { answers, players: s.players.map((p) => ({ ...p, score: total(answers, p.name) })) });
+        const step = Number(d.step), qi = Number(d.qi), left = Math.max(0, Number(d.left) || 0), now = Date.now();
+        const mine = stepOf(s.phase, s.qi);
+        if (Number.isInteger(qi) && qi >= 0 && qi < s.script.qs.length && (step > mine || step === mine)) {
+          if (d.phase === 'countdown') Object.assign(patch, { phase: 'countdown', countdownEndsAt: now + left });
+          else if (d.phase === 'question') {
+            const ms = GAMES[s.game].ms;
+            // Behind → jump to this question; same question → only fix a clock that's well off.
+            if (step > mine || Math.abs(s.qEndsAt - (now + left)) > 1200) Object.assign(patch, { phase: 'question', qi, qStartedAt: now - (ms - left), qEndsAt: now + left });
+          } else if (d.phase === 'reveal' && step > mine) Object.assign(patch, { phase: 'reveal', qi, revealEndsAt: now + left });
+        }
+        if (Object.keys(patch).length) this.set(patch);
+        break;
+      }
+      case 'need':
+        // Someone missed the start (questions and all): send it again, just to catch them up.
+        if (s.isHost && s.script && from !== s.me) void this.ch?.publish('start', { script: s.script, players: [...this.roster], left: 0 });
         break;
       case 'abort':
         if (from !== s.host) return;
@@ -360,7 +442,7 @@ export class MatchSession {
     if (!s.isHost || s.phase !== 'lobby' || s.open) return; // open lobbies start when the host says so
     const guests = s.players.filter((p) => p.name !== s.host);
     if (guests.some((p) => p.status === 'invited')) return; // still waiting on someone
-    if (!guests.some((p) => p.status === 'joined')) { void this.ch?.publish('abort', { reason: 'Nobody accepted the challenge' }); return; }
+    if (!guests.some((p) => p.status === 'joined')) { this.hostSend('abort', { reason: 'Nobody accepted the challenge' }); return; }
     this.after(900, () => void this.startNow());
   }
 
@@ -374,9 +456,9 @@ export class MatchSession {
     try {
       const script = await buildScript(this.s.game, this.s.opts);
       if ((this.s.phase as Phase) !== 'preparing') return; // cancelled meanwhile
-      await this.ch?.publish('start', { script, players: this.active().map((p) => p.name) });
+      this.hostSend('start', { script, players: this.active().map((p) => p.name), left: COUNTDOWN });
     } catch (err) {
-      await this.ch?.publish('abort', { reason: `Couldn’t set up the game: ${(err as Error).message}` });
+      this.hostSend('abort', { reason: `Couldn’t set up the game: ${(err as Error).message}` });
     }
   }
 
@@ -390,8 +472,27 @@ export class MatchSession {
   private reveal(i: number) {
     if (this.revealed.has(i) || this.s.phase !== 'question' || this.s.qi !== i) return;
     this.revealed.add(i);
-    void this.ch?.publish('rev', { i });
+    this.hostSend('rev', { i, left: GAMES[this.s.game].revealMs, answers: this.s.answers });
   }
+
+  /**
+   * Host: move the match on. Applied here straight away (the host's own clock doesn't wait for its
+   * message to come back), then sent to everyone; the copy that comes back is ignored.
+   */
+  private hostSend(name: string, d: Record<string, unknown>) {
+    this.onMessage(name, d, this.s.me);
+    void this.ch?.publish(name, d);
+  }
+
+  /** Host: where the match is right now, for anyone who missed a step. */
+  private sendSync() {
+    const s = this.s;
+    const step = stepOf(s.phase, s.qi);
+    if (step < 0 || (step >= 1e6 && ++this.doneBeats > 4)) { this.stopBeat(); return; }
+    const end = s.phase === 'countdown' ? s.countdownEndsAt : s.phase === 'question' ? s.qEndsAt : s.phase === 'reveal' ? s.revealEndsAt : 0;
+    void this.ch?.publish('sync', { step, phase: s.phase, qi: s.qi, left: Math.max(0, end - Date.now()), answers: s.answers });
+  }
+  private stopBeat() { window.clearInterval(this.beat); this.beat = 0; }
 
   private async save() {
     if (this.saved) return;
@@ -419,7 +520,9 @@ export class MatchSession {
   answer(pts: number, ok: boolean, d?: unknown) {
     const s = this.s;
     if (s.phase !== 'question' || s.answers[s.qi]?.[s.me]) return;
-    void this.ch?.publish('ans', { i: s.qi, pts, ok, d });
+    const msg = { i: s.qi, pts, ok, d };
+    this.onMessage('ans', msg, s.me); // counts here at once; the copy that comes back is ignored
+    void this.ch?.publish('ans', msg);
   }
 
   /** Leave (the host leaving ends it for everyone). */
@@ -427,6 +530,7 @@ export class MatchSession {
     if (this.s.isHost && !['done', 'aborted'].includes(this.s.phase)) void this.ch?.publish('abort', { reason: `${this.s.host} ended the match` });
     for (const t of this.timers) window.clearTimeout(t);
     this.timers.clear();
+    this.stopBeat();
     for (const off of this.offs) off();
     const ch = this.ch;
     this.ch = null;

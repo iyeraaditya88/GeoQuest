@@ -80,6 +80,10 @@ export function LivePlay({ mode, me, ai, friendsReq, inviteReq, globe, clickRef,
     return () => { dead = true; for (const off of offs) off(); conn?.close(); setLive(null); setOnline(new Map()); };
   }, [mode, me]);
 
+  // Connection health, shown during a match ("Reconnecting…").
+  const [conn, setConn] = useState('connected');
+  useEffect(() => live?.onState(setConn), [live]);
+
   // Tell friends whether I'm free.
   useEffect(() => { void live?.channel('lobby').update({ s: inMatch ? 'playing' : 'idle' }).catch(() => null); }, [live, inMatch]);
 
@@ -192,6 +196,7 @@ export function LivePlay({ mode, me, ai, friendsReq, inviteReq, globe, clickRef,
               globe={globe}
               clickRef={clickRef}
               onImmersive={setImmersive}
+              connected={conn === 'connected'}
               onLeave={leave}
               onRematch={(g) => rematch(snap, g)}
               rematch={rematchInvite}

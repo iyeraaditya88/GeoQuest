@@ -29,6 +29,8 @@ interface Props {
   globe: MatchGlobe;
   clickRef: MutableRefObject<((cca3: string | null) => void) | null>;
   onImmersive: (on: boolean) => void;
+  /** The live connection is up (false while it reconnects) */
+  connected: boolean;
   onLeave: () => void;
   /** Challenge the same players again — to this game, or another one */
   onRematch: (game?: GameId) => void;
@@ -65,7 +67,7 @@ function useTimeUp(s: Snapshot, fn: () => void) {
   }, [s.phase, s.qi, s.qEndsAt, answered]);
 }
 
-export function MatchOverlay({ session, snap, ai, globe, clickRef, onImmersive, onLeave, onRematch, rematch, onAcceptRematch, onDeclineRematch, onExpireRematch }: Props) {
+export function MatchOverlay({ session, snap, ai, globe, clickRef, onImmersive, connected, onLeave, onRematch, rematch, onAcceptRematch, onDeclineRematch, onExpireRematch }: Props) {
   const s = snap;
   const playing = s.phase === 'countdown' || s.phase === 'question' || s.phase === 'reveal';
   const [confirmLeave, setConfirmLeave] = useState(false);
@@ -108,6 +110,13 @@ export function MatchOverlay({ session, snap, ai, globe, clickRef, onImmersive, 
       )}
       <AnimatePresence>{s.phase === 'countdown' && <Countdown key="cd" s={s} />}</AnimatePresence>
       {playing && <Hud s={s} confirmLeave={confirmLeave} onLeave={leave} />}
+      <AnimatePresence>
+        {!connected && s.phase !== 'done' && s.phase !== 'aborted' && (
+          <motion.div className="mt-conn" role="status" initial={{ y: -16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -16, opacity: 0 }}>
+            <Loader2 size={14} className="spin" /> Connection lost — reconnecting… you’ll catch up automatically
+          </motion.div>
+        )}
+      </AnimatePresence>
       <AnimatePresence>{(s.phase === 'done' || s.phase === 'aborted') && <Results key="res" s={s} onLeave={onLeave} onRematch={onRematch} rematch={rematch} onAccept={onAcceptRematch} onDecline={onDeclineRematch} onExpire={onExpireRematch} />}</AnimatePresence>
       <MatchChat s={s} session={session} />
     </>

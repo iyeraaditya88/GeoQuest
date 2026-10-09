@@ -1,6 +1,6 @@
 // A live match between two players over the local (tab-to-tab) transport, end to end.
 import { describe, it, expect } from 'vitest';
-import { connectLive } from '../src/lib/live';
+import { connectLive, type Live } from '../src/lib/live';
 import { MatchSession, type Invite, type Snapshot } from '../src/lib/match';
 
 const until = async (cond: () => boolean, ms = 8000) => {
@@ -84,4 +84,47 @@ describe('live match', () => {
     expect(a.get().chat[1].text.length).toBe(200);
     a.close(); b.close(); alice.close(); bob.close(); eve.close();
   });
+
+  // A connection that loses some messages on the way in (like a phone on a shaky network).
+  const lossy = (live: Live, drop: (name: string, data: Record<string, unknown>) => boolean): Live => ({
+    ...live,
+    channel(n) {
+      const ch = live.channel(n);
+      return { ...ch, subscribe: (cb) => ch.subscribe((name, data, from) => { if (!drop(name, (data ?? {}) as Record<string, unknown>)) cb(name, data, from); }) };
+    },
+  });
+
+  it('catches up a player who missed a question (and ignores repeats)', async () => {
+    const alice = await connectLive('local', 'alice4');
+    let dropped = 0;
+    const bob = lossy(await connectLive('local', 'bob4'), (name, d) => name === 'q' && d.i === 1 && ++dropped > 0);
+    const inv: Invite = { id: `l${Date.now()}`, from: 'alice4', game: 'capitals', opts: { level: 'easy' }, players: ['alice4', 'bob4'], at: Date.now() };
+    const host = new MatchSession(alice, inv), guest = new MatchSession(bob, inv);
+    await host.open(); await guest.open();
+    await until(() => host.get().phase === 'question' && guest.get().phase === 'question', 12000);
+    host.answer(800, true); guest.answer(500, true);
+    await until(() => host.get().phase === 'question' && host.get().qi === 1, 8000);
+    expect(dropped).toBe(1); // bob never got "question 2"…
+    await until(() => guest.get().phase === 'question' && guest.get().qi === 1, 4000); // …but is on it within a beat
+    expect(Math.abs(guest.get().qEndsAt - host.get().qEndsAt)).toBeLessThan(1500); // with the host's clock
+    // A repeated (or late) "question 1" doesn't restart the clock or go backwards.
+    const before = guest.get().qEndsAt;
+    await alice.channel(`match:${inv.id}`).publish('q', { i: 0 });
+    await alice.channel(`match:${inv.id}`).publish('q', { i: 1 });
+    await new Promise((r) => setTimeout(r, 100));
+    expect([guest.get().qi, guest.get().qEndsAt]).toEqual([1, before]);
+    host.close(); guest.close(); alice.close(); bob.close();
+  }, 30000);
+
+  it('catches up a player who missed the start altogether', async () => {
+    const alice = await connectLive('local', 'alice5');
+    const bob = lossy(await connectLive('local', 'bob5'), (name, d) => name === 'start' && d.left !== 0);
+    const inv: Invite = { id: `s${Date.now()}`, from: 'alice5', game: 'capitals', opts: { level: 'easy' }, players: ['alice5', 'bob5'], at: Date.now() };
+    const host = new MatchSession(alice, inv), guest = new MatchSession(bob, inv);
+    await host.open(); await guest.open();
+    await until(() => host.get().phase === 'question', 12000);
+    await until(() => guest.get().phase === 'question' && guest.get().qi === host.get().qi, 8000);
+    expect(guest.get().script).toEqual(host.get().script);
+    host.close(); guest.close(); alice.close(); bob.close();
+  }, 30000);
 });
