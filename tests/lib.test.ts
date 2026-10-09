@@ -139,3 +139,22 @@ describe('Daily challenge', async () => {
     expect(d.addDays('2026-12-31', 1)).toBe('2027-01-01');
   });
 });
+
+describe('Map quiz order', async () => {
+  const { nextTarget, QUIZ_POOL } = await import('../src/lib/quiz');
+  it('asks every country once before any repeats', () => {
+    const seen = Array.from({ length: QUIZ_POOL.length }, () => nextTarget('t-find', QUIZ_POOL));
+    expect(new Set(seen).size).toBe(QUIZ_POOL.length);
+  });
+  it('keeps the last ones played away from the start of the next round of the deck', () => {
+    const pool = Array.from({ length: 60 }, (_, i) => `C${i}`);
+    const first = Array.from({ length: 60 }, () => nextTarget('t-small', pool));
+    const next = Array.from({ length: 30 }, () => nextTarget('t-small', pool));
+    const lastPlayed = new Set(first.slice(-20));
+    expect(next.slice(0, 30).filter((c) => lastPlayed.has(c))).toEqual([]);
+  });
+  it('never asks the same country twice in a row', () => {
+    let prev: string | undefined;
+    for (let i = 0; i < 400; i++) { const c = nextTarget('t-row', ['A', 'B', 'C'], prev); expect(c).not.toBe(prev); prev = c; }
+  });
+});

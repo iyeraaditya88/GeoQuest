@@ -59,7 +59,7 @@ import { AskDock } from './components/AskDock';
 import { QuizBar, type QuizMode, type QuizState } from './components/QuizBar';
 import { BY_CCA3 } from './lib/data';
 import { api } from './lib/api';
-import { CLUE_POOL, QUIZ_POOL, clueFor, pickRandom } from './lib/quiz';
+import { CLUE_POOL, QUIZ_POOL, clueFor, nextTarget, pickRandom } from './lib/quiz';
 import { DAILY_N, dailyNumber, dailyPicks, localDate, pointsFor, themeOf, THEME_LABEL } from './lib/daily';
 import { DailyResult, type DailyBoardRow } from './components/DailyResult';
 import { Reminders } from './components/Reminders';
@@ -93,7 +93,7 @@ const NO_PINS: never[] = [];
 
 function newRound(mode: QuizMode, prev?: QuizState): QuizState {
   const pool = mode === 'clue' ? CLUE_POOL : QUIZ_POOL;
-  const target = pickRandom(pool, prev?.target);
+  const target = nextTarget(mode, pool, prev?.target); // every country once before any repeats
   const clue = mode === 'clue' ? clueFor(target) : undefined;
   return {
     mode, target, clue, result: 'idle', misses: 0,
