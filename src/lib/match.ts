@@ -216,6 +216,7 @@ export class MatchSession {
   private beat = 0; // host: the sync interval
   private asked = 0; // guest: when we last asked the host for the questions
   private doneBeats = 0; // host: a few more beats after the end, for anyone who missed it
+  private online = true; // our live connection is up
 
   private live: Live;
 
@@ -257,6 +258,7 @@ export class MatchSession {
     const ch = this.live.channel(`match:${this.s.id}`);
     this.ch = ch;
     this.offs.push(ch.subscribe((name, data, from) => this.onMessage(name, data as Record<string, unknown>, from)));
+    this.offs.push(this.live.onState((st) => { this.online = st === 'connected'; }));
     await ch.enter({});
     this.offs.push(ch.members((m) => this.onMembers(m)));
     if (this.s.isHost) {
@@ -487,6 +489,7 @@ export class MatchSession {
   /** Host: where the match is right now, for anyone who missed a step. */
   private sendSync() {
     const s = this.s;
+    if (!this.online) return; // it would only arrive late, with stale times
     const step = stepOf(s.phase, s.qi);
     if (step < 0 || (step >= 1e6 && ++this.doneBeats > 4)) { this.stopBeat(); return; }
     const end = s.phase === 'countdown' ? s.countdownEndsAt : s.phase === 'question' ? s.qEndsAt : s.phase === 'reveal' ? s.revealEndsAt : 0;

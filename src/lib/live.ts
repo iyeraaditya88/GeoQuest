@@ -40,49 +40,110 @@ async function connectAbly(me: string): Promise<Live> {
     clientId: me,
     echoMessages: true,
     closeOnUnload: true,
+    // Phones drop connections a lot (tunnels, lifts, the app going to the background): retry
+    // quickly instead of Ably's default 15 s / 30 s.
+    disconnectedRetryTimeout: 3000,
+    suspendedRetryTimeout: 8000,
     authCallback: (_params, cb) => {
       api('/api/realtime/token', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tickets }) })
         .then(async (r) => { if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error ?? `Token request failed (${r.status})`); return r.json(); })
         .then((tr) => cb(null, tr), (err: Error) => cb(err.message, null));
     },
   });
+  // ── Keeping the connection up ──
+  // Ably reconnects by itself; on top of that: reconnect the moment the device is back online or
+  // the app is back on screen (a phone in the background loses its socket), after a page comes
+  // back from the back/forward cache, and even after a "failed" connection — never give up while
+  // the app is open.
+  let closed = false;
+  const nudge = () => {
+    if (closed) return;
+    const st = rt.connection.state;
+    if (st === 'disconnected' || st === 'suspended' || st === 'failed' || st === 'closed') rt.connection.connect();
+  };
+  const onVisible = () => { if (!document.hidden) nudge(); };
+  const onShow = (e: PageTransitionEvent) => { if (e.persisted) nudge(); };
+  window.addEventListener('online', nudge);
+  window.addEventListener('focus', nudge);
+  window.addEventListener('pageshow', onShow);
+  document.addEventListener('visibilitychange', onVisible);
+  let failTimer = 0;
+  rt.connection.on('failed', () => { window.clearTimeout(failTimer); failTimer = window.setTimeout(nudge, 5000); });
+
+  /** Resolves once connected (or after `ms`, whichever comes first). */
+  const connected = (ms = 10_000) => new Promise<void>((resolve) => {
+    if (rt.connection.state === 'connected') { resolve(); return; }
+    nudge();
+    const done = () => { window.clearTimeout(t); rt.connection.off('connected', done); resolve(); };
+    const t = window.setTimeout(done, ms);
+    rt.connection.once('connected', done);
+  });
+  /** Try `fn` until it works (a few times, waiting for the connection in between). */
+  const retry = async <T,>(fn: () => Promise<T>, tries = 5): Promise<T> => {
+    for (let i = 0; ; i++) {
+      try { return await fn(); } catch (err) {
+        if (i >= tries - 1 || closed) throw err;
+        await connected();
+        await new Promise((r) => setTimeout(r, Math.min(4000, 400 * 2 ** i)));
+      }
+    }
+  };
+  const quiet = (what: string) => (err: unknown) => { console.warn(`[live] ${what} failed`, (err as Error)?.message ?? err); };
+
   return {
     me,
     mode: 'ably',
     channel(name) {
       const ch = rt.channels.get(name);
+      // A channel that failed (e.g. a token hiccup) is re-attached rather than left dead.
+      const reattach = () => { if (!closed) window.setTimeout(() => { if (ch.state === 'failed' || ch.state === 'detached') void ch.attach().catch(() => null); }, 2000); };
+      ch.on('failed', reattach);
       return {
-        publish: async (n, d) => { await ch.publish(n, d ?? null); },
+        // Fire-and-forget for callers, but retried across short drops (a match also re-syncs).
+        // ('sync' beats are only worth sending now — a fresh one follows shortly — so no retries.)
+        publish: (n, d) => retry(async () => { await ch.publish(n, d ?? null); }, n === 'sync' ? 1 : 5).catch(quiet(`publish ${n}`)),
         subscribe(cb) {
           const l = (m: { name?: string; data?: unknown; clientId?: string }) => cb(m.name ?? '', m.data, m.clientId ?? '');
           void ch.subscribe(l);
           return () => ch.unsubscribe(l);
         },
-        enter: (d) => ch.presence.enter(d ?? null),
-        update: (d) => ch.presence.update(d),
+        // Being present is how others see you (and how a match knows you joined): keep at it.
+        enter: (d) => retry(() => ch.presence.enter(d ?? null), 8).catch(quiet('enter')),
+        update: (d) => retry(() => ch.presence.update(d)).catch(quiet('presence update')),
         leave: () => ch.presence.leave(),
         members(cb) {
           let live = true;
           const sync = () => ch.presence.get().then((ms) => { if (live) cb(ms.map((m) => ({ name: m.clientId, data: m.data }))); }).catch(() => null);
           const l = () => void sync();
           void ch.presence.subscribe(l);
+          // Re-read the members after every (re)attach — events may have been missed meanwhile.
+          ch.on('attached', l);
           void sync();
-          return () => { live = false; ch.presence.unsubscribe(l); };
+          return () => { live = false; ch.presence.unsubscribe(l); ch.off('attached', l); };
         },
-        release() { void ch.detach().then(() => rt.channels.release(name)).catch(() => null); },
+        release() { ch.off('failed', reattach); void ch.detach().then(() => rt.channels.release(name)).catch(() => null); },
       };
     },
     async addTicket(t) {
       tickets.push(t);
       if (tickets.length > 8) tickets.shift();
-      await rt.auth.authorize();
+      // New token with access to this match; retried — without it the match can't be joined.
+      await retry(() => rt.auth.authorize(), 6);
     },
     onState(cb) {
       const l = (s: { current: string }) => cb(s.current);
       rt.connection.on(l);
       return () => rt.connection.off(l);
     },
-    close() { rt.close(); },
+    close() {
+      closed = true;
+      window.clearTimeout(failTimer);
+      window.removeEventListener('online', nudge);
+      window.removeEventListener('focus', nudge);
+      window.removeEventListener('pageshow', onShow);
+      document.removeEventListener('visibilitychange', onVisible);
+      rt.close();
+    },
   };
 }
 

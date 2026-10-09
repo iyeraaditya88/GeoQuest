@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { Binoculars, Brain, Check, Gamepad2, Landmark, Link2, ListOrdered, Loader2, Star, Swords, Trophy, X } from 'lucide-react';
 import { api } from '../lib/api';
+import { useFavorites } from '../lib/favorites';
 import { GAMES, QUIZ_MODES, loadHistory, type GameId, type MatchOpts, type MatchRecord } from '../lib/match';
 
 const ICONS: Record<GameId, typeof Swords> = { quiz: Gamepad2, capitals: Landmark, trivia: Brain, top5: ListOrdered, street: Binoculars };
@@ -71,20 +72,6 @@ const Shell = ({ label, onClose, children, wide }: { label: string; onClose: () 
   </motion.div>
 );
 
-// ── Favourites (per player, kept on the server so they follow you between devices) ──
-function useFavorites(me: string) {
-  const [favs, setFavs] = useState<string[]>([]);
-  useEffect(() => {
-    void api('/api/favorites', { headers: { 'X-GQ-As': me } }).then((r) => r.json()).then((d) => setFavs(d.favorites ?? [])).catch(() => null);
-  }, [me]);
-  const toggle = (name: string) => {
-    const next = favs.includes(name) ? favs.filter((f) => f !== name) : [...favs, name];
-    setFavs(next); // optimistic
-    void api('/api/favorites', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-GQ-As': me }, body: JSON.stringify({ favorites: next }) }).catch(() => null);
-  };
-  return { favs, toggle };
-}
-
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -93,12 +80,14 @@ interface Props {
   connected: boolean;
   online: Map<string, { s?: string }>;
   onChallenge: (to: string[], game: GameId, opts: MatchOpts) => Promise<void>;
+  /** Open with these friends already picked */
+  preselect?: string[];
 }
 
 /** Challenge friends who are online. Favourites sit on top with a one-tap Duel. Plus recent matches. */
-export function FriendsPanel({ open, onClose, me, mode, connected, online, onChallenge }: Props) {
+export function FriendsPanel({ open, onClose, me, mode, connected, online, onChallenge, preselect }: Props) {
   const [players, setPlayers] = useState<{ name: string; lastLogin: number | null }[]>([]);
-  const [picked, setPicked] = useState<string[]>([]);
+  const [picked, setPicked] = useState<string[]>(() => preselect ?? []);
   const choice = useGameChoice();
   const [busy, setBusy] = useState<string | false>(false);
   const [error, setError] = useState<string | null>(null);

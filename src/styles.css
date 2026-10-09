@@ -1690,3 +1690,34 @@ html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent
 .mt-conn { position: fixed; z-index: 45; top: calc(14px + var(--st)); left: 50%; translate: -50% 0; display: flex; align-items: center; gap: 8px; max-width: calc(100vw - 24px);
   padding: 8px 14px; border-radius: 99px; font-size: 12.5px; font-weight: 500; color: #fde68a; background: rgba(40, 26, 4, 0.94);
   box-shadow: var(--shadow), inset 0 0 0 1px rgba(251, 191, 36, 0.35); }
+
+/* Favourites online — top right, just left of the music button */
+.fo-fab { position: fixed; z-index: 13; top: calc(16px + var(--st)); right: calc(var(--ri) + 16px + 48px + var(--sr)); transition: right 0.55s var(--ease); }
+.fo-btn { position: relative; color: var(--muted); }
+.fo-btn.live { color: #6ee7b7; }
+.fo-count { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 99px; display: grid; place-items: center;
+  font: 700 10.5px var(--display); color: #052e1c; background: #34d399; box-shadow: 0 0 0 2px rgba(9, 14, 30, 0.95); }
+.fo-pop { position: absolute; top: calc(100% + 8px); right: 0; width: 260px; max-height: min(420px, calc(100vh - 90px)); overflow: auto; display: grid; gap: 6px; padding: 10px;
+  border-radius: 18px; background: rgba(9, 14, 30, 0.97); box-shadow: var(--shadow), inset 0 0 0 1px var(--line); backdrop-filter: blur(12px); transform-origin: top right; }
+.fo-pop header { display: flex; align-items: baseline; justify-content: space-between; padding: 2px 4px 4px; }
+.fo-pop header b { font: 600 14px var(--display); }
+.fo-pop header span { font-size: 11.5px; color: var(--dim); }
+.fo-pop ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.fo-pop li { display: flex; align-items: center; gap: 10px; padding: 6px; border-radius: 12px; opacity: 0.6; }
+.fo-pop li.on { opacity: 1; }
+.fo-pop li .pp-avatar { position: relative; width: 30px; height: 30px; font-size: 12px; }
+.fo-pop li .pp-avatar i { position: absolute; right: -1px; bottom: -1px; width: 10px; height: 10px; border-radius: 50%; background: #475569; box-shadow: 0 0 0 2px rgba(9, 14, 30, 0.97); }
+.fo-pop li .pp-avatar i.on { background: #34d399; }
+.fo-pop li .pp-avatar i.busy { background: var(--gold); }
+.fo-who { flex: 1; min-width: 0; display: grid; }
+.fo-who b { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fo-who span { font-size: 11.5px; color: var(--dim); }
+.fo-duel { display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 11px; border-radius: 10px; font-size: 12.5px; font-weight: 600; color: #1a1205;
+  background: linear-gradient(135deg, var(--gold-soft), var(--gold)); }
+.fo-empty { margin: 4px; display: flex; gap: 8px; font-size: 12.5px; line-height: 1.45; color: var(--muted); }
+.fo-empty svg { flex-shrink: 0; margin-top: 2px; color: var(--gold); }
+.fo-manage { margin-top: 2px; height: 34px; border-radius: 11px; font-size: 12.5px; font-weight: 600; color: var(--cyan); background: rgba(125, 211, 252, 0.06); box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.2); }
+@media (max-width: 900px) {
+  .fo-fab { top: calc(12px + var(--st)); right: calc(var(--ri) + 12px + 52px + var(--sr)); }
+  .fo-fab .fo-btn { width: 44px; height: 44px; border-radius: 13px; }
+}

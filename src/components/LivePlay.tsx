@@ -6,6 +6,7 @@ import { connectLive, type Live } from '../lib/live';
 import type { GameId, Invite, MatchOpts, MatchSession, Snapshot } from '../lib/match';
 import type { Feedback } from './GlobeView';
 import { fresh } from '../lib/chunks';
+import { FriendsOnline } from './FriendsOnline';
 
 const FriendsPanel = lazy(() => fresh(import('./FriendsPanel')).then((m) => ({ default: m.FriendsPanel })));
 const InvitePanel = lazy(() => fresh(import('./FriendsPanel')).then((m) => ({ default: m.InvitePanel })));
@@ -36,15 +37,18 @@ interface Props {
   onState: (s: LiveState) => void;
   /** The owner's invite links also let newcomers sign up */
   owner?: boolean;
+  /** Show the favourites-online button (top right, beside the music) */
+  fab?: boolean;
 }
 
 const noop = () => () => {};
 
-export function LivePlay({ mode, me, ai, friendsReq, inviteReq, globe, clickRef, onState, owner = false }: Props) {
+export function LivePlay({ mode, me, ai, friendsReq, inviteReq, globe, clickRef, onState, owner = false, fab = false }: Props) {
   const [live, setLive] = useState<Live | null>(null);
   const [online, setOnline] = useState<Map<string, { s?: string }>>(new Map());
   const [invites, setInvites] = useState<Invite[]>([]);
   const [friendsOpen, setFriendsOpen] = useState(false);
+  const [friendsPick, setFriendsPick] = useState<string[] | undefined>();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [session, setSession] = useState<MatchSession | null>(null);
@@ -60,7 +64,8 @@ export function LivePlay({ mode, me, ai, friendsReq, inviteReq, globe, clickRef,
     let dead = false;
     let conn: Live | null = null;
     const offs: (() => void)[] = [];
-    connectLive(mode, me).then((l) => {
+    let retry = 0, attempt = 0;
+    const start = () => connectLive(mode, me).then((l) => {
       if (dead) { l.close(); return; }
       conn = l;
       setLive(l);
@@ -76,8 +81,13 @@ export function LivePlay({ mode, me, ai, friendsReq, inviteReq, globe, clickRef,
         }
         setInvites((v) => [...v.filter((i) => i.id !== inv.id), inv]);
       }));
-    }).catch(() => null);
-    return () => { dead = true; for (const off of offs) off(); conn?.close(); setLive(null); setOnline(new Map()); };
+    }).catch((err) => {
+      // Couldn't even start (offline, or the code didn't load): keep trying, backing off.
+      console.warn('[live] could not connect', err);
+      if (!dead) retry = window.setTimeout(() => void start(), Math.min(30_000, 2000 * 2 ** attempt++));
+    });
+    void start();
+    return () => { dead = true; window.clearTimeout(retry); for (const off of offs) off(); conn?.close(); setLive(null); setOnline(new Map()); };
   }, [mode, me]);
 
   // Connection health, shown during a match ("Reconnecting…").
@@ -87,7 +97,7 @@ export function LivePlay({ mode, me, ai, friendsReq, inviteReq, globe, clickRef,
   // Tell friends whether I'm free.
   useEffect(() => { void live?.channel('lobby').update({ s: inMatch ? 'playing' : 'idle' }).catch(() => null); }, [live, inMatch]);
 
-  useEffect(() => { if (friendsReq) setFriendsOpen(true); }, [friendsReq]);
+  useEffect(() => { if (friendsReq) { setFriendsPick(undefined); setFriendsOpen(true); } }, [friendsReq]);
   useEffect(() => { if (inviteReq) setInviteOpen(true); }, [inviteReq]);
   useEffect(() => { if (!notice) return; const t = window.setTimeout(() => setNotice(null), 6000); return () => window.clearTimeout(t); }, [notice]);
 
@@ -169,6 +179,8 @@ export function LivePlay({ mode, me, ai, friendsReq, inviteReq, globe, clickRef,
       <Suspense fallback={null}>
         {friendsOpen && (
           <FriendsPanel
+            key={friendsPick?.join() ?? ''}
+            preselect={friendsPick}
             open={friendsOpen}
             onClose={() => setFriendsOpen(false)}
             me={me}
@@ -182,6 +194,11 @@ export function LivePlay({ mode, me, ai, friendsReq, inviteReq, globe, clickRef,
       <Suspense fallback={null}>
         {inviteOpen && <InvitePanel open={inviteOpen} onClose={() => setInviteOpen(false)} connected={!!live} owner={owner} onCreate={createLink} />}
       </Suspense>
+      {fab && !inMatch && (
+        <FriendsOnline className="fo-fab" me={me} online={online}
+          onDuel={(name) => { setFriendsPick([name]); setFriendsOpen(true); }}
+          onManage={() => { setFriendsPick(undefined); setFriendsOpen(true); }} />
+      )}
       {notice && <div className="live-notice" role="status" onClick={() => setNotice(null)}>{notice}</div>}
       <Suspense fallback={null}>
         {invites.some((i) => i !== rematchInvite) && <ChallengeToasts invites={invites.filter((i) => i !== rematchInvite)} onAccept={(i) => void begin(i)} onDecline={(i) => void decline(i)} onExpire={(i) => setInvites((v) => v.filter((x) => x.id !== i.id))} />}
