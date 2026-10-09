@@ -89,6 +89,8 @@ function dailyQuiz(date: string): QuizState {
 }
 const dailyTargets = (date: string) => dailyPicks(date, themeOf(date) === 'clue' ? CLUE_POOL : QUIZ_POOL).targets;
 
+const NO_PINS: never[] = [];
+
 function newRound(mode: QuizMode, prev?: QuizState): QuizState {
   const pool = mode === 'clue' ? CLUE_POOL : QUIZ_POOL;
   const target = pickRandom(pool, prev?.target);
@@ -653,6 +655,12 @@ export default function App() {
     if (anti.to && anti.stage === 'result') pins.push({ lat: anti.to.lat, lng: anti.to.lng, kind: 'to' });
     return pins;
   }, [anti]);
+  // What's pinned on the globe (one stable list, so pins aren't rebuilt on every render).
+  const inGame = !!quiz || !!geo || !!play || liveState.active;
+  const globePins = useMemo(
+    () => (anti ? antiPins : inGame ? NO_PINS : placesOpen && placesDraft ? [...placePins, { ...placesDraft, kind: 'guess' as const }] : placePins),
+    [anti, antiPins, inGame, placesOpen, placesDraft, placePins],
+  );
 
   const startAntipode = async () => {
     if (morphing.current) return;
@@ -746,7 +754,7 @@ export default function App() {
         dropDown={!!play || placesOpen || (!!anti && anti.stage !== 'dive') || (!!quiz && !(vp.w <= 600 && vp.h > vp.w))}
         pickMode={(!!anti && anti.stage !== 'dive') || placesOpen}
         onPick={(lat, lng) => (placesOpen ? setPlacesPick({ lat, lng, n: Date.now() }) : pickAntipode(lat, lng))}
-        pins={anti ? antiPins : quiz || geo || play || liveState.active ? [] : placesOpen && placesDraft ? [...placePins, { ...placesDraft, kind: 'guess' as const }] : placePins}
+        pins={globePins}
         onPin={openPlace}
         leftInset={leftInset}
         nature={nature}

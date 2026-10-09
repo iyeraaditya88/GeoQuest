@@ -583,6 +583,36 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
     return () => window.clearInterval(t);
   }, [style, material]);
 
+  // The pins' drawing functions stay the same between renders: the globe library rebuilds every
+  // pin when they change — which, on each hover (a re-render), made pins flicker and re-drop.
+  const htmlAltitude = useCallback((d: object) => { const k = (d as { kind: string }).kind; return k === 'capital' ? 0.045 : k === 'sun' ? 0.02 : k === 'place' ? 0.008 : 0.012; }, []);
+  const htmlVisibility = useCallback((el: HTMLElement, visible: boolean) => {
+    el.style.opacity = visible ? '' : '0';
+    el.style.visibility = visible ? '' : 'hidden';
+  }, []);
+  const htmlElement = useCallback((d: object) => {
+    const it = d as { kind: string; name?: string; id?: string; emoji?: string; tone?: string };
+    const el = document.createElement('div');
+    if (it.kind === 'place') {
+      // My places: an emoji pin with its name; tap to open it.
+      el.className = `place-pin k-${it.tone ?? ''}`;
+      el.innerHTML = `<button type="button" aria-label="${escapeHtml(it.name ?? '')}"><i><b>${escapeHtml(it.emoji ?? '📍')}</b></i><span>${escapeHtml(it.name ?? '')}</span></button>`;
+      el.querySelector('button')!.addEventListener('click', (e) => { e.stopPropagation(); onPinRef.current?.(it.id ?? ''); });
+    } else if (it.kind === 'capital') {
+      el.className = 'cap-pin';
+      el.innerHTML = `<i></i><span>★ ${escapeHtml(it.name ?? '')}</span>`;
+    } else if (it.kind === 'sun') {
+      el.className = 'sun-pin';
+      el.title = `The sun is directly overhead here (${it.name})`;
+      el.innerHTML = `<svg viewBox="0 0 40 40" aria-hidden="true"><g class="rays">${Array.from({ length: 8 }, (_, i) =>
+        `<rect x="19" y="2.5" width="2" height="6" rx="1" transform="rotate(${i * 45} 20 20)"/>`).join('')}</g><circle cx="20" cy="20" r="7.5"/></svg><span>Midday here</span>`;
+    } else {
+      el.className = `game-pin ${it.kind}`;
+      el.innerHTML = '<span></span>';
+    }
+    return el;
+  }, []);
+
   const htmlItems = useMemo(
     () => [
       ...(political ? [] : capPoint.map((c) => ({ ...c, kind: 'capital' as const }))),
@@ -637,35 +667,11 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
         ringRepeatPeriod={1100}
         ringAltitude={0.042}
         htmlElementsData={htmlItems}
-        htmlAltitude={(d) => { const k = (d as { kind: string }).kind; return k === 'capital' ? 0.045 : k === 'sun' ? 0.02 : k === 'place' ? 0.008 : 0.012; }}
+        htmlAltitude={htmlAltitude}
         htmlTransitionDuration={0}
         // Pins round the back of the globe: hidden (and not tappable), not floating faintly in space.
-        htmlElementVisibilityModifier={(el, visible) => {
-          el.style.opacity = visible ? '' : '0';
-          el.style.visibility = visible ? '' : 'hidden';
-        }}
-        htmlElement={(d) => {
-          const it = d as { kind: string; name?: string; id?: string; emoji?: string; tone?: string };
-          const el = document.createElement('div');
-          if (it.kind === 'place') {
-            // My places: an emoji pin with its name; tap to open it.
-            el.className = `place-pin k-${it.tone ?? ''}`;
-            el.innerHTML = `<button type="button" aria-label="${escapeHtml(it.name ?? '')}"><i><b>${escapeHtml(it.emoji ?? '📍')}</b></i><span>${escapeHtml(it.name ?? '')}</span></button>`;
-            el.querySelector('button')!.addEventListener('click', (e) => { e.stopPropagation(); onPinRef.current?.(it.id ?? ''); });
-          } else if (it.kind === 'capital') {
-            el.className = 'cap-pin';
-            el.innerHTML = `<i></i><span>★ ${escapeHtml(it.name ?? '')}</span>`;
-          } else if (it.kind === 'sun') {
-            el.className = 'sun-pin';
-            el.title = `The sun is directly overhead here (${it.name})`;
-            el.innerHTML = `<svg viewBox="0 0 40 40" aria-hidden="true"><g class="rays">${Array.from({ length: 8 }, (_, i) =>
-              `<rect x="19" y="2.5" width="2" height="6" rx="1" transform="rotate(${i * 45} 20 20)"/>`).join('')}</g><circle cx="20" cy="20" r="7.5"/></svg><span>Midday here</span>`;
-          } else {
-            el.className = `game-pin ${it.kind}`;
-            el.innerHTML = '<span></span>';
-          }
-          return el;
-        }}
+        htmlElementVisibilityModifier={htmlVisibility}
+        htmlElement={htmlElement}
         arcsData={arcs}
         arcColor={() => ['rgba(251,191,36,0.95)', 'rgba(52,211,153,0.95)']}
         arcStroke={0.9}
