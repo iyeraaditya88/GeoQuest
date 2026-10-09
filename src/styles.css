@@ -1212,24 +1212,6 @@ button:not(:disabled):active { filter: brightness(0.86); transition-duration: 0s
 .pp-empty code { font: 500 12px ui-monospace, monospace; color: var(--gold-soft); }
 
 /* Incoming challenges */
-.ch-toasts { position: fixed; top: 16px; right: 16px; z-index: 60; display: grid; gap: 8px; width: min(380px, calc(100vw - 32px)); pointer-events: none; }
-.ch-toast { pointer-events: auto; display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 10px; border-radius: 18px;
-  background: rgba(9, 14, 30, 0.96); box-shadow: var(--shadow), 0 0 0 1px rgba(251, 191, 36, 0.35), 0 0 50px -14px rgba(251, 191, 36, 0.55); }
-.ch-ring { position: relative; width: 40px; height: 40px; flex-shrink: 0; display: grid; place-items: center; }
-.ch-ring svg { position: absolute; inset: 0; transform: rotate(-90deg); }
-.ch-ring circle { fill: none; stroke-width: 2.5; }
-.ch-ring .bg { stroke: rgba(255, 255, 255, 0.08); }
-.ch-ring .fg { stroke: var(--gold); stroke-linecap: round; }
-.ch-ring .pp-avatar { width: 30px; height: 30px; font-size: 12px; }
-.ch-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.ch-text b { display: flex; align-items: center; gap: 5px; font: 600 13.5px/1.2 var(--display); }
-.ch-text b svg { color: var(--gold); }
-.ch-text span { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ch-btn { height: 34px; border-radius: 11px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-weight: 600; font-size: 13px; transition: transform 0.2s var(--ease), background 0.2s; }
-.ch-btn.no { width: 34px; color: var(--muted); background: rgba(255, 255, 255, 0.06); }
-.ch-btn.no:hover { color: #fecaca; background: rgba(248, 113, 113, 0.16); }
-.ch-btn.yes { padding: 0 13px; color: #1a1205; background: linear-gradient(135deg, var(--gold-soft), var(--gold) 50%, #f59e0b); }
-.ch-btn.yes:hover { transform: translateY(-1px); }
 
 /* Lobby */
 .game-card.mt-lobby { display: grid; gap: 12px; z-index: 30; }
@@ -1350,7 +1332,6 @@ button:not(:disabled):active { filter: brightness(0.86); transition-duration: 0s
 .hint { bottom: calc(26px + var(--sb)); }
 .dock { bottom: calc(20px + var(--sb)); max-height: min(64vh, 640px, calc(100% - 40px - var(--st) - var(--sb))); }
 .dive-hud { bottom: calc(26px + var(--sb)); }
-.ch-toasts { top: calc(16px + var(--st)); right: calc(16px + var(--sr)); }
 .mt-hud { bottom: calc(18px + var(--sb)); }
 .mt-hud.top { top: calc(64px + var(--st)); }
 .people-backdrop, .mt-results-wrap { padding: calc(16px + var(--st)) calc(16px + var(--sr)) calc(16px + var(--sb)) calc(16px + var(--sl)); }
@@ -1679,3 +1660,30 @@ html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent
 .mt-other button { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 99px; font-size: 12px; color: var(--muted);
   background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 0 0 1px var(--line); transition: all 0.15s var(--ease); }
 .mt-other button:hover { color: var(--text); background: rgba(255, 255, 255, 0.09); }
+
+/* ── Incoming challenge (modal) ── */
+.ch-backdrop { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center;
+  padding: calc(16px + var(--st)) calc(16px + var(--sr)) calc(16px + var(--sb)) calc(16px + var(--sl));
+  background: radial-gradient(ellipse at center, rgba(251, 191, 36, 0.08), rgba(2, 4, 12, 0.72) 70%); backdrop-filter: blur(5px); }
+.ch-modal { width: min(380px, 100%); display: grid; justify-items: center; gap: 14px; padding: 26px 22px 18px; border-radius: 26px; text-align: center;
+  background: rgba(9, 14, 30, 0.97); box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(251, 191, 36, 0.25), 0 0 60px -10px rgba(251, 191, 36, 0.25); }
+.ch-ring { position: relative; width: 96px; height: 96px; display: grid; place-items: center; }
+.ch-ring svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+.ch-ring circle { fill: none; stroke-width: 4; }
+.ch-ring .bg { stroke: rgba(255, 255, 255, 0.08); }
+.ch-ring .fg { stroke: var(--gold); stroke-linecap: round; filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.5)); }
+.ch-ring .pp-avatar { width: 72px; height: 72px; font-size: 30px; }
+.ch-swords { position: absolute; right: 2px; bottom: 2px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: #1a1205;
+  background: linear-gradient(135deg, var(--gold-soft), var(--gold)); box-shadow: 0 0 0 3px rgba(9, 14, 30, 0.97); }
+.ch-modal h2 { margin: 0; font: 600 21px/1.25 var(--display); }
+.ch-modal h2 b { color: var(--gold-soft); }
+.ch-game { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 16px; text-align: left; background: rgba(255, 255, 255, 0.04); box-shadow: inset 0 0 0 1px var(--line); }
+.ch-game-icon { width: 38px; height: 38px; flex-shrink: 0; border-radius: 11px; display: grid; place-items: center; color: var(--gold); background: rgba(251, 191, 36, 0.12); }
+.ch-game div { min-width: 0; display: grid; gap: 1px; }
+.ch-game b { font-size: 14.5px; }
+.ch-game span { font-size: 12px; color: var(--dim); }
+.ch-players { margin: -4px 0 0; display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
+.ch-actions { width: 100%; display: flex; gap: 8px; }
+.ch-actions .ghost-cta { width: auto; margin: 0; padding: 0 18px; }
+.ch-actions .primary { flex: 1; height: 46px; justify-content: center; font-size: 15px; }
+.ch-left { margin: -2px 0 0; font-size: 12px; color: var(--dim); font-variant-numeric: tabular-nums; }

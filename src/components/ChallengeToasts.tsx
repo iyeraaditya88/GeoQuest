@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Check, Swords, X } from 'lucide-react';
-import { GAMES, INVITE_MS, QUIZ_MODES, type Invite } from '../lib/match';
+import { Binoculars, Brain, Gamepad2, Landmark, ListOrdered, Swords, Users } from 'lucide-react';
+import { GAMES, INVITE_MS, QUIZ_MODES, type GameId, type Invite } from '../lib/match';
+import { music } from '../lib/music';
+import { buzz } from '../lib/touch';
 
 interface Props {
   invites: Invite[];
@@ -10,21 +12,32 @@ interface Props {
   onExpire: (inv: Invite) => void;
 }
 
-/** Incoming challenges, top-right, each with a ring that runs out after 30 s. */
+const ICONS: Record<GameId, typeof Swords> = { quiz: Gamepad2, capitals: Landmark, trivia: Brain, top5: ListOrdered, street: Binoculars };
+
+/**
+ * Incoming challenges: a modal in the middle of the screen, so it can't be missed — one at a time
+ * (others wait their turn), each with a ring that runs out after 30 s.
+ */
 export function ChallengeToasts({ invites, onAccept, onDecline, onExpire }: Props) {
+  const inv = invites[0];
   return (
-    <div className="ch-toasts" aria-live="polite">
-      <AnimatePresence>
-        {invites.map((inv) => <Toast key={inv.id} inv={inv} onAccept={onAccept} onDecline={onDecline} onExpire={onExpire} />)}
-      </AnimatePresence>
-    </div>
+    <AnimatePresence>
+      {inv && (
+        <motion.div key="ch" className="ch-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <AnimatePresence mode="wait">
+            <Challenge key={inv.id} inv={inv} waiting={invites.length - 1} onAccept={onAccept} onDecline={onDecline} onExpire={onExpire} />
+          </AnimatePresence>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
-function Toast({ inv, onAccept, onDecline, onExpire }: { inv: Invite } & Omit<Props, 'invites'>) {
+function Challenge({ inv, waiting, onAccept, onDecline, onExpire }: { inv: Invite; waiting: number } & Omit<Props, 'invites'>) {
   // Time left, measured on this device from when the invite arrived (clocks can differ).
   const [end] = useState(() => Date.now() + Math.min(INVITE_MS, Math.max(5000, INVITE_MS - (Date.now() - inv.at))));
   const [left, setLeft] = useState(1);
+  const accept = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     let raf = 0;
     const total = end - Date.now();
@@ -37,26 +50,43 @@ function Toast({ inv, onAccept, onDecline, onExpire }: { inv: Invite } & Omit<Pr
     raf = requestAnimationFrame(tick);
     // A hidden tab doesn't animate — still expire on time.
     const t = window.setTimeout(() => onExpire(inv), total + 50);
-    return () => { cancelAnimationFrame(raf); window.clearTimeout(t); };
+    // Get their attention: a chime and (phones) a buzz. Enter accepts (focused), Esc is "not now".
+    music.sfx('good');
+    buzz('good');
+    accept.current?.focus({ preventScroll: true });
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); onDecline(inv); } };
+    window.addEventListener('keydown', onKey, true);
+    return () => { cancelAnimationFrame(raf); window.clearTimeout(t); window.removeEventListener('keydown', onKey, true); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const others = inv.players.filter((p) => p !== inv.from).length - 1;
+  const secs = Math.max(0, Math.ceil((end - Date.now()) / 1000));
   const g = GAMES[inv.game];
+  const Icon = ICONS[inv.game];
   const detail = inv.game === 'quiz' ? QUIZ_MODES.find((m) => m.id === inv.opts?.mode)?.label : inv.game === 'capitals' ? (inv.opts?.level === 'all' ? 'All countries' : 'Big countries') : null;
-  const R = 17, C = 2 * Math.PI * R;
+  const R = 46, C = 2 * Math.PI * R;
   return (
-    <motion.div className="ch-toast" layout initial={{ x: 60, opacity: 0, scale: 0.96 }} animate={{ x: 0, opacity: 1, scale: 1 }} exit={{ x: 60, opacity: 0, scale: 0.96 }} transition={{ type: 'spring', stiffness: 380, damping: 30 }}>
+    <motion.section className="ch-modal" role="alertdialog" aria-modal="true" aria-labelledby="ch-title" aria-describedby="ch-game"
+      initial={{ y: 24, scale: 0.92, opacity: 0 }} animate={{ y: 0, scale: 1, opacity: 1 }} exit={{ y: -12, scale: 0.96, opacity: 0 }} transition={{ type: 'spring', stiffness: 340, damping: 26 }}>
       <span className="ch-ring">
-        <svg viewBox="0 0 40 40" aria-hidden><circle cx="20" cy="20" r={R} className="bg" /><circle cx="20" cy="20" r={R} className="fg" strokeDasharray={C} strokeDashoffset={C * (1 - left)} /></svg>
+        <svg viewBox="0 0 100 100" aria-hidden><circle cx="50" cy="50" r={R} className="bg" /><circle cx="50" cy="50" r={R} className="fg" strokeDasharray={C} strokeDashoffset={C * (1 - left)} /></svg>
         <span className="pp-avatar member">{inv.from[0]?.toUpperCase()}</span>
+        <motion.span className="ch-swords" initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} transition={{ delay: 0.2, type: 'spring', stiffness: 400, damping: 14 }}><Swords size={14} /></motion.span>
       </span>
-      <div className="ch-text">
-        <b><Swords size={12} /> {inv.from} challenges you</b>
-        <span>{g.label}{detail ? ` · ${detail}` : ''}{others > 0 ? ` · with ${others} more` : ''}</span>
+      <h2 id="ch-title"><b>{inv.from}</b> challenges you!</h2>
+      <div className="ch-game" id="ch-game">
+        <span className="ch-game-icon"><Icon size={18} /></span>
+        <div>
+          <b>{g.label}{detail ? ` · ${detail}` : ''}</b>
+          <span>{g.blurb}</span>
+        </div>
       </div>
-      <button className="ch-btn no" onClick={() => onDecline(inv)} aria-label="Decline"><X size={15} /></button>
-      <button className="ch-btn yes" onClick={() => onAccept(inv)}><Check size={15} /> Play</button>
-    </motion.div>
+      {inv.players.length > 2 && <p className="ch-players"><Users size={13} /> {inv.players.length}-player match</p>}
+      <div className="ch-actions">
+        <button className="ghost-cta" onClick={() => onDecline(inv)}>Not now</button>
+        <button className="primary" ref={accept} onClick={() => onAccept(inv)}><Swords size={15} /> Accept &amp; play</button>
+      </div>
+      <p className="ch-left">{secs > 0 ? `${secs}s to answer` : 'Time’s up'}{waiting > 0 ? ` · ${waiting} more challenge${waiting === 1 ? '' : 's'} waiting` : ''}</p>
+    </motion.section>
   );
 }
