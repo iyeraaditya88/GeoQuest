@@ -81,7 +81,8 @@ class Engine {
 
   start() {
     window.clearTimeout(this.stopTimer);
-    void this.ctx.resume();
+    // A page that's out of sight stays quiet (it starts when it's shown — see visibilitychange).
+    if (document.hidden) void this.ctx.suspend(); else void this.ctx.resume();
     this.fadeTo(MODES[this.mode].volume, 1.8);
     this.playing = true;
     if (this.timer) return;
