@@ -17,7 +17,14 @@ export function MusicButton({ className = '' }: { className?: string }) {
       aria-pressed={!muted}
       title={muted ? 'Music off — tap to turn on' : 'Music on — tap to mute'}
     >
-      {muted ? <VolumeX size={17} /> : <span className="eq" aria-hidden><i /><i /><i /><i /></span>}
+      {muted ? <VolumeX size={18} /> : (
+        // A speaker whose sound waves ripple while the music plays (bars looked like a chart).
+        <svg className="spk" viewBox="0 0 24 24" width="19" height="19" aria-hidden fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor" fillOpacity="0.25" />
+          <path className="w1" d="M15.5 9.5a4 4 0 0 1 0 5" />
+          <path className="w2" d="M18.5 7a8 8 0 0 1 0 10" />
+        </svg>
+      )}
       {status === 'waiting' && <span className="music-hint" aria-hidden>Tap anywhere for music</span>}
     </button>
   );

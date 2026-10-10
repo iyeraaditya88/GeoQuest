@@ -1861,3 +1861,44 @@ html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent
   animation: musicHint 7s ease both; }
 @keyframes musicHint { 0% { opacity: 0; } 8% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .music-btn.waiting::after { animation: none; } }
+
+/* Sound button: speaker with rippling waves while music plays */
+.music-btn .spk .w1, .music-btn .spk .w2 { animation: spkWave 1.6s ease-in-out infinite; }
+.music-btn .spk .w2 { animation-delay: 0.25s; }
+@keyframes spkWave { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+.music-btn.waiting .spk .w1, .music-btn.waiting .spk .w2 { animation: none; opacity: 0.35; }
+@media (prefers-reduced-motion: reduce) { .music-btn .spk .w1, .music-btn .spk .w2 { animation: none; opacity: 1; } }
+
+/* Phones: name the corner buttons (icons alone weren't clear) */
+@media (max-width: 900px) {
+  .music-fab::before, .fo-fab .fo-btn::before { position: absolute; top: calc(100% + 3px); left: 50%; translate: -50% 0; pointer-events: none;
+    font: 600 9.5px/1 Inter, sans-serif; letter-spacing: 0.02em; color: var(--muted); white-space: nowrap; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8); }
+  .music-fab::before { content: 'Sound'; }
+  .fo-fab .fo-btn::before { content: 'Friends'; }
+  .music-fab .music-hint { top: calc(100% + 20px); }
+  .fo-fab .fo-pop { top: calc(100% + 20px); }
+}
+
+/* Street View: which way you're facing (tap to face north) */
+.sv-facing { position: absolute; left: 14px; bottom: 92px; z-index: 4; display: inline-flex; align-items: center; gap: 6px; padding: 7px 11px; border-radius: 99px;
+  font-size: 12px; color: var(--muted); background: rgba(5, 8, 20, 0.78); box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.22), 0 8px 20px rgba(0, 0, 0, 0.35); }
+.sv-facing b { color: var(--text); font-weight: 700; min-width: 20px; }
+.sv-facing svg { color: var(--gold); transition: rotate 0.2s linear; }
+.sv-facing:active { transform: scale(0.96); }
+@media (max-width: 900px) { .sv-facing { bottom: calc(82px + var(--sb)); } }
+
+/* Menu footer: labelled buttons in the phone drawer (room for words; no hover tooltips on touch) */
+.sb-icon-label { display: none; }
+.sidebar.is-drawer .sb-foot-row { flex-wrap: wrap; justify-content: flex-start; gap: 6px; }
+.sidebar.is-drawer .sb-foot-row .sb-user { width: 100%; margin-bottom: 2px; }
+.sidebar.is-drawer .sb-foot-row .sb-icon { width: auto; height: 36px; padding: 0 11px; gap: 6px; display: inline-flex; align-items: center; color: var(--muted); background: rgba(255, 255, 255, 0.04); }
+.sidebar.is-drawer .sb-icon-label { display: inline; font-size: 12.5px; font-weight: 500; }
+.sidebar.is-drawer [data-tip]::after { display: none; }
+
+/* Phones: today's Daily, one tap away */
+.daily-chip { position: fixed; z-index: 5; left: 50%; translate: -50% 0; bottom: calc(82px + var(--sb)); display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 14px; border-radius: 99px; font-size: 12.5px; color: var(--muted); white-space: nowrap;
+  background: rgba(9, 14, 30, 0.88); box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.35), 0 10px 26px -8px rgba(0, 0, 0, 0.6); backdrop-filter: blur(10px); }
+.daily-chip svg { color: var(--gold); }
+.daily-chip b { color: var(--gold-soft); font-weight: 600; }
+.daily-chip:active { transform: scale(0.97); }

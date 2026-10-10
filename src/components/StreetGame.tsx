@@ -8,7 +8,7 @@ import '@photo-sphere-viewer/core/index.css';
 import '@photo-sphere-viewer/markers-plugin/index.css';
 import '@photo-sphere-viewer/compass-plugin/index.css';
 import '@photo-sphere-viewer/virtual-tour-plugin/index.css';
-import { RotateCw, ChevronDown, ChevronUp, ExternalLink, Flag, KeyRound, Loader2, LocateFixed, Maximize2, MapPin, Minimize2, RotateCcw, Trophy, X, Footprints } from 'lucide-react';
+import { ChevronDown, ChevronUp, Compass, ExternalLink, Flag, Footprints, KeyRound, Loader2, LocateFixed, MapPin, Maximize2, Minimize2, RotateCcw, RotateCw, Trophy, X } from 'lucide-react';
 import { Viewer as MlyViewer, NavigationDirection } from 'mapillary-js';
 import 'mapillary-js/dist/mapillary.css';
 import * as maplibregl from 'maplibre-gl';
@@ -351,6 +351,9 @@ function MapillaryViewer({ token, spot, onError, onMoved }: { token: string; spo
   const [moving, setMoving] = useState(false);
   const [can, setCan] = useState({ forward: false, back: false });
   const [hint, setHint] = useState<string | null>(null);
+  // Which way you're looking (a compass point) — also a GeoGuessr clue with the sun and shadows.
+  const [facing, setFacing] = useState<number | null>(null);
+  const facingRef = useRef(0);
 
   useEffect(() => {
     let steps = 0;
@@ -375,13 +378,14 @@ function MapillaryViewer({ token, spot, onError, onMoved }: { token: string; spo
       component: {
         cover: false,
         attribution: true,
-        bearing: true,
+        bearing: false, // our own "Facing NE" pill instead (the dial was cryptic)
         cache: true,
         // Mapillary's ground arrows: helpful with a mouse; on phones they sit on top of our walk bar
         // (tap / double-tap / hold-to-walk cover it there).
         direction: TOUCH || window.innerWidth <= 600 ? false : { minWidth: 260, maxWidth: 520 },
         keyboard: false,
-        zoom: true, sequence: false, spatial: false, tag: false, popup: false, slider: false, marker: false,
+        zoom: !TOUCH, // phones pinch to zoom; the +/− buttons only cluttered the screen
+        sequence: false, spatial: false, tag: false, popup: false, slider: false, marker: false,
       },
     });
     viewerRef.current = v;
@@ -453,7 +457,11 @@ function MapillaryViewer({ token, spot, onError, onMoved }: { token: string; spo
     v.on('spatialedges', (e) => { if (e.status.cached) { spatialEdges = toEdges(e.status, false); onEdges(); } });
     // While a step is in flight, hold on to the heading the player chose.
     let headingLock = false;
-    v.on('bearing', (e) => { if (!headingLock) { bearing = e.bearing; refreshCan(); } });
+    v.on('bearing', (e) => {
+      facingRef.current = e.bearing;
+      setFacing((f) => (f === null || Math.abs(((e.bearing - f + 540) % 360) - 180) >= 8 ? e.bearing : f));
+      if (!headingLock) { bearing = e.bearing; refreshCan(); }
+    });
 
     // Keep facing the same way across steps (Mapillary otherwise snaps to each photo's default view).
     let keepHeading: number | null = null;
@@ -628,6 +636,11 @@ function MapillaryViewer({ token, spot, onError, onMoved }: { token: string; spo
       <AnimatePresence>
         {hint && <motion.div className="sv-hint" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>{hint}</motion.div>}
       </AnimatePresence>
+      {!loading && facing !== null && (
+        <button className="sv-facing" onClick={() => turnRef.current(-(((facingRef.current + 540) % 360) - 180))} title="Turn to face north" aria-label={`Facing ${compassPoint(facing)} — tap to face north`}>
+          <Compass size={14} style={{ rotate: `${-facing}deg` }} /> Facing <b>{compassPoint(facing)}</b>
+        </button>
+      )}
       {!loading && (
         <div className="sv-walk mly-walk">
           <button className="sv-turn" onClick={() => turnRef.current(-45)} title="Look left" aria-label="Look left"><RotateCcw size={16} /></button>
@@ -642,6 +655,9 @@ function MapillaryViewer({ token, spot, onError, onMoved }: { token: string; spo
     </div>
   );
 }
+
+/** "N", "NE", "E"… for a compass bearing in degrees. */
+const compassPoint = (deg: number) => ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round((((deg % 360) + 360) % 360) / 45) % 8];
 
 // ── Maps (MapLibre + OpenFreeMap, keyless) ───────────────────
 const MAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';

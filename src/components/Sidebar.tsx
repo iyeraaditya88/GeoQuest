@@ -220,14 +220,14 @@ export function Sidebar(p: Props) {
             {p.user && (
               <>
                 <Fade show={!rail}><span className="sb-user" title={`Signed in as ${p.user}`}><UserRound size={13} /> {p.user}</span></Fade>
-                {p.onReminders && <button className={`sb-icon ${p.remindersOn ? 'lit' : ''}`} onClick={p.onReminders} aria-label="Morning reminder" data-tip={p.remindersOn ? 'Morning reminder: on' : 'Morning reminder'}><BellRing size={16} /></button>}
-                {p.onActivity && <button className="sb-icon" onClick={p.onActivity} aria-label="Activity" data-tip="Activity — who’s playing"><BarChart3 size={16} /></button>}
-                {p.onPeople && <button className="sb-icon" onClick={p.onPeople} aria-label="People" data-tip="People — invite friends"><Users size={16} /></button>}
-                <button className="sb-icon sb-signout" onClick={p.onSignOut} aria-label="Sign out" data-tip="Sign out"><LogOut size={16} /></button>
+                {p.onReminders && <button className={`sb-icon ${p.remindersOn ? 'lit' : ''}`} onClick={p.onReminders} aria-label="Morning reminder" data-tip={p.remindersOn ? 'Morning reminder: on' : 'Morning reminder'}><BellRing size={16} /><span className="sb-icon-label">Reminder</span></button>}
+                {p.onActivity && <button className="sb-icon" onClick={p.onActivity} aria-label="Activity" data-tip="Activity — who’s playing"><BarChart3 size={16} /><span className="sb-icon-label">Activity</span></button>}
+                {p.onPeople && <button className="sb-icon" onClick={p.onPeople} aria-label="People" data-tip="People — invite friends"><Users size={16} /><span className="sb-icon-label">People</span></button>}
+                <button className="sb-icon sb-signout" onClick={p.onSignOut} aria-label="Sign out" data-tip="Sign out"><LogOut size={16} /><span className="sb-icon-label">Sign out</span></button>
               </>
             )}
-            {!p.user && p.onReminders && <button className={`sb-icon ${p.remindersOn ? 'lit' : ''}`} onClick={p.onReminders} aria-label="Morning reminder" data-tip="Morning reminder"><BellRing size={16} /></button>}
-            {!p.user && p.onActivity && <button className="sb-icon" onClick={p.onActivity} aria-label="Activity" data-tip="Activity — who’s playing"><BarChart3 size={16} /></button>}
+            {!p.user && p.onReminders && <button className={`sb-icon ${p.remindersOn ? 'lit' : ''}`} onClick={p.onReminders} aria-label="Morning reminder" data-tip="Morning reminder"><BellRing size={16} /><span className="sb-icon-label">Reminder</span></button>}
+            {!p.user && p.onActivity && <button className="sb-icon" onClick={p.onActivity} aria-label="Activity" data-tip="Activity — who’s playing"><BarChart3 size={16} /><span className="sb-icon-label">Activity</span></button>}
           </div>
         </div>
       </motion.nav>
