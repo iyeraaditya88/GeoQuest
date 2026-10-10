@@ -74,13 +74,21 @@ export function Sidebar(p: Props) {
   const width = rail ? SIDEBAR_W.rail : SIDEBAR_W.open;
   const show = p.mobile ? p.drawerOpen : !p.hidden;
 
+  // Phones: the menu button glows until it's been opened once (that's where everything lives).
+  const [menuSeen, setMenuSeen] = useState(() => { try { return localStorage.getItem('gq-menu-seen') === '1'; } catch { return false; } });
+  useEffect(() => {
+    if (!p.drawerOpen || menuSeen) return;
+    setMenuSeen(true);
+    try { localStorage.setItem('gq-menu-seen', '1'); } catch { /* private mode: it just glows again next time */ }
+  }, [p.drawerOpen, menuSeen]);
+
   // Close the mobile drawer after any action.
   const act = (fn: () => void) => () => { fn(); if (p.mobile) p.setDrawerOpen(false); };
 
   return (
     <>
       {p.mobile && !p.hidden && (
-        <button className="sb-burger" onClick={() => p.setDrawerOpen(true)} aria-label="Open menu"><Menu size={20} /></button>
+        <button className={`sb-burger ${menuSeen ? '' : 'beckon'}`} onClick={() => p.setDrawerOpen(true)} aria-label="Open menu"><Menu size={20} /></button>
       )}
       <AnimatePresence>
         {p.mobile && p.drawerOpen && (
