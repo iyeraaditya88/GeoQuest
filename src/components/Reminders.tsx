@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { BellOff, BellRing, Check, Loader2, Share, SquarePlus } from 'lucide-react';
 import { disableReminder, enableReminder, hourLabel, pushSupport, reminderState, sendTestReminder, type ReminderState } from '../lib/push';
 import { track } from '../lib/analytics';
+import { canUseAccount, needSignIn, useAuth } from '../lib/session';
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
 
@@ -11,16 +12,18 @@ const HOURS = Array.from({ length: 24 }, (_, h) => h);
  */
 export function Reminders({ compact = false, onChange }: { compact?: boolean; onChange?: (on: boolean) => void }) {
   const support = pushSupport();
+  const a = useAuth();
+  const account = canUseAccount(a);
   const [st, setSt] = useState<ReminderState | null>(null);
   const [hour, setHour] = useState(8);
   const [busy, setBusy] = useState<false | 'on' | 'off' | 'test'>(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => {
-    if (support !== 'ok') return;
+    if (support !== 'ok' || !account) return;
     void reminderState().then((s) => { setSt(s); setHour(s.hour); onChange?.(s.on); });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [support]);
+  }, [support, account]);
 
   const run = async (what: 'on' | 'off' | 'test', fn: () => Promise<void>, ok: string) => {
     setBusy(what); setMsg(null);
@@ -35,6 +38,16 @@ export function Reminders({ compact = false, onChange }: { compact?: boolean; on
     await disableReminder();
     setSt((s) => (s ? { ...s, on: false } : s)); onChange?.(false); track('reminder', { on: 0 });
   }, 'Reminder off on this device.');
+
+  // Guests: reminders come with an account (they're sent to you, and skip days you've played).
+  if (!account) {
+    return (
+      <div className={`rm ${compact ? 'compact' : ''}`}>
+        <p className="rm-lead"><BellRing size={15} /> {compact ? 'Create a free account to keep your streak — and get a morning nudge.' : 'Morning reminders come with a free account — a nudge each morning with the new Daily.'}</p>
+        <button className="primary" onClick={() => needSignIn(compact ? 'daily' : 'reminders')}>Create account or sign in</button>
+      </div>
+    );
+  }
 
   // iPhone in Safari: notifications need the installed app first.
   if (support === 'ios-install') {

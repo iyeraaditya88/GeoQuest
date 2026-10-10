@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { BarChart3, BellRing, Binoculars, Brain, CalendarDays, Check, ChevronLeft, Dices, Drill, Gamepad2, Globe2, History, KeyRound, Landmark, Link2, ListOrdered, LogOut, Map as MapIcon, MapPinned, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, Sparkles, SunMoon, Swords, UserRound, Users, X } from 'lucide-react';
+import { BarChart3, BellRing, Binoculars, Brain, CalendarDays, Check, ChevronLeft, Dices, Drill, Gamepad2, Globe2, History, KeyRound, Landmark, Link2, ListOrdered, LogIn, LogOut, Map as MapIcon, MapPinned, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, Sparkles, SunMoon, Swords, UserRound, Users, X } from 'lucide-react';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import type { MapStyle } from './GlobeView';
 
@@ -29,6 +29,9 @@ interface Props {
   /** Signed-in user on the hosted site (null locally). */
   user?: string | null;
   onSignOut?: () => void;
+  /** Browsing without an account (hosted): offer to sign in */
+  guest?: boolean;
+  onSignIn?: () => void;
   /** Owner on the hosted site: open the People panel. */
   onPeople?: () => void;
   onActivity?: () => void;
@@ -224,6 +227,17 @@ export function Sidebar(p: Props) {
               </span>
             </Fade>
           </button>
+          {p.guest && p.onSignIn && (
+            <button className="sb-signin" onClick={act(p.onSignIn)} data-tip={rail ? 'Sign in to play with friends' : undefined}>
+              <LogIn size={16} />
+              <Fade show={!rail}>
+                <span className="sb-status-text">
+                  <b>Play with friends</b>
+                  <span>Sign in or create a free account</span>
+                </span>
+              </Fade>
+            </button>
+          )}
           <div className="sb-foot-row">
             {p.user && (
               <>
@@ -234,8 +248,8 @@ export function Sidebar(p: Props) {
                 <button className="sb-icon sb-signout" onClick={p.onSignOut} aria-label="Sign out" data-tip="Sign out"><LogOut size={16} /><span className="sb-icon-label">Sign out</span></button>
               </>
             )}
-            {!p.user && p.onReminders && <button className={`sb-icon ${p.remindersOn ? 'lit' : ''}`} onClick={p.onReminders} aria-label="Morning reminder" data-tip="Morning reminder"><BellRing size={16} /><span className="sb-icon-label">Reminder</span></button>}
-            {!p.user && p.onActivity && <button className="sb-icon" onClick={p.onActivity} aria-label="Activity" data-tip="Activity — who’s playing"><BarChart3 size={16} /><span className="sb-icon-label">Activity</span></button>}
+            {!p.user && !p.guest && p.onReminders && <button className={`sb-icon ${p.remindersOn ? 'lit' : ''}`} onClick={p.onReminders} aria-label="Morning reminder" data-tip="Morning reminder"><BellRing size={16} /><span className="sb-icon-label">Reminder</span></button>}
+            {!p.user && !p.guest && p.onActivity && <button className="sb-icon" onClick={p.onActivity} aria-label="Activity" data-tip="Activity — who’s playing"><BarChart3 size={16} /><span className="sb-icon-label">Activity</span></button>}
           </div>
         </div>
       </motion.nav>

@@ -7,7 +7,7 @@ import * as push from '../push.js';
 import { HOSTED, fail, rateLimit } from '../http.js';
 import { addDays, localDate } from '../../src/lib/daily.js';
 
-const me = (req: express.Request) => (HOSTED ? req.user! : accounts.normName(req.headers['x-gq-as']) || 'you');
+const me = (req: express.Request) => (HOSTED ? req.user ?? null : accounts.normName(req.headers['x-gq-as']) || 'you');
 
 /** Public: the hourly scheduler (GitHub Actions) — registered before the sign-in guard. */
 export function registerCron(app: express.Express) {
@@ -34,7 +34,10 @@ export function registerDaily(app: express.Express) {
     const date = String(req.query.date ?? '');
     if (!daily.playableDate(date)) { fail(res, 400, 'Not a valid day.'); return; }
     try {
-      const [mine, streak, board] = await Promise.all([daily.getResult(me(req), date), daily.getStreak(me(req)), daily.board(date)]);
+      const user = me(req);
+      // Guests play too, but don't see who else played (names are for signed-in friends).
+      if (!user) { res.json({ date, mine: null, streak: { count: 0, best: 0 }, board: [], guest: true }); return; }
+      const [mine, streak, board] = await Promise.all([daily.getResult(user, date), daily.getStreak(user), daily.board(date)]);
       res.json({ date, mine: mine?.points ?? null, streak: daily.currentStreak(streak, date), board });
     } catch (err) { fail(res, 500, err); }
   });
@@ -43,7 +46,7 @@ export function registerDaily(app: express.Express) {
     const { date, points } = (req.body ?? {}) as { date?: unknown; points?: unknown };
     if (!daily.playableDate(date)) { fail(res, 400, 'Not a valid day.'); return; }
     try {
-      const { streak } = await daily.saveResult(me(req), date, points);
+      const { streak } = await daily.saveResult(me(req)!, date, points);
       res.json({ ok: true, streak: daily.currentStreak(streak, date), board: await daily.board(date) });
     } catch (err) { const m = (err as Error).message; fail(res, /already/i.test(m) ? 409 : /finished/i.test(m) ? 400 : 500, err); }
   });
@@ -51,7 +54,7 @@ export function registerDaily(app: express.Express) {
   // ── Morning reminders ──
   app.get('/api/push', async (req, res) => {
     try {
-      const p = await push.getPrefs(me(req));
+      const p = await push.getPrefs(me(req)!);
       res.json({ key: await push.publicKey(), hour: p?.hour ?? 8, tz: p?.tz ?? null, endpoints: (p?.subs ?? []).map((s) => s.endpoint) });
     } catch (err) { fail(res, 500, err); }
   });
@@ -62,8 +65,8 @@ export function registerDaily(app: express.Express) {
     const h = Number(hour);
     if (!sub || !Number.isInteger(h) || h < 0 || h > 23 || !push.validTz(tz)) { fail(res, 400, 'That reminder couldn’t be saved — try again.'); return; }
     try {
-      const prev = await push.getPrefs(me(req));
-      await push.setPrefs(me(req), push.withSub(prev, sub, h, tz));
+      const prev = await push.getPrefs(me(req)!);
+      await push.setPrefs(me(req)!, push.withSub(prev, sub, h, tz));
       res.json({ ok: true, hour: h });
     } catch (err) { fail(res, 500, err); }
   });
@@ -71,8 +74,8 @@ export function registerDaily(app: express.Express) {
   app.delete('/api/push', rateLimit(30, 10 * 60_000), async (req, res) => {
     const endpoint = String((req.body as { endpoint?: unknown })?.endpoint ?? '');
     try {
-      const p = await push.getPrefs(me(req));
-      if (p) await push.setPrefs(me(req), { ...p, subs: p.subs.filter((s) => s.endpoint !== endpoint) });
+      const p = await push.getPrefs(me(req)!);
+      if (p) await push.setPrefs(me(req)!, { ...p, subs: p.subs.filter((s) => s.endpoint !== endpoint) });
       res.json({ ok: true });
     } catch (err) { fail(res, 500, err); }
   });
@@ -80,11 +83,11 @@ export function registerDaily(app: express.Express) {
   // "Send a test": to my own devices only.
   app.post('/api/push/test', rateLimit(5, 10 * 60_000), async (req, res) => {
     try {
-      const p = await push.getPrefs(me(req));
+      const p = await push.getPrefs(me(req)!);
       if (!p?.subs.length) { fail(res, 400, 'Turn the reminder on first.'); return; }
       const date = localDate(Date.now(), p.tz);
       const { alive, sent } = await push.sendTo(p, { ...push.morningNote(date, 0), title: '🌍 GeoQuest reminders are on!', body: `You’ll get one at ${p.hour}:00 each morning. Tap to play today’s Daily.` });
-      if (alive.length !== p.subs.length) await push.setPrefs(me(req), { ...p, subs: alive });
+      if (alive.length !== p.subs.length) await push.setPrefs(me(req)!, { ...p, subs: alive });
       if (!sent) { fail(res, 400, 'This device didn’t accept the notification — try turning the reminder off and on.'); return; }
       res.json({ ok: true, sent });
     } catch (err) { fail(res, 500, err); }

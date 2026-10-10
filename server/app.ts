@@ -20,7 +20,8 @@ import { registerPlaces } from './routes/places.js';
 import { registerAi, checkAi } from './routes/ai.js';
 
 declare module 'express-serve-static-core' {
-  interface Request { user?: string; role?: accounts.Role }
+  /** user/role: signed in; guest: browsing without an account (only a few routes allow it) */
+  interface Request { user?: string; role?: accounts.Role; guest?: boolean }
 }
 
 setSecretSource(accounts.sessionSecret); // signing key lives in the private account store

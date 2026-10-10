@@ -63,6 +63,8 @@ import { CLUE_POOL, QUIZ_POOL, clueFor, nextTarget, pickRandom } from './lib/qui
 import { DAILY_N, dailyNumber, dailyPicks, localDate, pointsFor, themeOf, THEME_LABEL } from './lib/daily';
 import { DailyResult, type DailyBoardRow } from './components/DailyResult';
 import { Reminders } from './components/Reminders';
+import { SignInSheet } from './components/SignInSheet';
+import { getAuth, isGuest, needSignIn, setAuth, useAuth, type SignInReason } from './lib/session';
 import { PlacesPanel } from './components/PlacesPanel';
 import { kindOf, usePlaces } from './lib/places';
 import { missHint, takeaway } from './lib/quizCoach';
@@ -120,7 +122,7 @@ export default function App() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
   useEffect(() => {
-    const check = () => api('/api/health').then((r) => r.json()).then((d) => { setAi(!!d.ai); setUser(d.user ?? null); startAnalytics(); setRole(d.role ?? null); setLiveMode(d.live === 'ably' || d.live === 'local' ? d.live : null); }).catch(() => setAi(false));
+    const check = () => api('/api/health').then((r) => r.json()).then((d) => { setAi(!!d.ai); setUser(d.user ?? null); setAuth({ hosted: !!d.hosted, user: d.user ?? null, role: d.role ?? null }); startAnalytics(); setRole(d.role ?? null); setLiveMode(d.live === 'ably' || d.live === 'local' ? d.live : null); }).catch(() => setAi(false));
     void check();
     window.addEventListener('focus', check);
     return () => window.removeEventListener('focus', check);
@@ -190,6 +192,15 @@ export default function App() {
   const [daily, setDaily] = useState<{ date: string; mine: number[] | null; streak: { count: number; best: number }; board: DailyBoardRow[] } | null>(null);
   const [dailyCard, setDailyCard] = useState<{ date: string; points: number[]; fresh: boolean } | null>(null);
   const [remindersOpen, setRemindersOpen] = useState(false);
+  // Guests: "Sign in to …" when they reach for something that needs an account.
+  const auth = useAuth();
+  const guest = isGuest(auth);
+  const [signIn, setSignIn] = useState<SignInReason | null>(null);
+  useEffect(() => {
+    const on = (e: Event) => setSignIn((e as CustomEvent<SignInReason>).detail ?? 'general');
+    window.addEventListener('gq:signin', on);
+    return () => window.removeEventListener('gq:signin', on);
+  }, []);
   const [remindersOn, setRemindersOn] = useState(false);
   // My places: the panel, a point just picked on the globe, and a pin just tapped.
   const [placesOpen, setPlacesOpen] = useState(false);
@@ -374,7 +385,12 @@ export default function App() {
   // ── Daily challenge ────────────────────────────────────
   const loadDaily = useCallback(() => {
     const date = localDate();
-    return api(`/api/daily?date=${date}`).then((r) => (r.ok ? r.json() : null)).then((d) => { if (d) setDaily(d); return d; }).catch(() => null);
+    return api(`/api/daily?date=${date}`).then((r) => (r.ok ? r.json() : null)).then((d) => {
+      // Guests: today's result lives on this device (so they can't replay it).
+      if (d?.guest) { try { const mine = JSON.parse(localStorage.getItem(`gq-daily-${date}`) ?? 'null'); if (Array.isArray(mine)) d.mine = mine; } catch { /* none */ } }
+      if (d) setDaily(d);
+      return d;
+    }).catch(() => null);
   }, []);
   useEffect(() => { void loadDaily(); }, [loadDaily, user]);
   const startDaily = () => {
@@ -397,6 +413,11 @@ export default function App() {
     setQuiz(null);
     setDailyCard({ date, points, fresh: true });
     track('score', { g: 'daily', s: points.reduce((s, p) => s + p, 0), of: DAILY_N * 3 });
+    if (isGuest(getAuth())) {
+      try { localStorage.setItem(`gq-daily-${date}`, JSON.stringify(points)); } catch { /* private mode */ }
+      setDaily({ date, mine: points, streak: { count: 0, best: 0 }, board: [] });
+      return;
+    }
     void api('/api/daily', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date, points }) })
       .then(async (r) => {
         const d = await r.json().catch(() => ({}));
@@ -621,6 +642,7 @@ export default function App() {
   // ── My places ──────────────────────────────────────────
   const startPlaces = async () => {
     if (placesOpen) { setPlacesOpen(false); return; }
+    if (isGuest(getAuth())) { needSignIn('places'); return; }
     if (morphing.current) return;
     if (geoRef.current) exitGeo();
     if (antiRef.current) exitAntipode();
@@ -831,7 +853,7 @@ export default function App() {
         placesOn={placesOpen}
         daily={daily ? { done: !!daily.mine && daily.date === localDate(), streak: daily.streak?.count ?? 0, theme: THEME_LABEL[themeOf(localDate())] } : { done: false, streak: 0, theme: THEME_LABEL[themeOf(localDate())] }}
         onDaily={() => (quiz?.daily ? exitQuiz() : startDaily())}
-        onReminders={() => setRemindersOpen(true)}
+        onReminders={() => (guest ? needSignIn('reminders') : setRemindersOpen(true))}
         remindersOn={remindersOn}
         onStreet={() => void startGeo()}
         antipodeOn={!!anti}
@@ -839,8 +861,10 @@ export default function App() {
         onTop5={() => (play === 'top5' ? exitPlay() : startPlay('top5'))}
         onCapitals={() => (play === 'capitals' ? exitPlay() : startPlay('capitals'))}
         onTrivia={() => (play === 'trivia' ? exitPlay() : startPlay('trivia'))}
-        onFriends={liveMode && liveMe ? () => setFriendsReq((n) => n + 1) : undefined}
-        onInvite={liveMode && liveMe ? () => setInviteReq((n) => n + 1) : undefined}
+        onFriends={liveMode && liveMe ? () => setFriendsReq((n) => n + 1) : guest ? () => needSignIn('friends') : undefined}
+        onInvite={liveMode && liveMe ? () => setInviteReq((n) => n + 1) : guest ? () => needSignIn('friends') : undefined}
+        guest={guest}
+        onSignIn={() => needSignIn('general')}
         friendsOnline={liveState.online}
         matchOn={liveState.active}
         onToggleView={() => void toggleFlat()}
@@ -885,9 +909,12 @@ export default function App() {
         {play === 'capitals' && <ErrorBoundary key="capitals" name="Capitals" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><CapitalsGame onReveal={(c) => { setHighlighted([c]); cam.flyTo(c); }} onExit={exitPlay} /></Suspense></ErrorBoundary>}
       </AnimatePresence>
       <AnimatePresence>
+        {signIn && <SignInSheet key="signin" reason={signIn} onClose={() => setSignIn(null)} />}
+      </AnimatePresence>
+      <AnimatePresence>
         {dailyCard && (
           <DailyResult key="daily" date={dailyCard.date} targets={dailyTargets(dailyCard.date)} points={dailyCard.points} fresh={dailyCard.fresh}
-            streak={daily?.date === dailyCard.date ? daily.streak : null} board={daily?.date === dailyCard.date ? daily.board : null}
+            streak={guest ? null : daily?.date === dailyCard.date ? daily.streak : null} board={daily?.date === dailyCard.date ? daily.board : null} guest={guest}
             me={user ?? 'you'} onClose={() => setDailyCard(null)} onReminder={setRemindersOn} />
         )}
         {remindersOpen && (

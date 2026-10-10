@@ -3,6 +3,7 @@
 // a local copy makes them appear at once.
 import { useEffect, useSyncExternalStore } from 'react';
 import { api } from './api';
+import { canUseAccount, isGuest, useAuth } from './session';
 
 export type PlaceKind = 'home' | 'family' | 'friend' | 'favorite' | 'memory' | 'dream';
 export interface MyPlace { id: string; lat: number; lng: number; name: string; kind: PlaceKind; note?: string; at: number }
@@ -41,7 +42,12 @@ async function save(next: MyPlace[]) {
 export const newPlaceId = () => Math.random().toString(36).slice(2, 12).padEnd(10, '0');
 
 export function usePlaces() {
-  useEffect(load, []);
+  const a = useAuth();
+  useEffect(() => {
+    if (canUseAccount(a)) load();
+    // A guest on a shared device mustn't see the last person's places.
+    else if (isGuest(a) && places.length) { places = []; loaded = false; emit(); }
+  }, [a]);
   const list = useSyncExternalStore(subscribe, () => places);
   return {
     places: list,

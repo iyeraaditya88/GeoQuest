@@ -6,6 +6,9 @@ import * as live from '../live.js';
 import { KEY_COOKIE, SESSION_COOKIE, authConfigured, verifySession } from '../session.js';
 import { HOSTED, MLY_COOKIE, authLimit, clearCookie, cookie, fail, signIn } from '../http.js';
 
+/** What guests (no account) may call: the rest needs signing in. */
+const GUEST_OK = new Set(['GET /health', 'POST /ask', 'POST /match', 'GET /mapillary', 'GET /daily', 'POST /analytics']);
+
 /** Public routes (sign-in, invites), then the guard that every other /api route sits behind. */
 export function registerAuth(app: express.Express) {
   /**
@@ -92,6 +95,18 @@ export function registerAuth(app: express.Express) {
     } catch (err) { fail(res, 400, err); }
   });
 
+  // Open sign-up: anyone can create an account (rate-limited per network, and a daily cap overall).
+  app.post('/api/signup', authLimit(5), async (req, res) => {
+    if (!HOSTED || !(await authConfigured())) { fail(res, 503, 'Sign-in isn’t set up yet.'); return; }
+    const { username, password } = (req.body ?? {}) as { username?: unknown; password?: unknown };
+    if (!accounts.validPassword(password)) { fail(res, 400, 'Use a password of at least 8 characters.'); return; }
+    try {
+      const u = await accounts.createOpenMember(username, password);
+      await signIn(res, u);
+      res.json({ ok: true, user: u.name });
+    } catch (err) { fail(res, 400, err); }
+  });
+
   app.post('/api/logout', (_req, res) => {
     for (const c of [SESSION_COOKIE, KEY_COOKIE, MLY_COOKIE]) clearCookie(res, c);
     res.json({ ok: true });
@@ -111,7 +126,13 @@ export function registerAuth(app: express.Express) {
       u = await accounts.getUser(s.u, true);
     }
     // Removed accounts, and sessions from before a password reset, are signed out at once.
-    if (!s || !u?.password || (s.v ?? 0) !== (u.sv ?? 0)) { res.status(401).json({ error: 'Please sign in.' }); return; }
+    if (!s || !u?.password || (s.v ?? 0) !== (u.sv ?? 0)) {
+      if (cookie(req, SESSION_COOKIE)) clearCookie(res, SESSION_COOKIE); // a stale sign-in: forget it
+      // Guests (no account) may use a few things: the globe's data, solo games, a little Atlas.
+      if (GUEST_OK.has(`${req.method} ${req.path}`)) { req.guest = true; next(); return; }
+      res.status(401).json({ error: 'Please sign in.' });
+      return;
+    }
     req.user = s.u;
     req.role = u.role;
     prefs.touchSeen(s.u); // "last seen" for friends lists (throttled)

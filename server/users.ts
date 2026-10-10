@@ -231,6 +231,22 @@ export async function createMember(nameRaw: unknown, pw: string, via: string) {
   });
 }
 
+// ── Open sign-up (anyone can create an account from the sign-in page) ──
+/** New open accounts per day, across everyone — a brake if a link to GeoQuest goes wide. */
+export const OPEN_SIGNUPS_PER_DAY = 100;
+export async function createOpenMember(nameRaw: unknown, pw: string) {
+  const name = normName(nameRaw);
+  if (!validName(name)) throw new Error('Pick a username of 2–32 letters, digits, dots, dashes or underscores.');
+  const password = await hashPassword(pw);
+  return update((db) => {
+    if (db.users[name]) throw new Error('That username is taken — pick another (or sign in if it’s yours).');
+    const today = Object.values(db.users).filter((u) => u.via === 'open' && u.createdAt > Date.now() - 86400000).length;
+    if (today >= OPEN_SIGNUPS_PER_DAY) throw new Error('Lots of people joined today — please try again tomorrow.');
+    db.users[name] = { role: 'member', createdAt: Date.now(), password, lastLogin: Date.now(), via: 'open' };
+    return { name, role: 'member' as Role, sv: 0 };
+  });
+}
+
 // ── Group invite links (owner only) ──
 // One link to post in a group chat: each person picks their own username and password. Only a
 // fingerprint of the link is stored (like single invites), so it's shown once, when made.

@@ -89,8 +89,17 @@ beforeAll(async () => {
 afterAll(() => { server?.close(); rmSync(dir, { recursive: true, force: true }); });
 
 describe('accounts', () => {
-  it('needs a session for the API', async () => {
-    expect((await call('GET', '/api/health')).status).toBe(401);
+  it("lets guests in, but keeps friends' features behind signing in", async () => {
+    const h = await call('GET', '/api/health');
+    expect(h.status).toBe(200);
+    expect(h.body).toEqual(expect.objectContaining({ guest: true, user: null, live: null }));
+    for (const [m, path] of [['GET', '/api/players'], ['GET', '/api/places'], ['GET', '/api/favorites'], ['POST', '/api/challenges'], ['POST', '/api/realtime/token'], ['GET', '/api/push']] as const) {
+      expect((await call(m, path, m === 'POST' ? { body: {} } : {})).status, path).toBe(401);
+    }
+    const d = await call('GET', `/api/daily?date=${new Date().toISOString().slice(0, 10)}`);
+    expect(d.body).toEqual(expect.objectContaining({ mine: null, board: [], guest: true })); // no names for guests
+    expect((await call('POST', '/api/daily', { body: { date: new Date().toISOString().slice(0, 10), points: [3, 3, 3, 3, 3] } })).status).toBe(401);
+    expect((await call('POST', '/api/ask', { body: { messages: [{ role: 'user', content: 'Hi' }] } })).status).toBe(503); // allowed, just no key in tests
   });
 
   it('only allows owner setup from the protected address, once', async () => {
@@ -137,7 +146,10 @@ describe('accounts', () => {
 
   it('signs out old sessions when a password is reset', async () => {
     const inv = await call('POST', '/api/people', { cookie: owner, body: { username: 'bob' } });
-    expect((await call('GET', '/api/health', { cookie: bob })).status).toBe(401);
+    const stale = await call('GET', '/api/health', { cookie: bob });
+    expect(stale.body.user).toBeNull(); // signed out: back to being a guest…
+    expect(String(stale.headers['set-cookie'])).toMatch(/gq_session=;/); // …and the old sign-in is forgotten
+    expect((await call('GET', '/api/players', { cookie: bob })).status).toBe(401);
     const t = new URL(String(inv.body.link)).searchParams.get('t')!;
     bob = sessionOf(await call('POST', '/api/invite/accept', { body: { username: 'bob', token: t, password: BOB_PW } }));
     expect((await call('GET', '/api/health', { cookie: bob })).status).toBe(200);
@@ -146,7 +158,8 @@ describe('accounts', () => {
   it('rejects a tampered session', async () => {
     // Change a character inside the signature (the very last one only carries padding bits).
     const forged = bob.replace(/(.)(....)$/, (_, c: string, rest: string) => (c === 'A' ? 'B' : 'A') + rest);
-    expect((await call('GET', '/api/health', { cookie: forged })).status).toBe(401);
+    expect((await call('GET', '/api/players', { cookie: forged })).status).toBe(401);
+    expect((await call('GET', '/api/health', { cookie: forged })).body.user).toBeNull();
   });
 });
 
@@ -389,6 +402,17 @@ describe('group invite links', () => {
     expect((await call('POST', '/api/group/join', { body: { code: c, username: 'late', password: pw } })).status).toBe(400);
     expect((await call('GET', '/api/group?code=abcdefgh.xxxxxxxxxxxxxxxxxxxxxxxxxx')).body).toEqual({ valid: false });
     expect((await call('GET', `/api/group?code=${encodeURIComponent(c.split('.')[0] + '.' + 'y'.repeat(32))}`)).body).toEqual({ valid: false });
+  });
+});
+
+describe('open sign-up', () => {
+  it('lets anyone create an account (usernames checked, taken ones refused)', async () => {
+    const r = await call('POST', '/api/signup', { body: { username: 'Newcomer', password: 'a-good-password' } });
+    expect(r.status).toBe(200);
+    expect((await call('GET', '/api/health', { cookie: sessionOf(r) })).body.user).toBe('newcomer');
+    expect((await call('POST', '/api/signup', { body: { username: 'newcomer', password: 'another-password' } })).status).toBe(400);
+    expect((await call('POST', '/api/signup', { body: { username: 'x', password: 'another-password' } })).status).toBe(400);
+    expect((await call('POST', '/api/signup', { body: { username: 'shorty', password: 'short' } })).status).toBe(400);
   });
 });
 

@@ -42,7 +42,8 @@ async function clientFor(req: express.Request): Promise<Anthropic | null> {
   if (!HOSTED) return (await checkAi()) ? client : null;
   const s = sharedClient();
   if (s) return s;
-  const key = await openKey(cookie(req, KEY_COOKIE), req.user!);
+  if (!req.user) return null; // guests only ever use the shared key
+  const key = await openKey(cookie(req, KEY_COOKIE), req.user);
   return key ? new Anthropic({ apiKey: key }) : null;
 }
 
@@ -154,8 +155,9 @@ export function registerAi(app: express.Express) {
   app.get('/api/health', async (req, res) => {
     if (HOSTED) {
       const server = !!sharedKey();
-      const ai = server || !!(await openKey(cookie(req, KEY_COOKIE), req.user!));
-      res.json({ ai, source: server ? 'server' : ai ? 'user' : null, hosted: true, user: req.user, role: req.role, live: live.liveConfigured() ? 'ably' : null });
+      const ai = server || (!!req.user && !!(await openKey(cookie(req, KEY_COOKIE), req.user)));
+      // Guests: no user, no live play (that's for signed-in friends).
+      res.json({ ai, source: server ? 'server' : ai ? 'user' : null, hosted: true, user: req.user ?? null, role: req.role ?? null, guest: !req.user, live: req.user && live.liveConfigured() ? 'ably' : null });
       return;
     }
     res.json({ ai: await checkAi(), source: keySource, hosted: false, user: null, live: 'local' });
@@ -203,7 +205,10 @@ export function registerAi(app: express.Express) {
 
   // Questions cost money on the owner's key: a fair-use cap per player (per day, as well as bursts).
   const askDaily = rateLimit(150, 24 * 3600_000, 'You’ve asked the Atlas a lot today — it’ll be back for you tomorrow!');
-  app.post('/api/ask', rateLimit(40, 10 * 60_000), askDaily, async (req, res) => {
+  // Guests get a taste (per network); an account (free) gets the full allowance.
+  const guestAsk = rateLimit(5, 24 * 3600_000, 'That’s today’s free questions — create a free account (or sign in) to keep asking the Atlas.');
+  const guestOnly = (mw: express.RequestHandler): express.RequestHandler => (req, res, next) => (req.guest ? mw(req, res, next) : next());
+  app.post('/api/ask', rateLimit(40, 10 * 60_000), askDaily, guestOnly(guestAsk), async (req, res) => {
     const { messages, country } = req.body as AskBody;
     const ok = Array.isArray(messages) && messages.length > 0 && messages.length <= 40 && messages.every((m) =>
       m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.length <= 8000);
@@ -274,7 +279,7 @@ export function registerAi(app: express.Express) {
     }
   });
 
-  app.post('/api/match', rateLimit(200, 10 * 60_000), async (req, res) => {
+  app.post('/api/match', rateLimit(200, 10 * 60_000), guestOnly(rateLimit(60, 24 * 3600_000)), async (req, res) => {
     const { guess, options, question } = req.body as { guess?: string; options?: string[]; question?: string };
     if (!guess || !Array.isArray(options) || !options.length) { res.status(400).json({ error: 'guess and options required' }); return; }
     const ai = await clientFor(req);

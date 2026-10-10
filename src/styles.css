@@ -1908,3 +1908,37 @@ html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent
 .sb-burger.beckon::after { content: ''; position: absolute; inset: -2px; border-radius: inherit; box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.6); animation: burgerPulse 1.8s ease-out infinite; pointer-events: none; }
 @keyframes burgerPulse { 0% { opacity: 0.9; transform: scale(1); } 100% { opacity: 0; transform: scale(1.45); } }
 @media (prefers-reduced-motion: reduce) { .sb-burger.beckon::after { animation: none; opacity: 0; } }
+
+/* Sign-in sheet (guests reaching for a friends/account feature) */
+.si-backdrop { z-index: 55; }
+.si-sheet { position: relative; width: min(400px, 100%); display: grid; justify-items: center; gap: 12px; padding: 26px 22px 16px; border-radius: 26px; text-align: center;
+  background: radial-gradient(120% 70% at 50% 0%, rgba(56, 189, 248, 0.12), transparent 60%), rgba(9, 14, 30, 0.98);
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(251, 191, 36, 0.22); }
+.si-close { position: absolute; top: 10px; right: 10px; }
+.si-globe { width: 64px; height: 64px; border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 1px rgba(125, 211, 252, 0.25), 0 0 30px rgba(56, 189, 248, 0.4); }
+.si-globe span { display: block; width: 100%; height: 100%; background: #1d4ed8 url(/textures/loader-earth.jpg) 0 50% / auto 100% repeat-x; animation: siSpin 6s linear infinite; }
+@keyframes siSpin { to { background-position: -128px 50%; } }
+.si-sheet h2 { margin: 2px 0 0; font: 700 22px/1.2 var(--display); }
+.si-sub { margin: -4px 0 2px; font-size: 13.5px; line-height: 1.5; color: var(--muted); }
+.si-perks { list-style: none; margin: 0; padding: 12px 14px; width: 100%; display: grid; gap: 9px; text-align: left; border-radius: 16px; background: rgba(255, 255, 255, 0.035); box-shadow: inset 0 0 0 1px var(--line); }
+.si-perks li { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text); }
+.si-perks svg { flex-shrink: 0; color: var(--gold); }
+.si-actions { width: 100%; display: grid; gap: 8px; margin-top: 2px; }
+.si-go { display: flex; justify-content: center; align-items: center; height: 46px; font-size: 15px; text-decoration: none; }
+.si-alt { font-size: 13px; color: var(--muted); text-decoration: none; padding: 6px; }
+.si-alt b { color: var(--gold-soft); }
+.si-later { font-size: 12.5px; color: var(--dim); padding: 6px 10px; }
+@media (max-width: 640px) {
+  .si-backdrop { place-items: end center; padding-bottom: calc(8px + var(--sb)); }
+  .si-sheet { border-radius: 26px 26px 22px 22px; }
+}
+@media (prefers-reduced-motion: reduce) { .si-globe span { animation: none; } }
+
+/* Sidebar: guests' "Play with friends — sign in" */
+.sb-signin { position: relative; display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px; border-radius: 11px; text-align: left; color: #1a1205;
+  background: linear-gradient(135deg, var(--gold-soft), var(--gold)); box-shadow: 0 8px 22px -10px rgba(251, 191, 36, 0.7); transition: transform 0.15s, filter 0.15s; }
+.sb-signin:hover { transform: translateY(-1px); }
+.sb-signin:active { filter: brightness(0.94); }
+.sb-signin .sb-status-text b { color: #1a1205; }
+.sb-signin .sb-status-text span { color: rgba(26, 18, 5, 0.75); }
+.sidebar.is-rail .sb-signin { justify-content: center; padding: 10px 0; }

@@ -19,13 +19,15 @@ interface Props {
   fresh: boolean;
   onClose: () => void;
   onReminder?: (on: boolean) => void;
+  /** Without an account: no board or streak — an invitation to sign up instead */
+  guest?: boolean;
 }
 
 const MAX = DAILY_N * MAX_POINTS;
 const sq = (p: number) => (p === 3 ? 'g' : p === 2 ? 'y' : p === 1 ? 'o' : 'x');
 
 /** Today's Daily: score, streak, the five countries, share, today's board and the morning reminder. */
-export function DailyResult({ date, targets, points, streak, board, me, fresh, onClose, onReminder }: Props) {
+export function DailyResult({ date, targets, points, streak, board, me, fresh, onClose, onReminder, guest = false }: Props) {
   const score = total(points);
   const [copied, setCopied] = useState(false);
   const { favs } = useFavorites(me ?? 'you');
@@ -87,8 +89,8 @@ export function DailyResult({ date, targets, points, streak, board, me, fresh, o
 
         <button className="primary dy-share" onClick={() => void share()}>{copied ? <><Check size={15} /> Copied</> : typeof navigator.share === 'function' ? <><Share2 size={15} /> Share result</> : <><Copy size={15} /> Copy result</>}</button>
 
-        <div className="fr-label"><Trophy size={12} /> Today’s board</div>
-        {rows.length ? (
+        {!guest && <div className="fr-label"><Trophy size={12} /> Today’s board</div>}
+        {guest ? null : rows.length ? (
           <ol className="dy-board">
             {rows.slice(0, 15).map((r, i) => (
               <li key={r.name} className={r.name === me ? 'me' : ''}>

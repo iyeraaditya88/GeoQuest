@@ -2,6 +2,7 @@
 // used by the Challenge panel and the friends button at the top.
 import { useEffect, useSyncExternalStore } from 'react';
 import { api } from './api';
+import { canUseAccount, getAuth } from './session';
 
 let favs: string[] = [];
 let loadedFor: string | null = null;
@@ -10,7 +11,7 @@ const emit = () => { for (const s of subs) s(); };
 const subscribe = (cb: () => void) => { subs.add(cb); return () => { subs.delete(cb); }; };
 
 function load(me: string) {
-  if (loadedFor === me) return;
+  if (loadedFor === me || !canUseAccount(getAuth())) return; // (favourites need an account)
   loadedFor = me;
   void api('/api/favorites', { headers: { 'X-GQ-As': me } }).then((r) => r.json())
     .then((d) => { favs = Array.isArray(d.favorites) ? d.favorites : []; emit(); })
