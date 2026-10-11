@@ -62,8 +62,6 @@ import { api } from './lib/api';
 import { CLUE_POOL, QUIZ_POOL, clueFor, nextTarget, pickRandom } from './lib/quiz';
 import { DAILY_N, dailyNumber, dailyPicks, localDate, pointsFor, themeOf, THEME_LABEL } from './lib/daily';
 import { DailyResult, type DailyBoardRow } from './components/DailyResult';
-import { ChallengeIntro, ChallengeResult } from './components/ChallengeResult';
-import { challengeKey, decodeChallenge, newTargets, type Challenge } from './lib/challenge';
 import { Reminders } from './components/Reminders';
 import { SignInSheet } from './components/SignInSheet';
 import { getAuth, isGuest, needSignIn, setAuth, useAuth, type SignInReason } from './lib/session';
@@ -193,9 +191,6 @@ export default function App() {
   // The Daily challenge: today's status (from the server), and the result card.
   const [daily, setDaily] = useState<{ date: string; mine: number[] | null; streak: { count: number; best: number }; board: DailyBoardRow[] } | null>(null);
   const [dailyCard, setDailyCard] = useState<{ date: string; points: number[]; fresh: boolean } | null>(null);
-  // 5-country challenges: a link someone opened (before playing), and the result card.
-  const [chIntro, setChIntro] = useState<Challenge | null>(null);
-  const [chCard, setChCard] = useState<{ targets: string[]; points: number[]; by?: string; them?: number[]; fresh: boolean } | null>(null);
   const [remindersOpen, setRemindersOpen] = useState(false);
   // Guests: "Sign in to …" when they reach for something that needs an account.
   const auth = useAuth();
@@ -414,7 +409,6 @@ export default function App() {
     setTimeout(() => cam.reset(), 60);
   };
   finishDaily.current = (q) => {
-    if (q.daily!.ch) { finishChallenge(q); return; }
     const { date, points } = q.daily!;
     setQuiz(null);
     setDailyCard({ date, points, fresh: true });
@@ -446,53 +440,6 @@ export default function App() {
     navigator.serviceWorker?.addEventListener('message', onMsg);
     return () => navigator.serviceWorker?.removeEventListener('message', onMsg);
   }, [loadDaily]);
-
-  // ── 5-country challenges ───────────────────────────────
-  const playedChallenge = (targets: string[]): number[] | null => {
-    try { const p = JSON.parse(localStorage.getItem(challengeKey(targets)) ?? 'null'); return Array.isArray(p) && p.length === DAILY_N ? p : null; } catch { return null; }
-  };
-  /** Play a challenge (from a link), or a new one of five fresh countries to send. */
-  const startChallenge = (ch?: Challenge) => {
-    const targets = ch?.targets ?? newTargets(() => nextTarget('challenge', QUIZ_POOL));
-    const by = ch?.by && ch.by !== user ? ch.by : undefined;
-    const them = by ? ch?.points : undefined;
-    // Played this one already (on this device): straight to the result, now against this sender.
-    const mine = ch && playedChallenge(targets);
-    if (mine) { setChCard({ targets, points: mine, by, them, fresh: false }); return; }
-    track('game', { g: 'challenge', vs: by ? 1 : 0 });
-    if (geoRef.current) exitGeo();
-    if (antiRef.current) exitAntipode();
-    window.clearTimeout(timer.current);
-    setPlay(null);
-    setSelected(null);
-    setHighlighted([]);
-    setDockOpen(false);
-    setFeedback(null);
-    setChCard(null);
-    setQuiz({
-      mode: 'find', target: targets[0], result: 'idle', misses: 0, streak: 0, best: 0, score: 0, rounds: 0,
-      daily: { date: '', no: 0, targets, clues: [], i: 0, points: [], ch: { by, them } },
-    });
-    setTimeout(() => cam.reset(), 60);
-  };
-  const finishChallenge = (q: QuizState) => {
-    const { targets, points, ch } = q.daily!;
-    setQuiz(null);
-    try { localStorage.setItem(challengeKey(targets), JSON.stringify(points)); } catch { /* private mode */ }
-    setChCard({ targets, points, by: ch?.by, them: ch?.them, fresh: true });
-    track('score', { g: 'challenge', s: points.reduce((s, p) => s + p, 0), of: DAILY_N * 3 });
-  };
-  // Opened a challenge link (?ch=…): say who it's from, then play. Tidy the address bar either way.
-  useEffect(() => {
-    const url = new URL(location.href);
-    const token = url.searchParams.get('ch');
-    if (!token) return;
-    url.searchParams.delete('ch');
-    history.replaceState(null, '', url.pathname + url.search + url.hash);
-    const ch = decodeChallenge(token, (c) => BY_CCA3.has(c));
-    // A score with no name still deserves a face-off.
-    if (ch) { track('open', { g: 'challenge' }); setChIntro(ch.points && !ch.by ? { ...ch, by: 'Your friend' } : ch); }
-  }, []);
 
   const random = () => {
     const pick = pickRandom(QUIZ_POOL, selected ?? undefined);
@@ -885,9 +832,8 @@ export default function App() {
         view={view}
         style={style}
         autoRotate={autoRotate}
-        quizOn={!!quiz && (!quiz.daily || !!quiz.daily.ch)}
-        dailyOn={!!quiz?.daily && !quiz.daily.ch}
-        onChallenge={() => startChallenge()}
+        quizOn={!!quiz && !quiz.daily}
+        dailyOn={!!quiz?.daily}
         playOn={play}
         selected={selected}
         recents={recents}
@@ -935,7 +881,7 @@ export default function App() {
 
       {/* Phones: the games live behind the menu — put today's Daily one tap away until it's played. */}
       <AnimatePresence>
-        {mobile && chrome && !drawerOpen && !selected && !quiz && !dockOpen && !geo && !play && !anti && !placesOpen && !liveState.active && !dailyCard && !chCard && !chIntro && !(daily?.mine && daily.date === localDate()) && (
+        {mobile && chrome && !drawerOpen && !selected && !quiz && !dockOpen && !geo && !play && !anti && !placesOpen && !liveState.active && !dailyCard && !(daily?.mine && daily.date === localDate()) && (
           <motion.button key="daily-chip" className="daily-chip" onClick={startDaily} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ delay: 1.2 }}>
             <CalendarDays size={15} /> <b>Today’s Daily</b> <span>Find 5 countries{(daily?.streak?.count ?? 0) > 1 ? ` · 🔥 ${daily!.streak.count}` : ''}</span>
           </motion.button>
@@ -971,14 +917,6 @@ export default function App() {
             streak={guest ? null : daily?.date === dailyCard.date ? daily.streak : null} board={daily?.date === dailyCard.date ? daily.board : null} guest={guest}
             me={user ?? 'you'} onClose={() => setDailyCard(null)} onReminder={setRemindersOn} />
         )}
-        {chIntro && (
-          <ChallengeIntro key="ch-intro" by={chIntro.by && chIntro.by !== user ? chIntro.by : undefined} played={!!playedChallenge(chIntro.targets)}
-            onPlay={() => { const ch = chIntro; setChIntro(null); startChallenge(ch); }} onClose={() => setChIntro(null)} />
-        )}
-        {chCard && (
-          <ChallengeResult key={`ch-${chCard.targets.join('.')}`} targets={chCard.targets} points={chCard.points} by={chCard.by} them={chCard.them}
-            me={user} fresh={chCard.fresh} onClose={() => setChCard(null)} onNew={() => startChallenge()} />
-        )}
         {remindersOpen && (
           <motion.div key="reminders" className="people-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setRemindersOpen(false)}>
             <motion.section className="people reminders" role="dialog" aria-label="Morning reminder" onClick={(e) => e.stopPropagation()}
@@ -994,7 +932,7 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
-      <QuizBar quiz={quiz} onMode={(m) => startQuiz(m)} onSkip={skip} onNext={nextQuiz} onExit={exitQuiz} onChallenge={() => startChallenge()} />
+      <QuizBar quiz={quiz} onMode={(m) => startQuiz(m)} onSkip={skip} onNext={nextQuiz} onExit={exitQuiz} />
       <AnimatePresence>
         {placesOpen && (
           <ErrorBoundary key="places" name="My places" onClose={() => setPlacesOpen(false)}>

@@ -6,6 +6,7 @@ import { BY_CCA3, flagUrl } from '../lib/data';
 import { DAILY_N, MAX_POINTS, THEME_LABEL, dailyNumber, shareLine, themeOf, total } from '../lib/daily';
 import { useFavorites } from '../lib/favorites';
 import { Reminders } from './Reminders';
+import { track } from '../lib/analytics';
 
 export interface DailyBoardRow { name: string; points: number[]; total: number }
 interface Props {
@@ -41,10 +42,12 @@ export function DailyResult({ date, targets, points, streak, board, me, fresh, o
   }, [onClose]);
 
   const text = shareLine(date, points);
+  // Wordle-style: your squares, and a link that drops whoever opens it straight into today's Daily.
   const share = async () => {
-    const url = location.origin;
-    if (typeof navigator.share === 'function') { await navigator.share({ text: `${text}\n${url}` }).catch(() => null); return; }
-    try { await navigator.clipboard.writeText(`${text}\n${url}`); } catch { /* blocked */ }
+    const msg = `${text}\nYour turn — find today’s 5 countries 🌍\n${location.origin}/?daily=1`;
+    track('share', { g: 'daily' });
+    if (typeof navigator.share === 'function') { await navigator.share({ text: msg }).catch(() => null); return; }
+    try { await navigator.clipboard.writeText(msg); } catch { /* blocked */ }
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1800);
   };
@@ -87,6 +90,7 @@ export function DailyResult({ date, targets, points, streak, board, me, fresh, o
           })}
         </ul>
 
+        <p className="dy-share-note">Share your squares — anyone who taps the link plays today’s five, then shares theirs.</p>
         <button className="primary dy-share" onClick={() => void share()}>{copied ? <><Check size={15} /> Copied</> : typeof navigator.share === 'function' ? <><Share2 size={15} /> Share result</> : <><Copy size={15} /> Copy result</>}</button>
 
         {!guest && <div className="fr-label"><Trophy size={12} /> Today’s board</div>}

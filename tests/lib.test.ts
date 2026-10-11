@@ -158,3 +158,13 @@ describe('Map quiz order', async () => {
     for (let i = 0; i < 400; i++) { const c = nextTarget('t-row', ['A', 'B', 'C'], prev); expect(c).not.toBe(prev); prev = c; }
   });
 });
+
+describe('shared Daily link preview', () => {
+  it('retitles the home page preview for chat apps', async () => {
+    const { dailyPreview } = await import('../middleware');
+    const html = '<title>GeoQuest</title><meta property="og:title" content="GeoQuest" /><meta name="twitter:title" content="GeoQuest" /><meta property="og:description" content="x" />';
+    const out = dailyPreview(html);
+    expect(out.match(/GeoQuest Daily — can you find today’s 5 countries\?/g)).toHaveLength(3);
+    expect(out).toContain('og:description" content="A new set of 5 countries every day');
+  });
+});

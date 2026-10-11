@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { BarChart3, BellRing, Binoculars, Brain, CalendarDays, Check, ChevronLeft, Dices, Drill, Gamepad2, Globe2, History, KeyRound, Landmark, Link2, ListOrdered, LogIn, LogOut, Map as MapIcon, MapPinned, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, Send, Sparkles, SunMoon, Swords, UserRound, Users, X } from 'lucide-react';
+import { BarChart3, BellRing, Binoculars, Brain, CalendarDays, Check, ChevronLeft, Dices, Drill, Gamepad2, Globe2, History, KeyRound, Landmark, Link2, ListOrdered, LogIn, LogOut, Map as MapIcon, MapPinned, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, Sparkles, SunMoon, Swords, UserRound, Users, X } from 'lucide-react';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import type { MapStyle } from './GlobeView';
 
@@ -40,8 +40,6 @@ interface Props {
   daily?: { done: boolean; streak: number; theme: string };
   dailyOn?: boolean;
   onDaily: () => void;
-  /** A 5-country challenge to send anyone */
-  onChallenge: () => void;
   /** Morning reminders (notifications) */
   onReminders?: () => void;
   remindersOn?: boolean;
@@ -151,7 +149,6 @@ export function Sidebar(p: Props) {
               rail={rail} onClick={act(p.onDaily)} accent
               trailing={!p.dailyOn && p.daily && (p.daily.done ? <span className="sb-done" aria-label="Done today"><Check size={13} /></span> : <span className="sb-new">New</span>)} />
             <Item icon={Gamepad2} label={p.quizOn ? 'Exit quiz' : 'Map quiz'} sub={p.quizOn ? undefined : 'Find it · Flags · Clues'} rail={rail} active={p.quizOn} onClick={act(p.onQuiz)} />
-            <Item icon={Send} label="Challenge a friend" sub="Play 5 countries, dare anyone to beat you" rail={rail} onClick={act(p.onChallenge)} />
             <Item icon={Binoculars} label="Street View challenge" sub="GeoGuessr-style, 5 rounds" rail={rail} onClick={act(p.onStreet)} />
             <Item icon={ListOrdered} label={p.playOn === 'top5' ? 'Exit Top 5' : 'Name the Top 5'} sub={p.playOn === 'top5' ? undefined : 'Rivers, peaks, populations…'} rail={rail} active={p.playOn === 'top5'} onClick={act(p.onTop5)} />
             <Item icon={Landmark} label={p.playOn === 'capitals' ? 'Exit Capitals' : 'Capitals'} sub={p.playOn === 'capitals' ? undefined : 'Country ↔ capital, 10 a round'} rail={rail} active={p.playOn === 'capitals'} onClick={act(p.onCapitals)} />
