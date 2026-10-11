@@ -5,7 +5,7 @@ import type { SignInReason } from '../lib/session';
 import { track } from '../lib/analytics';
 
 const COPY: Record<SignInReason, { title: string; sub: string }> = {
-  friends: { title: 'Challenge your friends', sub: 'Play live, head-to-head — the same questions at the same moment, with a live scoreboard and chat.' },
+  friends: { title: 'Duel your friends', sub: 'Play live, head-to-head — the same questions at the same moment, with a live scoreboard and chat.' },
   places: { title: 'Save your places', sub: 'Pin home, friends and favourite spots on the globe — kept safely with your account.' },
   daily: { title: 'Keep your streak', sub: 'Save today’s score, build a daily streak and see how your friends did.' },
   reminders: { title: 'Get a morning nudge', sub: 'A gentle reminder each morning with the new Daily challenge.' },
@@ -14,7 +14,7 @@ const COPY: Record<SignInReason, { title: string; sub: string }> = {
   general: { title: 'Do more with a free account', sub: 'GeoQuest is free to explore. Sign in to play with friends and keep your progress.' },
 };
 const PERKS = [
-  { icon: Swords, text: 'Challenge friends to live matches' },
+  { icon: Swords, text: 'Duel friends in live matches' },
   { icon: CalendarDays, text: 'Daily streaks and today’s leaderboard' },
   { icon: MapPin, text: 'Save your places on the globe' },
   { icon: BellRing, text: 'Morning reminders' },

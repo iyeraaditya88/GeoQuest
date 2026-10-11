@@ -692,7 +692,7 @@ html.custom-cursor.cur-drag .globe-wrap, html.custom-cursor.cur-drag .globe-wrap
 
 /* ── Centre floating UI in the free space between sidebar and panel ── */
 .app { --li: 0px; --ri: 0px; }
-.ask-fab, .hint, .quiz { left: calc(var(--li) + (100vw - var(--li) - var(--ri)) / 2) !important; transition: left 0.55s var(--ease), opacity 0.3s; }
+.ask-fab, .hint, .quiz, .daily-top { left: calc(var(--li) + (100vw - var(--li) - var(--ri)) / 2) !important; transition: left 0.55s var(--ease), opacity 0.3s; }
 .dock { left: calc(var(--li) + 16px) !important; right: calc(var(--ri) + 16px); translate: none !important; width: auto !important; max-width: 620px; margin: 0 auto; transition: left 0.55s var(--ease), right 0.55s var(--ease); }
 
 /* ── Sidebar ──────────────────────────── */
@@ -1958,3 +1958,36 @@ html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent
 .feature-fact { display: flex; gap: 8px; margin: 0 0 14px; padding: 10px 12px; border-radius: 12px; font-size: 13px; line-height: 1.5; color: var(--gold-soft);
   background: rgba(251, 191, 36, 0.07); box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.2); }
 .feature-fact svg { flex-shrink: 0; margin-top: 2px; color: var(--gold); }
+
+/* Today's Daily: the button at the top, and the card at the top of the menu */
+.daily-top { position: fixed; z-index: 12; top: calc(16px + var(--st)); left: 50%; translate: -50% 0; display: inline-flex; align-items: center; gap: 8px;
+  height: 44px; padding: 0 6px 0 16px; border-radius: 99px; font-size: 14px; color: #1a1205; white-space: nowrap;
+  background: linear-gradient(135deg, var(--gold-soft), var(--gold)); box-shadow: 0 10px 30px -10px rgba(251, 191, 36, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.25) inset; }
+.daily-top b { font: 700 14.5px var(--display); }
+.daily-top .dt-streak { font-weight: 600; font-size: 13px; }
+.daily-top .dt-go { margin-left: 2px; padding: 6px 12px; border-radius: 99px; font: 700 12.5px var(--display); color: var(--gold-soft); background: #1a1205; }
+.daily-top:not(.done)::after { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.55); animation: burgerPulse 2.4s ease-out infinite; pointer-events: none; }
+.daily-top:hover { filter: brightness(1.05); }
+.daily-top:active { transform: scale(0.97); }
+.daily-top.done { padding: 0 16px; color: var(--text); background: var(--glass); box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.4); }
+.daily-top.done svg { color: #34d399; }
+@media (max-width: 900px) { .daily-top { top: calc(12px + var(--st)); } }
+/* Phones: between the menu button and the Friends/Sound buttons — the whole pill is the button. */
+@media (max-width: 600px) {
+  .daily-top { left: calc(50% - 26px) !important; height: 42px; padding: 0 15px; gap: 7px; }
+  .daily-top .dt-go { display: none; }
+}
+@media (max-width: 360px) { .daily-top .dt-streak { display: none; } .daily-top b { font-size: 13.5px; } }
+
+.sb-daily { width: 100%; display: flex; align-items: center; gap: 11px; padding: 11px 10px 11px 11px; border-radius: 16px; text-align: left; color: #1a1205;
+  background: linear-gradient(135deg, var(--gold-soft), var(--gold)); box-shadow: 0 12px 30px -14px rgba(251, 191, 36, 0.8); transition: transform 0.2s var(--ease), filter 0.2s; }
+.sb-daily:hover { transform: translateY(-1px); filter: brightness(1.04); }
+.sbd-icon { flex-shrink: 0; width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; background: rgba(26, 18, 5, 0.12); }
+.sbd-text { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.sbd-text b { font: 700 15px var(--display); white-space: nowrap; }
+.sbd-text span { font-size: 12px; opacity: 0.78; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sbd-go { flex-shrink: 0; transition: transform 0.2s var(--ease); }
+.sb-daily:hover .sbd-go { transform: translateX(2px); }
+.sb-daily.done, .sb-daily.on { color: var(--text); background: rgba(255, 255, 255, 0.04); box-shadow: inset 0 0 0 1px var(--line); }
+.sb-daily.done .sbd-icon { color: #34d399; background: rgba(52, 211, 153, 0.12); }
+.sb-daily.on .sbd-icon { color: var(--gold); background: rgba(251, 191, 36, 0.12); }

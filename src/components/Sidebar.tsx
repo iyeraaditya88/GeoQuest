@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { BarChart3, BellRing, Binoculars, Brain, CalendarDays, Check, ChevronLeft, Dices, Drill, Gamepad2, Globe2, History, KeyRound, Landmark, Link2, ListOrdered, LogIn, LogOut, Map as MapIcon, MapPinned, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, Sparkles, SunMoon, Swords, UserRound, Users, X } from 'lucide-react';
+import { ArrowRight, BarChart3, BellRing, Binoculars, Brain, CalendarDays, Check, ChevronLeft, Dices, Drill, Gamepad2, Globe2, History, KeyRound, Landmark, Link2, ListOrdered, LogIn, LogOut, Map as MapIcon, MapPinned, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, Sparkles, SunMoon, Swords, UserRound, Users, X } from 'lucide-react';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import type { MapStyle } from './GlobeView';
 
@@ -128,6 +128,21 @@ export function Sidebar(p: Props) {
         </div>
 
         <div className="sb-scroll">
+          {/* Today's Daily: the first thing in the menu */}
+          {rail ? (
+            <div className="sb-pad"><Item icon={CalendarDays} label={p.dailyOn ? 'Exit Daily' : 'Daily challenge'} rail onClick={act(p.onDaily)} active={p.dailyOn} accent /></div>
+          ) : (
+            <div className="sb-pad">
+              <button className={`sb-daily ${p.daily?.done ? 'done' : ''} ${p.dailyOn ? 'on' : ''}`} onClick={act(p.onDaily)}>
+                <span className="sbd-icon">{p.daily?.done && !p.dailyOn ? <Check size={18} /> : <CalendarDays size={18} />}</span>
+                <span className="sbd-text">
+                  <b>{p.dailyOn ? 'Exit Daily' : 'Daily challenge'}</b>
+                  <span>{p.dailyOn ? 'Come back any time today' : p.daily?.done ? `Done today${p.daily.streak > 1 ? ` · 🔥 ${p.daily.streak}` : ''} · see result` : `5 new countries today${p.daily && p.daily.streak > 1 ? ` · 🔥 ${p.daily.streak}` : ''}`}</span>
+                </span>
+                {!p.dailyOn && !p.daily?.done && <ArrowRight size={17} className="sbd-go" />}
+              </button>
+            </div>
+          )}
           <Section title="Explore" rail={rail}>
             <Item icon={Dices} label="Random country" rail={rail} onClick={act(p.onRandom)} />
             <Item icon={Sparkles} label="Ask the Atlas" rail={rail} onClick={act(p.onAsk)} accent />
@@ -137,17 +152,14 @@ export function Sidebar(p: Props) {
 
           <Section title="Play" rail={rail} action={p.onFriends && (
             <span className="sb-play-actions">
-              <button className={`sb-pill ${p.matchOn ? 'on' : ''}`} onClick={act(p.onFriends)} title="Challenge friends who are online">
-                <Swords size={12} /> Challenge{p.friendsOnline ? <span className="sb-online" aria-label={`${p.friendsOnline} online`}><i />{p.friendsOnline}</span> : null}
+              <button className={`sb-pill ${p.matchOn ? 'on' : ''}`} onClick={act(p.onFriends)} title="Duel: live head-to-head with friends who are online">
+                <Swords size={12} /> Duel{p.friendsOnline ? <span className="sb-online" aria-label={`${p.friendsOnline} online`}><i />{p.friendsOnline}</span> : null}
               </button>
               {p.onInvite && <button className="sb-pill" onClick={act(p.onInvite)} title="Invite anyone with a link"><Link2 size={12} /> Invite</button>}
             </span>
           )}>
-            {rail && p.onFriends && <Item icon={Swords} label="Challenge friends" rail onClick={act(p.onFriends)} active={p.matchOn} accent />}
+            {rail && p.onFriends && <Item icon={Swords} label="Duel a friend" rail onClick={act(p.onFriends)} active={p.matchOn} accent />}
             {rail && p.onInvite && <Item icon={Link2} label="Invite with a link" rail onClick={act(p.onInvite)} />}
-            <Item icon={CalendarDays} label={p.dailyOn ? 'Exit Daily' : 'Daily challenge'} active={p.dailyOn} sub={p.dailyOn ? undefined : p.daily ? (p.daily.done ? `Done today${p.daily.streak > 1 ? ` · 🔥 ${p.daily.streak}` : ''}` : `Find 5 countries on the globe${p.daily.streak > 1 ? ` · 🔥 ${p.daily.streak}` : ''}`) : 'Find 5 countries, new every day'}
-              rail={rail} onClick={act(p.onDaily)} accent
-              trailing={!p.dailyOn && p.daily && (p.daily.done ? <span className="sb-done" aria-label="Done today"><Check size={13} /></span> : <span className="sb-new">New</span>)} />
             <Item icon={Gamepad2} label={p.quizOn ? 'Exit quiz' : 'Map quiz'} sub={p.quizOn ? undefined : 'Find it · Flags · Clues'} rail={rail} active={p.quizOn} onClick={act(p.onQuiz)} />
             <Item icon={Binoculars} label="Street View challenge" sub="GeoGuessr-style, 5 rounds" rail={rail} onClick={act(p.onStreet)} />
             <Item icon={ListOrdered} label={p.playOn === 'top5' ? 'Exit Top 5' : 'Name the Top 5'} sub={p.playOn === 'top5' ? undefined : 'Rivers, peaks, populations…'} rail={rail} active={p.playOn === 'top5'} onClick={act(p.onTop5)} />

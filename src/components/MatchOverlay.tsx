@@ -282,7 +282,7 @@ function Results({ s, onLeave, onRematch, rematch, onAccept, onDecline, onExpire
         </div>
         {canRematch && !rematch && (
           <div className="mt-other">
-            <span>Or challenge them to</span>
+            <span>Or duel them at</span>
             {(Object.keys(GAMES) as GameId[]).filter((g) => g !== s.game).map((g) => {
               const Icon = ICONS[g];
               return <button key={g} onClick={() => onRematch(g)}><Icon size={13} /> {GAMES[g].label}</button>;

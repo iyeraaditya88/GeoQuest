@@ -57,9 +57,9 @@ export function FriendsOnline({ me, online, className = '', onDuel, onManage }: 
                 ))}
               </ul>
             ) : (
-              <p className="fo-empty"><Star size={14} /> Star friends in Challenge and they’ll show up here.</p>
+              <p className="fo-empty"><Star size={14} /> Star friends in Duel and they’ll show up here.</p>
             )}
-            <button className="fo-manage" onClick={() => { setOpen(false); onManage(); }}>{rows.length ? 'All friends & challenges' : 'Find friends'}</button>
+            <button className="fo-manage" onClick={() => { setOpen(false); onManage(); }}>{rows.length ? 'All friends & duels' : 'Find friends'}</button>
           </motion.div>
         )}
       </AnimatePresence>

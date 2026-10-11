@@ -167,10 +167,10 @@ export function FriendsPanel({ open, onClose, me, mode, connected, online, onCha
 
   const onlineCount = rows.filter((r) => r.here).length;
   return (
-    <Shell label="Challenge friends" onClose={onClose} wide>
+    <Shell label="Duel" onClose={onClose} wide>
       <header className="gc-head">
         <span className="gc-badge"><Swords size={15} /></span>
-        <div className="gc-title"><b>Challenge friends</b><span>{connected ? `${onlineCount} online now · live, head-to-head` : 'Connecting…'}</span></div>
+        <div className="gc-title"><b>Duel</b><span>{connected ? `${onlineCount} online now · live, head-to-head` : 'Connecting…'}</span></div>
         <span className="gc-spacer" />
         <button className="icon-btn" onClick={onClose} aria-label="Close"><X size={17} /></button>
       </header>
@@ -203,7 +203,7 @@ export function FriendsPanel({ open, onClose, me, mode, connected, online, onCha
       {error && <p className="pp-error">{error}</p>}
       <button className="primary fr-send" disabled={!picked.length || !!busy || !connected} onClick={() => void send(picked, 'pick')}>
         {busy === 'pick' ? <Loader2 size={15} className="spin" /> : <Swords size={15} />}
-        {picked.length ? `Challenge ${picked.length === 1 ? picked[0] : `${picked.length} friends`}` : 'Pick someone who’s online'}
+        {picked.length ? `Duel ${picked.length === 1 ? picked[0] : `${picked.length} friends`}` : 'Pick someone who’s online'}
       </button>
 
       {history && history.length > 0 && (

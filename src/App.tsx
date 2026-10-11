@@ -1,6 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { BellRing, CalendarDays, X } from 'lucide-react';
+import { BellRing, CalendarDays, Check, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { GlobeView, type GlobeHandle, type GlobeView2D, type MapStyle, type Feedback } from './components/GlobeView';
 import { FlatAtlas, type AtlasHandle } from './components/FlatAtlas';
@@ -880,13 +880,22 @@ export default function App() {
       {activityOpen && <Suspense fallback={null}><ErrorBoundary name="Activity" onClose={() => setActivityOpen(false)}><ActivityPanel open={activityOpen} onClose={() => setActivityOpen(false)} /></ErrorBoundary></Suspense>}
 
 
-      {/* Phones: the games live behind the menu — put today's Daily one tap away until it's played. */}
+      {/* Today's Daily, always one tap away at the top — the front door for new players, and the daily habit. */}
       <AnimatePresence>
-        {mobile && chrome && !drawerOpen && !selected && !quiz && !dockOpen && !geo && !play && !anti && !placesOpen && !liveState.active && !dailyCard && !(daily?.mine && daily.date === localDate()) && (
-          <motion.button key="daily-chip" className="daily-chip" onClick={startDaily} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ delay: 1.2 }}>
-            <CalendarDays size={15} /> <b>Today’s Daily</b> <span>Find 5 countries{(daily?.streak?.count ?? 0) > 1 ? ` · 🔥 ${daily!.streak.count}` : ''}</span>
-          </motion.button>
-        )}
+        {chrome && !(mobile && drawerOpen) && !quiz && !geo && !play && !anti && !liveState.active && !dailyCard && (() => {
+          const done = !!daily?.mine && daily.date === localDate();
+          const streak = daily?.streak?.count ?? 0;
+          return (
+            <motion.button key="daily-top" className={`daily-top ${done ? 'done' : ''}`} onClick={startDaily}
+              aria-label={done ? 'Today’s Daily: done — see your result' : 'Play today’s Daily challenge'}
+              initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ delay: 0.4, type: 'spring', stiffness: 320, damping: 26 }}>
+              {done ? <Check size={15} /> : <CalendarDays size={15} />}
+              <b>{done ? 'Daily done' : 'Daily challenge'}</b>
+              {streak > 1 && <span className="dt-streak">🔥 {streak}</span>}
+              {!done && <span className="dt-go">Play</span>}
+            </motion.button>
+          );
+        })()}
       </AnimatePresence>
 
       {/* Onboarding hint */}

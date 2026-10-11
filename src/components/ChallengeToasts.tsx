@@ -73,7 +73,7 @@ function Challenge({ inv, waiting, onAccept, onDecline, onExpire }: { inv: Invit
         <span className="pp-avatar member">{inv.from[0]?.toUpperCase()}</span>
         <motion.span className="ch-swords" initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} transition={{ delay: 0.2, type: 'spring', stiffness: 400, damping: 14 }}><Swords size={14} /></motion.span>
       </span>
-      <h2 id="ch-title"><b>{inv.from}</b> challenges you!</h2>
+      <h2 id="ch-title"><b>{inv.from}</b> wants to duel!</h2>
       <div className="ch-game" id="ch-game">
         <span className="ch-game-icon"><Icon size={18} /></span>
         <div>
@@ -86,7 +86,7 @@ function Challenge({ inv, waiting, onAccept, onDecline, onExpire }: { inv: Invit
         <button className="ghost-cta" onClick={() => onDecline(inv)}>Not now</button>
         <button className="primary" ref={accept} onClick={() => onAccept(inv)}><Swords size={15} /> Accept &amp; play</button>
       </div>
-      <p className="ch-left">{secs > 0 ? `${secs}s to answer` : 'Time’s up'}{waiting > 0 ? ` · ${waiting} more challenge${waiting === 1 ? '' : 's'} waiting` : ''}</p>
+      <p className="ch-left">{secs > 0 ? `${secs}s to answer` : 'Time’s up'}{waiting > 0 ? ` · ${waiting} more duel${waiting === 1 ? '' : 's'} waiting` : ''}</p>
     </motion.section>
   );
 }
