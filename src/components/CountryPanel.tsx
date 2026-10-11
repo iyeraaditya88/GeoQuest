@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion, animate } from 'motion/react';
+import { PanelShell } from './PanelShell';
 import {
   Building2, Car, Clock, Coins, Globe2, Landmark, Languages, Lightbulb, Maximize2, MessageCircle, Mountain,
   MountainSnow, Phone, Signpost, Sparkles, Sun, TreePine, Type, Users, Waves, X, Route, CarFront, Trophy,
@@ -41,14 +42,7 @@ export function CountryPanel({ country, onClose, onSelect, onAsk }: Props) {
   return (
     <AnimatePresence>
       {country && (
-        <motion.aside
-          key="dock"
-          className="panel"
-          initial={{ x: '100%' }}
-          animate={{ x: 0 }}
-          exit={{ x: '100%' }}
-          transition={{ type: 'spring', stiffness: 300, damping: 36, mass: 0.9 }}
-        >
+        <PanelShell key="dock" id={country.cca3} onClose={onClose}>
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={country.cca3}
@@ -61,7 +55,7 @@ export function CountryPanel({ country, onClose, onSelect, onAsk }: Props) {
               <PanelBody country={country} tab={tab} setTab={setTab} onClose={onClose} onSelect={onSelect} onAsk={onAsk} />
             </motion.div>
           </AnimatePresence>
-        </motion.aside>
+        </PanelShell>
       )}
     </AnimatePresence>
   );

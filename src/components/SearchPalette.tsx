@@ -61,6 +61,7 @@ export function SearchPalette({ open, onClose, onPick }: { open: boolean; onClos
                 }}
               />
               <kbd>esc</kbd>
+              <button className="pl-cancel" onMouseDown={(e) => e.stopPropagation()} onClick={onClose}>Cancel</button>
             </div>
             {!q.trim() && <div className="palette-hint">Most populous</div>}
             <ul className="palette-list">

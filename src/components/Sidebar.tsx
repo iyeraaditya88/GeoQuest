@@ -74,7 +74,8 @@ const STYLES: { id: MapStyle; label: string; icon: typeof Satellite }[] = [
 
 export function Sidebar(p: Props) {
   const rail = p.collapsed && !p.mobile;
-  const width = rail ? SIDEBAR_W.rail : SIDEBAR_W.open;
+  // Phones: a roomier drawer (most of the screen, so nothing gets cut off).
+  const width = rail ? SIDEBAR_W.rail : p.mobile ? Math.min(320, Math.round(window.innerWidth * 0.86)) : SIDEBAR_W.open;
   const show = p.mobile ? p.drawerOpen : !p.hidden;
 
   // Phones: the menu button glows until it's been opened once (that's where everything lives).
@@ -230,7 +231,8 @@ export function Sidebar(p: Props) {
 
         {/* Footer */}
         <div className="sb-foot">
-          <button className={`sb-status ${p.ai ? 'ok' : ''}`} onClick={act(p.ai ? p.onAsk : p.onConnect)} data-tip={rail ? (p.ai ? 'Claude connected' : 'Connect Claude') : undefined}>
+          {/* The Atlas status only matters when it needs setting up (on the hosted site it's always on). */}
+          {!(p.hosted && p.ai) && <button className={`sb-status ${p.ai ? 'ok' : ''}`} onClick={act(p.ai ? p.onAsk : p.onConnect)} data-tip={rail ? (p.ai ? 'Claude connected' : 'Connect Claude') : undefined}>
             {p.ai ? <i className="sb-live" /> : <KeyRound size={15} />}
             <Fade show={!rail}>
               <span className="sb-status-text">
@@ -238,7 +240,7 @@ export function Sidebar(p: Props) {
                 <span>{p.ai ? 'Ask anything, anywhere' : p.hosted ? 'Use your own Anthropic key' : 'Unlock open questions'}</span>
               </span>
             </Fade>
-          </button>
+          </button>}
           {p.guest && p.onSignIn && (
             <button className="sb-signin" onClick={act(p.onSignIn)} data-tip={rail ? 'Sign in to play with friends' : undefined}>
               <LogIn size={16} />

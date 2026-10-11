@@ -22,10 +22,10 @@ export interface QuizState {
   daily?: { date: string; no: number; targets: string[]; clues: string[]; i: number; points: number[] };
 }
 
-const MODES: { id: QuizMode; label: string; icon: typeof Flag }[] = [
+const MODES: { id: QuizMode; label: string; short?: string; icon: typeof Flag }[] = [
   { id: 'find', label: 'Find it', icon: MapPinned },
   { id: 'flag', label: 'Flags', icon: Flag },
-  { id: 'clue', label: 'GeoGuessr clues', icon: Lightbulb },
+  { id: 'clue', label: 'GeoGuessr clues', short: 'Clues', icon: Lightbulb },
 ];
 
 interface Props {
@@ -62,7 +62,7 @@ export function QuizBar({ quiz, onMode, onSkip, onNext, onExit }: Props) {
                 <div className="quiz-modes">
                   {MODES.map((m) => (
                     <button key={m.id} className={quiz.mode === m.id ? 'on' : ''} onClick={() => onMode(m.id)}>
-                      <m.icon size={13} /> {m.label}
+                      <m.icon size={13} /> {m.short ? <><span className="qm-long">{m.label}</span><span className="qm-short">{m.short}</span></> : m.label}
                     </button>
                   ))}
                 </div>

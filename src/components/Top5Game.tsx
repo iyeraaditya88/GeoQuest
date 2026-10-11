@@ -154,7 +154,7 @@ export function Top5Game({ ai, onHighlight, onExit }: Props) {
             ref={field}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type an answer and press Enter…"
+            placeholder="Type an answer…"
             spellCheck={false}
             autoComplete="off"
             onKeyDown={(e) => { if (e.key === 'Escape') onExit(); }}

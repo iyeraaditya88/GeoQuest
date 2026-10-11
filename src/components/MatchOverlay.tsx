@@ -551,7 +551,7 @@ function Top5Stage({ s, script, session, ai, globe }: StageProps) {
       </AnimatePresence>
       {!locked ? (
         <form className="t5-input" onSubmit={submit}>
-          <input ref={field} value={input} onChange={(e) => setInput(e.target.value)} placeholder="Type an answer and press Enter…" spellCheck={false} autoComplete="off" />
+          <input ref={field} value={input} onChange={(e) => setInput(e.target.value)} placeholder="Type an answer…" spellCheck={false} autoComplete="off" />
           <button type="submit" className="send" disabled={!input.trim() || !!checking} aria-label="Submit">{checking ? <Loader2 size={16} className="spin" /> : <ArrowRight size={17} />}</button>
         </form>
       ) : (

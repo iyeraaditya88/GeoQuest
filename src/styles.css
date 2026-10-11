@@ -1345,7 +1345,8 @@ button:not(:disabled):active { filter: brightness(0.86); transition-duration: 0s
 @media (max-width: 900px) {
   .game-card { top: calc(66px + var(--st)); }
   .ask-fab { bottom: calc(18px + var(--sb)); }
-  .panel { height: calc(56vh + var(--sb)); }
+  .panel { height: calc(56vh + var(--sb)); transition: height 0.38s var(--ease); }
+  .panel.expanded { height: calc(100dvh - 68px - var(--st)); }
   .panel-foot { padding-bottom: calc(18px + var(--sb)); }
 }
 @media (max-width: 600px) {
@@ -1974,7 +1975,9 @@ html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent
 @media (max-width: 900px) { .daily-top { top: calc(12px + var(--st)); } }
 /* Phones: between the menu button and the Friends/Sound buttons — the whole pill is the button. */
 @media (max-width: 600px) {
-  .daily-top { left: calc(50% - 26px) !important; height: 42px; padding: 0 15px; gap: 7px; }
+  .daily-top { height: 42px; padding: 0 15px; gap: 7px; }
+  /* With the Friends button there too, centre it in the space between the menu and the corner buttons. */
+  .app:has(.fo-fab) .daily-top { left: calc(50% - 26px) !important; }
   .daily-top .dt-go { display: none; }
 }
 @media (max-width: 360px) { .daily-top .dt-streak { display: none; } .daily-top b { font-size: 13.5px; } }
@@ -1991,3 +1994,46 @@ html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent
 .sb-daily.done, .sb-daily.on { color: var(--text); background: rgba(255, 255, 255, 0.04); box-shadow: inset 0 0 0 1px var(--line); }
 .sb-daily.done .sbd-icon { color: #34d399; background: rgba(52, 211, 153, 0.12); }
 .sb-daily.on .sbd-icon { color: var(--gold); background: rgba(251, 191, 36, 0.12); }
+
+/* Bottom sheet: a grab handle — tap or swipe to grow, swipe down to shrink or close */
+.sheet-grab { position: absolute; z-index: 3; top: 0; left: 50%; translate: -50% 0; width: 88px; height: 26px; display: grid; place-items: center; }
+.sheet-grab i { width: 40px; height: 5px; border-radius: 99px; background: rgba(255, 255, 255, 0.55); box-shadow: 0 1px 6px rgba(0, 0, 0, 0.5); }
+@media (max-width: 900px) { .hero-close { width: 40px; height: 40px; top: 12px; right: 12px; } }
+
+/* Search on touch screens: a Cancel button instead of keyboard hints */
+.pl-cancel { display: none; padding: 8px 4px 8px 8px; font-size: 14px; font-weight: 600; color: var(--gold-soft); }
+@media (hover: none) and (pointer: coarse) {
+  .palette-input kbd, .pl-enter { display: none; }
+  .pl-cancel { display: block; }
+}
+
+/* ── Phones and tablets: comfortable touch targets, no "stuck" hover after a tap ── */
+@media (hover: none) and (pointer: coarse) {
+  .icon-btn { width: 40px; height: 40px; }
+  .sb-pill { height: 32px; padding: 0 12px; font-size: 12.5px; }
+  .gc-level button { padding: 8px 12px; font-size: 12.5px; }
+  .sb-item:hover:not(:disabled):not(.active) { background: transparent; }
+  .cap-opt:hover:not(:disabled) { background: rgba(255, 255, 255, 0.045); box-shadow: inset 0 0 0 1px var(--line); }
+  .sb-pill:not(.on):hover { background: rgba(251, 191, 36, 0.1); box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.28); transform: none; }
+  .cap-opt kbd { display: none; }
+  .sb-item:active:not(:disabled), .cap-opt:active:not(:disabled) { background: rgba(255, 255, 255, 0.08); }
+}
+@media (max-width: 900px) {
+  /* Game cards sit below the corner buttons' labels */
+  .game-card { top: calc(76px + var(--st)); }
+  .music-fab::before, .fo-fab .fo-btn::before { text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 8px rgba(0, 0, 0, 0.9); }
+}
+
+/* Quiz modes on narrow phones: "Clues" instead of "GeoGuessr clues" */
+.qm-short { display: none; }
+@media (max-width: 380px) { .qm-long { display: none; } .qm-short { display: inline; } }
+
+/* Shorter phones: a slimmer flag header and footer, so the sheet has room for the facts */
+@media (max-width: 900px) and (max-height: 780px) and (orientation: portrait) {
+  .hero { height: 122px; }
+  .hero h2 { font-size: 24px; }
+  .hero .official { display: none; }
+  .tabs button { padding: 10px; }
+  .panel-scroll { padding-top: 12px; }
+  .panel-foot { padding-top: 10px; padding-bottom: calc(12px + var(--sb)); }
+}

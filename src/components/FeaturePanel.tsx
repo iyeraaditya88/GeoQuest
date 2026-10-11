@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
+import { PanelShell } from './PanelShell';
 import { ArrowDownToLine, ArrowLeftRight, ExternalLink, Flag, Lightbulb, MessageCircle, Mountain, MountainSnow, Ruler, Ship, Triangle, Waves, X } from 'lucide-react';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import { displayName, wikiSummary, type FeatureInfo, type WikiSummary } from '../lib/features';
@@ -31,13 +32,13 @@ export function FeaturePanel({ feature, onClose, onSelectCountry, onAsk }: Props
   return (
     <AnimatePresence>
       {feature && (
-        <motion.aside key="feature" className="panel" initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', stiffness: 300, damping: 36, mass: 0.9 }}>
+        <PanelShell key="feature" id={`${feature.kind}:${feature.name}`} onClose={onClose}>
           <AnimatePresence mode="wait" initial={false}>
             <motion.div key={`${feature.kind}:${feature.name}`} className="panel-inner" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}>
               <Body f={feature} onClose={onClose} onSelectCountry={onSelectCountry} onAsk={onAsk} />
             </motion.div>
           </AnimatePresence>
-        </motion.aside>
+        </PanelShell>
       )}
     </AnimatePresence>
   );
