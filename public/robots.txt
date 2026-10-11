@@ -1,0 +1,6 @@
+# GeoQuest — everything public is welcome to be indexed; the API isn't a page.
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://playgeoquest.app/sitemap.xml
