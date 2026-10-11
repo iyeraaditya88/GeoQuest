@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowRight, CalendarDays, Flag, Flame, Lightbulb, MapPinned, SkipForward, X } from 'lucide-react';
+import { ArrowRight, CalendarDays, Flag, Flame, Lightbulb, MapPinned, SkipForward, Swords, X } from 'lucide-react';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import { Click } from '../lib/touch';
 
@@ -18,8 +18,8 @@ export interface QuizState {
   hint?: string;
   /** Shown with the answer: where it is, in words worth remembering */
   takeaway?: string[];
-  /** The Daily challenge: today's fixed five, and the points so far */
-  daily?: { date: string; no: number; targets: string[]; clues: string[]; i: number; points: number[] };
+  /** A fixed five — today's Daily, or a 5-country challenge (`ch`) — and the points so far */
+  daily?: { date: string; no: number; targets: string[]; clues: string[]; i: number; points: number[]; ch?: { by?: string; them?: number[] } };
 }
 
 const MODES: { id: QuizMode; label: string; icon: typeof Flag }[] = [
@@ -34,9 +34,11 @@ interface Props {
   onSkip: () => void;
   onNext: () => void;
   onExit: () => void;
+  /** Start a 5-country challenge to share (offered in the open-ended Map quiz) */
+  onChallenge?: () => void;
 }
 
-export function QuizBar({ quiz, onMode, onSkip, onNext, onExit }: Props) {
+export function QuizBar({ quiz, onMode, onSkip, onNext, onExit, onChallenge }: Props) {
   const target = quiz ? BY_CCA3.get(quiz.target) : undefined;
   return (
     <AnimatePresence>
@@ -51,7 +53,9 @@ export function QuizBar({ quiz, onMode, onSkip, onNext, onExit }: Props) {
           <div className="quiz-top">
             {quiz.daily ? (
               <div className="quiz-daily">
-                <span className="qd-tag"><CalendarDays size={13} /> Daily #{quiz.daily.no}</span>
+                {quiz.daily.ch
+                  ? <span className="qd-tag ch"><Swords size={13} /> {quiz.daily.ch.by ? `vs ${quiz.daily.ch.by}` : 'Challenge'}</span>
+                  : <span className="qd-tag"><CalendarDays size={13} /> Daily #{quiz.daily.no}</span>}
                 <span className="qd-steps" aria-label={`Country ${quiz.daily.i + 1} of ${quiz.daily.targets.length}`}>
                   {quiz.daily.targets.map((_, k) => <i key={k} className={k < quiz.daily!.points.length ? `p${quiz.daily!.points[k]}` : k === quiz.daily!.i ? 'now' : ''} />)}
                 </span>
@@ -66,6 +70,7 @@ export function QuizBar({ quiz, onMode, onSkip, onNext, onExit }: Props) {
                     </button>
                   ))}
                 </div>
+                {onChallenge && <button className="quiz-ch" onClick={onChallenge} title="Play 5 countries, then dare your friends to beat your score" aria-label="Challenge a friend: play 5 countries, then share"><Swords size={13} /> <span>Challenge</span></button>}
                 <div className="quiz-score">
                   <span title="Current streak"><Flame size={14} /> {quiz.streak}</span>
                   <span className="muted">best {quiz.best}</span>
@@ -122,7 +127,7 @@ export function QuizBar({ quiz, onMode, onSkip, onNext, onExit }: Props) {
               </motion.span>
             </AnimatePresence>
             {quiz.result === 'reveal'
-              ? <button className="quiz-next" onClick={onNext} autoFocus>{quiz.daily && quiz.daily.i + 1 >= quiz.daily.targets.length ? 'See my result' : 'Next country'} <ArrowRight size={14} /></button>
+              ? <button className="quiz-next" onClick={onNext} autoFocus>{quiz.daily && quiz.daily.i + 1 >= quiz.daily.targets.length ? (quiz.daily.ch ? 'See how you did' : 'See my result') : 'Next country'} <ArrowRight size={14} /></button>
               : <button className="skip" onClick={onSkip}><SkipForward size={13} /> {quiz.misses ? 'Show me' : 'Skip'}</button>}
           </div>
         </motion.div>
