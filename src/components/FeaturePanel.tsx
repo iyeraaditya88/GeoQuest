@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ExternalLink, Flag, MessageCircle, Mountain, MountainSnow, Ruler, Triangle, Waves, X } from 'lucide-react';
+import { ArrowDownToLine, ArrowLeftRight, ExternalLink, Flag, Lightbulb, MessageCircle, Mountain, MountainSnow, Ruler, Ship, Triangle, Waves, X } from 'lucide-react';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import { displayName, wikiSummary, type FeatureInfo, type WikiSummary } from '../lib/features';
 
@@ -9,7 +9,10 @@ const KIND = {
   lake: { label: 'Lake', icon: Waves, tone: 'water' },
   range: { label: 'Mountain range', icon: MountainSnow, tone: 'earth' },
   peak: { label: 'Peak', icon: Triangle, tone: 'earth' },
+  strait: { label: 'Strait', icon: Ship, tone: 'water' },
+  trench: { label: 'Ocean trench', icon: ArrowDownToLine, tone: 'water' },
 } as const;
+const STRAIT_LABEL = { strait: 'Strait', canal: 'Canal', passage: 'Sea passage', channel: 'Channel' } as const;
 
 const item = {
   hidden: { opacity: 0, y: 8 },
@@ -41,7 +44,7 @@ export function FeaturePanel({ feature, onClose, onSelectCountry, onAsk }: Props
 }
 
 function Body({ f, onClose, onSelectCountry, onAsk }: { f: FeatureInfo } & Omit<Props, 'feature'>) {
-  const k = KIND[f.kind];
+  const k = f.strait ? { ...KIND.strait, label: STRAIT_LABEL[f.strait.type] } : KIND[f.kind];
   const title = displayName(f);
   const [wiki, setWiki] = useState<WikiSummary | null | undefined>(undefined); // undefined = loading
   const [imgReady, setImgReady] = useState(false);
@@ -58,9 +61,14 @@ function Body({ f, onClose, onSelectCountry, onAsk }: { f: FeatureInfo } & Omit<
     else if (f.river && wiki !== undefined) facts.push({ icon: Ruler, label: 'Mapped length', value: `≈ ${f.river.km.toLocaleString('en-US')} km`, sub: 'as drawn on this map' });
   }
   if (f.kind === 'peak' && f.elevation) facts.push({ icon: Mountain, label: 'Elevation', value: `${f.elevation.toLocaleString('en-US')} m` });
+  if (f.strait) facts.push({ icon: ArrowLeftRight, label: 'Connects', value: f.strait.joins });
+  if (f.trench) {
+    facts.push({ icon: ArrowDownToLine, label: 'Deepest point', value: `≈ ${f.trench.depth.toLocaleString('en-US')} m`, sub: f.trench.deep });
+    facts.push({ icon: Waves, label: 'Ocean', value: f.trench.ocean });
+  }
   if (f.kind === 'range' && f.peaks?.[0]) facts.push({ icon: Mountain, label: 'Highest mapped peak', value: f.peaks[0].name, sub: `${f.peaks[0].e.toLocaleString('en-US')} m` });
   const countries = f.countries.map((c) => BY_CCA3.get(c)).filter(Boolean) as NonNullable<ReturnType<typeof BY_CCA3.get>>[];
-  const where = { river: 'Flows through', lake: 'Shores in', range: 'Spans', peak: 'In' }[f.kind];
+  const where = { river: 'Flows through', lake: 'Shores in', range: 'Spans', peak: 'In', strait: 'Between', trench: 'Off the coasts of' }[f.kind];
 
   return (
     <>
@@ -117,6 +125,10 @@ function Body({ f, onClose, onSelectCountry, onAsk }: { f: FeatureInfo } & Omit<
               {f.peaks.map((p) => <li key={p.name}><Triangle size={11} /> <b>{p.name}</b><span>{p.e.toLocaleString('en-US')} m</span></li>)}
             </ul>
           </motion.div>
+        )}
+
+        {(f.strait ?? f.trench) && (
+          <motion.p className="feature-fact" variants={item} initial="hidden" animate="show" custom={5}><Lightbulb size={14} /> {(f.strait ?? f.trench)!.fact}</motion.p>
         )}
 
         <motion.div className="feature-about" variants={item} initial="hidden" animate="show" custom={6}>

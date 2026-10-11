@@ -15,6 +15,7 @@ import { loadNature, rangeSpots, riverTier, type Nature } from '../lib/nature';
 import { displayName, riverNear, type FeatureInfo, type FeatureRef } from '../lib/features';
 import type { Feedback, GlobeView2D } from './GlobeView';
 import { panelWidth, sidePanel } from '../lib/layout';
+import { STRAITS, TRENCHES } from '../data/marine';
 
 export interface AtlasHandle {
   morphOut: (to: GlobeView2D) => Promise<void>;
@@ -142,7 +143,7 @@ interface NatCache {
   rivers: Path2D[]; // per tier
   lakes: Path2D;
   ranges: Path2D[]; // mountain range areas, per tier
-  labels: { kind: 'river' | 'lake' | 'range' | 'peak'; key: string; group?: string; text: string; x: number; y: number; ang: number; w: number; size: number; rank: number; elev?: string; ew?: number }[];
+  labels: { kind: 'river' | 'lake' | 'range' | 'peak' | 'strait' | 'trench'; key: string; group?: string; text: string; x: number; y: number; ang: number; w: number; size: number; rank: number; elev?: string; ew?: number }[];
 }
 // Zoom at which each river tier's lines appear, and at which labels of each rank do.
 const RIVER_LINE_K = [0, 2.2, 5, 11];
@@ -151,6 +152,8 @@ const RANGE_K = [0, 1, 1.7, 3, 5.5, 9, 15];
 // Zoom at which each tier of mountain-range areas appears (major ranges always).
 const RANGE_AREA_K = [0, 1.8, 3.8];
 const PEAK_K = [0, 2.6, 4.5, 7.5, 12, 18];
+// Straits and trenches by importance (1 = the great chokepoints and deepest trenches).
+const SEA_K = [0, 1.25, 2.6, 4.5];
 /** The smallest river tier drawn at this zoom (so a click can't pick an unseen river). */
 const atlasTier = (k: number) => RIVER_LINE_K.reduce((max, k0, i) => (ramp(k, k0) > 0 ? i : max), 0);
 const ramp = (k: number, k0: number) => (k0 <= 0 ? 1 : Math.max(0, Math.min(1, (k - k0 * 0.8) / (k0 * 0.35))));
@@ -485,6 +488,22 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
       ctx.font = '500 9.5px Inter, sans-serif';
       labels.push({ kind: 'peak', key: `np:${pk.n}`, text: pk.n, x: p[0], y: p[1], ang: 0, w, size: 0, rank: pk.r, elev, ew: ctx.measureText(elev).width });
     }
+    // The sea's landmarks: straits (and canals, passages) and the deep trenches.
+    for (const m of STRAITS) {
+      const p = proj(m.a);
+      if (!p) continue;
+      ctx.font = 'italic 600 10.5px Inter, sans-serif';
+      labels.push({ kind: 'strait', key: `ns:${m.n}`, text: m.n, x: p[0], y: p[1], ang: 0, w: ctx.measureText(m.n).width, size: 0, rank: m.r });
+    }
+    for (const t of TRENCHES) {
+      const p = proj(t.a);
+      if (!p) continue;
+      const depth = `−${t.depth.toLocaleString('en-US')} m`;
+      ctx.font = 'italic 600 10.5px Inter, sans-serif';
+      const w = ctx.measureText(t.n).width;
+      ctx.font = '500 9.5px Inter, sans-serif';
+      labels.push({ kind: 'trench', key: `nt:${t.n}`, text: t.n, x: p[0], y: p[1], ang: 0, w, size: 0, rank: t.r, elev: depth, ew: ctx.measureText(depth).width });
+    }
     ctx.font = 'italic 500 10.5px Inter, sans-serif';
     for (const l of d.lakes) {
       const p = proj(l.l);
@@ -689,6 +708,9 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
         } else if (L.kind === 'peak') {
           if (k < (PEAK_K[L.rank] ?? Infinity)) return;
           w = L.w + (L.ew ?? 0) + 18;
+        } else if (L.kind === 'strait' || L.kind === 'trench') {
+          if (k < (SEA_K[L.rank] ?? Infinity)) return;
+          w = L.w + (L.ew ?? 0) + (L.ew ? 18 : 12);
         } else if (L.kind === 'lake') {
           if (k < 1.5 || L.size * k < L.w * 0.55) return;
         } else if (k < RIVER_LABEL_K[L.rank] || L.size * k < L.w * 1.4) return;
@@ -699,7 +721,7 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
         for (const t of tries) {
           if (L.kind === 'range') { sp = t; w = L.w + (sp - 1.5) * L.text.length; }
           boxes = [];
-          if (L.kind === 'peak') boxes.push([x - 6, y - 8, x + w, y + 8]);
+          if (L.kind === 'peak' || L.kind === 'strait' || L.kind === 'trench') boxes.push([x - 6, y - 8, x + w, y + 8]);
           else if (Math.abs(L.ang) > 0.1) {
             const n = Math.ceil(w / h), r = h / 2 + 2, cos = Math.cos(L.ang), sin = Math.sin(L.ang);
             for (let i = 0; i < n; i++) {
@@ -715,7 +737,7 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
         if (L.group) groups.add(L.group);
         {
           const [pre, ...rest] = L.key.split(':');
-          const kind = ({ nv: 'river', nr: 'range', np: 'peak', nl: 'lake' } as const)[pre as 'nv'];
+          const kind = ({ nv: 'river', nr: 'range', np: 'peak', nl: 'lake', ns: 'strait', nt: 'trench' } as const)[pre as 'nv'];
           const name = (pre === 'nv' || pre === 'nr' ? rest.slice(0, -1) : rest).join(':');
           if (kind) s.natHits.push({ box: [Math.min(...boxes.map((b) => b[0])), Math.min(...boxes.map((b) => b[1])), Math.max(...boxes.map((b) => b[2])), Math.max(...boxes.map((b) => b[3]))], kind, name });
         }
@@ -725,7 +747,17 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
             ctx.globalAlpha = a;
             ctx.save();
             ctx.translate(x, y);
-            if (L.kind === 'peak') {
+            if (L.kind === 'strait' || L.kind === 'trench') {
+              // Straits: a small double arrow (a passage); trenches: a down-pointing marker and the depth.
+              ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+              ctx.fillStyle = '#0e5a8a';
+              if (L.kind === 'trench') { ctx.beginPath(); ctx.moveTo(-4.5, -3); ctx.lineTo(4.5, -3); ctx.lineTo(0, 4.5); ctx.closePath(); ctx.stroke(); ctx.fill(); }
+              else { ctx.beginPath(); ctx.arc(0, 0, 3.5, 0, Math.PI * 2); ctx.stroke(); ctx.fill(); }
+              ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+              ctx.font = 'italic 600 10.5px Inter, sans-serif';
+              ctx.lineWidth = 3; ctx.strokeText(L.text, 8, 0); ctx.fillStyle = '#0e4f7a'; ctx.fillText(L.text, 8, 0);
+              if (L.elev) { ctx.font = '500 9.5px Inter, sans-serif'; ctx.strokeText(L.elev, 12 + L.w, 0.5); ctx.fillStyle = 'rgba(14,79,122,0.75)'; ctx.fillText(L.elev, 12 + L.w, 0.5); }
+            } else if (L.kind === 'peak') {
               ctx.beginPath(); ctx.moveTo(0, -4.5); ctx.lineTo(4.5, 3); ctx.lineTo(-4.5, 3); ctx.closePath();
               ctx.fillStyle = '#6b4f36'; ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.stroke(); ctx.fill();
               ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
@@ -1102,8 +1134,8 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
     // Over a feature name or right on a river line: say what a click will open.
     if (live.current.quiz || live.current.nature === false) return;
     const label = s.natHits.find((h) => e.clientX >= h.box[0] && e.clientX <= h.box[2] && e.clientY >= h.box[1] && e.clientY <= h.box[3]);
-    const kindText = { river: 'River', range: 'Mountain range', peak: 'Peak', lake: 'Lake' } as const;
-    const glyph = { river: '〰', range: '⛰', peak: '▲', lake: '〰' } as const;
+    const kindText = { river: 'River', range: 'Mountain range', peak: 'Peak', lake: 'Lake', strait: 'Strait', trench: 'Ocean trench' } as const;
+    const glyph = { river: '〰', range: '⛰', peak: '▲', lake: '〰', strait: '⇄', trench: '▼' } as const;
     if (label) { cursor.set({ country: { name: displayName(label), cca2: '', glyph: glyph[label.kind], sub: `${kindText[label.kind]} · click for details` } }); s.hover = null; return; }
     if (g) {
       const perDeg = (s.S1 * s.transform.k * Math.PI) / 180;

@@ -2,8 +2,9 @@
 // facts we can compute ourselves (countries crossed, highest peaks), and a Wikipedia summary.
 import { BY_CCA3, countryAt } from './data';
 import { loadNature, riverTier, type Lake, type Nature, type Peak, type Range, type River } from './nature';
+import { STRAITS, TRENCHES, type Strait, type Trench } from '../data/marine';
 
-export type FeatureKind = 'river' | 'range' | 'peak' | 'lake';
+export type FeatureKind = 'river' | 'range' | 'peak' | 'lake' | 'strait' | 'trench';
 export interface FeatureRef { kind: FeatureKind; name: string }
 
 export interface FeatureInfo {
@@ -17,6 +18,8 @@ export interface FeatureInfo {
   elevation?: number; // peaks
   river?: River;
   range?: Range;
+  strait?: Strait; // straits, canals, passages
+  trench?: Trench;
 }
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -126,6 +129,17 @@ export async function featureInfo(ref: FeatureRef): Promise<FeatureInfo | null> 
     const pad = Math.max(1, rg.len * 0.12);
     return { kind: 'range', name: rg.n, bbox: [Math.min(...xs) - pad, Math.min(...ys) - pad, Math.max(...xs) + pad, Math.max(...ys) + pad], center: { lat: rg.a[1], lng: rg.a[0] }, countries: uniqCountries(pts), peaks, range: rg };
   }
+  // The sea's landmarks (hand-picked, not part of the nature data).
+  if (ref.kind === 'strait' || ref.kind === 'trench') {
+    const m = ref.kind === 'strait' ? STRAITS.find((x) => x.n === ref.name) : TRENCHES.find((x) => x.n === ref.name);
+    if (!m) return null;
+    const r = ref.kind === 'trench' ? 6 : 3;
+    // Shores nearby (straits run between countries; trenches lie off coasts).
+    const near: [number, number][] = [];
+    for (let dx = -r; dx <= r; dx += r / 2) for (let dy = -r; dy <= r; dy += r / 2) near.push([m.a[0] + dx, m.a[1] + dy]);
+    return { kind: ref.kind, name: m.n, bbox: [m.a[0] - r, m.a[1] - r, m.a[0] + r, m.a[1] + r], center: { lat: m.a[1], lng: m.a[0] }, countries: uniqCountries(near).slice(0, 4),
+      ...(ref.kind === 'strait' ? { strait: m as Strait } : { trench: m as Trench }) };
+  }
   if (ref.kind === 'peak') {
     const p = d.peaks.find((x) => x.n === ref.name);
     if (!p) return null;
@@ -175,7 +189,7 @@ const wikiCache = new Map<string, Promise<WikiSummary | null>>();
 export function wikiSummary(ref: FeatureRef, countries: string[] = []) {
   const key = `${ref.kind}:${ref.name}`;
   if (!wikiCache.has(key)) wikiCache.set(key, (async () => {
-    const hint = { river: 'river', range: 'mountains', peak: 'mountain', lake: 'lake' }[ref.kind];
+    const hint = { river: 'river', range: 'mountains', peak: 'mountain', lake: 'lake', strait: 'strait', trench: 'trench' }[ref.kind];
     const where = countries[0] ? BY_CCA3.get(countries[0])?.name ?? '' : '';
     const q = `${displayName(ref)} ${norm(displayName(ref)).includes(hint.slice(0, 4)) ? '' : hint} ${where}`.trim();
     const s = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(q)}&srlimit=1&format=json&origin=*`).then((r) => r.json());

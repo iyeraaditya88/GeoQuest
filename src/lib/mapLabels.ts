@@ -9,11 +9,12 @@ import type { AdminData } from './globeOverlays';
 import { displayName } from './features';
 import citiesRaw from '../data/cities.json';
 import { escapeHtml } from './html';
+import { STRAITS, TRENCHES } from '../data/marine';
 
 type City = [name: string, lat: number, lng: number, pop: number, rank: number, capital: 0 | 1, iso3: string];
 
 interface Label {
-  kind: 'country' | 'city' | 'state' | 'river' | 'lake' | 'range' | 'peak';
+  kind: 'country' | 'city' | 'state' | 'river' | 'lake' | 'range' | 'peak' | 'strait' | 'trench';
   iso?: string; // countries: own code; cities: country code
   text: string;
   lat: number;
@@ -36,7 +37,7 @@ interface Label {
   inSel?: boolean; // inside the selected (raised) country
   angle?: number;
   group?: string; // alternatives for one feature: only the first that fits is shown
-  feature?: { kind: 'river' | 'range' | 'peak' | 'lake'; name: string }; // clickable physical feature
+  feature?: { kind: 'river' | 'range' | 'peak' | 'lake' | 'strait' | 'trench'; name: string }; // clickable physical feature
   detail?: boolean; // part of the selected country's interior set
   bv?: [number, number, number]; // unit vector of `b`
   el?: HTMLDivElement;
@@ -127,6 +128,22 @@ function buildNature(d: Nature): Label[] {
       w: w0, w0, h: 14, cls: 'ml ml-range clickable', feature: { kind: 'range', name: rid }, priority: (r.r <= 1 ? 0.95e9 : (r.r + 1) * 1e9 + 5e8) - r.len * 1e6 + i, rank: r.r, on: false, // great ranges before minor cities
     }));
   }
+  // The sea's landmarks: straits (and canals, passages) and the deep trenches.
+  for (const m of STRAITS) {
+    out.push({
+      kind: 'strait', text: m.n, lat: m.a[1], lng: m.a[0], v: unit(m.a[1], m.a[0]),
+      w: measure(m.n, 'italic 600 10.5px Inter') + 14, h: 15, cls: 'ml ml-sea ml-strait clickable', feature: { kind: 'strait', name: m.n },
+      priority: (m.r + 0.8) * 1e9, rank: m.r, on: false,
+    });
+  }
+  for (const t of TRENCHES) {
+    const depth = `−${t.depth.toLocaleString('en-US')} m`;
+    out.push({
+      kind: 'trench', text: t.n, lat: t.a[1], lng: t.a[0], v: unit(t.a[1], t.a[0]),
+      w: measure(t.n, 'italic 600 10.5px Inter') + measure(depth, '500 9.5px Inter') + 22, h: 15, cls: 'ml ml-sea ml-trench clickable', feature: { kind: 'trench', name: t.n },
+      priority: (t.r + 0.9) * 1e9 - t.depth, rank: t.r, on: false, extentDeg: t.depth,
+    });
+  }
   for (const p of d.peaks) {
     if (!once(`p:${p.n}`)) continue;
     const elev = `${p.e.toLocaleString()} m`;
@@ -160,6 +177,8 @@ function buildNature(d: Nature): Label[] {
 // Camera altitude below which each kind/rank appears (index = rank / tier).
 const RANGE_ALT = [9, 2.6, 1.5, 0.9, 0.5, 0.32, 0.2];
 const PEAK_ALT = [9, 1.2, 0.75, 0.48, 0.3, 0.2];
+// Straits and trenches by importance (1 = the great chokepoints and deepest trenches).
+const SEA_ALT = [9, 1.9, 1.0, 0.55];
 const RIVER_ALT = [2.2, 1.05, 0.5, 0.26];
 
 // Which city ranks are allowed at a given camera altitude (in globe radii).
@@ -298,6 +317,7 @@ export function createLabelLayer(layer: HTMLDivElement, getGlobe: () => GlobeMet
         eligible = natureOn && facing > horizon && (
           k === 'range' ? alt < RANGE_ALT[l.rank!] && l.len! * pxPerDeg >= l.w0! * 0.9
           : k === 'peak' ? alt < PEAK_ALT[l.rank!]
+          : k === 'strait' || k === 'trench' ? alt < SEA_ALT[l.rank!]
           : k === 'lake' ? alt < 1.6 && l.extentDeg! * pxPerDeg >= l.w * 0.55
           : alt < RIVER_ALT[l.rank!] && l.len! * pxPerDeg >= l.w * 1.4);
       } else if (!enabled) eligible = false;
@@ -344,7 +364,7 @@ export function createLabelLayer(layer: HTMLDivElement, getGlobe: () => GlobeMet
             x0 > 0 && y0 > 0 && x1 < W && y1 < H && inDisc(x0, y0) && inDisc(x1, y0) && inDisc(x0, y1) && inDisc(x1, y1) && !hit(x0 - pad, y0 - pad, x1 + pad, y1 + pad);
           const y0 = y - l.h / 2, y1 = y + l.h / 2;
           let box: number[] | null = null;
-          if (l.kind === 'peak') { if (fits(x - 6, y0, x + l.w, y1)) box = [x - 6, y0, x + l.w, y1]; }
+          if (l.kind === 'peak' || l.kind === 'strait' || l.kind === 'trench') { if (fits(x - 6, y0, x + l.w, y1)) box = [x - 6, y0, x + l.w, y1]; }
           else if (l.kind !== 'city' && Math.abs(ang) > 6) {
             // Tilted text: a chain of small squares along it, not its (much bigger) bounding box.
             const n = Math.ceil(l.w / l.h), cos = Math.cos(rad), sin = Math.sin(rad), r = l.h / 2;
@@ -395,6 +415,8 @@ export function createLabelLayer(layer: HTMLDivElement, getGlobe: () => GlobeMet
           el.className = l.cls;
           el.innerHTML = l.kind === 'city' ? `<i></i><span>${esc(l.text)}</span>`
             : l.kind === 'peak' ? `<i></i><span>${esc(l.text)}</span><em>${l.extentDeg!.toLocaleString()} m</em>`
+            : l.kind === 'trench' ? `<i></i><span>${esc(l.text)}</span><em>−${l.extentDeg!.toLocaleString('en-US')} m</em>`
+            : l.kind === 'strait' ? `<i></i><span>${esc(l.text)}</span>`
             : esc(l.text);
           if (l.spacing) el.style.letterSpacing = `${l.spacing}px`;
           if (l.feature) {
@@ -406,7 +428,7 @@ export function createLabelLayer(layer: HTMLDivElement, getGlobe: () => GlobeMet
           l.el = el;
         }
         if (l.kind === 'city') l.el.classList.toggle('left', !!l.left);
-        l.el.style.transform = l.kind === 'peak' ? `translate3d(${x}px, ${y}px, 0) translate(-5px, -50%)`
+        l.el.style.transform = l.kind === 'peak' || l.kind === 'strait' || l.kind === 'trench' ? `translate3d(${x}px, ${y}px, 0) translate(-5px, -50%)`
           : l.kind !== 'city'
           ? `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%)${l.angle ? ` rotate(${l.angle.toFixed(1)}deg)` : ''}`
           : l.left ? `translate3d(${x}px, ${y}px, 0) translate(calc(4px - 100%), -50%)` : `translate3d(${x}px, ${y}px, 0) translate(-4px, -50%)`;
