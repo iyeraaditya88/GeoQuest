@@ -167,4 +167,21 @@ describe('shared Daily link preview', () => {
     expect(out.match(/GeoQuest Daily — can you find today’s 5 countries\?/g)).toHaveLength(3);
     expect(out).toContain('og:description" content="A new set of 5 countries every day');
   });
+  it('shows the score in the picture when the link carries one', async () => {
+    const { dailyPreview } = await import('../middleware');
+    const html = '<title>GeoQuest</title><meta property="og:title" content="GeoQuest" /><meta property="og:image" content="old.jpg" /><meta name="twitter:image" content="old.jpg" />';
+    const out = dailyPreview(html, new URL('https://playgeoquest.app/?daily=2&r=13333'));
+    expect(out).toContain('<title>GeoQuest Daily #2 — 13/15. Can you beat it?</title>');
+    expect(out.match(/https:\/\/playgeoquest\.app\/api\/og\/daily\?n=2&r=13333/g)).toHaveLength(2);
+    // A made-up score is ignored: the usual picture.
+    expect(dailyPreview(html, new URL('https://playgeoquest.app/?daily=2&r=99999'))).toContain('old.jpg');
+  });
+  it('draws the share picture', async () => {
+    const { dailyCard, parsePoints } = await import('../server/og');
+    expect(parsePoints('13333')).toEqual([1, 3, 3, 3, 3]);
+    expect(parsePoints('1333')).toBeNull();
+    const png = await dailyCard(2, [1, 3, 3, 3, 3]);
+    expect(png.subarray(1, 4).toString()).toBe('PNG');
+    expect(png.length).toBeLessThan(300_000); // WhatsApp's limit for preview images
+  }, 20_000);
 });

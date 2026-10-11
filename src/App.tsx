@@ -433,6 +433,7 @@ export default function App() {
     const url = new URL(location.href);
     if (url.searchParams.get('daily')) {
       url.searchParams.delete('daily');
+      url.searchParams.delete('r'); // a shared result's score (it's for the link preview)
       history.replaceState(null, '', url.pathname + url.search + url.hash);
       void loadDaily().then(open);
     }

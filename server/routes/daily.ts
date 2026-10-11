@@ -6,11 +6,25 @@ import * as daily from '../daily.js';
 import * as push from '../push.js';
 import { HOSTED, fail, rateLimit } from '../http.js';
 import { addDays, localDate } from '../../src/lib/daily.js';
+import { dailyCard, parsePoints } from '../og.js';
 
 const me = (req: express.Request) => (HOSTED ? req.user ?? null : accounts.normName(req.headers['x-gq-as']) || 'you');
 
-/** Public: the hourly scheduler (GitHub Actions) — registered before the sign-in guard. */
+/** Public: the hourly scheduler (GitHub Actions) and share pictures — registered before the sign-in guard. */
 export function registerCron(app: express.Express) {
+  // The picture a chat app shows for a shared Daily result. Same input → same picture, so the CDN keeps it.
+  app.get('/api/og/daily', rateLimit(120, 60_000), async (req, res) => {
+    const no = Number(req.query.n);
+    const points = parsePoints(req.query.r);
+    if (!Number.isInteger(no) || no < 1 || no > 100_000 || !points) { fail(res, 400, 'Not a valid result.'); return; }
+    try {
+      const png = await dailyCard(no, points);
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      res.end(png);
+    } catch (err) { fail(res, 500, err); }
+  });
+
   app.post('/api/cron/morning', rateLimit(30, 60 * 60_000), async (req, res) => {
     // Refuses everything unless CRON_SECRET is set and matches.
     const secret = process.env.CRON_SECRET ?? '';

@@ -68,7 +68,8 @@
   ],
   "functions": {
     "api/index.ts": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "includeFiles": "{node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-*00-normal.woff,server/assets/**}"
     }
   }
 }
