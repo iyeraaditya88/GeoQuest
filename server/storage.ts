@@ -39,6 +39,15 @@ export async function readBlobDoc(path: string): Promise<{ text: string; etag: s
   }
 }
 
+/** One plain download (no version check) — for reports, where a moment-old copy is fine. Null if missing. */
+export async function readBlobQuick(path: string): Promise<string | null> {
+  let r: Awaited<ReturnType<typeof get>>;
+  try { r = await get(path, { access: 'private' }); } catch (err) { if (err instanceof BlobNotFoundError) return null; throw err; }
+  if (!r) return null;
+  if (r.statusCode !== 200) throw new Error(`Couldn't read ${path} (${r.statusCode})`);
+  return new Response(r.stream).text();
+}
+
 /** Like readBlobDoc, but any failure reads as "nothing there" — for data where that's harmless. */
 export async function readBlobTextLenient(path: string): Promise<string | null> {
   try { return (await readBlobDoc(path))?.text ?? null; } catch { return null; }

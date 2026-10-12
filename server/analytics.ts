@@ -6,7 +6,7 @@
 // Stored at analytics/<day>/<user>/<session>.json in the private Blob store; a local JSON file
 // on your own machine. Kept for RETAIN_DAYS, then deleted.
 import { readFile, writeFile } from 'node:fs/promises';
-import { blobEnabled, deleteBlobs, listBlobPaths, readBlobDoc, writeBlob } from './storage.js';
+import { blobEnabled, deleteBlobs, listBlobPaths, readBlobQuick, writeBlob } from './storage.js';
 
 export type Event = [at: number, name: string, data?: Record<string, string | number>];
 export interface SessionDoc {
@@ -20,7 +20,23 @@ export interface SessionDoc {
   os: string;
   browser: string;
   pwa: boolean;
+  /** Roughly where they were (from the connection, on the hosted site): city, region code, country code */
+  place?: { city?: string; region?: string; country?: string };
   events: Event[];
+}
+
+/**
+ * Roughly where a visit came from, from the location Vercel adds to each request (worked out from the
+ * internet address — city-level, sometimes the mobile operator's hub city). The address itself is
+ * never stored.
+ */
+export function placeFrom(headers: Record<string, string | string[] | undefined>): SessionDoc['place'] {
+  const one = (k: string) => { const v = headers[k]; const s = Array.isArray(v) ? v[0] : v; try { return s ? decodeURIComponent(s) : ''; } catch { return ''; } };
+  const city = one('x-vercel-ip-city').replace(/[^\p{L}\p{N} .'-]/gu, '').slice(0, 40);
+  const region = one('x-vercel-ip-country-region').replace(/[^A-Z0-9]/gi, '').slice(0, 4);
+  const country = one('x-vercel-ip-country').replace(/[^A-Z]/gi, '').slice(0, 2).toUpperCase();
+  if (!city && !country) return undefined;
+  return { ...(city ? { city } : {}), ...(region ? { region } : {}), ...(country.length === 2 ? { country } : {}) };
 }
 
 const RETAIN_DAYS = 90;
@@ -85,8 +101,9 @@ export async function recentSessions(days: number): Promise<SessionDoc[]> {
 
   const out: SessionDoc[] = [];
   for (let i = 0; i < wanted.length; i += 16) {
-    const docs = await Promise.all(wanted.slice(i, i + 16).map((p) => readBlobDoc(p).catch(() => null)));
-    for (const d of docs) if (d) { try { out.push(JSON.parse(d.text) as SessionDoc); } catch { /* skip a damaged one */ } }
+    // A quick read (one storage operation each): a visit that's a moment behind doesn't matter here.
+    const docs = await Promise.all(wanted.slice(i, i + 16).map((p) => readBlobQuick(p).catch(() => null)));
+    for (const d of docs) if (d) { try { out.push(JSON.parse(d) as SessionDoc); } catch { /* skip a damaged one */ } }
   }
   return out.filter((s) => s.start >= since).sort((a, b) => b.start - a.start);
 }

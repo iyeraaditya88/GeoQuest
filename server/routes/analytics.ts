@@ -1,7 +1,7 @@
 // Usage analytics: every signed-in player's browser reports its visit; only the owner reads them.
 import type express from 'express';
 import * as accounts from '../users.js';
-import { cleanSession, recentSessions, saveSession } from '../analytics.js';
+import { cleanSession, placeFrom, recentSessions, saveSession } from '../analytics.js';
 import { HOSTED, fail, rateLimit } from '../http.js';
 
 export function registerAnalytics(app: express.Express) {
@@ -10,6 +10,8 @@ export function registerAnalytics(app: express.Express) {
   app.post('/api/analytics', rateLimit(40, 10 * 60_000), async (req, res) => {
     const s = cleanSession(me(req), req.body);
     if (!s) { fail(res, 400, 'Not a valid session.'); return; }
+    const place = HOSTED ? placeFrom(req.headers) : undefined;
+    if (place) s.place = place;
     try { await saveSession(s); res.json({ ok: true }); } catch (err) { fail(res, 500, err); }
   });
 

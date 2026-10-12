@@ -8,7 +8,11 @@ type Event = [at: number, name: string, data?: Data];
 
 const TICK = 15_000; // active-time resolution
 const IDLE = 90_000; // no input for this long = not counted as in use
-const EVERY = 5 * 60_000; // routine send
+// Each send is a storage write, so: once a minute in (so even short visits count), then every
+// 15 minutes, and when they leave — not every time a phone flicks to another app and back.
+const FIRST = 60_000;
+const EVERY = 15 * 60_000; // routine send
+const AWAY_SEND = 3 * 60_000; // on switching away: only if the last send is older than this
 const NEW_VISIT = 30 * 60_000; // away this long = the next return is a new visit
 const MAX_EVENTS = 400;
 
@@ -60,11 +64,11 @@ export function startAnalytics() {
     if (document.visibilityState === 'visible' && Date.now() - lastInput < IDLE) { s.active += TICK / 1000; dirty = true; }
     if (dirty && Date.now() - lastSent > EVERY) send();
   }, TICK);
-  window.setTimeout(send, 20_000); // so even a short visit is recorded
+  window.setTimeout(() => { if (!lastSent) send(); }, FIRST); // so even a short visit is recorded
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') {
       hiddenAt = Date.now();
-      if (dirty && Date.now() - lastSent > 60_000) send();
+      if (dirty && (!lastSent || Date.now() - lastSent > AWAY_SEND)) send();
     } else if (hiddenAt && Date.now() - hiddenAt > NEW_VISIT) {
       if (dirty) send();
       s = { sid: id(), start: Date.now(), active: 0, events: [] };

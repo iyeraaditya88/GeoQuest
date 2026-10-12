@@ -6,7 +6,13 @@ import { BY_CCA3, fmtInt } from '../lib/data';
 
 type Data = Record<string, string | number>;
 type Event = [at: number, name: string, data?: Data];
-interface Session { sid: string; user: string; start: number; last: number; active: number; device: string; os: string; browser: string; pwa: boolean; events: Event[] }
+interface Place { city?: string; region?: string; country?: string }
+interface Session { sid: string; user: string; start: number; last: number; active: number; device: string; os: string; browser: string; pwa: boolean; place?: Place; events: Event[] }
+
+/** 🇮🇳 from "IN" */
+const flag = (cc?: string) => (cc && /^[A-Z]{2}$/.test(cc) ? String.fromCodePoint(...[...cc].map((c) => 0x1f1a5 + c.charCodeAt(0))) : '');
+/** "Bengaluru, IN" — roughly where a visit came from (city-level; mobile data can show the operator's hub city) */
+const placeLabel = (p?: Place) => (p ? [p.city, p.country].filter(Boolean).join(', ') : '');
 interface Person { name: string; role: string; status: string; createdAt: number; lastLogin: number | null }
 
 const RANGES = [{ days: 1, label: 'Today' }, { days: 7, label: '7 days' }, { days: 30, label: '30 days' }] as const;
@@ -83,6 +89,11 @@ export function ActivityPanel({ open, onClose }: { open: boolean; onClose: () =>
 
     const games: Record<string, { plays: number; best: number }> = {};
     const countries: Record<string, number> = {};
+    const places: Record<string, { n: number; cc?: string }> = {};
+    for (const s of sessions) {
+      const label = s.place?.city ?? (s.place?.country ? new Intl.DisplayNames(undefined, { type: 'region' }).of(s.place.country) : undefined);
+      if (label) { const k = `${label}|${s.place?.country ?? ''}`; (places[k] ??= { n: 0, cc: s.place?.country }).n++; }
+    }
     const crashes: { user: string; at: number; d: Data }[] = [];
     for (const s of sessions) for (const [at, n, d] of s.events) {
       if (n === 'game' && d?.g) (games[d.g] ??= { plays: 0, best: 0 }).plays++;
@@ -97,6 +108,7 @@ export function ActivityPanel({ open, onClose }: { open: boolean; onClose: () =>
       players: new Set(sessions.map((s) => s.user)).size,
       games: Object.entries(games).sort((a, b) => b[1].plays - a[1].plays),
       countries: Object.entries(countries).sort((a, b) => b[1] - a[1]).slice(0, 10),
+      places: Object.entries(places).sort((a, b) => b[1].n - a[1].n).slice(0, 12).map(([k, v]) => ({ name: k.split('|')[0], ...v })),
     };
   }, [data, days, withMe, who]);
 
@@ -187,6 +199,13 @@ export function ActivityPanel({ open, onClose }: { open: boolean; onClose: () =>
                   </div>
                 )}
 
+                {view.places.length > 0 && (
+                  <>
+                    <div className="fr-label">Where they’re from <span className="ac-hint">roughly — by connection</span></div>
+                    <div className="ac-chips">{view.places.map((p) => <span key={p.name + p.cc}>{flag(p.cc)} {p.name} <b>{p.n}</b></span>)}</div>
+                  </>
+                )}
+
                 <div className="fr-label">Visits{who ? ` · ${who}` : ''}</div>
                 <ul className="ac-visits">
                   {view.sessions.slice(0, 60).map((s) => {
@@ -198,7 +217,7 @@ export function ActivityPanel({ open, onClose }: { open: boolean; onClose: () =>
                         <button onClick={() => setExpanded(open ? null : s.sid)} aria-expanded={open}>
                           <span className="ac-v-main">
                             <b>{s.user}</b>
-                            <span>{when(s.start)}</span>
+                            <span>{when(s.start)}{s.place ? ` · ${flag(s.place.country)} ${placeLabel(s.place)}` : ''}</span>
                           </span>
                           <span className="ac-v-sum">
                             {s.events.some((e) => e[1] === 'crash') && <em className="bad">error</em>}
@@ -211,7 +230,7 @@ export function ActivityPanel({ open, onClose }: { open: boolean; onClose: () =>
                         </button>
                         {open && (
                           <div className="ac-timeline">
-                            <p>{s.os} · {s.browser}{s.pwa ? ' · installed app' : ''} · on screen {dur(s.active)} of {dur((s.last - s.start) / 1000)}</p>
+                            <p>{s.place ? `${flag(s.place.country)} ${[s.place.city, s.place.region, s.place.country].filter(Boolean).join(', ')} · ` : ''}{s.os} · {s.browser}{s.pwa ? ' · installed app' : ''} · on screen {dur(s.active)} of {dur((s.last - s.start) / 1000)}</p>
                             {s.events.length ? (
                               <ol>{s.events.map((e, i) => <li key={i} className={e[1] === 'crash' ? 'bad' : ''}><time>{new Date(s.start + e[0] * 1000).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</time>{describe(e)}</li>)}</ol>
                             ) : <p>Just looked around the globe.</p>}

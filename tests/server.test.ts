@@ -423,3 +423,13 @@ describe('rate limiting', () => {
     expect(codes).toContain(429);
   });
 });
+
+describe('visit location', () => {
+  it('keeps only city, region and country from the connection — tidied', async () => {
+    const { placeFrom } = await import('../server/analytics');
+    expect(placeFrom({ 'x-vercel-ip-city': 'S%C3%A3o%20Paulo', 'x-vercel-ip-country-region': 'SP', 'x-vercel-ip-country': 'BR', 'x-forwarded-for': '1.2.3.4' }))
+      .toEqual({ city: 'São Paulo', region: 'SP', country: 'BR' });
+    expect(placeFrom({ 'x-vercel-ip-city': '<script>Bengaluru', 'x-vercel-ip-country': 'in' })).toEqual({ city: 'scriptBengaluru', country: 'IN' });
+    expect(placeFrom({})).toBeUndefined();
+  });
+});
