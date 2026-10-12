@@ -187,7 +187,7 @@ export function registerAuth(app: express.Express) {
     if (!HOSTED) { fail(res, 400, 'There are no accounts on your own machine.'); return; }
     if (req.role === 'owner') { fail(res, 400, 'The owner account can’t be deleted from here.'); return; }
     const password = (req.body as { password?: unknown })?.password;
-    if (typeof password !== 'string' || !(await accounts.checkLogin(req.user, password))) { fail(res, 401, 'That password isn’t right.'); return; }
+    if (typeof password !== 'string' || !(await accounts.passwordIs(req.user, password))) { fail(res, 401, 'That password isn’t right.'); return; }
     try {
       await accounts.removeUser(req.user);
       await eraseUserData(req.user!);

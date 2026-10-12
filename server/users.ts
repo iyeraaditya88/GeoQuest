@@ -168,6 +168,12 @@ export async function checkLogin(nameRaw: unknown, pw: unknown) {
   return { name, role: u.role, sv: u.sv ?? 0 };
 }
 
+/** Is this the account's password? (Just checks — no "last signed in" update; used to confirm a deletion.) */
+export async function passwordIs(nameRaw: unknown, pw: unknown) {
+  const u = (await load(true)).users[normName(nameRaw)];
+  return !!u?.password && (await passwordMatches(typeof pw === 'string' ? pw : '', u.password));
+}
+
 // ── Owner setup (once) ──
 export async function createOwner(nameRaw: unknown, pw: string) {
   const name = normName(nameRaw);
