@@ -7,7 +7,7 @@ import { KEY_COOKIE, SESSION_COOKIE, authConfigured, verifySession } from '../se
 import { HOSTED, MLY_COOKIE, authLimit, clearCookie, cookie, fail, signIn } from '../http.js';
 
 /** What guests (no account) may call: the rest needs signing in. */
-const GUEST_OK = new Set(['GET /health', 'POST /ask', 'POST /match', 'GET /mapillary', 'GET /daily', 'POST /analytics']);
+const GUEST_OK = new Set(['GET /health', 'POST /ask', 'POST /match', 'GET /mapillary', 'GET /daily', 'POST /analytics', 'POST /feedback']);
 
 /** Public routes (sign-in, invites), then the guard that every other /api route sits behind. */
 export function registerAuth(app: express.Express) {

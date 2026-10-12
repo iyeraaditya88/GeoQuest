@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowRight, BarChart3, BellRing, Binoculars, Brain, CalendarDays, Check, ChevronLeft, Dices, Drill, Gamepad2, Globe2, History, KeyRound, Landmark, Link2, ListOrdered, LogIn, LogOut, Map as MapIcon, MapPinned, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, Sparkles, SunMoon, Swords, UserRound, Users, X } from 'lucide-react';
+import { ArrowRight, BarChart3, Inbox, MessageSquareHeart, BellRing, Binoculars, Brain, CalendarDays, Check, ChevronLeft, Dices, Drill, Gamepad2, Globe2, History, KeyRound, Landmark, Link2, ListOrdered, LogIn, LogOut, Map as MapIcon, MapPinned, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, Sparkles, SunMoon, Swords, UserRound, Users, X } from 'lucide-react';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import type { MapStyle } from './GlobeView';
 
@@ -35,6 +35,10 @@ interface Props {
   /** Owner on the hosted site: open the People panel. */
   onPeople?: () => void;
   onActivity?: () => void;
+  /** Owner: read players' feedback */
+  onInbox?: () => void;
+  /** Anyone: send feedback */
+  onFeedback: () => void;
   onQuiz: () => void;
   /** Today's Daily challenge: done yet, the streak, and the theme */
   daily?: { done: boolean; streak: number; theme: string };
@@ -227,6 +231,9 @@ export function Sidebar(p: Props) {
               </div>
             </Section>
           )}
+          <div className="sb-pad sb-feedback">
+            <Item icon={MessageSquareHeart} label="Send feedback" sub={rail ? undefined : 'Ideas, bugs, feature requests'} rail={rail} onClick={act(p.onFeedback)} />
+          </div>
         </div>
 
         {/* Footer */}
@@ -258,6 +265,7 @@ export function Sidebar(p: Props) {
                 <Fade show={!rail}><span className="sb-user" title={`Signed in as ${p.user}`}><UserRound size={13} /> {p.user}</span></Fade>
                 {p.onReminders && <button className={`sb-icon ${p.remindersOn ? 'lit' : ''}`} onClick={p.onReminders} aria-label="Morning reminder" data-tip={p.remindersOn ? 'Morning reminder: on' : 'Morning reminder'}><BellRing size={16} /><span className="sb-icon-label">Reminder</span></button>}
                 {p.onActivity && <button className="sb-icon" onClick={p.onActivity} aria-label="Activity" data-tip="Activity — who’s playing"><BarChart3 size={16} /><span className="sb-icon-label">Activity</span></button>}
+                {p.onInbox && <button className="sb-icon" onClick={p.onInbox} aria-label="Feedback inbox" data-tip="Feedback from players"><Inbox size={16} /><span className="sb-icon-label">Feedback</span></button>}
                 {p.onPeople && <button className="sb-icon" onClick={p.onPeople} aria-label="People" data-tip="People — invite friends"><Users size={16} /><span className="sb-icon-label">People</span></button>}
                 <button className="sb-icon sb-signout" onClick={p.onSignOut} aria-label="Sign out" data-tip="Sign out"><LogOut size={16} /><span className="sb-icon-label">Sign out</span></button>
               </>

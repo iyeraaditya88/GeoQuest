@@ -24,7 +24,8 @@ let hiddenAt = 0;
 let dirty = false;
 let started = false;
 
-function device() {
+/** This device, roughly: phone/tablet/desktop, OS, browser, installed app or not. */
+export function device() {
   const ua = navigator.userAgent;
   const os = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? 'iOS'
     : /Android/.test(ua) ? 'Android' : /Mac/.test(ua) ? 'macOS' : /Windows/.test(ua) ? 'Windows' : /Linux|CrOS/.test(ua) ? 'Linux' : 'Other';

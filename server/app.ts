@@ -15,6 +15,7 @@ import { HOSTED } from './http.js';
 import { registerAuth } from './routes/auth.js';
 import { registerLive } from './routes/live.js';
 import { registerAnalytics } from './routes/analytics.js';
+import { registerFeedback } from './routes/feedback.js';
 import { registerCron, registerDaily } from './routes/daily.js';
 import { registerPlaces } from './routes/places.js';
 import { registerAi, checkAi } from './routes/ai.js';
@@ -53,6 +54,7 @@ registerCron(app); // public: the hourly scheduler (checks its own secret)
 registerAuth(app); // sign-in & invites (public), then the session guard, then people (owner)
 registerLive(app);
 registerAnalytics(app);
+registerFeedback(app);
 registerDaily(app);
 registerPlaces(app);
 registerAi(app);

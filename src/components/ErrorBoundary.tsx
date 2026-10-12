@@ -1,5 +1,6 @@
 import { Component, type ReactNode } from 'react';
-import { AlertTriangle, RotateCw, X } from 'lucide-react';
+import { AlertTriangle, MessageSquareHeart, RotateCw, X } from 'lucide-react';
+import { openFeedback } from '../lib/feedback';
 import { isChunkError } from '../lib/chunks';
 import { track } from '../lib/analytics';
 
@@ -42,7 +43,9 @@ export class ErrorBoundary extends Component<Props, { failed: boolean; stale: bo
           <b>{this.state.stale ? 'GeoQuest was updated' : `${this.props.name} hit a snag`}</b>
           <span>{this.state.stale ? `Reload to get the new version, then open ${this.props.name} again.` : 'The rest of GeoQuest is fine — close this and try again.'}</span>
         </div>
-        {this.state.stale && <button className="ap-btn gold" onClick={() => location.reload()}><RotateCw size={14} /> Reload</button>}
+        {this.state.stale
+          ? <button className="ap-btn gold" onClick={() => location.reload()}><RotateCw size={14} /> Reload</button>
+          : <button className="ap-btn" onClick={() => openFeedback('bug', `${this.props.name} (crashed)`)}><MessageSquareHeart size={14} /> Tell us</button>}
         <button className="icon-btn" onClick={this.close} aria-label="Close"><X size={16} /></button>
       </div>
     );

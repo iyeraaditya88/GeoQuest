@@ -34,6 +34,7 @@ Object.assign(process.env, {
   GQ_DAILY_FILE: join(dir, 'daily.json'),
   GQ_PLACES_FILE: join(dir, 'places.json'),
   GQ_PUSH_FILE: join(dir, 'push.json'),
+  GQ_FEEDBACK_FILE: join(dir, 'feedback.json'),
   GQ_VAPID_FILE: join(dir, 'vapid.json'),
   CRON_SECRET: 'test-cron-secret-0123456789abcdef',
 });
@@ -368,6 +369,30 @@ describe('my places', () => {
     expect(await bad(Array.from({ length: 101 }, (_, i) => ({ ...home, id: `p${String(i).padStart(9, '0')}`, kind: 'favorite' })))).toBe(400);
     const r = await call('PUT', '/api/places', { cookie: bob, body: { places: [{ ...home, name: '  Snehil\u0007’s place  ', kind: 'weird' }] } });
     expect(r.body.places[0]).toEqual(expect.objectContaining({ name: 'Snehil ’s place', kind: 'favorite' }));
+  });
+});
+
+describe('feedback', () => {
+  it('takes feedback from anyone — guests too — with context, and only the owner reads it', async () => {
+    const sent = await call('POST', '/api/feedback', { body: { kind: 'bug', text: '  The map froze\u0007 when I zoomed  ', contact: 'a@b.co', where: 'Street View', device: 'phone', os: 'iOS', browser: 'Safari', pwa: true } });
+    expect(sent.status).toBe(200);
+    expect((await call('POST', '/api/feedback', { cookie: bob, body: { kind: 'nonsense', text: 'Add a rivers quiz please' } })).status).toBe(200);
+    expect((await call('POST', '/api/feedback', { body: { kind: 'idea', text: 'hi' } })).status).toBe(400); // too short
+    // A bot filling the hidden field is thanked, and nothing is kept.
+    expect((await call('POST', '/api/feedback', { body: { kind: 'idea', text: 'Buy cheap pills now', website: 'http://spam.test' } })).status).toBe(200);
+
+    expect((await call('GET', '/api/feedback', { cookie: bob })).status).toBe(403);
+    expect((await call('GET', '/api/feedback')).status).toBe(401);
+    const list = (await call('GET', '/api/feedback', { cookie: owner })).body.feedback as Record<string, unknown>[];
+    expect(list).toHaveLength(2);
+    expect(list[0]).toEqual(expect.objectContaining({ user: 'bob', kind: 'other', text: 'Add a rivers quiz please', status: 'new' }));
+    expect(list[1]).toEqual(expect.objectContaining({ user: 'guest', kind: 'bug', text: 'The map froze when I zoomed', contact: 'a@b.co', where: 'Street View', os: 'iOS', pwa: true }));
+
+    expect((await call('PATCH', `/api/feedback/${list[1].id}`, { cookie: bob, body: { status: 'done' } })).status).toBe(403);
+    expect((await call('PATCH', `/api/feedback/${list[1].id}`, { cookie: owner, body: { status: 'done' } })).status).toBe(200);
+    expect((await call('PATCH', '/api/feedback/nope', { cookie: owner, body: { status: 'done' } })).status).toBe(404);
+    const after = (await call('GET', '/api/feedback', { cookie: owner })).body.feedback as Record<string, unknown>[];
+    expect(after.find((f) => f.id === list[1].id)?.status).toBe('done');
   });
 });
 

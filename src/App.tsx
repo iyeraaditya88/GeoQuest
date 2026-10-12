@@ -49,6 +49,9 @@ import { countryAt } from './lib/data';
 import { CountryPanel } from './components/CountryPanel';
 import { PeoplePanel } from './components/PeoplePanel';
 const ActivityPanel = lazy(() => fresh(import('./components/ActivityPanel')).then((m) => ({ default: m.ActivityPanel })));
+const FeedbackInbox = lazy(() => fresh(import('./components/FeedbackInbox')).then((m) => ({ default: m.FeedbackInbox })));
+import { FeedbackSheet } from './components/FeedbackSheet';
+import type { FeedbackKind } from './lib/feedback';
 import { FeaturePanel } from './components/FeaturePanel';
 import { featureInfo, type FeatureInfo, type FeatureRef } from './lib/features';
 import { AntipodeCard, type AntipodeStage } from './components/AntipodeCard';
@@ -173,6 +176,10 @@ export default function App() {
   const [role, setRole] = useState<'owner' | 'member' | null>(null);
   const [peopleOpen, setPeopleOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
+  // Feedback: the form (anyone), and the inbox (the owner).
+  const [fbForm, setFbForm] = useState<{ kind?: FeedbackKind; where: string } | null>(null);
+  const [inboxOpen, setInboxOpen] = useState(false);
+  const [inboxWanted, setInboxWanted] = useState(() => new URLSearchParams(location.search).has('inbox'));
   // Live head-to-head (see LivePlay): hosted over Ably, locally between tabs.
   const [liveMode, setLiveMode] = useState<'ably' | 'local' | null>(null);
   const [liveState, setLiveState] = useState<LiveState>({ active: false, quiz: false, immersive: false, online: 0, ready: false });
@@ -450,6 +457,34 @@ export default function App() {
     navigator.serviceWorker?.addEventListener('message', onMsg);
     return () => navigator.serviceWorker?.removeEventListener('message', onMsg);
   }, [loadDaily]);
+
+  // ── Feedback ──────────────────────────────────────────
+  /** Where in the app they are right now (sent with feedback, so a bug report has context). */
+  const whereNow = () => quiz ? (quiz.daily ? `Daily #${quiz.daily.no}` : `Map quiz (${quiz.mode})`)
+    : geo ? 'Street View' : play === 'top5' ? 'Name the Top 5' : play === 'capitals' ? 'Capitals' : play === 'trivia' ? 'Geo Trivia'
+    : anti ? 'Antipode finder' : liveRef.current.active ? 'Live duel' : dailyCard ? 'Daily result' : placesOpen ? 'My places'
+    : country ? `Country: ${country.name}` : feature ? `Map: ${feature.name}` : view === 'flat' ? 'Atlas' : 'Globe';
+  const whereRef = useRef(whereNow);
+  whereRef.current = whereNow;
+  const openFeedbackHere = (kind?: FeedbackKind) => setFbForm({ kind, where: whereRef.current() });
+  useEffect(() => {
+    const on = (e: Event) => { const d = (e as CustomEvent<{ kind?: FeedbackKind; where?: string }>).detail ?? {}; setFbForm({ kind: d.kind, where: d.where ?? whereRef.current() }); };
+    window.addEventListener('gq:feedback', on);
+    // Links: ?feedback=1 opens the form; ?inbox=1 (from the "new feedback" notification) opens the inbox.
+    const url = new URL(location.href);
+    if (url.searchParams.has('feedback') || url.searchParams.has('inbox')) {
+      if (url.searchParams.has('feedback')) window.setTimeout(() => setFbForm({ where: 'Link' }), 900);
+      url.searchParams.delete('feedback'); url.searchParams.delete('inbox');
+      history.replaceState(null, '', url.pathname + url.search + url.hash);
+    }
+    const onMsg = (e: MessageEvent) => { if ((e.data as { type?: string })?.type === 'open-inbox') setInboxWanted(true); };
+    navigator.serviceWorker?.addEventListener('message', onMsg);
+    return () => { window.removeEventListener('gq:feedback', on); navigator.serviceWorker?.removeEventListener('message', onMsg); };
+  }, []);
+  // The inbox opens once we know this is the owner.
+  useEffect(() => {
+    if (inboxWanted && (role === 'owner' || liveMode === 'local')) { setInboxWanted(false); setInboxOpen(true); }
+  }, [inboxWanted, role, liveMode]);
 
   const random = () => {
     const pick = pickRandom(QUIZ_POOL, selected ?? undefined);
@@ -854,6 +889,8 @@ export default function App() {
         onPeople={role === 'owner' ? () => setPeopleOpen(true) : undefined}
         // (on your own machine there's no sign-in, so you're effectively the owner)
         onActivity={role === 'owner' || liveMode === 'local' ? () => setActivityOpen(true) : undefined}
+        onInbox={role === 'owner' || liveMode === 'local' ? () => setInboxOpen(true) : undefined}
+        onFeedback={() => openFeedbackHere()}
         onSearch={() => { setSearchOpen(true); track('search'); }}
         onRandom={() => { if (quiz) exitQuiz(); random(); }}
         onAsk={() => { if (quiz) exitQuiz(); setDockOpen(true); }}
@@ -886,6 +923,10 @@ export default function App() {
         onPick={(c) => { if (quiz) exitQuiz(); select(c); }}
       />
       <PeoplePanel open={peopleOpen} onClose={() => setPeopleOpen(false)} />
+      <AnimatePresence>
+        {fbForm && <FeedbackSheet key="feedback" kind={fbForm.kind} where={fbForm.where} user={user} onClose={() => setFbForm(null)} />}
+      </AnimatePresence>
+      {inboxOpen && <Suspense fallback={null}><ErrorBoundary name="Feedback" onClose={() => setInboxOpen(false)}><FeedbackInbox onClose={() => setInboxOpen(false)} /></ErrorBoundary></Suspense>}
       {activityOpen && <Suspense fallback={null}><ErrorBoundary name="Activity" onClose={() => setActivityOpen(false)}><ActivityPanel open={activityOpen} onClose={() => setActivityOpen(false)} /></ErrorBoundary></Suspense>}
 
 
