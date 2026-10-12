@@ -1,13 +1,14 @@
-// fetch() for our own /api routes. A 401 means this needs an account (a guest), or a sign-in that
-// has just expired: either way, offer to sign in — never a hard redirect away from the globe.
-import { getAuth, needSignIn, setAuth } from './session';
+// fetch() for our own /api routes. A 401 means this needs an account. For a guest that's just a
+// background call they can't make — say nothing (features that need an account ask, with a reason,
+// when someone reaches for them). For someone whose sign-in has just expired: carry on as a guest,
+// with a quiet note. Never a hard redirect away from the globe.
+import { getAuth, setAuth, signedOut } from './session';
 
 export async function api(path: string, init?: RequestInit) {
   const res = await fetch(path, { credentials: 'same-origin', ...init });
   if (res.status === 401) {
     const a = getAuth();
-    if (a.user) { setAuth({ hosted: a.hosted, user: null, role: null }); needSignIn('expired'); }
-    else if (a.known && a.hosted) needSignIn('general');
+    if (a.user) { setAuth({ hosted: a.hosted, user: null, role: null }); signedOut(); }
   }
   return res;
 }

@@ -22,6 +22,11 @@ export const isGuest = (a: Auth = auth) => a.known && a.hosted && !a.user;
 /** May this person use account features? (signed in, or running locally) */
 export const canUseAccount = (a: Auth = auth) => a.known && (!a.hosted || !!a.user);
 
+/** Their sign-in expired mid-visit: they're a guest now (a quiet note, not a pop-up). */
+export function signedOut() {
+  window.dispatchEvent(new CustomEvent('gq:signedout'));
+}
+
 /** Ask the person to sign in (or create an account), saying what for. */
 export function needSignIn(reason: SignInReason = 'general') {
   window.dispatchEvent(new CustomEvent('gq:signin', { detail: reason }));

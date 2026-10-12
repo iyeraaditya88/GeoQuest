@@ -185,3 +185,29 @@ describe('shared Daily link preview', () => {
     expect(png.length).toBeLessThan(300_000); // WhatsApp's limit for preview images
   }, 20_000);
 });
+
+describe('guests are never nagged by background requests', () => {
+  it('stays quiet for a guest, and only notes an expired sign-in', async () => {
+    const events: string[] = [];
+    const win = new EventTarget();
+    for (const t of ['gq:signin', 'gq:signedout']) win.addEventListener(t, () => events.push(t));
+    const g = globalThis as unknown as { window?: EventTarget; fetch: typeof fetch };
+    const realFetch = g.fetch, hadWindow = 'window' in g, realWindow = g.window;
+    g.window = win;
+    g.fetch = (async () => new Response('{}', { status: 401 })) as typeof fetch;
+    try {
+      const { api } = await import('../src/lib/api');
+      const { setAuth, getAuth } = await import('../src/lib/session');
+      setAuth({ hosted: true, user: null, role: null }); // a guest
+      await api('/api/favorites');
+      expect(events).toEqual([]); // no sign-in pop-up out of nowhere
+      setAuth({ hosted: true, user: 'maya', role: 'member' }); // signed in… until it expires
+      await api('/api/favorites');
+      expect(events).toEqual(['gq:signedout']);
+      expect(getAuth().user).toBeNull(); // carries on as a guest
+    } finally {
+      g.fetch = realFetch;
+      if (hadWindow) g.window = realWindow; else delete g.window;
+    }
+  });
+});

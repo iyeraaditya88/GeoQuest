@@ -1,6 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { BellRing, CalendarDays, Check, X } from 'lucide-react';
+import { BellRing, CalendarDays, Check, LogIn, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { GlobeView, type GlobeHandle, type GlobeView2D, type MapStyle, type Feedback } from './components/GlobeView';
 import { FlatAtlas, type AtlasHandle } from './components/FlatAtlas';
@@ -181,7 +181,8 @@ export default function App() {
   const [friendsReq, setFriendsReq] = useState(0);
   const [inviteReq, setInviteReq] = useState(0);
   const matchClick = useRef<((cca3: string | null) => void) | null>(null);
-  const signOut = () => { void api('/api/logout', { method: 'POST' }).finally(() => location.replace('/login')); };
+  // Signing out: back to the globe as a guest (sign-in stays one tap away, top right).
+  const signOut = () => { void api('/api/logout', { method: 'POST' }).finally(() => location.replace('/')); };
   const [nature, setNature] = useState(() => { try { return localStorage.getItem('gq-nature') !== '0'; } catch { return true; } });
   const toggleNature = () => setNature((v) => { try { localStorage.setItem('gq-nature', v ? '0' : '1'); } catch { /* private mode */ } return !v; });
   const [searchOpen, setSearchOpen] = useState(false);
@@ -200,6 +201,14 @@ export default function App() {
     const on = (e: Event) => setSignIn((e as CustomEvent<SignInReason>).detail ?? 'general');
     window.addEventListener('gq:signin', on);
     return () => window.removeEventListener('gq:signin', on);
+  }, []);
+  // A sign-in that expired mid-visit: a quiet note (they carry on as a guest).
+  const [signedOutNote, setSignedOutNote] = useState(false);
+  useEffect(() => {
+    let t: number | undefined;
+    const on = () => { setSignedOutNote(true); window.clearTimeout(t); t = window.setTimeout(() => setSignedOutNote(false), 9000); };
+    window.addEventListener('gq:signedout', on);
+    return () => { window.removeEventListener('gq:signedout', on); window.clearTimeout(t); };
   }, []);
   const [remindersOn, setRemindersOn] = useState(false);
   // My places: the panel, a point just picked on the globe, and a pin just tapped.
@@ -978,6 +987,20 @@ export default function App() {
       </ErrorBoundary>
       {/* Music on/off — top right (in Street View it moves into that screen's own top bar) */}
       {chrome && !geo && !liveState.immersive && <MusicButton className="music-fab" />}
+      {/* Guests: sign in, top right (where Friends is once you're signed in). */}
+      <AnimatePresence>
+        {chrome && guest && !quiz && !geo && !play && !anti && !liveState.active && (
+          <motion.button key="signin-fab" className="signin-fab" onClick={() => needSignIn('general')} aria-label="Sign in"
+            initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ delay: 0.5 }}>
+            <LogIn size={17} /><span>Sign in</span>
+          </motion.button>
+        )}
+        {signedOutNote && guest && (
+          <motion.div key="signed-out" className="signed-out" role="status" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+            You’ve been signed out <button onClick={() => { setSignedOutNote(false); needSignIn('expired'); }}>Sign in</button>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <CustomCursor />
       <SearchPalette open={searchOpen} onClose={() => setSearchOpen(false)} onPick={(c) => { if (quiz) exitQuiz(); select(c); }} />
     </div>

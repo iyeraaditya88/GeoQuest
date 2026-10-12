@@ -1977,7 +1977,7 @@ html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent
 @media (max-width: 600px) {
   .daily-top { height: 42px; padding: 0 15px; gap: 7px; }
   /* With the Friends button there too, centre it in the space between the menu and the corner buttons. */
-  .app:has(.fo-fab) .daily-top { left: calc(50% - 26px) !important; }
+  .app:has(.fo-fab) .daily-top, .app:has(.signin-fab) .daily-top { left: calc(50% - 26px) !important; }
   .daily-top .dt-go { display: none; }
 }
 @media (max-width: 360px) { .daily-top .dt-streak { display: none; } .daily-top b { font-size: 13.5px; } }
@@ -2037,3 +2037,19 @@ html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent
   .panel-scroll { padding-top: 12px; }
   .panel-foot { padding-top: 10px; padding-bottom: calc(12px + var(--sb)); }
 }
+
+/* Guests: Sign in, top right — a pill on wide screens, a labelled corner button on phones */
+.signin-fab { position: fixed; z-index: 13; top: calc(16px + var(--st)); right: calc(var(--ri) + 16px + 48px + var(--sr)); display: inline-flex; align-items: center; gap: 7px;
+  height: 40px; padding: 0 14px; border-radius: 12px; font: 600 13.5px var(--display); color: var(--gold-soft); background: rgba(9, 14, 30, 0.8);
+  box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.45); backdrop-filter: blur(6px); transition: right 0.55s var(--ease), background 0.2s, transform 0.2s var(--ease); }
+.signin-fab:hover { background: rgba(251, 191, 36, 0.12); transform: translateY(-1px); }
+@media (max-width: 900px) {
+  .signin-fab { top: calc(12px + var(--st)); right: calc(var(--ri) + 12px + 52px + var(--sr)); width: 44px; height: 44px; border-radius: 13px; padding: 0; justify-content: center; }
+  .signin-fab span { position: absolute; top: calc(100% + 3px); left: 50%; translate: -50% 0; pointer-events: none;
+    font: 600 9.5px/1 Inter, sans-serif; letter-spacing: 0.02em; color: var(--muted); white-space: nowrap; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 8px rgba(0, 0, 0, 0.9); }
+}
+
+/* "You've been signed out" — a quiet note under the top bar */
+.signed-out { position: fixed; z-index: 16; top: calc(70px + var(--st)); left: 50%; translate: -50% 0; display: inline-flex; align-items: center; gap: 10px;
+  padding: 8px 8px 8px 16px; border-radius: 99px; font-size: 13px; color: var(--text); background: rgba(9, 14, 30, 0.94); box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7), 0 0 0 1px var(--line); white-space: nowrap; }
+.signed-out button { padding: 6px 12px; border-radius: 99px; font: 600 12.5px var(--display); color: #1a1205; background: linear-gradient(135deg, var(--gold-soft), var(--gold)); }

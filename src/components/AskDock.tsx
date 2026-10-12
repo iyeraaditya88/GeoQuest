@@ -4,6 +4,7 @@ import { ArrowUp, Globe2, KeyRound, MapPin, Sparkles, X, WifiOff, Square, Loader
 import { BY_CCA3, flagUrl, type Country } from '../lib/data';
 import { answerLocally } from '../lib/localQuery';
 import { api } from '../lib/api';
+import { isGuest, needSignIn } from '../lib/session';
 
 interface Msg { role: 'user' | 'assistant'; content: string; countries?: string[]; scope?: string | null; offline?: boolean; connect?: boolean }
 
@@ -125,7 +126,12 @@ export function AskDock({ open, setOpen, country, request, keyRequest = 0, onAiC
         body: JSON.stringify({ messages: history.map(({ role, content }) => ({ role, content })), country: scope?.cca3 ?? null }),
         signal: ctl.signal,
       });
-      if (!res.ok || !res.body) { if (res.status === 503) setAi(false); offline(); return; }
+      if (!res.ok || !res.body) {
+        if (res.status === 503) setAi(false);
+        if (res.status === 429 && isGuest()) needSignIn('atlas'); // today's free questions are used up
+        offline();
+        return;
+      }
       const reader = res.body.getReader();
       const dec = new TextDecoder();
       let acc = '';
