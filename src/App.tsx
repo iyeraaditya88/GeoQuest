@@ -51,7 +51,7 @@ import { PeoplePanel } from './components/PeoplePanel';
 const ActivityPanel = lazy(() => fresh(import('./components/ActivityPanel')).then((m) => ({ default: m.ActivityPanel })));
 const FeedbackInbox = lazy(() => fresh(import('./components/FeedbackInbox')).then((m) => ({ default: m.FeedbackInbox })));
 import { FeedbackSheet } from './components/FeedbackSheet';
-import type { FeedbackKind } from './lib/feedback';
+import { countVisit, feedbackAsked, markFeedbackAsked, type FeedbackKind } from './lib/feedback';
 import { FeaturePanel } from './components/FeaturePanel';
 import { featureInfo, type FeatureInfo, type FeatureRef } from './lib/features';
 import { AntipodeCard, type AntipodeStage } from './components/AntipodeCard';
@@ -481,6 +481,16 @@ export default function App() {
     navigator.serviceWorker?.addEventListener('message', onMsg);
     return () => { window.removeEventListener('gq:feedback', on); navigator.serviceWorker?.removeEventListener('message', onMsg); };
   }, []);
+  // A one-time ask, for players on their 3rd+ visit, after a minute and a half on the globe.
+  const [nudgeReady, setNudgeReady] = useState(false);
+  useEffect(() => {
+    const visits = countVisit();
+    if (visits < 3 || feedbackAsked()) return;
+    const t = window.setTimeout(() => setNudgeReady(true), 90_000);
+    return () => window.clearTimeout(t);
+  }, []);
+  const dismissNudge = () => { setNudgeReady(false); markFeedbackAsked(); };
+
   // The inbox opens once we know this is the owner.
   useEffect(() => {
     if (inboxWanted && (role === 'owner' || liveMode === 'local')) { setInboxWanted(false); setInboxOpen(true); }
@@ -1035,6 +1045,13 @@ export default function App() {
             initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ delay: 0.5 }}>
             <LogIn size={17} /><span>Sign in</span>
           </motion.button>
+        )}
+        {nudgeReady && chrome && !fbForm && !quiz && !geo && !play && !anti && !liveState.active && !dailyCard && !selected && !feature && !dockOpen && !placesOpen && !(mobile && drawerOpen) && !signIn && (
+          <motion.div key="fb-nudge" className="fb-nudge" role="status" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.6 } }} exit={{ opacity: 0, y: -10 }}>
+            <span>Enjoying GeoQuest?<em className="fbn-more"> Help shape it</em></span>
+            <button className="fbn-go" onClick={() => { dismissNudge(); openFeedbackHere(); }}>Send feedback</button>
+            <button className="fbn-x" onClick={dismissNudge} aria-label="No thanks"><X size={15} /></button>
+          </motion.div>
         )}
         {signedOutNote && guest && (
           <motion.div key="signed-out" className="signed-out" role="status" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>

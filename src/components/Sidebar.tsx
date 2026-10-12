@@ -231,13 +231,15 @@ export function Sidebar(p: Props) {
               </div>
             </Section>
           )}
-          <div className="sb-pad sb-feedback">
-            <Item icon={MessageSquareHeart} label="Send feedback" sub={rail ? undefined : 'Ideas, bugs, feature requests'} rail={rail} onClick={act(p.onFeedback)} />
-          </div>
         </div>
 
         {/* Footer */}
         <div className="sb-foot">
+          {/* Always in view at the bottom of the menu (not scrolled away) */}
+          <button className="sb-fb" onClick={act(p.onFeedback)} data-tip={rail ? 'Send feedback' : undefined} aria-label="Send feedback">
+            <MessageSquareHeart size={16} />
+            <Fade show={!rail}><span className="sb-fb-text"><b>Send feedback</b><span>Ideas, bugs, feature requests</span></span></Fade>
+          </button>
           {/* The Atlas status only matters when it needs setting up (on the hosted site it's always on). */}
           {!(p.hosted && p.ai) && <button className={`sb-status ${p.ai ? 'ok' : ''}`} onClick={act(p.ai ? p.onAsk : p.onConnect)} data-tip={rail ? (p.ai ? 'Claude connected' : 'Connect Claude') : undefined}>
             {p.ai ? <i className="sb-live" /> : <KeyRound size={15} />}
@@ -265,7 +267,7 @@ export function Sidebar(p: Props) {
                 <Fade show={!rail}><span className="sb-user" title={`Signed in as ${p.user}`}><UserRound size={13} /> {p.user}</span></Fade>
                 {p.onReminders && <button className={`sb-icon ${p.remindersOn ? 'lit' : ''}`} onClick={p.onReminders} aria-label="Morning reminder" data-tip={p.remindersOn ? 'Morning reminder: on' : 'Morning reminder'}><BellRing size={16} /><span className="sb-icon-label">Reminder</span></button>}
                 {p.onActivity && <button className="sb-icon" onClick={p.onActivity} aria-label="Activity" data-tip="Activity — who’s playing"><BarChart3 size={16} /><span className="sb-icon-label">Activity</span></button>}
-                {p.onInbox && <button className="sb-icon" onClick={p.onInbox} aria-label="Feedback inbox" data-tip="Feedback from players"><Inbox size={16} /><span className="sb-icon-label">Feedback</span></button>}
+                {p.onInbox && <button className="sb-icon" onClick={p.onInbox} aria-label="Feedback inbox" data-tip="Feedback from players"><Inbox size={16} /><span className="sb-icon-label">Inbox</span></button>}
                 {p.onPeople && <button className="sb-icon" onClick={p.onPeople} aria-label="People" data-tip="People — invite friends"><Users size={16} /><span className="sb-icon-label">People</span></button>}
                 <button className="sb-icon sb-signout" onClick={p.onSignOut} aria-label="Sign out" data-tip="Sign out"><LogOut size={16} /><span className="sb-icon-label">Sign out</span></button>
               </>

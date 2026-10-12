@@ -1,8 +1,8 @@
 // "My places": pins a player puts on the globe (home, friends, favourite spots). Private to that
 // player — nobody else can read them. One small document each in the private Blob store; a local
 // JSON file on your own machine.
-import { readFile, writeFile } from 'node:fs/promises';
-import { blobEnabled, readBlobDoc, writeBlob } from './storage.js';
+import { readFile } from 'node:fs/promises';
+import { blobEnabled, readBlobDoc, writeBlob, writeLocalFile } from './storage.js';
 
 export const KINDS = ['home', 'family', 'friend', 'favorite', 'memory', 'dream'] as const;
 export type PlaceKind = (typeof KINDS)[number];
@@ -47,7 +47,7 @@ export async function setPlaces(user: string, places: MyPlace[]) {
     let all: Record<string, MyPlace[]> = {};
     try { all = JSON.parse(await readFile(localFile(), 'utf8')); } catch { /* first one */ }
     all[user] = places;
-    await writeFile(localFile(), JSON.stringify(all), { mode: 0o600 });
+    await writeLocalFile(localFile(), JSON.stringify(all));
     return;
   }
   await writeBlob(path(user), JSON.stringify({ places }));

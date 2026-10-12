@@ -1,8 +1,8 @@
 // Small per-player data: favourite friends, and when someone last used the app ("last seen").
 // Private Blob store when hosted (one tiny document per player, so nobody's write can clobber
 // anyone else's); a local JSON file on your own machine.
-import { readFile, writeFile } from 'node:fs/promises';
-import { blobEnabled, readBlobDoc, writeBlob } from './storage.js';
+import { readFile } from 'node:fs/promises';
+import { blobEnabled, readBlobDoc, writeBlob, writeLocalFile } from './storage.js';
 
 const localFile = () => process.env.GQ_PREFS_FILE ?? '.prefs.local.json';
 type Local = Record<string, { favorites?: string[]; seen?: number }>;
@@ -24,7 +24,7 @@ export async function setFavorites(user: string, favorites: string[]) {
   if (!blobEnabled()) {
     const all = await readLocal();
     all[user] = { ...all[user], favorites };
-    await writeFile(localFile(), JSON.stringify(all), { mode: 0o600 });
+    await writeLocalFile(localFile(), JSON.stringify(all));
     return;
   }
   await writeJson(`prefs/${user}.json`, { favorites });

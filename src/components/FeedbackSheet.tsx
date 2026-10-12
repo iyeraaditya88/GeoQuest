@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { Bug, Check, Lightbulb, Loader2, MessageCircle, Send, Sparkles, X } from 'lucide-react';
 import { api } from '../lib/api';
 import { device, track } from '../lib/analytics';
-import type { FeedbackKind } from '../lib/feedback';
+import { markFeedbackAsked, type FeedbackKind } from '../lib/feedback';
 
 const KINDS: { id: FeedbackKind; label: string; icon: typeof Bug; hint: string }[] = [
   { id: 'idea', label: 'Improvement', icon: Lightbulb, hint: 'What could be better? Anything that felt confusing or clunky…' },
@@ -50,6 +50,7 @@ export function FeedbackSheet({ kind: start, where, user, onClose }: Props) {
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setError(d.error ?? 'Couldn’t send that — try again in a moment.'); return; }
       track('feedback', { k: kind });
+      markFeedbackAsked();
       setSent(true);
     } catch { setError('Couldn’t reach GeoQuest — check your connection.'); }
     finally { setBusy(false); }

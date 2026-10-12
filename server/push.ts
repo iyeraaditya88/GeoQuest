@@ -4,9 +4,9 @@
 // use and kept in the private store (like the session key) — nothing to configure, and the
 // private key never leaves the server. Each player's devices and chosen time live in
 // push/<user>.json.
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import webpush from 'web-push';
-import { blobEnabled, listBlobPaths, readBlobDoc, readBlobTextLenient, writeBlob } from './storage.js';
+import { blobEnabled, listBlobPaths, readBlobDoc, readBlobTextLenient, writeBlob, writeLocalFile } from './storage.js';
 import { THEME_LABEL, dailyNumber, localDate, themeOf } from '../src/lib/daily.js';
 
 export interface Sub { endpoint: string; keys: { p256dh: string; auth: string }; at: number }
@@ -26,7 +26,7 @@ async function loadKeys(): Promise<Keys> {
     const have = parse(await readFile(localKeyFile(), 'utf8').catch(() => null));
     if (have) return (keys = have);
     const fresh = webpush.generateVAPIDKeys();
-    await writeFile(localKeyFile(), JSON.stringify(fresh), { mode: 0o600 });
+    await writeLocalFile(localKeyFile(), JSON.stringify(fresh));
     return (keys = fresh);
   }
   const have = parse(await readBlobTextLenient(KEY_PATH));
@@ -54,7 +54,7 @@ export async function setPrefs(user: string, p: PushPrefs | null) {
   if (!blobEnabled()) {
     const all = await readLocal();
     if (p) all[user] = p; else delete all[user];
-    await writeFile(localFile(), JSON.stringify(all), { mode: 0o600 });
+    await writeLocalFile(localFile(), JSON.stringify(all));
     return;
   }
   await writeBlob(prefPath(user), JSON.stringify(p ?? { subs: [], hour: 8, tz: 'UTC' }));

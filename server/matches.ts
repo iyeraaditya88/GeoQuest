@@ -1,7 +1,7 @@
 // Finished live matches: a short history per player (for "recent matches" and head-to-head
 // records). Same private Blob store as the accounts; a local JSON file when running on your machine.
-import { readFile, writeFile } from 'node:fs/promises';
-import { blobEnabled, readBlobDoc, writeBlob } from './storage.js';
+import { readFile } from 'node:fs/promises';
+import { blobEnabled, readBlobDoc, writeBlob, writeLocalFile } from './storage.js';
 
 export interface MatchRecord {
   id: string;
@@ -42,5 +42,5 @@ export async function saveMatch(rec: MatchRecord) {
     if (local) local[name] = next;
     else await writeBlob(blobPath(name), JSON.stringify(next));
   }
-  if (local) await writeFile(localFile(), JSON.stringify(local), { mode: 0o600 });
+  if (local) await writeLocalFile(localFile(), JSON.stringify(local));
 }

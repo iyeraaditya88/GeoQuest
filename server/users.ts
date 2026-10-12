@@ -5,9 +5,9 @@
 // hosted mode) it falls back to a JSON file. Only scrypt password hashes and SHA-256 invite
 // fingerprints are stored — never a password or a usable invite link.
 import { createHash, randomBytes, scrypt as scryptCb, timingSafeEqual } from 'node:crypto';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
-import { BlobPreconditionFailedError, blobEnabled, readBlobDoc, readBlobTextLenient, writeBlob } from './storage.js';
+import { BlobPreconditionFailedError, blobEnabled, readBlobDoc, readBlobTextLenient, writeBlob, writeLocalFile } from './storage.js';
 
 const scrypt = promisify(scryptCb) as (pw: string, salt: Buffer, len: number) => Promise<Buffer>;
 const KEYLEN = 32;
@@ -72,7 +72,7 @@ async function update<T>(fn: (db: Db) => T | Promise<T>): Promise<T> {
     const body = JSON.stringify(db);
     try {
       if (blobEnabled()) await writeBlob(BLOB_PATH, body, etag ? { ifMatch: etag } : { overwrite: false });
-      else await writeFile(localFile(), body, { mode: 0o600 });
+      else await writeLocalFile(localFile(), body);
       cache = { db, at: Date.now() };
       return out;
     } catch (err) {

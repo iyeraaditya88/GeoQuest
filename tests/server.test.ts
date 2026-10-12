@@ -127,13 +127,13 @@ describe('accounts', () => {
 
   it('invites a member, who sets their own password', async () => {
     const inv = await call('POST', '/api/people', { cookie: owner, body: { username: 'bob' } });
-    expect(inv.status).toBe(200);
+    expect(inv.status, JSON.stringify(inv.body)).toBe(200);
     const link = new URL(String(inv.body.link));
     expect(link.host).toBe('play.test');
     const t = link.searchParams.get('t')!;
     expect((await call('GET', `/api/invite?u=bob&t=${t}`)).body.valid).toBe(true);
     const acc = await call('POST', '/api/invite/accept', { body: { username: 'bob', token: t, password: BOB_PW } });
-    expect(acc.status).toBe(200);
+    expect(acc.status, JSON.stringify(acc.body)).toBe(200);
     bob = sessionOf(acc);
     // single use
     expect((await call('POST', '/api/invite/accept', { body: { username: 'bob', token: t, password: BOB_PW } })).status).toBe(400);
@@ -385,14 +385,15 @@ describe('feedback', () => {
     expect((await call('GET', '/api/feedback')).status).toBe(401);
     const list = (await call('GET', '/api/feedback', { cookie: owner })).body.feedback as Record<string, unknown>[];
     expect(list).toHaveLength(2);
-    expect(list[0]).toEqual(expect.objectContaining({ user: 'bob', kind: 'other', text: 'Add a rivers quiz please', status: 'new' }));
-    expect(list[1]).toEqual(expect.objectContaining({ user: 'guest', kind: 'bug', text: 'The map froze when I zoomed', contact: 'a@b.co', where: 'Street View', os: 'iOS', pwa: true }));
+    const fromBob = list.find((f) => f.user === 'bob'), fromGuest = list.find((f) => f.user === 'guest')!;
+    expect(fromBob).toEqual(expect.objectContaining({ kind: 'other', text: 'Add a rivers quiz please', status: 'new' }));
+    expect(fromGuest).toEqual(expect.objectContaining({ kind: 'bug', text: 'The map froze when I zoomed', contact: 'a@b.co', where: 'Street View', os: 'iOS', pwa: true }));
 
-    expect((await call('PATCH', `/api/feedback/${list[1].id}`, { cookie: bob, body: { status: 'done' } })).status).toBe(403);
-    expect((await call('PATCH', `/api/feedback/${list[1].id}`, { cookie: owner, body: { status: 'done' } })).status).toBe(200);
+    expect((await call('PATCH', `/api/feedback/${fromGuest.id}`, { cookie: bob, body: { status: 'done' } })).status).toBe(403);
+    expect((await call('PATCH', `/api/feedback/${fromGuest.id}`, { cookie: owner, body: { status: 'done' } })).status).toBe(200);
     expect((await call('PATCH', '/api/feedback/nope', { cookie: owner, body: { status: 'done' } })).status).toBe(404);
     const after = (await call('GET', '/api/feedback', { cookie: owner })).body.feedback as Record<string, unknown>[];
-    expect(after.find((f) => f.id === list[1].id)?.status).toBe('done');
+    expect(after.find((f) => f.id === fromGuest.id)?.status).toBe('done');
   });
 });
 

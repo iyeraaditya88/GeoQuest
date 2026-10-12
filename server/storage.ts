@@ -4,9 +4,21 @@
 //
 // Reads distinguish "doesn't exist yet" (null) from "couldn't read" (throws): treating a failed
 // read as empty and then writing would wipe the document.
+import { randomBytes } from 'node:crypto';
+import { rename, writeFile } from 'node:fs/promises';
 import { BlobNotFoundError, BlobPreconditionFailedError, del, get, head, list, put } from '@vercel/blob';
 
 export { BlobPreconditionFailedError };
+/**
+ * Write a local data file (on your own machine, and in tests) all at once: to a temporary file,
+ * then renamed into place — so a read at the same moment never sees a half-written file.
+ */
+export async function writeLocalFile(path: string, body: string) {
+  const tmp = `${path}.${process.pid}.${randomBytes(4).toString('hex')}.tmp`;
+  await writeFile(tmp, body, { mode: 0o600 });
+  await rename(tmp, path);
+}
+
 export const blobEnabled = () => !!(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
 
 const sameTag = (a: string, b: string) => a.replace(/^W\//, '').replace(/"/g, '') === b.replace(/^W\//, '').replace(/"/g, '');

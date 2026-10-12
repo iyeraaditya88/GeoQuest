@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { CalendarDays, Check, Copy, Flame, Share2, Star, Trophy, X } from 'lucide-react';
+import { CalendarDays, Check, Copy, Flame, MessageSquareHeart, Share2, Star, Trophy, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import { DAILY_N, MAX_POINTS, THEME_LABEL, dailyNumber, shareLine, themeOf, total } from '../lib/daily';
 import { useFavorites } from '../lib/favorites';
 import { Reminders } from './Reminders';
+import { openFeedback } from '../lib/feedback';
 import { track } from '../lib/analytics';
 
 export interface DailyBoardRow { name: string; points: number[]; total: number }
@@ -108,6 +109,7 @@ export function DailyResult({ date, targets, points, streak, board, me, fresh, o
         ) : <p className="ac-note">You’re the first today — your friends’ scores show up here as they play.</p>}
 
         <Reminders compact onChange={onReminder} />
+        <button className="dy-fb" onClick={() => openFeedback(undefined, 'Daily result')}><MessageSquareHeart size={14} /> Found a bug or have an idea? <b>Tell us</b></button>
       </motion.section>
     </motion.div>
   );

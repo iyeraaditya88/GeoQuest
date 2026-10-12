@@ -5,8 +5,8 @@
 //
 // Stored at analytics/<day>/<user>/<session>.json in the private Blob store; a local JSON file
 // on your own machine. Kept for RETAIN_DAYS, then deleted.
-import { readFile, writeFile } from 'node:fs/promises';
-import { blobEnabled, deleteBlobs, listBlobPaths, readBlobQuick, writeBlob } from './storage.js';
+import { readFile } from 'node:fs/promises';
+import { blobEnabled, deleteBlobs, listBlobPaths, readBlobQuick, writeBlob, writeLocalFile } from './storage.js';
 
 export type Event = [at: number, name: string, data?: Record<string, string | number>];
 export interface SessionDoc {
@@ -85,7 +85,7 @@ export async function saveSession(s: SessionDoc) {
   if (blobEnabled()) { await writeBlob(pathOf(s), JSON.stringify(s)); return; }
   const all = await readLocal();
   all[s.sid] = s;
-  await writeFile(localFile(), JSON.stringify(all), { mode: 0o600 });
+  await writeLocalFile(localFile(), JSON.stringify(all));
 }
 
 /** Sessions that started in the last `days` days, newest first. Also clears out old ones. */

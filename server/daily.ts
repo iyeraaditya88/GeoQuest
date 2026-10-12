@@ -1,8 +1,8 @@
 // Daily challenge results and streaks. One small document per player per day (written once — a
 // second attempt is refused), and a streak document per player. Private Blob store when hosted; a
 // local JSON file on your own machine.
-import { readFile, writeFile } from 'node:fs/promises';
-import { blobEnabled, listBlobPaths, readBlobDoc, writeBlob } from './storage.js';
+import { readFile } from 'node:fs/promises';
+import { blobEnabled, listBlobPaths, readBlobDoc, writeBlob, writeLocalFile } from './storage.js';
 import { addDays, isDate, total, validPoints } from '../src/lib/daily.js';
 
 export interface DailyResult { user: string; date: string; points: number[]; at: number }
@@ -13,7 +13,7 @@ type Local = { results: Record<string, DailyResult>; streaks: Record<string, Str
 async function readLocal(): Promise<Local> {
   try { const d = JSON.parse(await readFile(localFile(), 'utf8')) as Local; return { results: d.results ?? {}, streaks: d.streaks ?? {} }; } catch { return { results: {}, streaks: {} }; }
 }
-const writeLocal = (d: Local) => writeFile(localFile(), JSON.stringify(d), { mode: 0o600 });
+const writeLocal = (d: Local) => writeLocalFile(localFile(), JSON.stringify(d));
 const resultPath = (date: string, user: string) => `daily/${date}/${user}.json`;
 const streakPath = (user: string) => `streak/${user}.json`;
 

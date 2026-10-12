@@ -5,8 +5,8 @@
 // Stored at feedback/<id>.json in the private Blob store (a local JSON file on your own machine).
 // The id starts with the time, so a listing comes back oldest → newest.
 import { randomBytes } from 'node:crypto';
-import { readFile, writeFile } from 'node:fs/promises';
-import { blobEnabled, listBlobPaths, readBlobQuick, writeBlob } from './storage.js';
+import { readFile } from 'node:fs/promises';
+import { blobEnabled, listBlobPaths, readBlobQuick, writeBlob, writeLocalFile } from './storage.js';
 import type { SessionDoc } from './analytics.js';
 
 export const KINDS = ['idea', 'bug', 'feature', 'other'] as const;
@@ -64,7 +64,7 @@ export async function saveFeedback(f: Feedback) {
   if (blobEnabled()) { await writeBlob(pathOf(f.id), JSON.stringify(f)); return; }
   const all = await readLocal();
   all[f.id] = f;
-  await writeFile(localFile(), JSON.stringify(all), { mode: 0o600 });
+  await writeLocalFile(localFile(), JSON.stringify(all));
 }
 
 /** The latest feedback, newest first. */
@@ -86,7 +86,7 @@ export async function setStatus(id: string, status: Feedback['status']) {
     const all = await readLocal();
     if (!all[id]) return false;
     all[id].status = status;
-    await writeFile(localFile(), JSON.stringify(all), { mode: 0o600 });
+    await writeLocalFile(localFile(), JSON.stringify(all));
     return true;
   }
   const text = await readBlobQuick(pathOf(id));
