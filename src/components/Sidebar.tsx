@@ -26,6 +26,8 @@ interface Props {
   /** Signed-in user on the hosted site (null locally). */
   user?: string | null;
   onSignOut?: () => void;
+  /** Signed in: my account (sign out, delete) */
+  onAccount: () => void;
   /** Browsing without an account (hosted): offer to sign in */
   guest?: boolean;
   onSignIn?: () => void;
@@ -220,6 +222,7 @@ export function Sidebar(p: Props) {
             <MessageSquareHeart size={16} />
             <Fade show={!rail}><span className="sb-fb-text"><b>Send feedback</b><span>Ideas, bugs, feature requests</span></span></Fade>
           </button>
+          {!rail && <nav className="sb-legal" aria-label="About GeoQuest"><a href="/about">About</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></nav>}
           {/* The Atlas status only matters when it needs setting up (on the hosted site it's always on). */}
           {!(p.hosted && p.ai) && <button className={`sb-status ${p.ai ? 'ok' : ''}`} onClick={act(p.ai ? p.onAsk : p.onConnect)} data-tip={rail ? (p.ai ? 'Claude connected' : 'Connect Claude') : undefined}>
             {p.ai ? <i className="sb-live" /> : <KeyRound size={15} />}
@@ -244,7 +247,7 @@ export function Sidebar(p: Props) {
           <div className="sb-foot-row">
             {p.user && (
               <>
-                <Fade show={!rail}><span className="sb-user" title={`Signed in as ${p.user}`}><UserRound size={13} /> {p.user}</span></Fade>
+                <Fade show={!rail}><button className="sb-user" onClick={act(p.onAccount)} title={`Signed in as ${p.user} — your account`}><UserRound size={13} /> {p.user}</button></Fade>
                 {p.onReminders && <button className={`sb-icon ${p.remindersOn ? 'lit' : ''}`} onClick={p.onReminders} aria-label="Morning reminder" data-tip={p.remindersOn ? 'Morning reminder: on' : 'Morning reminder'}><BellRing size={16} /><span className="sb-icon-label">Reminder</span></button>}
                 {p.onActivity && <button className="sb-icon" onClick={p.onActivity} aria-label="Activity" data-tip="Activity — who’s playing"><BarChart3 size={16} /><span className="sb-icon-label">Activity</span></button>}
                 {p.onInbox && <button className="sb-icon" onClick={p.onInbox} aria-label="Feedback inbox" data-tip="Feedback from players"><Inbox size={16} /><span className="sb-icon-label">Inbox</span></button>}

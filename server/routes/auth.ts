@@ -5,6 +5,7 @@ import * as prefs from '../prefs.js';
 import * as live from '../live.js';
 import * as alerts from '../alerts.js';
 import { placeFrom } from '../analytics.js';
+import { eraseUserData } from '../erase.js';
 import { KEY_COOKIE, SESSION_COOKIE, authConfigured, verifySession } from '../session.js';
 import { HOSTED, MLY_COOKIE, authLimit, clearCookie, cookie, fail, failureCounter, signIn } from '../http.js';
 
@@ -179,6 +180,20 @@ export function registerAuth(app: express.Express) {
   });
   app.delete('/api/groups/:id', ownerOnly, async (req, res) => {
     try { res.json({ revoked: await accounts.revokeGroup(String(req.params.id)) }); } catch (err) { fail(res, 400, err); }
+  });
+
+  // Delete my account (and the data kept about me): confirmed with the password. Not the owner.
+  app.post('/api/me/delete', authLimit(5), async (req, res) => {
+    if (!HOSTED) { fail(res, 400, 'There are no accounts on your own machine.'); return; }
+    if (req.role === 'owner') { fail(res, 400, 'The owner account can’t be deleted from here.'); return; }
+    const password = (req.body as { password?: unknown })?.password;
+    if (typeof password !== 'string' || !(await accounts.checkLogin(req.user, password))) { fail(res, 401, 'That password isn’t right.'); return; }
+    try {
+      await accounts.removeUser(req.user);
+      await eraseUserData(req.user!);
+      for (const c of [SESSION_COOKIE, KEY_COOKIE, MLY_COOKIE]) clearCookie(res, c);
+      res.json({ ok: true });
+    } catch (err) { fail(res, 500, err); }
   });
 
   app.delete('/api/people/:name', ownerOnly, async (req, res) => {

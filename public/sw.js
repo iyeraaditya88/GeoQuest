@@ -27,7 +27,8 @@ self.addEventListener('activate', (event) => {
   })());
 });
 
-const NO_CACHE = /^\/(api\/|login|welcome|setup)/;
+// Not the app: the API, the sign-in pages and the About/Privacy/Terms pages (never saved as the offline app).
+const NO_CACHE = /^\/(api\/|login|welcome|setup|join|about|privacy|terms)/;
 const isStatic = (url) => url.origin === self.location.origin
   ? /^\/(assets|textures|icons)\//.test(url.pathname)
   : url.hostname === 'fonts.gstatic.com' || url.hostname === 'fonts.googleapis.com';

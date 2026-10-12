@@ -84,6 +84,8 @@
       @keyframes shake { 20%, 60% { transform: translateX(-7px); } 40%, 80% { transform: translateX(7px); } }
 
       .swap { margin: 20px 0 0; font-size: 14px; color: var(--muted); }
+      .legal { margin: 18px 0 0; font-size: 12px; color: var(--dim); }
+      .legal a { color: var(--muted); }
       .swap button { padding: 0; border: 0; background: none; font: 600 14px Inter, sans-serif; color: var(--gold-soft); cursor: pointer; }
       /* A clear second choice, right under the gold button */
       .guest { width: 100%; height: 48px; display: flex; align-items: center; justify-content: center; margin-top: 2px; border-radius: 14px;
@@ -113,6 +115,7 @@
       </form>
       <a class="guest" id="guest" href="/">Continue as a guest</a>
       <p class="swap" id="swap"><span id="swapText">New to GeoQuest?</span> <button type="button" id="swapBtn">Create an account</button></p>
+      <p class="legal">By continuing you agree to the <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.</p>
     </main>
     <script src="/login.js"></script>
   </body>

@@ -51,6 +51,7 @@ import { PeoplePanel } from './components/PeoplePanel';
 const ActivityPanel = lazy(() => fresh(import('./components/ActivityPanel')).then((m) => ({ default: m.ActivityPanel })));
 const FeedbackInbox = lazy(() => fresh(import('./components/FeedbackInbox')).then((m) => ({ default: m.FeedbackInbox })));
 import { FeedbackSheet } from './components/FeedbackSheet';
+import { AccountSheet } from './components/AccountSheet';
 import { countVisit, feedbackAsked, markFeedbackAsked, type FeedbackKind } from './lib/feedback';
 import { FeaturePanel } from './components/FeaturePanel';
 import { featureInfo, type FeatureInfo, type FeatureRef } from './lib/features';
@@ -175,6 +176,7 @@ export default function App() {
   const [user, setUser] = useState<string | null>(null);
   const [role, setRole] = useState<'owner' | 'member' | null>(null);
   const [peopleOpen, setPeopleOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
   // Feedback: the form (anyone), and the inbox (the owner).
   const [fbForm, setFbForm] = useState<{ kind?: FeedbackKind; where: string } | null>(null);
@@ -895,6 +897,7 @@ export default function App() {
         hosted={hosted}
         user={user}
         onSignOut={signOut}
+        onAccount={() => setAccountOpen(true)}
         onPeople={role === 'owner' ? () => setPeopleOpen(true) : undefined}
         // (on your own machine there's no sign-in, so you're effectively the owner)
         onActivity={role === 'owner' || liveMode === 'local' ? () => setActivityOpen(true) : undefined}
@@ -931,6 +934,9 @@ export default function App() {
         onReset={() => { setSelected(null); setHighlighted([]); cam.reset(); }}
       />
       <PeoplePanel open={peopleOpen} onClose={() => setPeopleOpen(false)} />
+      <AnimatePresence>
+        {accountOpen && user && <AccountSheet key="account" user={user} owner={role === 'owner'} onSignOut={signOut} onClose={() => setAccountOpen(false)} />}
+      </AnimatePresence>
       <AnimatePresence>
         {fbForm && <FeedbackSheet key="feedback" kind={fbForm.kind} where={fbForm.where} user={user} onClose={() => setFbForm(null)} />}
       </AnimatePresence>

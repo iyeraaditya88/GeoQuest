@@ -430,6 +430,34 @@ describe('owner notifications', () => {
   });
 });
 
+describe('delete my account', () => {
+  it('needs the password, removes the account and its data, and signs out', async () => {
+    const inv = await call('POST', '/api/people', { cookie: owner, body: { username: 'leaver' } });
+    const t = new URL(String(inv.body.link)).searchParams.get('t')!;
+    const me = sessionOf(await call('POST', '/api/invite/accept', { body: { username: 'leaver', token: t, password: 'leaver-pass-123' } }));
+    expect(me).toBeTruthy();
+    const pin = { id: 'leave00001', lat: 10, lng: 20, name: 'Home', kind: 'home', at: 1 };
+    expect((await call('PUT', '/api/places', { cookie: me, body: { places: [pin] } })).status).toBe(200);
+    await call('PUT', '/api/favorites', { cookie: me, body: { favorites: ['bob'] } });
+
+    expect((await call('POST', '/api/me/delete', { cookie: me, body: { password: 'wrong-password' } })).status).toBe(401);
+    expect((await call('POST', '/api/me/delete', { body: { password: 'leaver-pass-123' } })).status).toBe(401); // signed out: nobody to delete
+    const del = await call('POST', '/api/me/delete', { cookie: me, body: { password: 'leaver-pass-123' } });
+    expect(del.status).toBe(200);
+    expect(([] as string[]).concat(del.headers['set-cookie'] ?? []).some((c) => c.startsWith('gq_session=;'))).toBe(true);
+
+    expect((await call('GET', '/api/health', { cookie: me })).body.user).toBeNull(); // the old session is dead
+    expect(((await call('GET', '/api/people', { cookie: owner })).body.people as { name: string }[]).some((p) => p.name === 'leaver')).toBe(false);
+    const { getPlaces } = await import('../server/places');
+    const { getFavorites } = await import('../server/prefs');
+    expect(await getPlaces('leaver')).toEqual([]);
+    expect(await getFavorites('leaver')).toEqual([]);
+  });
+  it('won\'t delete the owner account', async () => {
+    expect((await call('POST', '/api/me/delete', { cookie: owner, body: { password: OWNER_PW } })).status).toBe(400);
+  });
+});
+
 describe('group invite links', () => {
   const code = (link: unknown) => new URL(String(link)).searchParams.get('code')!;
   const pw = 'group-member-pass-1';
