@@ -38,10 +38,11 @@ export function device() {
 
 function send() {
   if (!started) return;
+  const first = !lastSent;
   lastSent = Date.now();
   dirty = false;
   // keepalive: still delivered when the tab is closing.
-  void api('/api/analytics', { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...s, ...device() }) }).catch(() => null);
+  void api('/api/analytics', { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...s, ...device(), first }) }).catch(() => null);
 }
 
 /** Record something the player did (kept short: a name and a few small values). */

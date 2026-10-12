@@ -3,6 +3,8 @@ import type express from 'express';
 import * as accounts from '../users.js';
 import * as prefs from '../prefs.js';
 import * as live from '../live.js';
+import * as alerts from '../alerts.js';
+import { placeFrom } from '../analytics.js';
 import { KEY_COOKIE, SESSION_COOKIE, authConfigured, verifySession } from '../session.js';
 import { HOSTED, MLY_COOKIE, authLimit, clearCookie, cookie, fail, failureCounter, signIn } from '../http.js';
 
@@ -63,6 +65,7 @@ export function registerAuth(app: express.Express) {
     try {
       const u = await accounts.acceptInvite(username, token, password);
       await signIn(res, u);
+      await alerts.newPlayer(u.name, 'from your invite', placeFrom(req.headers));
       res.json({ ok: true, user: u.name });
     } catch (err) { fail(res, 400, err); }
   });
@@ -83,6 +86,7 @@ export function registerAuth(app: express.Express) {
     try {
       const u = await accounts.createMember(username, password, t.m);
       await signIn(res, u);
+      await alerts.newPlayer(u.name, `from ${t.host}’s game link`, placeFrom(req.headers));
       res.json({ ok: true, user: u.name });
     } catch (err) { fail(res, 400, err); }
   });
@@ -98,6 +102,7 @@ export function registerAuth(app: express.Express) {
     try {
       const u = await accounts.joinGroup(code, username, password);
       await signIn(res, u);
+      await alerts.newPlayer(u.name, 'from a group link', placeFrom(req.headers));
       res.json({ ok: true, user: u.name });
     } catch (err) { fail(res, 400, err); }
   });
@@ -110,6 +115,7 @@ export function registerAuth(app: express.Express) {
     try {
       const u = await accounts.createOpenMember(username, password);
       await signIn(res, u);
+      await alerts.newPlayer(u.name, 'on the sign-up page', placeFrom(req.headers));
       res.json({ ok: true, user: u.name });
     } catch (err) { fail(res, 400, err); }
   });

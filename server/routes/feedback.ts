@@ -1,7 +1,7 @@
 // Feedback: anyone can send it (guests too); only the owner reads it — and gets a notification.
 import type express from 'express';
 import * as accounts from '../users.js';
-import * as push from '../push.js';
+import * as alerts from '../alerts.js';
 import { placeFrom } from '../analytics.js';
 import { cleanFeedback, listFeedback, saveFeedback, setStatus, type Feedback } from '../feedback.js';
 import { HOSTED, fail, rateLimit } from '../http.js';
@@ -9,15 +9,11 @@ import { HOSTED, fail, rateLimit } from '../http.js';
 const LABEL: Record<Feedback['kind'], string> = { idea: '💡 Improvement', bug: '🐞 Bug', feature: '✨ Feature request', other: '💬 Feedback' };
 
 /** Tell the owner on their phone (if they've turned notifications on). Never fails the request. */
-async function notifyOwner(f: Feedback) {
-  try {
-    const owner = (await accounts.listUsers()).find((u) => u.role === 'owner');
-    const prefs = owner ? await push.getPrefs(owner.name) : null;
-    if (!prefs?.subs.length) return;
-    const body = `${f.user === 'guest' ? 'A guest' : f.user}: ${f.text.length > 110 ? `${f.text.slice(0, 107)}…` : f.text}`;
-    await push.sendTo(prefs, { title: LABEL[f.kind], body, url: '/?inbox=1', tag: `feedback-${f.id}` });
-  } catch (err) { console.warn('[feedback] notify failed', (err as Error).message); }
-}
+const notifyOwner = (f: Feedback) => alerts.notifyOwner({
+  title: LABEL[f.kind],
+  body: `${f.user === 'guest' ? 'A guest' : f.user}: ${f.text.length > 110 ? `${f.text.slice(0, 107)}…` : f.text}`,
+  url: '/?inbox=1', tag: `feedback-${f.id}`,
+});
 
 export function registerFeedback(app: express.Express) {
   const me = (req: express.Request) => (HOSTED ? req.user ?? 'guest' : accounts.normName(req.headers['x-gq-as']) || 'you');

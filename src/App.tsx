@@ -180,6 +180,7 @@ export default function App() {
   const [fbForm, setFbForm] = useState<{ kind?: FeedbackKind; where: string } | null>(null);
   const [inboxOpen, setInboxOpen] = useState(false);
   const [inboxWanted, setInboxWanted] = useState(() => new URLSearchParams(location.search).has('inbox'));
+  const [activityWanted, setActivityWanted] = useState(() => new URLSearchParams(location.search).has('activity'));
   // Live head-to-head (see LivePlay): hosted over Ably, locally between tabs.
   const [liveMode, setLiveMode] = useState<'ably' | 'local' | null>(null);
   const [liveState, setLiveState] = useState<LiveState>({ active: false, quiz: false, immersive: false, online: 0, ready: false });
@@ -467,12 +468,16 @@ export default function App() {
     window.addEventListener('gq:feedback', on);
     // Links: ?feedback=1 opens the form; ?inbox=1 (from the "new feedback" notification) opens the inbox.
     const url = new URL(location.href);
-    if (url.searchParams.has('feedback') || url.searchParams.has('inbox')) {
+    if (url.searchParams.has('feedback') || url.searchParams.has('inbox') || url.searchParams.has('activity')) {
       if (url.searchParams.has('feedback')) window.setTimeout(() => setFbForm({ where: 'Link' }), 900);
-      url.searchParams.delete('feedback'); url.searchParams.delete('inbox');
+      url.searchParams.delete('feedback'); url.searchParams.delete('inbox'); url.searchParams.delete('activity');
       history.replaceState(null, '', url.pathname + url.search + url.hash);
     }
-    const onMsg = (e: MessageEvent) => { if ((e.data as { type?: string })?.type === 'open-inbox') setInboxWanted(true); };
+    const onMsg = (e: MessageEvent) => {
+      const type = (e.data as { type?: string })?.type;
+      if (type === 'open-inbox') setInboxWanted(true);
+      if (type === 'open-activity') setActivityWanted(true);
+    };
     navigator.serviceWorker?.addEventListener('message', onMsg);
     return () => { window.removeEventListener('gq:feedback', on); navigator.serviceWorker?.removeEventListener('message', onMsg); };
   }, []);
@@ -489,7 +494,8 @@ export default function App() {
   // The inbox opens once we know this is the owner.
   useEffect(() => {
     if (inboxWanted && (role === 'owner' || liveMode === 'local')) { setInboxWanted(false); setInboxOpen(true); }
-  }, [inboxWanted, role, liveMode]);
+    if (activityWanted && (role === 'owner' || liveMode === 'local')) { setActivityWanted(false); setActivityOpen(true); }
+  }, [inboxWanted, activityWanted, role, liveMode]);
 
   const random = () => {
     const pick = pickRandom(QUIZ_POOL, selected ?? undefined);

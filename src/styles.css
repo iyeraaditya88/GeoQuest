@@ -2114,3 +2114,11 @@ html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent
 
 .dy-fb { justify-self: center; display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; font-size: 12.5px; color: var(--dim); }
 .dy-fb b { color: #f9a8d4; font-weight: 600; }
+
+/* Activity: notification switches */
+.ac-alerts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 12px; background: rgba(255, 255, 255, 0.03); box-shadow: inset 0 0 0 1px var(--line); }
+.ac-alerts-label { display: inline-flex; align-items: center; gap: 5px; margin-right: 4px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.ac-alerts button { height: 30px; padding: 0 12px; border-radius: 99px; font-size: 12.5px; font-weight: 600; color: var(--dim); background: rgba(255, 255, 255, 0.05); transition: background 0.18s, color 0.18s; }
+.ac-alerts button.on { color: #052e1c; background: #34d399; }
+.ac-alerts-hint { flex-basis: 100%; font-size: 11.5px; color: var(--dim); }
+@media (hover: none) and (pointer: coarse) { .ac-alerts button { height: 36px; } }

@@ -99,7 +99,7 @@ self.addEventListener('notificationclick', (event) => {
     for (const w of wins) {
       if (new URL(w.url).origin !== self.location.origin) continue;
       await w.focus();
-      w.postMessage({ type: url.searchParams.has('inbox') ? 'open-inbox' : 'open-daily' });
+      w.postMessage({ type: url.searchParams.has('inbox') ? 'open-inbox' : url.searchParams.has('activity') ? 'open-activity' : 'open-daily' });
       return;
     }
     await self.clients.openWindow(url.href);

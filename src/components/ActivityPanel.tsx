@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { AlertTriangle, BarChart3, ChevronDown, Loader2, Monitor, RotateCw, Smartphone, Tablet, X } from 'lucide-react';
+import { AlertTriangle, BarChart3, Bell, ChevronDown, Loader2, Monitor, RotateCw, Smartphone, Tablet, X } from 'lucide-react';
 import { api } from '../lib/api';
 import { BY_CCA3, fmtInt } from '../lib/data';
 
@@ -43,6 +43,27 @@ function describe([, name, d = {}]: Event) {
     case 'crash': return `Error in ${d.w}`;
     default: return name;
   }
+}
+
+/** Notify me (on my phone) when someone new joins, or a guest is exploring. */
+function AlertSwitches() {
+  const [s, setS] = useState<{ signups: boolean; guests: boolean; devices: number } | null>(null);
+  useEffect(() => { api('/api/alerts').then((r) => (r.ok ? r.json() : null)).then((d) => d && setS(d)).catch(() => null); }, []);
+  if (!s) return null;
+  const flip = (k: 'signups' | 'guests') => {
+    const next = { ...s, [k]: !s[k] };
+    setS(next);
+    void api('/api/alerts', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [k]: next[k] }) })
+      .then((r) => { if (!r.ok) setS(s); }).catch(() => setS(s));
+  };
+  return (
+    <div className="ac-alerts">
+      <span className="ac-alerts-label"><Bell size={13} /> Notify me</span>
+      <button className={s.signups ? 'on' : ''} aria-pressed={s.signups} onClick={() => flip('signups')}>New players</button>
+      <button className={s.guests ? 'on' : ''} aria-pressed={s.guests} onClick={() => flip('guests')}>Guest visits</button>
+      {!s.devices && <span className="ac-alerts-hint">Turn on the morning reminder (🔔) on your phone to get these.</span>}
+    </div>
+  );
 }
 
 /** Owner-only: who used GeoQuest, for how long, and what they did. */
@@ -132,6 +153,8 @@ export function ActivityPanel({ open, onClose }: { open: boolean; onClose: () =>
               </div>
               <label className="ac-me"><input type="checkbox" checked={withMe} onChange={(e) => setWithMe(e.target.checked)} /> Include me</label>
             </div>
+
+            <AlertSwitches />
 
             {error && <p className="pp-error">{error}</p>}
             {!view && !error && <div className="ac-empty"><Loader2 size={18} className="spin" /></div>}

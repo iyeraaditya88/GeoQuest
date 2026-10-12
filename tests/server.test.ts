@@ -35,6 +35,7 @@ Object.assign(process.env, {
   GQ_PLACES_FILE: join(dir, 'places.json'),
   GQ_PUSH_FILE: join(dir, 'push.json'),
   GQ_FEEDBACK_FILE: join(dir, 'feedback.json'),
+  GQ_ALERTS_FILE: join(dir, 'alerts.json'),
   GQ_VAPID_FILE: join(dir, 'vapid.json'),
   CRON_SECRET: 'test-cron-secret-0123456789abcdef',
 });
@@ -394,6 +395,38 @@ describe('feedback', () => {
     expect((await call('PATCH', '/api/feedback/nope', { cookie: owner, body: { status: 'done' } })).status).toBe(404);
     const after = (await call('GET', '/api/feedback', { cookie: owner })).body.feedback as Record<string, unknown>[];
     expect(after.find((f) => f.id === fromGuest.id)?.status).toBe('done');
+  });
+});
+
+describe('owner notifications', () => {
+  const visit = (active: number, first = true) => call('POST', '/api/analytics', { body: { sid: `v${Math.random().toString(36).slice(2, 10)}`, start: Date.now() - 60_000, active, events: [], device: 'phone', os: 'iOS', browser: 'Safari', first } });
+  it('pings the owner when a guest stays a little while — not for a bounce, and not when switched off', async () => {
+    pushes.sent.length = 0;
+    expect((await visit(5)).status).toBe(200); // a bounce
+    expect(pushes.sent).toEqual([]);
+    expect((await visit(30, false)).status).toBe(200); // not the visit's first report
+    expect(pushes.sent).toEqual([]);
+    expect((await visit(30)).status).toBe(200);
+    expect(pushes.sent).toEqual(['https://fcm.googleapis.com/fcm/send/owner-phone']);
+
+    expect((await call('GET', '/api/alerts', { cookie: bob })).status).toBe(403);
+    expect((await call('PUT', '/api/alerts', { cookie: bob, body: { guests: false } })).status).toBe(403);
+    const before = await call('GET', '/api/alerts', { cookie: owner });
+    expect(before.body).toEqual({ signups: true, guests: true, devices: 1 });
+    expect((await call('PUT', '/api/alerts', { cookie: owner, body: { guests: false } })).body).toEqual({ signups: true, guests: false });
+    pushes.sent.length = 0;
+    await visit(30);
+    expect(pushes.sent).toEqual([]);
+  });
+  it('pings the owner when someone new joins (unless switched off)', async () => {
+    const alerts = await import('../server/alerts');
+    pushes.sent.length = 0;
+    await alerts.newPlayer('maya', 'on the sign-up page', { city: 'Pune', country: 'IN' });
+    expect(pushes.sent).toHaveLength(1);
+    await call('PUT', '/api/alerts', { cookie: owner, body: { signups: false } });
+    await alerts.newPlayer('zed', 'from a group link');
+    expect(pushes.sent).toHaveLength(1);
+    await call('PUT', '/api/alerts', { cookie: owner, body: { signups: true, guests: true } });
   });
 });
 

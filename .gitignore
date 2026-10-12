@@ -35,3 +35,4 @@ dist-ssr
 .vapid.local.json
 .places.local.json
 .feedback.local.json
+.alerts.local.json
