@@ -21,7 +21,7 @@ How GeoQuest protects players and the owner's accounts, and what to keep in plac
 - Ask the Atlas (owner's Claude key, Haiku 5.5 only): guests 5 questions a day; accounts 150 a day; each request sends at most the last 10 turns, trimmed to 16k characters, with at most 2 web searches per turn.
 - Open sign-ups: at most 100 new accounts a day.
 - Feedback 6/hour, analytics and other writes rate-limited; share pictures only for Dailies that exist.
-- These limits live in each server instance (best effort). **Durable limits belong in the Vercel Firewall** (rate-limit rules on `/api/ask`, `/api/login`, `/api/signup`, `/api/feedback`, `/api/analytics`, `/api/og`).
+- These limits live in each server instance (best effort). On top, a **Vercel Firewall rule** ("Rate limit costly API writes", active since Oct 2026) allows each IP 30 POSTs a minute to `/api/(ask|match|login|signup|feedback|analytics|group/join|invite/accept|invites/signup)`, enforced at Vercel's edge (429 beyond that; resets each minute). Change it in Vercel → geoquest → Firewall.
 - **Keep a monthly spend limit on the Anthropic key** (console.anthropic.com → Limits): the hard backstop.
 
 ## Browser
