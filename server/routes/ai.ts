@@ -100,6 +100,24 @@ Map control:
 MAP: ISO3,ISO3,ISO3
 using ISO 3166-1 alpha-3 codes (max 20). Omit the line when no countries are relevant.`;
 
+/**
+ * What's actually sent to Claude: the latest few turns, each trimmed, so one request can only cost
+ * so much on the owner's key (however long a conversation a browser sends).
+ */
+export function askConversation(messages: AskBody['messages']): Anthropic.MessageParam[] {
+  const LIMIT = { user: 2000, assistant: 4000 } as const;
+  let budget = 16_000;
+  const out: Anthropic.MessageParam[] = [];
+  for (const m of messages.slice(-10).reverse()) {
+    const text = m.content.slice(0, Math.min(LIMIT[m.role], budget));
+    if (!text) break;
+    budget -= text.length;
+    out.unshift({ role: m.role, content: text });
+  }
+  while (out.length && out[0].role !== 'user') out.shift(); // a conversation starts with the player
+  return out;
+}
+
 interface AskBody {
   messages: { role: 'user' | 'assistant'; content: string }[];
   country?: string | null;
@@ -216,6 +234,8 @@ export function registerAi(app: express.Express) {
       res.status(400).json({ error: 'That question couldn’t be read — try asking again.' });
       return;
     }
+    const convo = askConversation(messages);
+    if (!convo.length || convo[convo.length - 1].role !== 'user') { res.status(400).json({ error: 'That question couldn’t be read — try asking again.' }); return; }
     const ai = await clientFor(req);
     if (!ai) {
       res.status(503).json({ error: 'AI not configured' });
@@ -236,9 +256,8 @@ export function registerAi(app: express.Express) {
     req.on('close', () => { aborted = true; current?.abort(); });
 
     try {
-      const convo: Anthropic.MessageParam[] = messages.slice(-12).map((m) => ({ role: m.role, content: m.content }));
-      // Server-side web search can pause long turns; resume a couple of times.
-      for (let turn = 0; turn < 3 && !aborted; turn++) {
+      // Server-side web search can pause long turns; resume once.
+      for (let turn = 0; turn < 2 && !aborted; turn++) {
         const stream = ai.messages.stream({
           model: MODEL,
           max_tokens: 1500, // answers are a few sentences

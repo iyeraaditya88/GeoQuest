@@ -271,7 +271,7 @@ export function AskDock({ open, setOpen, country, request, keyRequest = 0, onAiC
             )}
 
             <form className="composer" onSubmit={(e) => { e.preventDefault(); void send(input); }}>
-              <textarea
+              <textarea maxLength={2000}
                 ref={field}
                 rows={1}
                 value={input}

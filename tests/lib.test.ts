@@ -211,3 +211,33 @@ describe('guests are never nagged by background requests', () => {
     }
   });
 });
+
+describe('security helpers', () => {
+  it('pauses an account after a handful of wrong passwords, then lets it go', async () => {
+    const { failureCounter } = await import('../server/http');
+    const c = failureCounter(3, 60_000);
+    const t = 1_000_000;
+    for (let i = 0; i < 3; i++) { expect(c.blocked('maya', t)).toBe(false); c.note('maya', t); }
+    expect(c.blocked('maya', t)).toBe(true);
+    expect(c.blocked('bob', t)).toBe(false); // per account
+    expect(c.blocked('maya', t + 61_000)).toBe(false); // the pause passes
+    c.note('maya', t); c.clear('maya');
+    expect(c.blocked('maya', t)).toBe(false);
+  });
+  it('keeps the reserved names back', async () => {
+    const { reservedName } = await import('../server/users');
+    for (const n of ['guest', 'admin', 'geoquest', 'support_team', 'official.geoquest']) expect(reservedName(n)).toBe(true);
+    for (const n of ['maya', 'bob', 'guesty', 'aaditya']) expect(reservedName(n)).toBe(false);
+  });
+  it('sends Claude only the latest turns, trimmed', async () => {
+    const { askConversation } = await import('../server/routes/ai');
+    const long = 'x'.repeat(50_000);
+    const msgs = Array.from({ length: 30 }, (_, i) => ({ role: (i % 2 ? 'assistant' : 'user') as 'user' | 'assistant', content: long }));
+    msgs.push({ role: 'user', content: 'Where is Chad?' });
+    const convo = askConversation(msgs);
+    const total = convo.reduce((s, m) => s + String(m.content).length, 0);
+    expect(total).toBeLessThanOrEqual(16_000);
+    expect(convo[0].role).toBe('user');
+    expect(convo[convo.length - 1]).toEqual({ role: 'user', content: 'Where is Chad?' });
+  });
+});

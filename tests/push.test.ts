@@ -3,7 +3,7 @@
 import { describe, it, expect } from 'vitest';
 import { cleanSub, dueNow, localClock, morningNote, validTz, withSub, type PushPrefs } from '../server/push';
 
-const sub = { endpoint: 'https://push.example/abc', keys: { p256dh: 'p', auth: 'a' }, at: 0 };
+const sub = { endpoint: 'https://fcm.googleapis.com/fcm/send/abc', keys: { p256dh: 'p', auth: 'a' }, at: 0 };
 const at = (iso: string) => Date.parse(iso);
 
 describe('morning reminders', () => {
@@ -22,15 +22,20 @@ describe('morning reminders', () => {
 
   it('checks what the browser sends', () => {
     expect(cleanSub({ endpoint: 'http://insecure.example', keys: { p256dh: 'p', auth: 'a' } })).toBe(null);
-    expect(cleanSub({ endpoint: 'https://push.example/x', keys: {} })).toBe(null);
-    expect(cleanSub({ endpoint: 'https://push.example/x', keys: { p256dh: 'p', auth: 'a' } })?.endpoint).toBe('https://push.example/x');
+    expect(cleanSub({ endpoint: 'https://fcm.googleapis.com/fcm/send/x', keys: {} })).toBe(null);
+    expect(cleanSub({ endpoint: 'https://fcm.googleapis.com/fcm/send/x', keys: { p256dh: 'p', auth: 'a' } })?.endpoint).toBe('https://fcm.googleapis.com/fcm/send/x');
+    // Only the browsers' push services — never an arbitrary site.
+    for (const ok of ['https://web.push.apple.com/abc', 'https://updates.push.services.mozilla.com/wpush/v2/x', 'https://wns2-par02p.notify.windows.com/w/?token=x'])
+      expect(cleanSub({ endpoint: ok, keys: { p256dh: 'p', auth: 'a' } })?.endpoint).toBe(ok);
+    for (const bad of ['https://evil.example/x', 'https://fcm.googleapis.com.evil.example/x', 'https://fcm.googleapis.com:8443/x', 'https://169.254.169.254/latest'])
+      expect(cleanSub({ endpoint: bad, keys: { p256dh: 'p', auth: 'a' } })).toBe(null);
     expect([validTz('Asia/Kolkata'), validTz('Mars/Olympus'), validTz(5)]).toEqual([true, false, false]);
   });
 
   it('keeps a handful of devices, newest last, without duplicates', () => {
     let p: PushPrefs | null = null;
-    for (let i = 0; i < 7; i++) p = withSub(p, { ...sub, endpoint: `https://push.example/${i}` }, 8, 'UTC');
-    p = withSub(p, { ...sub, endpoint: 'https://push.example/3' }, 9, 'UTC');
+    for (let i = 0; i < 7; i++) p = withSub(p, { ...sub, endpoint: `https://fcm.googleapis.com/fcm/send/${i}` }, 8, 'UTC');
+    p = withSub(p, { ...sub, endpoint: 'https://fcm.googleapis.com/fcm/send/3' }, 9, 'UTC');
     expect(p!.subs.map((s) => s.endpoint.slice(-1))).toEqual(['2', '4', '5', '6', '3']);
     expect(p!.hour).toBe(9);
   });

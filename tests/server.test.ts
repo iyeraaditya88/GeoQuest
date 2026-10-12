@@ -320,7 +320,7 @@ describe('daily challenge', () => {
 });
 
 describe('morning reminders', () => {
-  const sub = (id: string) => ({ endpoint: `https://push.example/${id}`, keys: { p256dh: 'p256dh-key', auth: 'auth-key' } });
+  const sub = (id: string) => ({ endpoint: `https://fcm.googleapis.com/fcm/send/${id}`, keys: { p256dh: 'p256dh-key', auth: 'auth-key' } });
   const nowHour = () => new Date().getUTCHours();
 
   it('checks a device before saving it', async () => {
@@ -340,16 +340,16 @@ describe('morning reminders', () => {
     await call('POST', '/api/push', { cookie: owner, body: { subscription: sub('owner-phone'), hour: h, tz: 'UTC' } });
     await call('POST', '/api/push', { cookie: owner, body: { subscription: sub('owner-old'), hour: h, tz: 'UTC' } });
     await call('POST', '/api/push', { cookie: bob, body: { subscription: sub('bob-phone'), hour: h, tz: 'UTC' } }); // bob played today
-    pushes.gone.add('https://push.example/owner-old');
+    pushes.gone.add('https://fcm.googleapis.com/fcm/send/owner-old');
     pushes.sent.length = 0;
     const r = await call('POST', '/api/cron/morning', { auth: 'Bearer test-cron-secret-0123456789abcdef' });
     expect(r.status).toBe(200);
     expect(r.body).toEqual({ nudged: 1, skipped: 1 });
-    expect(pushes.sent).toEqual(['https://push.example/owner-phone']);
+    expect(pushes.sent).toEqual(['https://fcm.googleapis.com/fcm/send/owner-phone']);
     const again = await call('POST', '/api/cron/morning', { auth: 'Bearer test-cron-secret-0123456789abcdef' });
     expect(again.body).toEqual({ nudged: 0, skipped: 0 }); // already sent today
     const devices = (await call('GET', '/api/push', { cookie: owner })).body.endpoints;
-    expect(devices).toEqual(['https://push.example/owner-phone']); // the dead one is gone
+    expect(devices).toEqual(['https://fcm.googleapis.com/fcm/send/owner-phone']); // the dead one is gone
   });
 });
 
@@ -439,6 +439,8 @@ describe('open sign-up', () => {
     expect((await call('POST', '/api/signup', { body: { username: 'newcomer', password: 'another-password' } })).status).toBe(400);
     expect((await call('POST', '/api/signup', { body: { username: 'x', password: 'another-password' } })).status).toBe(400);
     expect((await call('POST', '/api/signup', { body: { username: 'shorty', password: 'short' } })).status).toBe(400);
+    // Names that would read as the app, staff or an anonymous visitor are kept back.
+    expect((await call('POST', '/api/signup', { body: { username: 'Guest', password: 'a-good-password' } })).body.error).toMatch(/reserved/);
   });
 });
 

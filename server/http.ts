@@ -15,12 +15,17 @@ export function setCookie(res: express.Response, name: string, value: string, op
 export const clearCookie = (res: express.Response, name: string) => res.append('Set-Cookie', `${name}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`);
 export const cookie = (req: express.Request, name: string) => readCookie(req.headers.cookie, name);
 
+/** The visitor's address as Vercel reports it (x-real-ip is set by Vercel; a client can't forge it). */
+export const clientIp = (req: express.Request) =>
+  String(req.headers['x-real-ip'] ?? req.headers['x-forwarded-for'] ?? req.socket.remoteAddress ?? '?').split(',')[0].trim();
+
 // Best-effort rate limit (per server instance), keyed by user when signed in, else by IP.
+// (Vercel's firewall adds durable limits on the costly routes; see SECURITY.md.)
 export function rateLimit(max: number, windowMs: number, message = 'Too many requests — take a breather and try again in a few minutes.'): express.RequestHandler {
   const hits = new Map<string, number[]>();
   return (req, res, next) => {
     if (!HOSTED) { next(); return; }
-    const who = req.user ?? String(req.headers['x-forwarded-for'] ?? req.socket.remoteAddress ?? '?').split(',')[0].trim();
+    const who = req.user ?? clientIp(req);
     const now = Date.now();
     const recent = (hits.get(who) ?? []).filter((t) => now - t < windowMs);
     if (recent.length >= max) { res.status(429).json({ error: message }); return; }
@@ -28,6 +33,17 @@ export function rateLimit(max: number, windowMs: number, message = 'Too many req
     hits.set(who, recent);
     if (hits.size > 5000) hits.clear(); // keep memory bounded
     next();
+  };
+}
+
+/** Count failures per key (e.g. wrong passwords per account); blocked after `max` within `windowMs`. */
+export function failureCounter(max: number, windowMs: number) {
+  const seen = new Map<string, number[]>();
+  const recent = (k: string, now = Date.now()) => (seen.get(k) ?? []).filter((t) => now - t < windowMs);
+  return {
+    blocked: (k: string, now = Date.now()) => recent(k, now).length >= max,
+    note: (k: string, now = Date.now()) => { seen.set(k, [...recent(k, now), now]); if (seen.size > 5000) seen.clear(); },
+    clear: (k: string) => { seen.delete(k); },
   };
 }
 

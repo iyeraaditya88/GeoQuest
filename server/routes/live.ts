@@ -6,6 +6,10 @@ import * as prefs from '../prefs.js';
 import { historyFor, saveMatch, type MatchRecord } from '../matches.js';
 import { HOSTED, fail, rateLimit } from '../http.js';
 
+/** A game's options (level, region…): a small plain object, or none — they travel inside signed links. */
+const smallOpts = (o: unknown): Record<string, unknown> =>
+  o && typeof o === 'object' && !Array.isArray(o) && JSON.stringify(o).length <= 400 ? (o as Record<string, unknown>) : {};
+
 export function registerLive(app: express.Express) {
   // ── Live matches ──
   // Hosted: Ably, with tokens scoped by signed match tickets (server/live.ts). Locally there's no
@@ -34,7 +38,7 @@ export function registerLive(app: express.Express) {
     const body = req.body as { game?: unknown; opts?: unknown };
     const game = body.game as live.GameId;
     if (!live.GAMES.includes(game)) { fail(res, 400, 'Unknown game.'); return; }
-    const opts = typeof body.opts === 'object' && body.opts ? body.opts : {};
+    const opts = smallOpts(body.opts);
     const id = live.newMatchId();
     const signup = req.role === 'owner'; // only the owner brings new people in
     res.json({ id, signup, token: await live.issueOpenInvite({ m: id, host: req.user!, game, opts, signup }), ticket: await live.issueTicket({ m: id, host: req.user!, players: [req.user!], game }) });
@@ -60,7 +64,7 @@ export function registerLive(app: express.Express) {
     if (!live.GAMES.includes(game)) { fail(res, 400, 'Unknown game.'); return; }
     if (!to.length || to.length > 5) { fail(res, 400, 'Challenge between 1 and 5 friends.'); return; }
     for (const n of to) if (!(await accounts.getUser(n))?.password) { fail(res, 400, `There’s no player called “${n}”.`); return; }
-    const opts = typeof body.opts === 'object' && body.opts ? body.opts : {};
+    const opts = smallOpts(body.opts);
     const id = live.newMatchId();
     const players = [req.user!, ...to];
     try {

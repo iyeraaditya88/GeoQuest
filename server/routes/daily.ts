@@ -5,7 +5,7 @@ import * as accounts from '../users.js';
 import * as daily from '../daily.js';
 import * as push from '../push.js';
 import { HOSTED, fail, rateLimit } from '../http.js';
-import { addDays, localDate } from '../../src/lib/daily.js';
+import { addDays, dailyNumber, localDate } from '../../src/lib/daily.js';
 import { dailyCard, parsePoints } from '../og.js';
 
 const me = (req: express.Request) => (HOSTED ? req.user ?? null : accounts.normName(req.headers['x-gq-as']) || 'you');
@@ -16,7 +16,8 @@ export function registerCron(app: express.Express) {
   app.get('/api/og/daily', rateLimit(120, 60_000), async (req, res) => {
     const no = Number(req.query.n);
     const points = parsePoints(req.query.r);
-    if (!Number.isInteger(no) || no < 1 || no > 100_000 || !points) { fail(res, 400, 'Not a valid result.'); return; }
+    // Only Dailies that exist so far (today's number is the same everywhere give or take a day).
+    if (!Number.isInteger(no) || no < 1 || no > dailyNumber(localDate(Date.now(), 'UTC')) + 1 || !points) { fail(res, 400, 'Not a valid result.'); return; }
     try {
       const png = await dailyCard(no, points);
       res.setHeader('Content-Type', 'image/png');

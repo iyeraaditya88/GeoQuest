@@ -72,11 +72,11 @@
     "tsx": "^4.23.15",
     "typescript": "~6.0.2",
     "vite": "^8.3.0",
-    "vitest": "^3.2.7"
+    "vitest": "^5.0.4"
   },
   "overrides": {
-    "@photo-sphere-viewer/core": {
-      "three": "$three"
+    "satori": {
+      "fflate": "0.7.5"
     }
   }
 }

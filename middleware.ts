@@ -3,6 +3,7 @@
 // needs an account (see the session guard in server/routes/auth.ts). Here we only move the old
 // addresses to the main one, and give the sign-in page its clean URLs.
 import { next, rewrite } from '@vercel/functions';
+import { dailyNumber, localDate } from './src/lib/daily.js';
 
 export const config = { runtime: 'nodejs' };
 
@@ -27,7 +28,7 @@ const DAILY_DESC = 'A new set of 5 countries every day. Find them on a 3D globe 
 export function dailyPreview(html: string, url?: URL) {
   const no = Number(url?.searchParams.get('daily'));
   const r = url?.searchParams.get('r') ?? '';
-  const scored = Number.isInteger(no) && no >= 1 && no <= 100_000 && /^[0-3]{5}$/.test(r);
+  const scored = Number.isInteger(no) && no >= 1 && no <= dailyNumber(localDate(Date.now(), 'UTC')) + 1 && /^[0-3]{5}$/.test(r);
   const score = [...r].reduce((s, c) => s + Number(c), 0);
   const title = scored ? `GeoQuest Daily #${no} — ${score}/15. Can you beat it?` : DAILY_TITLE;
   let out = html

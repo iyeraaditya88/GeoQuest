@@ -71,10 +71,15 @@ export const validTz = (tz: unknown): tz is string => {
   if (typeof tz !== 'string' || tz.length > 64) return false;
   try { new Intl.DateTimeFormat('en', { timeZone: tz }); return true; } catch { return false; }
 };
+/** The browsers' push services (Chrome/Edge/Android, Firefox, Safari/iOS, Windows). Nothing else is ever called. */
+const PUSH_HOSTS = ['fcm.googleapis.com', 'android.googleapis.com', 'push.services.mozilla.com', 'push.apple.com', 'notify.windows.com'];
 export function cleanSub(s: unknown): Sub | null {
   const x = (s ?? {}) as { endpoint?: unknown; keys?: { p256dh?: unknown; auth?: unknown } };
   if (typeof x.endpoint !== 'string' || x.endpoint.length > 1000) return null;
-  try { if (new URL(x.endpoint).protocol !== 'https:') return null; } catch { return null; }
+  try {
+    const u = new URL(x.endpoint);
+    if (u.protocol !== 'https:' || u.port || !PUSH_HOSTS.some((h) => u.hostname === h || u.hostname.endsWith(`.${h}`))) return null;
+  } catch { return null; }
   const { p256dh, auth } = x.keys ?? {};
   if (typeof p256dh !== 'string' || typeof auth !== 'string' || p256dh.length > 200 || auth.length > 100) return null;
   return { endpoint: x.endpoint, keys: { p256dh, auth }, at: Date.now() };

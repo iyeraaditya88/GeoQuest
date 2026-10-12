@@ -122,6 +122,9 @@ export async function sessionSecret(): Promise<string | null> {
 /** Usernames: 2–32 chars, lowercase letters, digits, dot, dash, underscore. */
 export const normName = (s: unknown) => (typeof s === 'string' ? s.trim().toLowerCase() : '');
 export const validName = (n: string) => /^[a-z0-9._-]{2,32}$/.test(n);
+/** Names nobody can sign up with: they'd read as the app itself, staff, or an anonymous visitor. */
+const RESERVED = /^(guest|guests|you|me|owner|admin|administrator|root|system|support|help|staff|mod|moderator|official|team|geoquest|playgeoquest|claude|anthropic|atlas|null|undefined)$/;
+export const reservedName = (n: string) => RESERVED.test(n) || /^(geoquest|admin|support|official)[._-]/.test(n);
 export const validPassword = (p: unknown): p is string => typeof p === 'string' && p.length >= 8 && p.length <= 200;
 
 async function hashPassword(pw: string) {
@@ -182,6 +185,7 @@ export async function createOwner(nameRaw: unknown, pw: string) {
 export async function invite(nameRaw: unknown) {
   const name = normName(nameRaw);
   if (!validName(name)) throw new Error('Use 2–32 letters, digits, dots, dashes or underscores (e.g. “bob” or “maya.k”).');
+  if (reservedName(name)) throw new Error('That username is reserved — pick another.');
   const token = randomBytes(24).toString('base64url');
   await update((db) => {
     const existing = db.users[name];
@@ -222,6 +226,7 @@ export const SIGNUPS_PER_LINK = 5;
 export async function createMember(nameRaw: unknown, pw: string, via: string) {
   const name = normName(nameRaw);
   if (!validName(name)) throw new Error('Pick a username of 2–32 letters, digits, dots, dashes or underscores.');
+  if (reservedName(name)) throw new Error('That username is reserved — pick another.');
   const password = await hashPassword(pw);
   return update((db) => {
     if (db.users[name]) throw new Error('That username is taken — pick another (or sign in if it’s yours).');
@@ -237,6 +242,7 @@ export const OPEN_SIGNUPS_PER_DAY = 100;
 export async function createOpenMember(nameRaw: unknown, pw: string) {
   const name = normName(nameRaw);
   if (!validName(name)) throw new Error('Pick a username of 2–32 letters, digits, dots, dashes or underscores.');
+  if (reservedName(name)) throw new Error('That username is reserved — pick another.');
   const password = await hashPassword(pw);
   return update((db) => {
     if (db.users[name]) throw new Error('That username is taken — pick another (or sign in if it’s yours).');
@@ -297,6 +303,7 @@ export async function joinGroup(code: unknown, nameRaw: unknown, pw: string) {
   const ENDED = 'This group link has expired or is full — ask for a new one.';
   if (!c) throw new Error(ENDED);
   if (!validName(name)) throw new Error('Pick a username of 2–32 letters, digits, dots, dashes or underscores.');
+  if (reservedName(name)) throw new Error('That username is reserved — pick another.');
   const password = await hashPassword(pw);
   return update((db) => {
     const g = db.groups?.[c.id];

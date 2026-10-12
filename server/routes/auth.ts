@@ -4,10 +4,14 @@ import * as accounts from '../users.js';
 import * as prefs from '../prefs.js';
 import * as live from '../live.js';
 import { KEY_COOKIE, SESSION_COOKIE, authConfigured, verifySession } from '../session.js';
-import { HOSTED, MLY_COOKIE, authLimit, clearCookie, cookie, fail, signIn } from '../http.js';
+import { HOSTED, MLY_COOKIE, authLimit, clearCookie, cookie, fail, failureCounter, signIn } from '../http.js';
 
 /** What guests (no account) may call: the rest needs signing in. */
 const GUEST_OK = new Set(['GET /health', 'POST /ask', 'POST /match', 'GET /mapillary', 'GET /daily', 'POST /analytics', 'POST /feedback']);
+
+// Wrong passwords per account (as well as per network): a pause after a handful, so guessing
+// someone's password from many addresses gets nowhere fast.
+const loginFailures = failureCounter(8, 15 * 60_000);
 
 /** Public routes (sign-in, invites), then the guard that every other /api route sits behind. */
 export function registerAuth(app: express.Express) {
@@ -39,8 +43,11 @@ export function registerAuth(app: express.Express) {
     if (!(await authConfigured())) { fail(res, 503, 'Sign-in isn’t set up yet.'); return; }
     const { username, password } = (req.body ?? {}) as { username?: string; password?: string };
     if (!accounts.normName(username) || typeof password !== 'string' || !password || password.length > 200) { fail(res, 400, 'Enter your username and password.'); return; }
+    const name = accounts.normName(username);
+    if (loginFailures.blocked(name)) { fail(res, 429, 'Too many attempts — wait a few minutes and try again.'); return; }
     const u = await accounts.checkLogin(username, password);
-    if (!u) { fail(res, 401, 'Wrong username or password.'); return; }
+    if (!u) { loginFailures.note(name); fail(res, 401, 'Wrong username or password.'); return; }
+    loginFailures.clear(name);
     await signIn(res, u);
     res.json({ ok: true, user: u.name });
   });
