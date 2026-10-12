@@ -767,12 +767,6 @@ html.custom-cursor.cur-drag .globe-wrap, html.custom-cursor.cur-drag .globe-wrap
 .sb-switch i { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4); transition: transform 0.3s var(--ease); }
 .sb-switch.on { background: var(--gold); }
 .sb-switch.on i { transform: translateX(14px); }
-.sb-recents { display: grid; gap: 2px; }
-.sb-recent { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 9px; font-size: 13px; color: var(--muted); text-align: left; transition: background 0.16s, color 0.16s; }
-.sb-recent img { width: 22px; height: 15px; object-fit: cover; border-radius: 3px; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1); }
-.sb-recent span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sb-recent:hover { background: rgba(255, 255, 255, 0.05); color: var(--text); }
-.sb-recent.on { color: var(--gold-soft); background: rgba(251, 191, 36, 0.08); }
 .sb-foot { padding: 10px 12px 14px; border-top: 1px solid rgba(148, 163, 184, 0.1); display: grid; gap: 8px; }
 .sb-status {
   position: relative; display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 11px; text-align: left; color: var(--gold);

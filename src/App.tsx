@@ -118,7 +118,7 @@ export default function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [keyReq, setKeyReq] = useState(0);
   const [ai, setAi] = useState<boolean | null>(null);
-  const [recents, setRecents] = useState<string[]>(() => { try { return JSON.parse(localStorage.getItem('gq-recents') ?? '[]'); } catch { return []; } });
+  useEffect(() => { try { localStorage.removeItem('gq-recents'); } catch { /* ignore */ } }, []); // (the old "Recently viewed" list)
   useEffect(() => {
     const onResize = () => { setMobile(window.innerWidth <= 900); setVp({ w: window.innerWidth, h: window.innerHeight }); };
     window.addEventListener('resize', onResize);
@@ -242,11 +242,6 @@ export default function App() {
     if (cca3) {
       track('country', { c: cca3 });
       cam.flyTo(cca3);
-      setRecents((r) => {
-        const next = [cca3, ...r.filter((x) => x !== cca3)].slice(0, 6);
-        try { localStorage.setItem('gq-recents', JSON.stringify(next)); } catch { /* ignore */ }
-        return next;
-      });
     }
   }, [cam]);
 
@@ -890,8 +885,6 @@ export default function App() {
         quizOn={!!quiz && !quiz.daily}
         dailyOn={!!quiz?.daily}
         playOn={play}
-        selected={selected}
-        recents={recents}
         ai={ai}
         hosted={hosted}
         user={user}
@@ -930,7 +923,6 @@ export default function App() {
         nature={nature}
         onNature={toggleNature}
         onReset={() => { setSelected(null); setHighlighted([]); cam.reset(); }}
-        onPick={(c) => { if (quiz) exitQuiz(); select(c); }}
       />
       <PeoplePanel open={peopleOpen} onClose={() => setPeopleOpen(false)} />
       <AnimatePresence>

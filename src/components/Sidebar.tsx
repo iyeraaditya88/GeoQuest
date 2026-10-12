@@ -1,7 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowRight, BarChart3, Inbox, MessageSquareHeart, BellRing, Binoculars, Brain, CalendarDays, Check, ChevronLeft, Dices, Drill, Gamepad2, Globe2, History, KeyRound, Landmark, Link2, ListOrdered, LogIn, LogOut, Map as MapIcon, MapPinned, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, Sparkles, SunMoon, Swords, UserRound, Users, X } from 'lucide-react';
-import { BY_CCA3, flagUrl } from '../lib/data';
+import { ArrowRight, BarChart3, Inbox, MessageSquareHeart, BellRing, Binoculars, Brain, CalendarDays, Check, ChevronLeft, Dices, Drill, Gamepad2, Globe2, KeyRound, Landmark, Link2, ListOrdered, LogIn, LogOut, Map as MapIcon, MapPinned, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, Sparkles, SunMoon, Swords, UserRound, Users, X } from 'lucide-react';
 import type { MapStyle } from './GlobeView';
 
 export const SIDEBAR_W = { open: 268, rail: 72 } as const;
@@ -18,8 +17,6 @@ interface Props {
   autoRotate: boolean;
   quizOn: boolean;
   playOn: null | 'top5' | 'capitals' | 'trivia';
-  selected: string | null;
-  recents: string[];
   ai: boolean | null;
   onSearch: () => void;
   onRandom: () => void;
@@ -67,7 +64,6 @@ interface Props {
   nature: boolean;
   onNature: () => void;
   onReset: () => void;
-  onPick: (cca3: string) => void;
 }
 
 const STYLES: { id: MapStyle; label: string; icon: typeof Satellite }[] = [
@@ -215,22 +211,6 @@ export function Sidebar(p: Props) {
             <Item icon={RotateCcw} label="Reset view" rail={rail} onClick={act(p.onReset)} />
           </Section>
 
-          {!rail && p.recents.length > 0 && (
-            <Section title="Recently viewed" rail={rail} icon={History}>
-              <div className="sb-recents">
-                {p.recents.map((c) => {
-                  const ct = BY_CCA3.get(c);
-                  if (!ct) return null;
-                  return (
-                    <button key={c} className={`sb-recent ${p.selected === c ? 'on' : ''}`} onClick={act(() => p.onPick(c))}>
-                      <img src={flagUrl(ct.cca2, 80)} alt="" />
-                      <span>{ct.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </Section>
-          )}
         </div>
 
         {/* Footer */}
