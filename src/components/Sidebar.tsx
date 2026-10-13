@@ -146,13 +146,6 @@ export function Sidebar(p: Props) {
               </button>
             </div>
           )}
-          <Section title="Explore" rail={rail}>
-            <Item icon={Dices} label="Random country" rail={rail} onClick={act(p.onRandom)} />
-            <Item icon={Sparkles} label="Ask the Atlas" rail={rail} onClick={act(p.onAsk)} accent />
-            <Item icon={Drill} label={p.antipodeOn ? 'Exit antipode finder' : 'Antipode finder'} sub={p.antipodeOn ? undefined : 'Dig straight through the Earth'} rail={rail} active={p.antipodeOn} onClick={act(p.onAntipode)} />
-            <Item icon={MapPinned} label={p.placesOn ? 'Close My places' : 'My places'} sub={p.placesOn ? undefined : 'Pin home, friends & favourite spots'} rail={rail} active={p.placesOn} onClick={act(p.onPlaces)} />
-          </Section>
-
           <Section title="Play" rail={rail} action={p.onFriends && (
             <span className="sb-play-actions">
               <button className={`sb-pill ${p.matchOn ? 'on' : ''}`} onClick={act(p.onFriends)} title="Duel: live head-to-head with friends who are online">
@@ -161,13 +154,20 @@ export function Sidebar(p: Props) {
               {p.onInvite && <button className="sb-pill" onClick={act(p.onInvite)} title="Invite anyone with a link"><Link2 size={12} /> Invite</button>}
             </span>
           )}>
-            {rail && p.onFriends && <Item icon={Swords} label="Duel a friend" rail onClick={act(p.onFriends)} active={p.matchOn} accent />}
+            {rail && p.onFriends && <Item icon={Swords} label="Duel a friend" rail onClick={act(p.onFriends)} active={p.matchOn} tone="pink" />}
             {rail && p.onInvite && <Item icon={Link2} label="Invite with a link" rail onClick={act(p.onInvite)} />}
-            <Item icon={Gamepad2} label={p.quizOn ? 'Exit quiz' : 'Map quiz'} sub={p.quizOn ? undefined : 'Find it · Flags · Clues'} rail={rail} active={p.quizOn} onClick={act(p.onQuiz)} />
-            <Item icon={Binoculars} label="Street View challenge" sub="GeoGuessr-style, 5 rounds" rail={rail} onClick={act(p.onStreet)} />
-            <Item icon={ListOrdered} label={p.playOn === 'top5' ? 'Exit Top 5' : 'Name the Top 5'} sub={p.playOn === 'top5' ? undefined : 'Rivers, peaks, populations…'} rail={rail} active={p.playOn === 'top5'} onClick={act(p.onTop5)} />
-            <Item icon={Landmark} label={p.playOn === 'capitals' ? 'Exit Capitals' : 'Capitals'} sub={p.playOn === 'capitals' ? undefined : 'Country ↔ capital, 10 a round'} rail={rail} active={p.playOn === 'capitals'} onClick={act(p.onCapitals)} />
-            <Item icon={Brain} label={p.playOn === 'trivia' ? 'Exit Geo Trivia' : 'Geo Trivia'} sub={p.playOn === 'trivia' ? undefined : 'Adapts as you go · Easy → Impossible'} rail={rail} active={p.playOn === 'trivia'} onClick={act(p.onTrivia)} />
+            <Item icon={Gamepad2} tone="blue" label={p.quizOn ? 'Exit quiz' : 'Map quiz'} sub={p.quizOn ? undefined : 'Find countries, flags or clues'} rail={rail} active={p.quizOn} onClick={act(p.onQuiz)} />
+            <Item icon={Binoculars} tone="green" label="Street View" sub="Where in the world are you?" rail={rail} onClick={act(p.onStreet)} />
+            <Item icon={Landmark} tone="amber" label={p.playOn === 'capitals' ? 'Exit Capitals' : 'Capitals'} sub={p.playOn === 'capitals' ? undefined : 'Country ↔ capital, 10 a round'} rail={rail} active={p.playOn === 'capitals'} onClick={act(p.onCapitals)} />
+            <Item icon={Brain} tone="violet" label={p.playOn === 'trivia' ? 'Exit Geo Trivia' : 'Geo Trivia'} sub={p.playOn === 'trivia' ? undefined : 'Gets harder as you get better'} rail={rail} active={p.playOn === 'trivia'} onClick={act(p.onTrivia)} />
+            <Item icon={ListOrdered} tone="teal" label={p.playOn === 'top5' ? 'Exit Top 5' : 'Name the Top 5'} sub={p.playOn === 'top5' ? undefined : 'Rivers, peaks, populations…'} rail={rail} active={p.playOn === 'top5'} onClick={act(p.onTop5)} />
+          </Section>
+
+          <Section title="Explore" rail={rail}>
+            <Item icon={Dices} label="Random country" rail={rail} onClick={act(p.onRandom)} />
+            <Item icon={Sparkles} label="Ask the Atlas" rail={rail} onClick={act(p.onAsk)} accent />
+            <Item icon={Drill} label={p.antipodeOn ? 'Exit antipode finder' : 'Antipode finder'} sub={p.antipodeOn ? undefined : 'Dig straight through the Earth'} rail={rail} active={p.antipodeOn} onClick={act(p.onAntipode)} />
+            <Item icon={MapPinned} label={p.placesOn ? 'Close My places' : 'My places'} sub={p.placesOn ? undefined : 'Pin home, friends & favourite spots'} rail={rail} active={p.placesOn} onClick={act(p.onPlaces)} />
           </Section>
 
           <Section title="Map" rail={rail}>
@@ -305,9 +305,11 @@ function Section({ title, rail, icon: Icon, action, children }: { title: string;
   );
 }
 
-function Item({ icon: Icon, label, sub, rail, onClick, active, disabled, trailing, accent }: {
+function Item({ icon: Icon, label, sub, rail, onClick, active, disabled, trailing, accent, tone }: {
   icon: typeof Search; label: string; sub?: string; rail: boolean; onClick: () => void;
   active?: boolean; disabled?: boolean; trailing?: ReactNode; accent?: boolean;
+  /** A game: its icon in a colour tile (the same colours as the Play sheet) */
+  tone?: 'blue' | 'green' | 'amber' | 'violet' | 'teal' | 'pink';
 }) {
   return (
     <button
@@ -319,7 +321,7 @@ function Item({ icon: Icon, label, sub, rail, onClick, active, disabled, trailin
       data-tip={rail ? label : undefined}
     >
       {active && <span className="sb-ind" />}
-      <span className="sb-ico"><Icon size={18} /></span>
+      <span className={`sb-ico ${tone ? `tile t-${tone}` : ''}`}><Icon size={tone ? 16 : 18} /></span>
       <Fade show={!rail}>
         <span className="sb-text">
           <span className="sb-label">{label}</span>
