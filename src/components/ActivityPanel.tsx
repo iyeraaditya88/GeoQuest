@@ -13,7 +13,7 @@ interface Session { sid: string; user: string; start: number; last: number; acti
 const TAGS: Record<string, string> = {
   yt: 'YouTube', youtube: 'YouTube', reddit: 'Reddit', wa: 'WhatsApp', whatsapp: 'WhatsApp', share: 'Shared results', country: 'Country pages',
   x: 'X', twitter: 'X', ig: 'Instagram', instagram: 'Instagram', fb: 'Facebook', facebook: 'Facebook', hn: 'Hacker News', ph: 'Product Hunt',
-  email: 'Email', discord: 'Discord', tiktok: 'TikTok',
+  email: 'Email', discord: 'Discord', tiktok: 'TikTok', ih: 'Indie Hackers', alt: 'AlternativeTo', threads: 'Threads',
 };
 const SITES: [RegExp, string][] = [
   [/(^|\.)google\./, 'Google search'], [/(^|\.)bing\.com$/, 'Bing'], [/duckduckgo\.com$/, 'DuckDuckGo'], [/(youtube\.com|youtu\.be)$/, 'YouTube'],
