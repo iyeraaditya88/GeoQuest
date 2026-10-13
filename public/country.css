@@ -1,0 +1,30 @@
+/* Country pages (on top of legal.css) */
+.crumbs { margin: -12px 0 18px; font-size: 13px; color: var(--dim); }
+.crumbs a { color: var(--muted); text-decoration: none; }
+.crumbs a:hover { color: var(--gold-soft); }
+.ct-hero { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
+.ct-flag { width: 96px; height: 64px; object-fit: cover; border-radius: 8px; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15), 0 10px 24px -12px rgba(0, 0, 0, 0.8); flex-shrink: 0; }
+.ct-hero h1 { margin: 0; }
+.ct-official { margin: 2px 0 0; color: var(--dim); font-size: 14px; }
+.ct-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 4px 0 8px; }
+.cta.ghost { color: var(--text); background: rgba(255, 255, 255, 0.06); box-shadow: inset 0 0 0 1px var(--line); }
+.ct-map { margin: 24px auto 8px; max-width: 360px; text-align: center; }
+.ct-map .globe { width: 100%; height: auto; filter: drop-shadow(0 0 30px rgba(56, 189, 248, 0.25)); }
+.ct-map figcaption { margin-top: 6px; font-size: 13px; color: var(--dim); }
+.ct-facts { margin-top: 6px; }
+.ct-facts th { width: 40%; color: var(--muted); font-weight: 600; }
+.ct-links { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.ct-links li { margin: 0; display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 8px; border-radius: 99px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line); font-size: 14.5px; }
+.ct-links img { width: 24px; height: 16px; object-fit: cover; border-radius: 3px; }
+.ct-links a { color: var(--text); text-decoration: none; }
+.ct-links a:hover { color: var(--gold-soft); }
+.ct-index { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.ct-index li { border-radius: 12px; }
+h2 small { font: 600 13px Inter, sans-serif; color: var(--dim); margin-left: 6px; }
+.ct-play .cta { margin: 4px 8px 0 0; }
+@media (max-width: 560px) {
+  .ct-facts tr { display: grid; grid-template-columns: 42% 1fr; padding: 8px 0; }
+  .ct-facts th, .ct-facts td { display: block; padding: 0; border: 0; }
+  .ct-facts td::before { content: none !important; }
+  .ct-flag { width: 72px; height: 48px; }
+}

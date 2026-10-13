@@ -222,7 +222,7 @@ export function Sidebar(p: Props) {
             <MessageSquareHeart size={16} />
             <Fade show={!rail}><span className="sb-fb-text"><b>Send feedback</b><span>Ideas, bugs, feature requests</span></span></Fade>
           </button>
-          {!rail && <nav className="sb-legal" aria-label="About GeoQuest"><a href="/about">About</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></nav>}
+          {!rail && <nav className="sb-legal" aria-label="About GeoQuest"><a href="/countries">Countries</a><a href="/about">About</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></nav>}
           {/* The Atlas status only matters when it needs setting up (on the hosted site it's always on). */}
           {!(p.hosted && p.ai) && <button className={`sb-status ${p.ai ? 'ok' : ''}`} onClick={act(p.ai ? p.onAsk : p.onConnect)} data-tip={rail ? (p.ai ? 'Claude connected' : 'Connect Claude') : undefined}>
             {p.ai ? <i className="sb-live" /> : <KeyRound size={15} />}

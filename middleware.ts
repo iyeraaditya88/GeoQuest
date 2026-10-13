@@ -4,13 +4,14 @@
 // addresses to the main one, and give the sign-in page its clean URLs.
 import { next, rewrite } from '@vercel/functions';
 import { dailyNumber, localDate } from './src/lib/daily.js';
+import { isCountryPath } from './src/lib/countryPages.js';
 
 export const config = { runtime: 'nodejs' };
 
 // The sign-in page (it also handles invites, game and group links, and first-time setup).
 const PAGES = new Set(['/login', '/welcome', '/setup', '/join']);
 // About, Privacy and Terms: static pages, at clean URLs.
-const INFO_PAGES = new Set(['/about', '/privacy', '/terms']);
+const INFO_PAGES = new Set(['/about', '/privacy', '/terms', '/countries']);
 
 // Old public addresses: everything moves to the main one (PUBLIC_HOST, e.g. playgeoquest.app), same
 // path and query — so old invite links, bookmarks and installed apps still land in the right place.
@@ -55,6 +56,7 @@ export default async function middleware(request: Request) {
   // Clean URLs for the one static auth page (vercel.json rewrites don't apply after middleware).
   if (PAGES.has(url.pathname)) return rewrite(new URL('/login.html' + url.search, url));
   if (INFO_PAGES.has(url.pathname)) return rewrite(new URL(`${url.pathname}.html`, url));
+  if (isCountryPath(url.pathname)) return rewrite(new URL(`${url.pathname}.html`, url)); // /country/india → the built page
   if (url.pathname === '/' && url.searchParams.has('daily') && PREVIEW_BOTS.test(request.headers.get('user-agent') ?? '')) {
     try {
       const page = await fetch(new URL('/index.html', url));

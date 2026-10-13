@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently -k -n api,web -c cyan,magenta \"tsx watch server/index.ts\" \"vite\"",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && tsx scripts/country-pages.ts dist",
     "start": "tsx server/index.ts",
     "lint": "oxlint",
     "preview": "vite preview",

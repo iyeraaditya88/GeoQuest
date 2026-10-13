@@ -250,3 +250,20 @@ describe('security helpers', () => {
     expect(convo[convo.length - 1]).toEqual({ role: 'user', content: 'Where is Chad?' });
   });
 });
+
+describe('country pages', () => {
+  it('gives every country a clean, unique address', async () => {
+    const { slugify, countrySlug, pageCountries, isCountryPath } = await import('../src/lib/countryPages');
+    const { COUNTRIES } = await import('../src/lib/data');
+    expect(slugify('São Tomé and Príncipe')).toBe('sao-tome-and-principe');
+    expect(slugify('Côte d’Ivoire')).toBe('cote-divoire');
+    expect(slugify('Bosnia & Herzegovina')).toBe('bosnia-and-herzegovina');
+    const pages = pageCountries(COUNTRIES);
+    expect(pages.length).toBeGreaterThan(190);
+    const slugs = pages.map(countrySlug);
+    expect(new Set(slugs).size).toBe(slugs.length); // no two countries share an address
+    for (const s of slugs) expect(isCountryPath(`/country/${s}`)).toBe(true);
+    expect(isCountryPath('/country/../etc/passwd')).toBe(false);
+    expect(isCountryPath('/country/India')).toBe(false);
+  });
+});

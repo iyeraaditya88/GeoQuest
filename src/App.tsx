@@ -262,6 +262,10 @@ export default function App() {
       cam.flyTo(cca3);
     }
   }, [cam]);
+  const selectRef = useRef(select);
+  selectRef.current = select;
+  // Arrived from a country page (?country=IND / ?play=1): act once the globe is ready.
+  const linkWanted = useRef<{ country?: string; play?: boolean } | null>(null);
 
   // ── Rivers, ranges, peaks & lakes: click one to open its panel ──
   const [feature, setFeature] = useState<FeatureInfo | null>(null);
@@ -495,6 +499,14 @@ export default function App() {
     window.addEventListener('gq:feedback', on);
     // Links: ?feedback=1 opens the form; ?inbox=1 (from the "new feedback" notification) opens the inbox.
     const url = new URL(location.href);
+    // From the country pages: ?country=IND opens the globe on that country; ?play=1 opens the games.
+    const linkCountry = url.searchParams.get('country')?.toUpperCase();
+    if (linkCountry && BY_CCA3.has(linkCountry)) linkWanted.current = { country: linkCountry };
+    if (url.searchParams.has('play')) linkWanted.current = { ...linkWanted.current, play: true };
+    if (url.searchParams.has('country') || url.searchParams.has('play')) {
+      url.searchParams.delete('country'); url.searchParams.delete('play');
+      history.replaceState(null, '', url.pathname + url.search + url.hash);
+    }
     if (url.searchParams.has('feedback') || url.searchParams.has('inbox') || url.searchParams.has('activity')) {
       if (url.searchParams.has('feedback')) window.setTimeout(() => setFbForm({ where: 'Link' }), 900);
       url.searchParams.delete('feedback'); url.searchParams.delete('inbox'); url.searchParams.delete('activity');
@@ -508,6 +520,16 @@ export default function App() {
     navigator.serviceWorker?.addEventListener('message', onMsg);
     return () => { window.removeEventListener('gq:feedback', on); navigator.serviceWorker?.removeEventListener('message', onMsg); };
   }, []);
+  useEffect(() => {
+    if (!ready || !linkWanted.current) return;
+    window.setTimeout(() => {
+      const w = linkWanted.current;
+      linkWanted.current = null;
+      if (w?.country) selectRef.current(w.country);
+      if (w?.play) setGamesOpen(true);
+    }, 500);
+  }, [ready]);
+
   // A one-time ask, for players on their 3rd+ visit, after a minute and a half on the globe.
   const [nudgeReady, setNudgeReady] = useState(false);
   useEffect(() => {
