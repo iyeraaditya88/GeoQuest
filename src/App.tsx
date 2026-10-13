@@ -1,6 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { BellRing, CalendarDays, Check, LogIn, X } from 'lucide-react';
+import { BellRing, CalendarDays, Check, Gamepad2, LogIn, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { GlobeView, type GlobeHandle, type GlobeView2D, type MapStyle, type Feedback } from './components/GlobeView';
 import { FlatAtlas, type AtlasHandle } from './components/FlatAtlas';
@@ -54,6 +54,7 @@ const ActivityPanel = lazy(() => loadActivity().then((m) => ({ default: m.Activi
 const FeedbackInbox = lazy(() => loadInbox().then((m) => ({ default: m.FeedbackInbox })));
 import { FeedbackSheet } from './components/FeedbackSheet';
 import { AccountSheet } from './components/AccountSheet';
+import { GamesSheet, type GameKey } from './components/GamesSheet';
 import { countVisit, feedbackAsked, markFeedbackAsked, type FeedbackKind } from './lib/feedback';
 import { FeaturePanel } from './components/FeaturePanel';
 import { featureInfo, type FeatureInfo, type FeatureRef } from './lib/features';
@@ -184,6 +185,13 @@ export default function App() {
   const [role, setRole] = useState<'owner' | 'member' | null>(null);
   const [peopleOpen, setPeopleOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  // The Play button (beside Ask) and its games sheet. It glows until it's been tapped once.
+  const [gamesOpen, setGamesOpen] = useState(false);
+  const [playSeen, setPlaySeen] = useState(() => { try { return localStorage.getItem('gq-play-seen') === '1'; } catch { return false; } });
+  const openGames = () => {
+    setGamesOpen(true);
+    if (!playSeen) { setPlaySeen(true); try { localStorage.setItem('gq-play-seen', '1'); } catch { /* private mode */ } }
+  };
   const [activityOpen, setActivityOpen] = useState(false);
   // Feedback: the form (anyone), and the inbox (the owner).
   const [fbForm, setFbForm] = useState<{ kind?: FeedbackKind; where: string } | null>(null);
@@ -462,6 +470,16 @@ export default function App() {
     navigator.serviceWorker?.addEventListener('message', onMsg);
     return () => navigator.serviceWorker?.removeEventListener('message', onMsg);
   }, [loadDaily]);
+
+  // ── Games sheet: start the picked game (the same starters the menu uses) ──
+  const launch = (g: GameKey) => {
+    setGamesOpen(false);
+    if (g === 'daily') startDaily();
+    else if (g === 'quiz') startQuiz();
+    else if (g === 'street') void startGeo();
+    else if (g === 'duel') { if (liveMode && liveMe) setFriendsReq((n) => n + 1); else needSignIn('friends'); }
+    else startPlay(g);
+  };
 
   // ── Feedback ──────────────────────────────────────────
   /** Where in the app they are right now (sent with feedback, so a bug report has context). */
@@ -821,7 +839,7 @@ export default function App() {
 
   // Newer version live: reload onto it the next time you switch away (so you never see it), or
   // straight away if you're back on the globe with nothing open. Never mid-game or mid-typing.
-  const idle = !quiz && !geo && !play && !anti && !liveState.active && !fbForm && !dockOpen && !placesOpen && !dailyCard && !signIn && !accountOpen && !inboxOpen && !activityOpen;
+  const idle = !quiz && !geo && !play && !anti && !liveState.active && !fbForm && !dockOpen && !placesOpen && !dailyCard && !signIn && !accountOpen && !inboxOpen && !activityOpen && !gamesOpen;
   useEffect(() => {
     if (!updateReady || !idle) return;
     if (document.visibilityState === 'hidden') { reloadForUpdate(); return; }
@@ -964,6 +982,13 @@ export default function App() {
       />
       <PeoplePanel open={peopleOpen} onClose={() => setPeopleOpen(false)} />
       <AnimatePresence>
+        {gamesOpen && (
+          <GamesSheet key="games" onClose={() => setGamesOpen(false)} onPick={launch}
+            daily={{ done: !!daily?.mine && daily.date === localDate(), streak: daily?.streak?.count ?? 0 }}
+            duel={liveMode && liveMe ? 'play' : guest ? 'sign-in' : null} />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
         {accountOpen && user && <AccountSheet key="account" user={user} owner={role === 'owner'} onSignOut={signOut} onClose={() => setAccountOpen(false)} />}
       </AnimatePresence>
       <AnimatePresence>
@@ -1065,7 +1090,8 @@ export default function App() {
         <FeaturePanel feature={quiz || geo || play || anti || liveState.active ? null : feature} onClose={() => setFeature(null)} onSelectCountry={select} onAsk={ask} />
         <CountryPanel country={quiz || geo || play || anti || liveState.active ? null : country} onClose={() => setSelected(null)} onSelect={select} onAsk={ask} />
       </ErrorBoundary>
-      {chrome && !quiz && !geo && !play && !anti && !liveState.active && <ErrorBoundary name="Ask the Atlas" onClose={() => setDockOpen(false)}><AskDock open={dockOpen} setOpen={setDockOpen} country={country} request={askReq} keyRequest={keyReq} onAiChange={setAi} onHosted={setHosted} onHighlight={highlight} onSelect={select} /></ErrorBoundary>}
+      {chrome && !quiz && !geo && !play && !anti && !liveState.active && <ErrorBoundary name="Ask the Atlas" onClose={() => setDockOpen(false)}><AskDock open={dockOpen} setOpen={setDockOpen} country={country} request={askReq} keyRequest={keyReq} onAiChange={setAi} onHosted={setHosted} onHighlight={highlight} onSelect={select}
+        leading={<motion.button className={`play-fab ${playSeen ? '' : 'beckon'}`} onClick={openGames} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} aria-label="Play a game"><Gamepad2 size={18} /> Play</motion.button>} /></ErrorBoundary>}
       <ErrorBoundary name="Live play">
         <LivePlay mode={liveMode} me={liveMe} ai={ai} friendsReq={friendsReq} inviteReq={inviteReq} globe={matchGlobe} clickRef={matchClick} onState={setLiveState} owner={role === 'owner'} fab={chrome && !geo && !liveState.immersive} />
       </ErrorBoundary>

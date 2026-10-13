@@ -16,7 +16,7 @@ const placeLabel = (p?: Place) => (p ? [p.city, p.country].filter(Boolean).join(
 interface Person { name: string; role: string; status: string; createdAt: number; lastLogin: number | null }
 
 const RANGES = [{ days: 1, label: 'Today' }, { days: 7, label: '7 days' }, { days: 30, label: '30 days' }] as const;
-const GAME_NAMES: Record<string, string> = { daily: 'Daily challenge', quiz: 'Map quiz', street: 'Street View', capitals: 'Capitals', trivia: 'Geo Trivia', top5: 'Top 5', antipode: 'Antipode' };
+const GAME_NAMES: Record<string, string> = { daily: 'Daily challenge', quiz: 'Map quiz', street: 'Street View', duel: 'Duel', capitals: 'Capitals', trivia: 'Geo Trivia', top5: 'Top 5', antipode: 'Antipode' };
 
 const dur = (sec: number) => {
   const m = Math.round(sec / 60);
@@ -41,6 +41,8 @@ function describe([, name, d = {}]: Event) {
     case 'ask': return 'Asked Claude a question';
     case 'search': return 'Searched';
     case 'crash': return `Error in ${d.w}`;
+    case 'open': return d.w === 'games' ? 'Opened the Play menu' : `Opened ${d.w}`;
+    case 'launch': return `Picked ${GAME_NAMES[d.g] ?? (d.g === 'duel' ? 'Duel' : d.g)} from the Play menu`;
     default: return name;
   }
 }

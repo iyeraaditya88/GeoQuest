@@ -20,6 +20,8 @@ interface Props {
   onAiChange?: (ai: boolean) => void;
   onHighlight: (cca3s: string[]) => void;
   onSelect: (cca3: string) => void;
+  /** Shown beside the Ask button (the Play button), and hidden with it */
+  leading?: ReactNode;
 }
 
 const WORLD_SUGGESTIONS = [
@@ -71,7 +73,7 @@ function splitMap(raw: string): { text: string; codes: string[] } {
   return { text, codes };
 }
 
-export function AskDock({ open, setOpen, country, request, keyRequest = 0, onAiChange, onHosted, onHighlight, onSelect }: Props) {
+export function AskDock({ open, setOpen, country, request, keyRequest = 0, onAiChange, onHosted, onHighlight, onSelect, leading }: Props) {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
@@ -178,18 +180,18 @@ export function AskDock({ open, setOpen, country, request, keyRequest = 0, onAiC
     <>
       <AnimatePresence>
         {!open && (
-          <motion.button
-            className="ask-fab"
-            onClick={() => setOpen(true)}
-            initial={{ y: 30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 30, opacity: 0 }}
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.97 }}
-          >
-            <span className="fab-orb"><Sparkles size={16} /></span>
-            Ask the Atlas{country ? ` about ${country.name}` : ' anything'}
-          </motion.button>
+          <motion.div key="fab-row" className="fab-row" initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0 }}>
+            {leading}
+            <motion.button
+              className="ask-fab"
+              onClick={() => setOpen(true)}
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.97 }}
+            >
+              <span className="fab-orb"><Sparkles size={16} /></span>
+              Ask the Atlas<span className="fab-more">{country ? ` about ${country.name}` : ' anything'}</span>
+            </motion.button>
+          </motion.div>
         )}
       </AnimatePresence>
 
