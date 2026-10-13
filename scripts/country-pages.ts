@@ -86,7 +86,7 @@ function frame({ title, description, canonical, image, body, jsonLd }: { title: 
 <body>
   <header class="top">
     <a class="brand" href="/"><img src="/icons/icon-192.png" alt="" width="32" height="32" /> GeoQuest</a>
-    <a class="play" href="/?play=1">Play</a>
+    <a class="play" href="/?play=1&ref=country">Play</a>
   </header>
   <main>
 ${body}
@@ -143,8 +143,8 @@ function countryPage(c: Country) {
     </div>
     <p class="lede">${esc(intro)}</p>
     <div class="ct-actions">
-      <a class="cta" href="/?country=${c.cca3}">Find it on the 3D globe →</a>
-      <a class="cta ghost" href="/?play=1">Test yourself</a>
+      <a class="cta" href="/?country=${c.cca3}&ref=country">Find it on the 3D globe →</a>
+      <a class="cta ghost" href="/?play=1&ref=country">Test yourself</a>
     </div>
 
     <figure class="ct-map">${globeSvg(c)}<figcaption>${esc(c.name)} on the globe${c.area < 40_000 ? ' (circled — it’s small at this scale)' : ''}.</figcaption></figure>
@@ -179,7 +179,7 @@ function countryPage(c: Country) {
 
     <div class="card ct-play">
       <p><b>Can you find ${esc(the(c))} without the label?</b> Spin the globe, play the Daily challenge or a quick Map quiz — free, no sign-up.</p>
-      <p><a class="cta" href="/?country=${c.cca3}">Open ${esc(the(c))} on the globe</a> <a class="cta ghost" href="/?daily=1">Today’s Daily</a></p>
+      <p><a class="cta" href="/?country=${c.cca3}&ref=country">Open ${esc(the(c))} on the globe</a> <a class="cta ghost" href="/?daily=1&ref=country">Today’s Daily</a></p>
     </div>
 
     ${peers.length ? `<h2>More countries in ${esc(where(c))}</h2>
@@ -206,7 +206,7 @@ function indexPage() {
     <nav class="crumbs" aria-label="Breadcrumb"><a href="/">GeoQuest</a> › <span>Countries</span></nav>
     <h1>Countries of the world</h1>
     <p class="lede">Maps, capitals, neighbours and quick facts for ${PAGES.length} countries and territories — and a 3D globe to find each one on.</p>
-    <div class="ct-actions"><a class="cta" href="/?play=1">Play the geography games</a></div>
+    <div class="ct-actions"><a class="cta" href="/?play=1&ref=country">Play the geography games</a></div>
     ${groups.map(([r, xs]) => `<h2>${r === 'Americas' ? 'The Americas' : r === 'Antarctic' ? 'Antarctica' : r} <small>${xs.length}</small></h2>
     <ul class="ct-links ct-index">${xs.map((c) => `<li><img src="${flag(c, 80)}" alt="" width="24" height="16" loading="lazy" /> ${link(c)}</li>`).join('')}</ul>`).join('\n    ')}`;
   return frame({

@@ -522,3 +522,14 @@ describe('visit location', () => {
     expect(placeFrom({})).toBeUndefined();
   });
 });
+
+describe('visit sources', () => {
+  it('keeps the link tag and the referring site — tidied', async () => {
+    const { cleanSession } = await import('../server/analytics');
+    const base = { sid: 'srcvisit01', start: Date.now() - 1000, active: 0, events: [] };
+    expect(cleanSession('guest', { ...base, src: 'yt', from: 'm.youtube.com' })).toEqual(expect.objectContaining({ src: 'yt', from: 'm.youtube.com' }));
+    const odd = cleanSession('guest', { ...base, src: '<script>', from: 'evil host/path' })!;
+    expect(odd.src).toBeUndefined();
+    expect(odd.from).toBeUndefined();
+  });
+});

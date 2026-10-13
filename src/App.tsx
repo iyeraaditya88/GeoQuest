@@ -499,6 +499,11 @@ export default function App() {
     window.addEventListener('gq:feedback', on);
     // Links: ?feedback=1 opens the form; ?inbox=1 (from the "new feedback" notification) opens the inbox.
     const url = new URL(location.href);
+    // Link tags (?ref=yt, utm_…) are read by analytics as the page loads; keep the address bar clean.
+    if ([...url.searchParams.keys()].some((k) => k === 'ref' || k.startsWith('utm_'))) {
+      for (const k of [...url.searchParams.keys()]) if (k === 'ref' || k.startsWith('utm_')) url.searchParams.delete(k);
+      history.replaceState(null, '', url.pathname + url.search + url.hash);
+    }
     // From the country pages: ?country=IND opens the globe on that country; ?play=1 opens the games.
     const linkCountry = url.searchParams.get('country')?.toUpperCase();
     if (linkCountry && BY_CCA3.has(linkCountry)) linkWanted.current = { country: linkCountry };

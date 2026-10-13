@@ -17,6 +17,20 @@ const NEW_VISIT = 30 * 60_000; // away this long = the next return is a new visi
 const MAX_EVENTS = 400;
 
 const id = () => Math.random().toString(36).slice(2, 12).padEnd(10, '0');
+
+/**
+ * Where this visit came from, read once as the page loads (before the app tidies the address bar):
+ * a ?ref= tag on the link (yt, reddit, wa…; utm_source works too), and the site that linked here.
+ */
+const ORIGIN = (() => {
+  if (typeof location === 'undefined') return {};
+  const q = new URLSearchParams(location.search);
+  const src = (q.get('ref') ?? q.get('utm_source') ?? '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 24);
+  let from = '';
+  try { const h = new URL(document.referrer).hostname.replace(/^www\./, ''); if (h && h !== location.hostname) from = h.slice(0, 60); } catch { /* none */ }
+  return { ...(src ? { src } : {}), ...(from ? { from } : {}) };
+})();
+
 let s = { sid: id(), start: Date.now(), active: 0, events: [] as Event[] };
 let lastInput = Date.now();
 let lastSent = 0;
@@ -42,7 +56,7 @@ function send() {
   lastSent = Date.now();
   dirty = false;
   // keepalive: still delivered when the tab is closing.
-  void api('/api/analytics', { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...s, ...device(), first }) }).catch(() => null);
+  void api('/api/analytics', { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...s, ...device(), ...ORIGIN, first }) }).catch(() => null);
 }
 
 /** Record something the player did (kept short: a name and a few small values). */

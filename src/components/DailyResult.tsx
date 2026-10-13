@@ -45,7 +45,7 @@ export function DailyResult({ date, targets, points, streak, board, me, fresh, o
   const text = shareLine(date, points);
   // Wordle-style: your squares, and a link that drops whoever opens it straight into today's Daily.
   const share = async () => {
-    const msg = `${text}\nYour turn — find today’s 5 countries 🌍\n${location.origin}/?daily=${dailyNumber(date)}&r=${points.join('')}`;
+    const msg = `${text}\nYour turn — find today’s 5 countries 🌍\n${location.origin}/?daily=${dailyNumber(date)}&r=${points.join('')}&ref=share`;
     track('share', { g: 'daily' });
     if (typeof navigator.share === 'function') { await navigator.share({ text: msg }).catch(() => null); return; }
     try { await navigator.clipboard.writeText(msg); } catch { /* blocked */ }

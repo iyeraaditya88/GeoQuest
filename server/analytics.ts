@@ -20,6 +20,9 @@ export interface SessionDoc {
   os: string;
   browser: string;
   pwa: boolean;
+  /** How they arrived: the link's ?ref= tag, and the site that linked here */
+  src?: string;
+  from?: string;
   /** Roughly where they were (from the connection, on the hosted site): city, region code, country code */
   place?: { city?: string; region?: string; country?: string };
   events: Event[];
@@ -71,6 +74,8 @@ export function cleanSession(user: string, body: unknown, now = Date.now()): Ses
     sid, user, start, last: now,
     active: Math.max(0, Math.min(Math.round(Number(b.active) || 0), Math.round((now - start) / 1000) + 60)),
     device: short(b.device, 12), os: short(b.os, 12), browser: short(b.browser, 12), pwa: b.pwa === true,
+    ...(typeof b.src === 'string' && /^[a-z0-9_-]{1,24}$/.test(b.src) ? { src: b.src } : {}),
+    ...(typeof b.from === 'string' && /^[a-z0-9.-]{1,60}$/i.test(b.from) ? { from: b.from.toLowerCase() } : {}),
     events,
   };
 }

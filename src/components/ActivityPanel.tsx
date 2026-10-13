@@ -7,7 +7,20 @@ import { BY_CCA3, fmtInt } from '../lib/data';
 type Data = Record<string, string | number>;
 type Event = [at: number, name: string, data?: Data];
 interface Place { city?: string; region?: string; country?: string }
-interface Session { sid: string; user: string; start: number; last: number; active: number; device: string; os: string; browser: string; pwa: boolean; place?: Place; events: Event[] }
+interface Session { sid: string; user: string; start: number; last: number; active: number; device: string; os: string; browser: string; pwa: boolean; place?: Place; src?: string; from?: string; events: Event[] }
+
+// How a visit arrived: the link's ?ref= tag if it had one, else the site that linked here, else "Direct".
+const TAGS: Record<string, string> = {
+  yt: 'YouTube', youtube: 'YouTube', reddit: 'Reddit', wa: 'WhatsApp', whatsapp: 'WhatsApp', share: 'Shared results', country: 'Country pages',
+  x: 'X', twitter: 'X', ig: 'Instagram', instagram: 'Instagram', fb: 'Facebook', facebook: 'Facebook', hn: 'Hacker News', ph: 'Product Hunt',
+  email: 'Email', discord: 'Discord', tiktok: 'TikTok',
+};
+const SITES: [RegExp, string][] = [
+  [/(^|\.)google\./, 'Google search'], [/(^|\.)bing\.com$/, 'Bing'], [/duckduckgo\.com$/, 'DuckDuckGo'], [/(youtube\.com|youtu\.be)$/, 'YouTube'],
+  [/reddit\.com$/, 'Reddit'], [/(^t\.co|x\.com|twitter\.com)$/, 'X'], [/facebook\.com$/, 'Facebook'], [/instagram\.com$/, 'Instagram'],
+  [/news\.ycombinator\.com$/, 'Hacker News'], [/producthunt\.com$/, 'Product Hunt'], [/(whatsapp\.com|wa\.me)$/, 'WhatsApp'], [/discord(app)?\.com$/, 'Discord'],
+];
+const sourceOf = (s: Session) => (s.src ? TAGS[s.src] ?? s.src : s.from ? SITES.find(([re]) => re.test(s.from!))?.[1] ?? s.from : 'Direct');
 
 /** 🇮🇳 from "IN" */
 const flag = (cc?: string) => (cc && /^[A-Z]{2}$/.test(cc) ? String.fromCodePoint(...[...cc].map((c) => 0x1f1a5 + c.charCodeAt(0))) : '');
@@ -113,6 +126,8 @@ export function ActivityPanel({ open, onClose }: { open: boolean; onClose: () =>
     const games: Record<string, { plays: number; best: number }> = {};
     const countries: Record<string, number> = {};
     const places: Record<string, { n: number; cc?: string }> = {};
+    const sources: Record<string, number> = {};
+    for (const s of sessions) { const k = sourceOf(s); sources[k] = (sources[k] ?? 0) + 1; }
     for (const s of sessions) {
       const label = s.place?.city ?? (s.place?.country ? new Intl.DisplayNames(undefined, { type: 'region' }).of(s.place.country) : undefined);
       if (label) { const k = `${label}|${s.place?.country ?? ''}`; (places[k] ??= { n: 0, cc: s.place?.country }).n++; }
@@ -131,6 +146,7 @@ export function ActivityPanel({ open, onClose }: { open: boolean; onClose: () =>
       players: new Set(sessions.map((s) => s.user)).size,
       games: Object.entries(games).sort((a, b) => b[1].plays - a[1].plays),
       countries: Object.entries(countries).sort((a, b) => b[1] - a[1]).slice(0, 10),
+      sources: Object.entries(sources).sort((a, b) => b[1] - a[1]),
       places: Object.entries(places).sort((a, b) => b[1].n - a[1].n).slice(0, 12).map(([k, v]) => ({ name: k.split('|')[0], ...v })),
     };
   }, [data, days, withMe, who]);
@@ -224,6 +240,13 @@ export function ActivityPanel({ open, onClose }: { open: boolean; onClose: () =>
                   </div>
                 )}
 
+                {view.sources.length > 0 && (
+                  <>
+                    <div className="fr-label">How they found GeoQuest <span className="ac-hint">tag your links with ?ref=yt, ?ref=reddit…</span></div>
+                    <div className="ac-chips">{view.sources.map(([k, n]) => <span key={k}>{k} <b>{n}</b></span>)}</div>
+                  </>
+                )}
+
                 {view.places.length > 0 && (
                   <>
                     <div className="fr-label">Where they’re from <span className="ac-hint">roughly — by connection</span></div>
@@ -255,7 +278,7 @@ export function ActivityPanel({ open, onClose }: { open: boolean; onClose: () =>
                         </button>
                         {open && (
                           <div className="ac-timeline">
-                            <p>{s.place ? `${flag(s.place.country)} ${[s.place.city, s.place.region, s.place.country].filter(Boolean).join(', ')} · ` : ''}{s.os} · {s.browser}{s.pwa ? ' · installed app' : ''} · on screen {dur(s.active)} of {dur((s.last - s.start) / 1000)}</p>
+                            <p>{`Via ${sourceOf(s)} · `}{s.place ? `${flag(s.place.country)} ${[s.place.city, s.place.region, s.place.country].filter(Boolean).join(', ')} · ` : ''}{s.os} · {s.browser}{s.pwa ? ' · installed app' : ''} · on screen {dur(s.active)} of {dur((s.last - s.start) / 1000)}</p>
                             {s.events.length ? (
                               <ol>{s.events.map((e, i) => <li key={i} className={e[1] === 'crash' ? 'bad' : ''}><time>{new Date(s.start + e[0] * 1000).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</time>{describe(e)}</li>)}</ol>
                             ) : <p>Just looked around the globe.</p>}
