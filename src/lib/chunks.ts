@@ -23,3 +23,13 @@ export function fresh<T>(load: Promise<T>): Promise<T> {
     throw err;
   });
 }
+
+/** The version this app was built from ("dev" locally). */
+export const BUILD: string = import.meta.env.VITE_BUILD ?? 'dev';
+
+/** Load some code ahead of time, when the browser is idle (so it's in hand before a new deploy). */
+export function preload(loaders: (() => Promise<unknown>)[]) {
+  const run = () => { for (const l of loaders) void l().catch(() => null); };
+  const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
+  if (w.requestIdleCallback) w.requestIdleCallback(run, { timeout: 4000 }); else window.setTimeout(run, 1500);
+}

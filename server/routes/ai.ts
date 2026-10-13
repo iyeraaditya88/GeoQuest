@@ -175,7 +175,7 @@ export function registerAi(app: express.Express) {
       const server = !!sharedKey();
       const ai = server || (!!req.user && !!(await openKey(cookie(req, KEY_COOKIE), req.user)));
       // Guests: no user, no live play (that's for signed-in friends).
-      res.json({ ai, source: server ? 'server' : ai ? 'user' : null, hosted: true, user: req.user ?? null, role: req.role ?? null, guest: !req.user, live: req.user && live.liveConfigured() ? 'ably' : null });
+      res.json({ ai, source: server ? 'server' : ai ? 'user' : null, hosted: true, user: req.user ?? null, role: req.role ?? null, guest: !req.user, live: req.user && live.liveConfigured() ? 'ably' : null, build: process.env.VERCEL_GIT_COMMIT_SHA ?? null });
       return;
     }
     res.json({ ai: await checkAi(), source: keySource, hosted: false, user: null, live: 'local' });

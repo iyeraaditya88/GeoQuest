@@ -8,7 +8,7 @@ import { CustomCursor } from './components/CustomCursor';
 import { Sidebar, SIDEBAR_W } from './components/Sidebar';
 import { cursor } from './lib/cursor';
 import type { GeoGame, Spot } from './components/StreetGame';
-import { fresh } from './lib/chunks';
+import { BUILD, fresh, preload, reloadForUpdate } from './lib/chunks';
 import { startAnalytics, track } from './lib/analytics';
 
 // Games load on demand: Street View alone brings MapillaryJS (with its own three.js),
@@ -48,8 +48,10 @@ import { findLocation, haversineKm, scoreFor } from './lib/streetview';
 import { countryAt } from './lib/data';
 import { CountryPanel } from './components/CountryPanel';
 import { PeoplePanel } from './components/PeoplePanel';
-const ActivityPanel = lazy(() => fresh(import('./components/ActivityPanel')).then((m) => ({ default: m.ActivityPanel })));
-const FeedbackInbox = lazy(() => fresh(import('./components/FeedbackInbox')).then((m) => ({ default: m.FeedbackInbox })));
+const loadActivity = () => fresh(import('./components/ActivityPanel'));
+const loadInbox = () => fresh(import('./components/FeedbackInbox'));
+const ActivityPanel = lazy(() => loadActivity().then((m) => ({ default: m.ActivityPanel })));
+const FeedbackInbox = lazy(() => loadInbox().then((m) => ({ default: m.FeedbackInbox })));
 import { FeedbackSheet } from './components/FeedbackSheet';
 import { AccountSheet } from './components/AccountSheet';
 import { countVisit, feedbackAsked, markFeedbackAsked, type FeedbackKind } from './lib/feedback';
@@ -126,11 +128,16 @@ export default function App() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
   useEffect(() => {
-    const check = () => api('/api/health').then((r) => r.json()).then((d) => { setAi(!!d.ai); setUser(d.user ?? null); setAuth({ hosted: !!d.hosted, user: d.user ?? null, role: d.role ?? null }); startAnalytics(); setRole(d.role ?? null); setLiveMode(d.live === 'ably' || d.live === 'local' ? d.live : null); }).catch(() => setAi(false));
+    const check = () => api('/api/health').then((r) => r.json()).then((d) => { if (d.build && BUILD !== 'dev' && d.build !== BUILD) setUpdateReady(true); setAi(!!d.ai); setUser(d.user ?? null); setAuth({ hosted: !!d.hosted, user: d.user ?? null, role: d.role ?? null }); startAnalytics(); setRole(d.role ?? null); setLiveMode(d.live === 'ably' || d.live === 'local' ? d.live : null); }).catch(() => setAi(false));
     void check();
+    // Coming back to the app (tab or installed app): check again — that's also how a newer version is noticed.
+    const onVisible = () => { if (document.visibilityState === 'visible') void check(); };
     window.addEventListener('focus', check);
-    return () => window.removeEventListener('focus', check);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { window.removeEventListener('focus', check); document.removeEventListener('visibilitychange', onVisible); };
   }, []);
+  // A newer version is live: switch to it quietly (see below).
+  const [updateReady, setUpdateReady] = useState(false);
   const [ready, setReady] = useState(false);
   // Globe ↔ flat atlas
   const [view, setView] = useState<'globe' | 'flat'>('globe');
@@ -811,6 +818,25 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey);
   });
 
+
+  // Newer version live: reload onto it the next time you switch away (so you never see it), or
+  // straight away if you're back on the globe with nothing open. Never mid-game or mid-typing.
+  const idle = !quiz && !geo && !play && !anti && !liveState.active && !fbForm && !dockOpen && !placesOpen && !dailyCard && !signIn && !accountOpen && !inboxOpen && !activityOpen;
+  useEffect(() => {
+    if (!updateReady || !idle) return;
+    if (document.visibilityState === 'hidden') { reloadForUpdate(); return; }
+    const onHide = () => { if (document.visibilityState === 'hidden') reloadForUpdate(); };
+    document.addEventListener('visibilitychange', onHide);
+    const t = window.setTimeout(() => { if (!selected) reloadForUpdate(); }, 1500);
+    return () => { document.removeEventListener('visibilitychange', onHide); window.clearTimeout(t); };
+  }, [updateReady, idle, selected]);
+
+  // The small games and panels: load them early, so opening one never needs a file that a later
+  // deploy has replaced. (Street View is big — it stays on demand.)
+  useEffect(() => {
+    if (!ready) return;
+    preload([loadTop5, loadCapitals, loadTrivia, ...(role === 'owner' || liveMode === 'local' ? [loadActivity, loadInbox] : [])]);
+  }, [ready, role, liveMode]);
 
   // Rivers and mountains step aside during a quiz (Map quiz, the Daily, a live quiz): the borders are what matter then.
   const showNature = nature && !quiz && !liveState.quiz;

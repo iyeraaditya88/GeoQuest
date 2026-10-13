@@ -10,6 +10,8 @@ const siteHeaders = Object.fromEntries((vercel.headers?.find((h) => h.source ===
 
 export default defineConfig({
   plugins: [react()],
+  // Which deployment this build is (Vercel's commit), so an open app can tell a newer one is live.
+  define: { 'import.meta.env.VITE_BUILD': JSON.stringify(process.env.VERCEL_GIT_COMMIT_SHA ?? 'dev') },
   // three-globe's unused hex layers are the only consumer of h3-js — see src/lib/h3-stub.ts.
   resolve: { alias: { 'h3-js': fileURLToPath(new URL('./src/lib/h3-stub.ts', import.meta.url)) } },
   // MapLibre loads its tile worker relative to its own file; pre-bundling breaks that path.

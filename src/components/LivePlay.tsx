@@ -5,13 +5,16 @@ import { AnimatePresence } from 'motion/react';
 import { connectLive, type Live } from '../lib/live';
 import type { GameId, Invite, MatchOpts, MatchSession, Snapshot } from '../lib/match';
 import type { Feedback } from './GlobeView';
-import { fresh } from '../lib/chunks';
+import { fresh, preload } from '../lib/chunks';
 import { FriendsOnline } from './FriendsOnline';
 
-const FriendsPanel = lazy(() => fresh(import('./FriendsPanel')).then((m) => ({ default: m.FriendsPanel })));
-const InvitePanel = lazy(() => fresh(import('./FriendsPanel')).then((m) => ({ default: m.InvitePanel })));
-const ChallengeToasts = lazy(() => fresh(import('./ChallengeToasts')).then((m) => ({ default: m.ChallengeToasts })));
-const MatchOverlay = lazy(() => fresh(import('./MatchOverlay')).then((m) => ({ default: m.MatchOverlay })));
+const loadFriends = () => fresh(import('./FriendsPanel'));
+const loadToasts = () => fresh(import('./ChallengeToasts'));
+const loadOverlay = () => fresh(import('./MatchOverlay'));
+const FriendsPanel = lazy(() => loadFriends().then((m) => ({ default: m.FriendsPanel })));
+const InvitePanel = lazy(() => loadFriends().then((m) => ({ default: m.InvitePanel })));
+const ChallengeToasts = lazy(() => loadToasts().then((m) => ({ default: m.ChallengeToasts })));
+const MatchOverlay = lazy(() => loadOverlay().then((m) => ({ default: m.MatchOverlay })));
 
 const loadMatch = () => fresh(import('../lib/match'));
 
@@ -93,6 +96,8 @@ export function LivePlay({ mode, me, ai, friendsReq, inviteReq, globe, clickRef,
   // Connection health, shown during a match ("Reconnecting…").
   const [conn, setConn] = useState('connected');
   useEffect(() => live?.onState(setConn), [live]);
+  // Signed in with live play: have the Duel panels in hand early (a later deploy can't strand them).
+  useEffect(() => { if (live) preload([loadFriends, loadToasts, loadOverlay, loadMatch]); }, [live]);
 
   // Tell friends whether I'm free.
   useEffect(() => { void live?.channel('lobby').update({ s: inMatch ? 'playing' : 'idle' }).catch(() => null); }, [live, inMatch]);
