@@ -41,9 +41,18 @@ describe('river facts', () => {
 describe('map quiz coach', () => {
   it('points from the wrong guess toward the answer, then narrows it down', () => {
     const first = missHint('NLD', 'ESP', 1);
+    expect(first).toMatch(/^You picked Spain\./); // the hint clearly follows from what you clicked
     expect(first).toMatch(/north-east of Spain/);
     expect(first).toMatch(/Western Europe/);
     expect(missHint('NLD', 'ESP', 2)).toMatch(/borders .*Germany|borders .*Belgium/);
+  });
+  it('says so when a guess is way off, and points to the right continent', () => {
+    const far = missHint('KEN', 'BRA', 1);
+    expect(far).toBe('You picked Brazil. That’s a long way from Kenya — try looking in Africa.');
+    expect(missHint('KEN', 'BRA', 2)).toMatch(/Eastern Africa.*borders/);
+    expect(missHint('PER', 'USA', 1)).toMatch(/try looking in South America/);
+    expect(missHint('FJI', 'AUS', 1)).toMatch(/Fiji is about [\d,]+ km east of Australia/); // same continent: a direction
+    expect(missHint('NLD', 'BEL', 1)).toMatch(/^You picked Belgium\. So close — the Netherlands borders Belgium, to the north/);
   });
   it('gives something to remember with the answer', () => {
     const lines = takeaway('MRT');

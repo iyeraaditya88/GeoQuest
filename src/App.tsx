@@ -812,6 +812,9 @@ export default function App() {
   });
 
 
+  // Rivers and mountains step aside during a quiz (Map quiz, the Daily, a live quiz): the borders are what matter then.
+  const showNature = nature && !quiz && !liveState.quiz;
+
   // Reserve the sidebar's space from the start, so nothing shifts when it slides in.
   const leftInset = mobile || geo ? 0 : sbCollapsed ? SIDEBAR_W.rail : SIDEBAR_W.open;
   const rightInset = (country || feature) && !quiz && !geo && !play && !liveState.active ? panelWidth(vp.w, vp.h) : 0;
@@ -837,7 +840,7 @@ export default function App() {
         pins={globePins}
         onPin={openPlace}
         leftInset={leftInset}
-        nature={nature}
+        nature={showNature}
         hidden={globeHidden || !!geo || liveState.immersive}
         onSelect={(c) => { if (matchClick.current) { matchClick.current(c); return; } if (liveRef.current.active) return; if (anti) return; if (quiz) quizClick(c); else if (c) select(c); else { setSelected(null); setHighlighted([]); setFeature(null); } }}
         onFeature={(f) => { if (!anti && !quiz && !liveRef.current.active) void openFeature(f); }}
@@ -858,7 +861,7 @@ export default function App() {
             quiz={!!quiz || liveState.quiz}
             panelOpen={(!!country || !!feature) && !quiz}
             leftInset={leftInset}
-            nature={nature}
+            nature={showNature}
             feature={feature}
             onFeature={(f) => { if (!quiz && !liveRef.current.active) void openFeature(f); }}
             onSelect={(c) => (matchClick.current ? matchClick.current(c) : liveRef.current.active ? undefined : quiz ? quizClick(c) : c ? select(c) : (setSelected(null), setHighlighted([]), setFeature(null)))}
@@ -954,7 +957,7 @@ export default function App() {
               aria-label={done ? 'Today’s Daily: done — see your result' : 'Play today’s Daily challenge'}
               initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ delay: 0.4, type: 'spring', stiffness: 320, damping: 26 }}>
               {done ? <Check size={15} /> : <CalendarDays size={15} />}
-              <b>{done ? 'Daily done' : 'Daily challenge'}</b>
+              <b>{done ? 'Daily done' : <>Daily<span className="dt-long"> challenge</span></>}</b>
               {streak > 1 && <span className="dt-streak">🔥 {streak}</span>}
               {!done && <span className="dt-go">Play</span>}
             </motion.button>

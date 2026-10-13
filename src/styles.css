@@ -1975,6 +1975,8 @@ html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent
   .daily-top .dt-go { display: none; }
 }
 @media (max-width: 360px) { .daily-top .dt-streak { display: none; } .daily-top b { font-size: 13.5px; } }
+/* The narrowest phones (320–359px): just "Daily", so it never runs into the corner buttons. */
+@media (max-width: 359px) { .daily-top .dt-long { display: none; } }
 
 .sb-daily { width: 100%; display: flex; align-items: center; gap: 11px; padding: 11px 10px 11px 11px; border-radius: 16px; text-align: left; color: #1a1205;
   background: linear-gradient(135deg, var(--gold-soft), var(--gold)); box-shadow: 0 12px 30px -14px rgba(251, 191, 36, 0.8); transition: transform 0.2s var(--ease), filter 0.2s; }

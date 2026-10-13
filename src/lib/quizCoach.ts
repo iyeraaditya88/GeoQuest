@@ -31,18 +31,41 @@ function anchorNear(c: Country) {
     .sort((a, b) => a.d - b.d)[0]?.o;
 }
 
-/** The nudge after a wrong guess: where the target is from where you clicked, plus a clue. */
+/** The continent, the way people say it ("South America", not "Americas"). */
+function continent(c: Country) {
+  if (c.region !== 'Americas') return c.region === 'Antarctic' ? 'Antarctica' : c.region;
+  if (c.subregion === 'South America') return 'South America';
+  if (c.subregion === 'Caribbean') return 'the Caribbean';
+  if (c.subregion === 'Central America') return 'Central America';
+  return 'North America';
+}
+const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
+
+/**
+ * The nudge after a wrong guess. It says which country was picked (so the hint clearly follows from
+ * it), then: same continent → "Y is about 300 km north of X"; another continent → "a long way
+ * off — look in Africa". The second miss narrows it down with neighbours.
+ */
 export function missHint(targetId: string, clickedId: string, misses: number) {
   const t = BY_CCA3.get(targetId), c = BY_CCA3.get(clickedId);
   if (!t) return '';
   const parts: string[] = [];
+  let wayOff = false;
   if (c) {
     const km = distKm(c.latlng, t.latlng);
-    parts.push(km < 150 ? `So close — ${the(t)} is right next to ${the(c)}.` : `${the(t)[0].toUpperCase()}${the(t).slice(1)} is ${roundKm(km)} ${compass(bearing(c.latlng, t.latlng))} of ${the(c)}.`);
+    wayOff = continent(c) !== continent(t); // same continent: direction and distance help more
+    parts.push(`You picked ${the(c)}.`);
+    if (t.borders.includes(c.cca3)) parts.push(`So close — ${the(t)} borders ${the(c)}, to the ${compass(bearing(c.latlng, t.latlng))}.`);
+    else if (km < 150) parts.push(`So close — ${the(t)} is right next to it.`);
+    else if (wayOff) parts.push(`That’s a long way from ${the(t)} — try looking in ${continent(t)}.`);
+    else parts.push(`${cap(the(t))} is ${roundKm(km)} ${compass(bearing(c.latlng, t.latlng))} of ${the(c)}.`);
   }
-  if (misses === 1) parts.push(`It’s in ${t.subregion || t.region}.`);
-  else {
+  if (misses === 1) {
+    // Way off: the continent was the hint. Otherwise narrow it to the region.
+    if (!wayOff) parts.push(`It’s in ${t.subregion || t.region}.`);
+  } else {
     const ns = neighbours(t);
+    if (wayOff) parts.push(`It’s in ${t.subregion || t.region}.`);
     if (ns.length) parts.push(`It borders ${list(ns.slice(0, 3).map(the))}.`);
     else parts.push(`It’s an island nation${t.landlocked ? '' : ` in ${t.subregion || t.region}`}.`);
   }
