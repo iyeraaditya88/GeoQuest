@@ -917,7 +917,7 @@ export default function App() {
         onFeature={(f) => { if (!anti && !quiz && !liveRef.current.active) void openFeature(f); }}
         feature={feature}
         onInteract={() => setAutoRotate(false)}
-        onReady={() => setTimeout(() => setReady(true), 300)}
+        onReady={() => { track('ready', { ms: Math.round(performance.now()) }); setTimeout(() => setReady(true), 300); }}
       />
 
       {atlasFrom && (

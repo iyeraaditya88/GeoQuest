@@ -2208,3 +2208,12 @@ button.sb-user:hover { background: rgba(255, 255, 255, 0.05); }
 .people-backdrop { overflow-y: auto; place-items: safe center; }
 .si-sheet { max-height: var(--modal-h); overflow-y: auto; overscroll-behavior: contain; }
 .people > .gc-head:first-child { position: sticky; top: -14px; z-index: 3; margin: -14px -16px 0; padding: 14px 16px 8px; background: rgba(9, 14, 30, 0.97); border-radius: 22px 22px 0 0; }
+
+/* Activity: engagement funnel */
+.ac-funnel { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ac-funnel li { display: grid; grid-template-columns: 112px minmax(0, 1fr) 44px 44px; align-items: center; gap: 10px; font-size: 13px; }
+.ac-funnel span { color: var(--muted); }
+.ac-funnel i { height: 10px; border-radius: 99px; background: linear-gradient(90deg, var(--gold), var(--gold-soft)); }
+.ac-funnel b { text-align: right; font-variant-numeric: tabular-nums; }
+.ac-funnel em { font-style: normal; text-align: right; color: var(--dim); font-variant-numeric: tabular-nums; }
+.ac-v-sum em.quiet { color: var(--dim); background: rgba(255, 255, 255, 0.05); }

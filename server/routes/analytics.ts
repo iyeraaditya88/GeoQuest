@@ -4,11 +4,14 @@ import * as accounts from '../users.js';
 import { cleanSession, placeFrom, recentSessions, saveSession } from '../analytics.js';
 import { HOSTED, fail, rateLimit } from '../http.js';
 import * as alerts from '../alerts.js';
+import { isBotAgent } from '../../src/lib/bots.js';
 
 export function registerAnalytics(app: express.Express) {
   const me = (req: express.Request) => (HOSTED ? req.user ?? 'guest' : accounts.normName(req.headers['x-gq-as']) || 'you');
 
   app.post('/api/analytics', rateLimit(40, 10 * 60_000), async (req, res) => {
+    // Crawlers aren't visitors: say thanks, keep nothing (and no "guest exploring" ping).
+    if (isBotAgent(String(req.headers['user-agent'] ?? ''))) { res.json({ ok: true }); return; }
     const s = cleanSession(me(req), req.body);
     if (!s) { fail(res, 400, 'Not a valid session.'); return; }
     const place = HOSTED ? placeFrom(req.headers) : undefined;

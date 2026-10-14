@@ -20,6 +20,12 @@ const SITES: [RegExp, string][] = [
   [/reddit\.com$/, 'Reddit'], [/(^t\.co|x\.com|twitter\.com)$/, 'X'], [/facebook\.com$/, 'Facebook'], [/instagram\.com$/, 'Instagram'],
   [/news\.ycombinator\.com$/, 'Hacker News'], [/producthunt\.com$/, 'Product Hunt'], [/(whatsapp\.com|wa\.me)$/, 'WhatsApp'], [/discord(app)?\.com$/, 'Discord'],
 ];
+// Engagement steps, from the visit's events. ("touch" and "ready" exist from Oct 14, 2026: older
+// visits only count from "Explored".)
+const has = (s: Session, ...names: string[]) => s.events.some((e) => names.includes(e[1]));
+const ACTIONS = ['country', 'feature', 'game', 'open', 'launch', 'search', 'ask', 'score', 'match'];
+const interacted = (s: Session) => has(s, 'touch', ...ACTIONS);
+
 const sourceOf = (s: Session) => (s.src ? TAGS[s.src] ?? s.src : s.from ? SITES.find(([re]) => re.test(s.from!))?.[1] ?? s.from : 'Direct');
 
 /** 🇮🇳 from "IN" */
@@ -54,6 +60,8 @@ function describe([, name, d = {}]: Event) {
     case 'ask': return 'Asked Claude a question';
     case 'search': return 'Searched';
     case 'crash': return `Error in ${d.w}`;
+    case 'ready': return `Globe loaded${d.ms ? ` (${(Number(d.ms) / 1000).toFixed(1)} s)` : ''}`;
+    case 'touch': return 'First tap or click';
     case 'open': return d.w === 'games' ? 'Opened the Play menu' : `Opened ${d.w}`;
     case 'launch': return `Picked ${GAME_NAMES[d.g] ?? (d.g === 'duel' ? 'Duel' : d.g)} from the Play menu`;
     default: return name;
@@ -126,6 +134,20 @@ export function ActivityPanel({ open, onClose }: { open: boolean; onClose: () =>
     const games: Record<string, { plays: number; best: number }> = {};
     const countries: Record<string, number> = {};
     const places: Record<string, { n: number; cc?: string }> = {};
+    // The funnel starts from the first visit that reported loading (when this was added), and
+    // counts every visit since — including ones that left before the globe appeared.
+    const trackedFrom = Math.min(...sessions.filter((s) => has(s, 'ready')).map((s) => s.start));
+    const measured = Number.isFinite(trackedFrom) ? sessions.filter((s) => s.start >= trackedFrom) : [];
+    const loads = measured.flatMap((s) => s.events.filter((e) => e[1] === 'ready').map((e) => Number(e[2]?.ms) || 0)).filter(Boolean).sort((a, b) => a - b);
+    const funnel = measured.length ? [
+      { label: 'Visits', n: measured.length },
+      { label: 'Globe loaded', n: measured.filter((s) => has(s, 'ready')).length },
+      { label: 'Interacted', n: measured.filter(interacted).length },
+      { label: 'Explored', n: measured.filter((s) => has(s, 'country', 'feature', 'open', 'launch', 'game', 'search', 'ask')).length },
+      { label: 'Played a game', n: measured.filter((s) => has(s, 'game')).length },
+      { label: 'Finished one', n: measured.filter((s) => has(s, 'score', 'match')).length },
+    ] : [];
+    const medianLoad = loads.length ? loads[Math.floor(loads.length / 2)] : 0;
     const sources: Record<string, number> = {};
     for (const s of sessions) { const k = sourceOf(s); sources[k] = (sources[k] ?? 0) + 1; }
     for (const s of sessions) {
@@ -146,6 +168,7 @@ export function ActivityPanel({ open, onClose }: { open: boolean; onClose: () =>
       players: new Set(sessions.map((s) => s.user)).size,
       games: Object.entries(games).sort((a, b) => b[1].plays - a[1].plays),
       countries: Object.entries(countries).sort((a, b) => b[1] - a[1]).slice(0, 10),
+      funnel, medianLoad,
       sources: Object.entries(sources).sort((a, b) => b[1] - a[1]),
       places: Object.entries(places).sort((a, b) => b[1].n - a[1].n).slice(0, 12).map(([k, v]) => ({ name: k.split('|')[0], ...v })),
     };
@@ -185,6 +208,16 @@ export function ActivityPanel({ open, onClose }: { open: boolean; onClose: () =>
                   <div><b>{dur(view.total)}</b><span>time in app</span></div>
                   <div><b>{view.sessions.length ? dur(view.total / view.sessions.length) : '—'}</b><span>avg visit</span></div>
                 </div>
+
+                <div className="fr-label">Engagement <span className="ac-hint">real visitors (crawlers are left out){view.medianLoad ? ` · globe loads in ${(view.medianLoad / 1000).toFixed(1)} s (median)` : ''}</span></div>
+                {view.funnel.length ? (
+                  <ol className="ac-funnel">
+                    {view.funnel.map((f) => {
+                      const pct = Math.round((f.n / view.funnel[0].n) * 100);
+                      return <li key={f.label}><span>{f.label}</span><i style={{ width: `${Math.max(pct, 2)}%` }} /><b>{f.n}</b><em>{pct}%</em></li>;
+                    })}
+                  </ol>
+                ) : <p className="ac-note">Collecting — engagement is measured from new visits onwards.</p>}
 
                 <div className="fr-label">Players{who && <button className="ac-clear" onClick={() => setWho(null)}>Show everyone</button>}</div>
                 {view.ranked.length ? (
@@ -269,6 +302,7 @@ export function ActivityPanel({ open, onClose }: { open: boolean; onClose: () =>
                           </span>
                           <span className="ac-v-sum">
                             {s.events.some((e) => e[1] === 'crash') && <em className="bad">error</em>}
+                            {!interacted(s) && <em className="quiet">bounced</em>}
                             {games > 0 && <em>{games} game{games === 1 ? '' : 's'}</em>}
                             {seen > 0 && <em>{seen} countr{seen === 1 ? 'y' : 'ies'}</em>}
                           </span>

@@ -2,6 +2,7 @@
 // app was actually in use, the device, and a short list of what happened — sent as a summary
 // every few minutes and when the tab is hidden, never per click.
 import { api } from './api';
+import { isBotAgent } from './bots';
 
 type Data = Record<string, string | number>;
 type Event = [at: number, name: string, data?: Data];
@@ -31,8 +32,13 @@ const ORIGIN = (() => {
   return { ...(src ? { src } : {}), ...(from ? { from } : {}) };
 })();
 
+const BOT = typeof navigator !== 'undefined' && isBotAgent(navigator.userAgent, navigator.webdriver === true);
+
 let s = { sid: id(), start: Date.now(), active: 0, events: [] as Event[] };
-let lastInput = Date.now();
+// Time "in use" only counts once the visitor has done something (a tap, click, key or scroll) —
+// an open tab nobody touches isn't engagement.
+let lastInput = 0;
+let touched = false;
 let lastSent = 0;
 let hiddenAt = 0;
 let dirty = false;
@@ -61,7 +67,7 @@ function send() {
 
 /** Record something the player did (kept short: a name and a few small values). */
 export function track(name: string, data?: Data) {
-  if (!started) return;
+  if (BOT) return; // (events before analytics starts are kept, and sent with the first report)
   const at = Math.round((Date.now() - s.start) / 1000);
   const prev = s.events[s.events.length - 1];
   if (prev && prev[1] === name && JSON.stringify(prev[2]) === JSON.stringify(data)) return; // same thing twice in a row
@@ -72,10 +78,8 @@ export function track(name: string, data?: Data) {
 
 /** Start measuring this visit (once). */
 export function startAnalytics() {
-  if (started || typeof window === 'undefined') return;
+  if (started || BOT || typeof window === 'undefined') return;
   started = true;
-  const input = () => { lastInput = Date.now(); };
-  for (const e of ['pointerdown', 'keydown', 'wheel', 'touchstart']) window.addEventListener(e, input, { passive: true, capture: true });
   window.setInterval(() => {
     if (document.visibilityState === 'visible' && Date.now() - lastInput < IDLE) { s.active += TICK / 1000; dirty = true; }
     if (dirty && Date.now() - lastSent > EVERY) send();
@@ -88,9 +92,19 @@ export function startAnalytics() {
     } else if (hiddenAt && Date.now() - hiddenAt > NEW_VISIT) {
       if (dirty) send();
       s = { sid: id(), start: Date.now(), active: 0, events: [] };
-      lastInput = Date.now();
+      lastInput = 0;
+      touched = false;
       dirty = true;
     }
   });
   window.addEventListener('pagehide', () => { if (dirty) send(); });
+}
+
+// Input is watched from the moment the app loads (before analytics starts), so the first tap counts.
+if (typeof window !== 'undefined' && !BOT) {
+  const input = () => {
+    lastInput = Date.now();
+    if (!touched) { touched = true; track('touch'); }
+  };
+  for (const e of ['pointerdown', 'keydown', 'wheel', 'touchstart']) window.addEventListener(e, input, { passive: true, capture: true });
 }
