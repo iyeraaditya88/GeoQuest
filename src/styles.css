@@ -1113,7 +1113,7 @@ button:not(:disabled):active { filter: brightness(0.86); transition-duration: 0s
 
 /* ── People (owner) ─────────────────────────────────── */
 .people-backdrop { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 16px; background: rgba(2, 4, 12, 0.55); backdrop-filter: blur(4px); }
-.people { width: min(480px, 100%); max-height: min(640px, calc(100vh - 32px)); overflow: auto; display: grid; gap: 12px; align-content: start;
+.people { width: min(480px, 100%); max-height: min(640px, var(--modal-h)); overflow: auto; display: grid; gap: 12px; align-content: start;
   padding: 14px 16px 16px; border-radius: 22px; background: rgba(9, 14, 30, 0.97); box-shadow: var(--shadow); }
 .people .gc-title { flex: 0 1 auto; }
 .pp-invite { display: flex; gap: 8px; }
@@ -1173,7 +1173,7 @@ button:not(:disabled):active { filter: brightness(0.86); transition-duration: 0s
 @keyframes live-ping { 70% { box-shadow: 0 0 0 6px rgba(52, 211, 153, 0); } 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); } }
 
 /* Friends panel */
-.people.friends { width: min(520px, 100%); max-height: min(720px, calc(100vh - 32px)); gap: 10px; }
+.people.friends { width: min(520px, 100%); max-height: min(720px, var(--modal-h)); gap: 10px; }
 .fr-label { display: flex; align-items: center; gap: 6px; margin-top: 4px; font: 600 10.5px var(--display); letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); }
 .fr-list { max-height: 220px; overflow: auto; }
 .fr-row { cursor: pointer; transition: background 0.18s, box-shadow 0.18s; outline: none; }
@@ -1527,7 +1527,7 @@ html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent
 }
 
 /* ── Activity (owner) ── */
-.people.activity { width: min(720px, 100%); max-height: min(820px, calc(100vh - 32px)); gap: 10px; grid-template-columns: minmax(0, 1fr); overflow-x: hidden; }
+.people.activity { width: min(720px, 100%); max-height: min(820px, var(--modal-h)); gap: 10px; grid-template-columns: minmax(0, 1fr); overflow-x: hidden; }
 .ac-controls { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .ac-me { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); cursor: pointer; }
 .ac-me input { accent-color: var(--gold); }
@@ -1729,7 +1729,7 @@ html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent
 .qd-steps i.p3 { background: #34d399; } .qd-steps i.p2 { background: #facc15; } .qd-steps i.p1 { background: #fb923c; } .qd-steps i.p0 { background: #475569; }
 
 /* Daily result */
-.people.daily { width: min(440px, 100%); max-height: min(780px, calc(100vh - 32px)); gap: 12px; grid-template-columns: minmax(0, 1fr); }
+.people.daily { width: min(440px, 100%); max-height: min(780px, var(--modal-h)); gap: 12px; grid-template-columns: minmax(0, 1fr); }
 .dy-hero { display: grid; justify-items: center; gap: 6px; padding: 6px 0 2px; }
 .dy-score b { font: 700 46px/1 var(--display); color: var(--gold-soft); font-variant-numeric: tabular-nums; }
 .dy-score span { margin-left: 4px; font-size: 18px; color: var(--dim); }
@@ -2199,3 +2199,12 @@ button.sb-user:hover { background: rgba(255, 255, 255, 0.05); }
 /* Games in the menu: their icons sit in colour tiles (as on the Play sheet) */
 .sb-ico.tile { width: 28px; height: 28px; border-radius: 9px; color: #fff; box-shadow: 0 4px 12px -6px rgba(0, 0, 0, 0.6); }
 .sb-item.on .sb-ico.tile { color: #fff; box-shadow: 0 0 0 2px var(--gold); }
+
+/* Pop-up panels never taller than the space they really have: the screen minus the notch / status
+   bar and the home bar (the installed app on iPhone loses both), so the top — with its ✕ — is
+   always on screen. If a panel is still long, it scrolls inside, and its header stays put. */
+:root { --vh-full: 100vh; --modal-h: calc(var(--vh-full) - 32px - var(--st) - var(--sb)); }
+@supports (height: 100dvh) { :root { --vh-full: 100dvh; } }
+.people-backdrop { overflow-y: auto; place-items: safe center; }
+.si-sheet { max-height: var(--modal-h); overflow-y: auto; overscroll-behavior: contain; }
+.people > .gc-head:first-child { position: sticky; top: -14px; z-index: 3; margin: -14px -16px 0; padding: 14px 16px 8px; background: rgba(9, 14, 30, 0.97); border-radius: 22px 22px 0 0; }
