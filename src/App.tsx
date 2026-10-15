@@ -17,10 +17,12 @@ const loadStreet = () => fresh(import('./components/StreetGame'));
 const StreetGame = lazy(() => loadStreet().then((m) => ({ default: m.StreetGame })));
 const loadTop5 = () => fresh(import('./components/Top5Game'));
 const loadCapitals = () => fresh(import('./components/CapitalsGame'));
+const loadShapes = () => fresh(import('./components/ShapeGame'));
 const loadTrivia = () => fresh(import('./components/TriviaGame'));
 const TriviaGame = lazy(() => loadTrivia().then((m) => ({ default: m.TriviaGame })));
 const Top5Game = lazy(() => loadTop5().then((m) => ({ default: m.Top5Game })));
 const CapitalsGame = lazy(() => loadCapitals().then((m) => ({ default: m.CapitalsGame })));
+const ShapeGame = lazy(() => loadShapes().then((m) => ({ default: m.ShapeGame })));
 
 // Shown for the moment a game's code is still downloading, so a click never looks ignored.
 function GameCardSkeleton() {
@@ -242,7 +244,7 @@ export default function App() {
   const [placesFocus, setPlacesFocus] = useState<{ id: string; n: number } | null>(null);
   const [placesDraft, setPlacesDraft] = useState<{ lat: number; lng: number } | null>(null); // a new pin being named
   const { places: myPlaces } = usePlaces();
-  const [play, setPlay] = useState<null | 'top5' | 'capitals' | 'trivia'>(null);
+  const [play, setPlay] = useState<null | 'top5' | 'capitals' | 'trivia' | 'shapes'>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const timer = useRef<number | undefined>(undefined);
 
@@ -488,7 +490,7 @@ export default function App() {
   // ── Feedback ──────────────────────────────────────────
   /** Where in the app they are right now (sent with feedback, so a bug report has context). */
   const whereNow = () => quiz ? (quiz.daily ? `Daily #${quiz.daily.no}` : `Map quiz (${quiz.mode})`)
-    : geo ? 'Street View' : play === 'top5' ? 'Name the Top 5' : play === 'capitals' ? 'Capitals' : play === 'trivia' ? 'Geo Trivia'
+    : geo ? 'Street View' : play === 'top5' ? 'Name the Top 5' : play === 'capitals' ? 'Capitals' : play === 'trivia' ? 'Geo Trivia' : play === 'shapes' ? 'Guess the Country'
     : anti ? 'Antipode finder' : liveRef.current.active ? 'Live duel' : dailyCard ? 'Daily result' : placesOpen ? 'My places'
     : country ? `Country: ${country.name}` : feature ? `Map: ${feature.name}` : view === 'flat' ? 'Atlas' : 'Globe';
   const whereRef = useRef(whereNow);
@@ -698,7 +700,7 @@ export default function App() {
   const restartGeo = () => { seen.current = []; void loadRound(1, []); };
 
   // ── Word games (Top 5, Capitals) ───────────────────────
-  const startPlay = (g: 'top5' | 'capitals' | 'trivia') => {
+  const startPlay = (g: 'top5' | 'capitals' | 'trivia' | 'shapes') => {
     track('game', { g });
     if (geoRef.current) exitGeo();
     if (antiRef.current) exitAntipode();
@@ -880,7 +882,7 @@ export default function App() {
   // deploy has replaced. (Street View is big — it stays on demand.)
   useEffect(() => {
     if (!ready) return;
-    preload([loadTop5, loadCapitals, loadTrivia, ...(role === 'owner' || liveMode === 'local' ? [loadActivity, loadInbox] : [])]);
+    preload([loadTop5, loadCapitals, loadTrivia, loadShapes, ...(role === 'owner' || liveMode === 'local' ? [loadActivity, loadInbox] : [])]);
   }, [ready, role, liveMode]);
 
   // Rivers and mountains step aside during a quiz (Map quiz, the Daily, a live quiz): the borders are what matter then.
@@ -993,6 +995,7 @@ export default function App() {
         onAntipode={() => (anti ? exitAntipode() : void startAntipode())}
         onTop5={() => (play === 'top5' ? exitPlay() : startPlay('top5'))}
         onCapitals={() => (play === 'capitals' ? exitPlay() : startPlay('capitals'))}
+        onShapes={() => (play === 'shapes' ? exitPlay() : startPlay('shapes'))}
         onTrivia={() => (play === 'trivia' ? exitPlay() : startPlay('trivia'))}
         onFriends={liveMode && liveMe ? () => setFriendsReq((n) => n + 1) : guest ? () => needSignIn('friends') : undefined}
         onInvite={liveMode && liveMe ? () => setInviteReq((n) => n + 1) : guest ? () => needSignIn('friends') : undefined}
@@ -1061,6 +1064,7 @@ export default function App() {
       <AnimatePresence>
         {play === 'top5' && <ErrorBoundary key="top5" name="Name the Top 5" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><Top5Game ai={ai} onHighlight={(ids) => (ids.length ? highlight(ids) : setHighlighted([]))} onExit={exitPlay} /></Suspense></ErrorBoundary>}
         {play === 'trivia' && <ErrorBoundary key="trivia" name="Geo Trivia" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><TriviaGame onReveal={revealTrivia} onExit={exitPlay} /></Suspense></ErrorBoundary>}
+        {play === 'shapes' && <ErrorBoundary key="shapes" name="Guess the Country" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><ShapeGame onReveal={(c) => { setHighlighted([c]); cam.flyTo(c); }} onExit={exitPlay} /></Suspense></ErrorBoundary>}
         {play === 'capitals' && <ErrorBoundary key="capitals" name="Capitals" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><CapitalsGame onReveal={(c) => { setHighlighted([c]); cam.flyTo(c); }} onExit={exitPlay} /></Suspense></ErrorBoundary>}
       </AnimatePresence>
       <AnimatePresence>

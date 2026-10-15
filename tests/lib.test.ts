@@ -267,3 +267,31 @@ describe('country pages', () => {
     expect(isCountryPath('/country/India')).toBe(false);
   });
 });
+
+describe('guess the country', () => {
+  it('understands typed guesses, including common short names', async () => {
+    const { matchGuess, suggest } = await import('../src/lib/shapes');
+    expect(matchGuess('kenya')?.cca3).toBe('KEN');
+    expect(matchGuess('  São Tomé and Príncipe ')?.cca3).toBe('STP');
+    expect(matchGuess('USA')?.cca3).toBe('USA');
+    expect(matchGuess('uk')?.cca3).toBe('GBR');
+    expect(matchGuess('ivory coast')?.cca3).toBe('CIV');
+    expect(matchGuess('Narnia')).toBeNull();
+    expect(suggest('mau').map((c) => c.cca3)).toEqual(expect.arrayContaining(['MRT', 'MUS']));
+    expect(suggest('guinea').length).toBeGreaterThanOrEqual(3); // Guinea, Guinea-Bissau, Equatorial Guinea, Papua New Guinea…
+  });
+  it('scores earlier guesses higher, and gives clues from each wrong guess', async () => {
+    const { shapePoints, guessClue, nearbyCapitals, lettersHint, stageClue, newShapeRound } = await import('../src/lib/shapes');
+    expect([0, 1, 2, 3, 4].map((m) => shapePoints(m, true))).toEqual([5, 4, 3, 2, 1]);
+    expect(shapePoints(5, false)).toBe(0);
+    expect(guessClue('KEN', 'BRA')).toMatch(/km east of Brazil|km north-east of Brazil|km south-east of Brazil/);
+    expect(guessClue('NLD', 'BEL')).toMatch(/shares a border with Belgium/);
+    const caps = nearbyCapitals('MRT');
+    expect(caps.map((c) => c.city)).toEqual(expect.arrayContaining(['Bamako', 'Dakar']));
+    expect(nearbyCapitals('ISL').length).toBeGreaterThan(0); // islands get their nearest capitals
+    expect(lettersHint('Mauritania')).toBe('M _ _ _ _ _ _ _ _ _');
+    expect(stageClue('MRT', 2)).toMatch(/Africa/);
+    const round = newShapeRound();
+    expect(new Set(round).size).toBe(5);
+  });
+});

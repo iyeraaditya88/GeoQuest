@@ -17,6 +17,14 @@ function bearing(a: [number, number], b: [number, number]) {
 const DIRS = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'];
 const compass = (deg: number) => DIRS[Math.round(deg / 45) % 8];
 const roundKm = (km: number) => (km < 150 ? 'just' : km < 1000 ? `about ${Math.round(km / 50) * 50} km` : `about ${(Math.round(km / 100) * 100).toLocaleString('en-US')} km`);
+/** Distance and direction from one country to another: { km, dir: 'north-east', text: 'about 2,300 km' }. */
+export function fromTo(fromCca3: string, toCca3: string) {
+  const a = BY_CCA3.get(fromCca3), b = BY_CCA3.get(toCca3);
+  if (!a || !b) return null;
+  const km = distKm(a.latlng, b.latlng);
+  return { km, dir: compass(bearing(a.latlng, b.latlng)), text: roundKm(km) };
+}
+export { distKm };
 const list = (xs: string[]) => (xs.length <= 1 ? xs[0] ?? '' : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
 const the = (c: Country) => (/^(United|Netherlands|Philippines|Bahamas|Gambia|Maldives|Comoros|Seychelles|Solomon|Marshall|Central African|Dominican|Czech|Democratic|Republic)/.test(c.name) ? `the ${c.name}` : c.name);
 
