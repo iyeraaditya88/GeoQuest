@@ -295,3 +295,24 @@ describe('guess the country', () => {
     expect(new Set(round).size).toBe(5);
   });
 });
+
+describe('geo wordle', () => {
+  it('colours guesses like Wordle, repeats included', async () => {
+    const { score } = await import('../src/lib/wordle');
+    expect(score('SPAIN', 'CHINA').join('')).toBe('xxyyy');
+    expect(score('ALLLA', 'LLAMA').join('')).toBe('ygyxg'); // only as many yellows as the answer has
+    expect(score('KENYA', 'KENYA').join('')).toBe('ggggg');
+  });
+  it('only accepts real countries of the right length, and picks one Daily for everyone', async () => {
+    const { invalidReason, countryFor, dailyWordle, WORDLE_POOL, countriesOfLength, wordleShare, letters } = await import('../src/lib/wordle');
+    expect(invalidReason('CHIN', 'CHINA')).toMatch(/Not enough letters/);
+    expect(invalidReason('ZZZZZ', 'CHINA')).toMatch(/not a country/);
+    expect(invalidReason('SPAIN', 'CHINA')).toBeNull();
+    expect(countryFor('newzealand')?.cca3).toBe('NZL'); // multi-word names count their letters
+    expect(letters("Côte d'Ivoire")).toBe('COTEDIVOIRE');
+    expect(dailyWordle('2026-10-14')).toBe(dailyWordle('2026-10-14'));
+    expect(WORDLE_POOL).toContain(dailyWordle('2026-10-14'));
+    for (const c of WORDLE_POOL) expect(countriesOfLength(c.length) >= 0).toBe(true);
+    expect(wordleShare(12, [['x', 'y', 'g'], ['g', 'g', 'g']], true)).toBe('GeoQuest Wordle #12 2/6\n⬛🟨🟩\n🟩🟩🟩');
+  });
+});

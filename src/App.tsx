@@ -18,11 +18,13 @@ const StreetGame = lazy(() => loadStreet().then((m) => ({ default: m.StreetGame 
 const loadTop5 = () => fresh(import('./components/Top5Game'));
 const loadCapitals = () => fresh(import('./components/CapitalsGame'));
 const loadShapes = () => fresh(import('./components/ShapeGame'));
+const loadWordle = () => fresh(import('./components/GeoWordle'));
 const loadTrivia = () => fresh(import('./components/TriviaGame'));
 const TriviaGame = lazy(() => loadTrivia().then((m) => ({ default: m.TriviaGame })));
 const Top5Game = lazy(() => loadTop5().then((m) => ({ default: m.Top5Game })));
 const CapitalsGame = lazy(() => loadCapitals().then((m) => ({ default: m.CapitalsGame })));
 const ShapeGame = lazy(() => loadShapes().then((m) => ({ default: m.ShapeGame })));
+const GeoWordle = lazy(() => loadWordle().then((m) => ({ default: m.GeoWordle })));
 
 // Shown for the moment a game's code is still downloading, so a click never looks ignored.
 function GameCardSkeleton() {
@@ -244,7 +246,7 @@ export default function App() {
   const [placesFocus, setPlacesFocus] = useState<{ id: string; n: number } | null>(null);
   const [placesDraft, setPlacesDraft] = useState<{ lat: number; lng: number } | null>(null); // a new pin being named
   const { places: myPlaces } = usePlaces();
-  const [play, setPlay] = useState<null | 'top5' | 'capitals' | 'trivia' | 'shapes'>(null);
+  const [play, setPlay] = useState<null | 'top5' | 'capitals' | 'trivia' | 'shapes' | 'wordle'>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const timer = useRef<number | undefined>(undefined);
 
@@ -267,7 +269,7 @@ export default function App() {
   const selectRef = useRef(select);
   selectRef.current = select;
   // Arrived from a country page (?country=IND / ?play=1): act once the globe is ready.
-  const linkWanted = useRef<{ country?: string; play?: boolean } | null>(null);
+  const linkWanted = useRef<{ country?: string; play?: boolean; wordle?: boolean } | null>(null);
 
   // ── Rivers, ranges, peaks & lakes: click one to open its panel ──
   const [feature, setFeature] = useState<FeatureInfo | null>(null);
@@ -490,7 +492,7 @@ export default function App() {
   // ── Feedback ──────────────────────────────────────────
   /** Where in the app they are right now (sent with feedback, so a bug report has context). */
   const whereNow = () => quiz ? (quiz.daily ? `Daily #${quiz.daily.no}` : `Map quiz (${quiz.mode})`)
-    : geo ? 'Street View' : play === 'top5' ? 'Name the Top 5' : play === 'capitals' ? 'Capitals' : play === 'trivia' ? 'Geo Trivia' : play === 'shapes' ? 'Guess the Country'
+    : geo ? 'Street View' : play === 'top5' ? 'Name the Top 5' : play === 'capitals' ? 'Capitals' : play === 'trivia' ? 'Geo Trivia' : play === 'shapes' ? 'Guess the Country' : play === 'wordle' ? 'Geo Wordle'
     : anti ? 'Antipode finder' : liveRef.current.active ? 'Live duel' : dailyCard ? 'Daily result' : placesOpen ? 'My places'
     : country ? `Country: ${country.name}` : feature ? `Map: ${feature.name}` : view === 'flat' ? 'Atlas' : 'Globe';
   const whereRef = useRef(whereNow);
@@ -510,8 +512,9 @@ export default function App() {
     const linkCountry = url.searchParams.get('country')?.toUpperCase();
     if (linkCountry && BY_CCA3.has(linkCountry)) linkWanted.current = { country: linkCountry };
     if (url.searchParams.has('play')) linkWanted.current = { ...linkWanted.current, play: true };
-    if (url.searchParams.has('country') || url.searchParams.has('play')) {
-      url.searchParams.delete('country'); url.searchParams.delete('play');
+    if (url.searchParams.has('wordle')) linkWanted.current = { ...linkWanted.current, wordle: true };
+    if (url.searchParams.has('country') || url.searchParams.has('play') || url.searchParams.has('wordle')) {
+      url.searchParams.delete('country'); url.searchParams.delete('play'); url.searchParams.delete('wordle');
       history.replaceState(null, '', url.pathname + url.search + url.hash);
     }
     if (url.searchParams.has('feedback') || url.searchParams.has('inbox') || url.searchParams.has('activity')) {
@@ -534,6 +537,7 @@ export default function App() {
       linkWanted.current = null;
       if (w?.country) selectRef.current(w.country);
       if (w?.play) setGamesOpen(true);
+      if (w?.wordle) startPlayRef.current('wordle');
     }, 500);
   }, [ready]);
 
@@ -700,7 +704,7 @@ export default function App() {
   const restartGeo = () => { seen.current = []; void loadRound(1, []); };
 
   // ── Word games (Top 5, Capitals) ───────────────────────
-  const startPlay = (g: 'top5' | 'capitals' | 'trivia' | 'shapes') => {
+  const startPlay = (g: 'top5' | 'capitals' | 'trivia' | 'shapes' | 'wordle') => {
     track('game', { g });
     if (geoRef.current) exitGeo();
     if (antiRef.current) exitAntipode();
@@ -711,7 +715,11 @@ export default function App() {
     setAutoRotate(false);
     setPlay(g);
   };
+  const startPlayRef = useRef(startPlay);
+  startPlayRef.current = startPlay;
   const exitPlay = () => { setPlay(null); setHighlighted([]); };
+  /** A game's answer: light it up and fly there. */
+  const revealOnGlobe = useCallback((c: string) => { setHighlighted([c]); cam.flyTo(c); }, [cam]);
   // Trivia answers that are places light up on the map.
   const revealTrivia = useCallback((answer: string) => {
     const at = placeFor(answer);
@@ -882,7 +890,7 @@ export default function App() {
   // deploy has replaced. (Street View is big — it stays on demand.)
   useEffect(() => {
     if (!ready) return;
-    preload([loadTop5, loadCapitals, loadTrivia, loadShapes, ...(role === 'owner' || liveMode === 'local' ? [loadActivity, loadInbox] : [])]);
+    preload([loadTop5, loadCapitals, loadTrivia, loadShapes, loadWordle, ...(role === 'owner' || liveMode === 'local' ? [loadActivity, loadInbox] : [])]);
   }, [ready, role, liveMode]);
 
   // Rivers and mountains step aside during a quiz (Map quiz, the Daily, a live quiz): the borders are what matter then.
@@ -996,6 +1004,7 @@ export default function App() {
         onTop5={() => (play === 'top5' ? exitPlay() : startPlay('top5'))}
         onCapitals={() => (play === 'capitals' ? exitPlay() : startPlay('capitals'))}
         onShapes={() => (play === 'shapes' ? exitPlay() : startPlay('shapes'))}
+        onWordle={() => (play === 'wordle' ? exitPlay() : startPlay('wordle'))}
         onTrivia={() => (play === 'trivia' ? exitPlay() : startPlay('trivia'))}
         onFriends={liveMode && liveMe ? () => setFriendsReq((n) => n + 1) : guest ? () => needSignIn('friends') : undefined}
         onInvite={liveMode && liveMe ? () => setInviteReq((n) => n + 1) : guest ? () => needSignIn('friends') : undefined}
@@ -1064,6 +1073,7 @@ export default function App() {
       <AnimatePresence>
         {play === 'top5' && <ErrorBoundary key="top5" name="Name the Top 5" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><Top5Game ai={ai} onHighlight={(ids) => (ids.length ? highlight(ids) : setHighlighted([]))} onExit={exitPlay} /></Suspense></ErrorBoundary>}
         {play === 'trivia' && <ErrorBoundary key="trivia" name="Geo Trivia" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><TriviaGame onReveal={revealTrivia} onExit={exitPlay} /></Suspense></ErrorBoundary>}
+        {play === 'wordle' && <ErrorBoundary key="wordle" name="Geo Wordle" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><GeoWordle onReveal={revealOnGlobe} onExit={exitPlay} /></Suspense></ErrorBoundary>}
         {play === 'shapes' && <ErrorBoundary key="shapes" name="Guess the Country" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><ShapeGame onReveal={(c) => { setHighlighted([c]); cam.flyTo(c); }} onExit={exitPlay} /></Suspense></ErrorBoundary>}
         {play === 'capitals' && <ErrorBoundary key="capitals" name="Capitals" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><CapitalsGame onReveal={(c) => { setHighlighted([c]); cam.flyTo(c); }} onExit={exitPlay} /></Suspense></ErrorBoundary>}
       </AnimatePresence>

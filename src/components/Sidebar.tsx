@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowRight, BarChart3, Shapes, Inbox, MessageSquareHeart, BellRing, Binoculars, Brain, CalendarDays, Check, ChevronLeft, Dices, Drill, Gamepad2, Globe2, KeyRound, Landmark, Link2, ListOrdered, LogIn, LogOut, Map as MapIcon, MapPinned, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, Sparkles, SunMoon, Swords, UserRound, Users, X } from 'lucide-react';
+import { ArrowRight, BarChart3, Grid3x3, Shapes, Inbox, MessageSquareHeart, BellRing, Binoculars, Brain, CalendarDays, Check, ChevronLeft, Dices, Drill, Gamepad2, Globe2, KeyRound, Landmark, Link2, ListOrdered, LogIn, LogOut, Map as MapIcon, MapPinned, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, Sparkles, SunMoon, Swords, UserRound, Users, X } from 'lucide-react';
 import type { MapStyle } from './GlobeView';
 
 export const SIDEBAR_W = { open: 268, rail: 72 } as const;
@@ -16,7 +16,7 @@ interface Props {
   style: MapStyle;
   autoRotate: boolean;
   quizOn: boolean;
-  playOn: null | 'top5' | 'capitals' | 'trivia' | 'shapes';
+  playOn: null | 'top5' | 'capitals' | 'trivia' | 'shapes' | 'wordle';
   ai: boolean | null;
   onSearch: () => void;
   onRandom: () => void;
@@ -55,6 +55,7 @@ interface Props {
   onTop5: () => void;
   onCapitals: () => void;
   onShapes: () => void;
+  onWordle: () => void;
   onTrivia: () => void;
   /** Live head-to-head (absent when live play isn't available) */
   onFriends?: () => void;
@@ -159,6 +160,7 @@ export function Sidebar(p: Props) {
             {rail && p.onInvite && <Item icon={Link2} label="Invite with a link" rail onClick={act(p.onInvite)} />}
             <Item icon={Gamepad2} tone="blue" label={p.quizOn ? 'Exit quiz' : 'Map quiz'} sub={p.quizOn ? undefined : 'Find countries, flags or clues'} rail={rail} active={p.quizOn} onClick={act(p.onQuiz)} />
             <Item icon={Binoculars} tone="green" label="Street View" sub="Where in the world are you?" rail={rail} onClick={act(p.onStreet)} />
+            <Item icon={Grid3x3} tone="lime" label={p.playOn === 'wordle' ? 'Exit Geo Wordle' : 'Geo Wordle'} sub={p.playOn === 'wordle' ? undefined : 'Wordle, but it’s a country'} rail={rail} active={p.playOn === 'wordle'} onClick={act(p.onWordle)} />
             <Item icon={Shapes} tone="rose" label={p.playOn === 'shapes' ? 'Exit Guess the Country' : 'Guess the Country'} sub={p.playOn === 'shapes' ? undefined : 'Name it from its outline'} rail={rail} active={p.playOn === 'shapes'} onClick={act(p.onShapes)} />
             <Item icon={Landmark} tone="amber" label={p.playOn === 'capitals' ? 'Exit Capitals' : 'Capitals'} sub={p.playOn === 'capitals' ? undefined : 'Country ↔ capital, 10 a round'} rail={rail} active={p.playOn === 'capitals'} onClick={act(p.onCapitals)} />
             <Item icon={Brain} tone="violet" label={p.playOn === 'trivia' ? 'Exit Geo Trivia' : 'Geo Trivia'} sub={p.playOn === 'trivia' ? undefined : 'Gets harder as you get better'} rail={rail} active={p.playOn === 'trivia'} onClick={act(p.onTrivia)} />
@@ -311,7 +313,7 @@ function Item({ icon: Icon, label, sub, rail, onClick, active, disabled, trailin
   icon: typeof Search; label: string; sub?: string; rail: boolean; onClick: () => void;
   active?: boolean; disabled?: boolean; trailing?: ReactNode; accent?: boolean;
   /** A game: its icon in a colour tile (the same colours as the Play sheet) */
-  tone?: 'blue' | 'green' | 'amber' | 'violet' | 'teal' | 'pink' | 'rose';
+  tone?: 'blue' | 'green' | 'amber' | 'violet' | 'teal' | 'pink' | 'rose' | 'lime';
 }) {
   return (
     <button
