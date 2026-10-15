@@ -7,13 +7,14 @@ import { BY_CCA3, FEATURES, POLITICAL_COLOR, altitudeFor, countryAt, fmtCompact,
 import { createLabelLayer } from '../lib/mapLabels';
 import { cursor } from '../lib/cursor';
 import { buildCountryLayer, rgba, type CountryLayer, type RGBA } from '../lib/countryMesh';
-import { createAdminLayer, createHoverFx, createZoomAdminLayer, loadAdmin, prefetchCountry } from '../lib/globeOverlays';
+import { createAdminLayer, createHoverFx, createZoomAdminLayer, loadAdmin, prefetchCountry, whenIdle } from '../lib/globeOverlays';
 import { createNatureLayer, loadNature, riverTierAt } from '../lib/nature';
 import { runDive, type DiveHooks } from '../lib/antipode';
 import { displayName, riverNear, type FeatureInfo, type FeatureRef } from '../lib/features';
 const displayRiver = (n: string) => displayName({ kind: 'river', name: n });
 import { createDayNightMaterial, loadTexture, updateSun } from '../lib/daynight';
 import { createReliefLayer } from '../lib/relief';
+import { createRouteLayer } from '../lib/routeLayer';
 import { panelWidth, sidePanel } from '../lib/layout';
 import { escapeHtml } from '../lib/html';
 
@@ -148,6 +149,7 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
   const countryLayer = useRef<CountryLayer | null>(null);
   const adminLayer = useRef<ReturnType<typeof createAdminLayer> | null>(null);
   const natureLayer = useRef<ReturnType<typeof createNatureLayer> | null>(null);
+  const routeLayer = useRef<ReturnType<typeof createRouteLayer> | null>(null);
   const reliefLayer = useRef<ReturnType<typeof createReliefLayer> | null>(null);
   const zoomAdmin = useRef<ReturnType<typeof createZoomAdminLayer> | null>(null);
   const hoverFx = useRef<ReturnType<typeof createHoverFx> | null>(null);
@@ -536,6 +538,8 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
     countryLayer.current = layer;
     adminLayer.current = createAdminLayer(g.scene(), R);
     natureLayer.current = createNatureLayer(g.scene(), R, g.camera());
+    routeLayer.current = createRouteLayer(g.scene(), (la, lo, al) => g.getCoords(la, lo, al));
+    { const rl = routeLayer.current; window.setTimeout(() => rl.prewarm(g.renderer() as THREE.WebGLRenderer, g.camera(), g.scene()), 4000); }
     reliefLayer.current = createReliefLayer(g.scene(), R);
     zoomAdmin.current = createZoomAdminLayer(g.scene(), R, g.camera());
     void natureLayer.current.init();
@@ -578,7 +582,7 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
     const id = !quiz && selected ? selected : null;
     if (!id) { labels.current?.setDetail(null, null); return; }
     let live = true;
-    void loadAdmin(id).then((d) => { if (live) labels.current?.setDetail(id, d); });
+    void loadAdmin(id).then((d) => whenIdle().then(() => { if (live) labels.current?.setDetail(id, d); }));
     return () => { live = false; };
   }, [selected, quiz]);
   useEffect(() => { if (labelLayer.current) labelLayer.current.dataset.offset = offset.join(','); }, [offset]);
@@ -740,14 +744,9 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
   // The pins' drawing functions stay the same between renders: the globe library rebuilds every
   // pin when they change — which, on each hover (a re-render), made pins flicker and re-drop.
   const htmlAltitude = useCallback((d: object) => { const k = (d as { kind: string }).kind; return k === 'capital' ? 0.045 : k === 'sun' ? 0.02 : k === 'place' ? 0.008 : k === 'stop' || k === 'hub' || k === 'heart' ? 0.006 : 0.012; }, []);
-  // Voyage routes (stable accessors, so the lines aren't rebuilt on every render).
-  const pathLat = useCallback((p: unknown) => (p as [number, number])[0], []);
-  const pathLng = useCallback((p: unknown) => (p as [number, number])[1], []);
-  const pathColor = useCallback((d: object) => { const p = d as GlobePath; return p.mode === 'faint' ? alpha(p.color, 0.3) : p.mode === 'active' ? p.color : alpha(p.color, 0.85); }, []);
-  const pathStroke = useCallback((d: object) => ((d as GlobePath).mode === 'active' ? 2.4 : 1.1), []);
-  const pathDash = useCallback((d: object) => ((d as GlobePath).mode === 'active' ? 0.02 : 1), []);
-  const pathGap = useCallback((d: object) => ((d as GlobePath).mode === 'active' ? 0.007 : 0), []);
-  const pathAnim = useCallback((d: object) => ((d as GlobePath).mode === 'active' ? 60_000 : 0), []);
+  // Routes (voyages, eras): our own layer — highlighting changes materials, never geometry.
+  useEffect(() => { routeLayer.current?.set(paths); }, [paths, layerReady]);
+  useEffect(() => () => routeLayer.current?.destroy(), []);
   const htmlVisibility = useCallback((el: HTMLElement, visible: boolean) => {
     el.style.opacity = visible ? '' : '0';
     el.style.visibility = visible ? '' : 'hidden';
@@ -833,7 +832,8 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
         polygonSideColor={sideColor}
         polygonStrokeColor={strokeColor}
         polygonAltitude={altitude}
-        polygonCapCurvatureResolution={6}
+        // Coarse is fine (the cap is lifted well clear of the globe) — and 5–10× cheaper to build when a country is selected.
+        polygonCapCurvatureResolution={12}
         polygonsTransitionDuration={450}
         enablePointerInteraction={false}
         ringsData={capPoint}
@@ -857,18 +857,6 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
         arcDashInitialGap={1}
         arcDashAnimateTime={1600}
         arcsTransitionDuration={0}
-        pathsData={paths}
-        pathPoints="points"
-        pathPointLat={pathLat}
-        pathPointLng={pathLng}
-        pathPointAlt={0.004}
-        pathResolution={1.5}
-        pathColor={pathColor}
-        pathStroke={pathStroke}
-        pathDashLength={pathDash}
-        pathDashGap={pathGap}
-        pathDashAnimateTime={pathAnim}
-        pathTransitionDuration={0}
       />
       </div>
       <div ref={labelLayer} className={`map-labels ${quiz ? 'quiz' : ''} ${style === 'political' ? '' : 'dark'}`} aria-hidden />

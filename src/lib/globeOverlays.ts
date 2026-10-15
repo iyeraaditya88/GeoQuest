@@ -57,6 +57,12 @@ export function prefetchCountry(cca3: string, cca2?: string) {
   if (cca2 && !warmed.has(cca2)) { warmed.add(cca2); const img = new Image(); img.decoding = 'async'; img.src = flagUrl(cca2, 640); }
 }
 
+/** Resolve when the browser is idle (soon), so non-urgent geometry is built after the next frame. */
+export const whenIdle = () => new Promise<void>((resolve) => {
+  const w = window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
+  if (w.requestIdleCallback) w.requestIdleCallback(() => resolve(), { timeout: 300 }); else window.setTimeout(resolve, 40);
+});
+
 export function createAdminLayer(scene: THREE.Scene, R: number) {
   let current: { id: string; mesh: THREE.LineSegments; cancel?: () => void } | null = null;
   let wanted: string | null = null;
@@ -75,6 +81,10 @@ export function createAdminLayer(scene: THREE.Scene, R: number) {
       if (!cca3 || current) return;
       const lines = (await loadAdmin(cca3))?.lines;
       if (wanted !== cca3 || !lines?.length) return;
+      // The lines only fade in once the country has risen — build them when the browser is idle,
+      // not in the same task as the click (keeps selecting a country snappy).
+      await whenIdle();
+      if (wanted !== cca3 || current) return;
       // Sit just above the lifted country cap.
       const geo = new GeoJsonGeometry({ type: 'MultiLineString', coordinates: lines }, R * (1 + lift) * 1.0006, 2);
       const mesh = lineMesh(geo, color, 6);
