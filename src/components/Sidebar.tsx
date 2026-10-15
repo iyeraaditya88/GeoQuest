@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { BarChart3, Grid3x3, Shapes, Inbox, BellRing, Binoculars, Brain, ChevronLeft, Drill, Ship, Gamepad2, Globe2, KeyRound, Landmark, Link2, ListOrdered, LogIn, LogOut, Map as MapIcon, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, Sparkles, SunMoon, Swords, UserRound, Users, X } from 'lucide-react';
+import { BarChart3, Grid3x3, Shapes, Inbox, BellRing, Binoculars, Brain, ChevronLeft, Drill, Ship, Gamepad2, Globe2, KeyRound, Landmark, Link2, ListOrdered, LogIn, LogOut, Map as MapIcon, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, SunMoon, Swords, UserRound, Users, X } from 'lucide-react';
 import type { MapStyle } from './GlobeView';
 
 export const SIDEBAR_W = { open: 268, rail: 72 } as const;
@@ -148,9 +148,8 @@ export function Sidebar(p: Props) {
           </Section>
 
           <Section title="Explore" rail={rail}>
-            <Item icon={Sparkles} label="Ask the Atlas" rail={rail} onClick={act(p.onAsk)} accent />
             <Item icon={Drill} label={p.antipodeOn ? 'Exit antipode finder' : 'Antipode finder'} sub={p.antipodeOn ? undefined : 'Dig straight through the Earth'} rail={rail} active={p.antipodeOn} onClick={act(p.onAntipode)} />
-            <Item icon={Ship} label={p.voyagesOn ? 'Close Famous voyages' : 'Famous voyages'} sub={p.voyagesOn ? undefined : 'Columbus, Magellan, Cook & more'} rail={rail} active={p.voyagesOn} onClick={act(p.onVoyages)} />
+            <Item icon={Ship} label="Famous voyages" sub="Columbus, Magellan, Cook & more" rail={rail} active={p.voyagesOn} onClick={act(p.onVoyages)} />
           </Section>
 
           <Section title="Map" rail={rail}>
