@@ -189,7 +189,7 @@ export function GeoWordle({ onReveal, onExit }: Props) {
         ))}
       </div>
 
-      <p className={`gw-msg ${msg ? 'bad' : ''}`} aria-live="polite">{msg ?? (done ? '' : rows.length === 0 ? 'Type any country with this many letters, then Enter.' : 'Green: right spot · Yellow: in the name, elsewhere')}</p>
+      <p className={`gw-msg ${msg ? 'bad' : ''}`} aria-live="polite">{msg ?? (done ? '' : rows.length === 0 ? 'Type any country’s letters (no spaces), then Enter.' : 'Green: right spot · Yellow: in the name, elsewhere')}</p>
 
       {hintable && (
         <motion.button className="gw-hint-btn" onClick={takeHint} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
