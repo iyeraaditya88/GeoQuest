@@ -2569,3 +2569,43 @@ svg.vy-flag { color: #2dd4bf; }
 .hub-pin.on i { transform: scale(1.4); }
 .hub-pin.on span { opacity: 1; font-weight: 600; }
 @media (prefers-reduced-motion: reduce) { .heart-pin i::after, .er-heart-dot { animation: none; } }
+
+/* Geo Wordle on desktop: a big board on the left; info, hints and a compact keyboard on the right. */
+@media (min-width: 1000px) and (min-height: 500px) {
+  .game-card.wordle {
+    --cardw: min(900px, calc(100vw - var(--li) - var(--ri) - 48px));
+    --tile: min(58px, calc((var(--cardw) - 40px - 400px - 28px - 32px - (var(--n) - 1) * 8px) / var(--n)), max(30px, calc((100dvh - 250px - var(--st) - var(--sb)) / 6.6)));
+    width: var(--cardw); display: grid; grid-template-columns: minmax(0, 1fr) 400px; grid-template-rows: auto auto 1fr;
+    grid-template-areas: "head head" "board info" "board side"; column-gap: 28px; padding: 14px 20px 20px;
+  }
+  .game-card.wordle > .gc-head { grid-area: head; margin-bottom: 6px; }
+  .wordle .gw-info { grid-area: info; justify-content: flex-start; margin: 0 0 4px; }
+  .wordle .gw-board { grid-area: board; display: grid; place-items: center; padding: 16px; border-radius: 18px; background: rgba(255, 255, 255, 0.025); box-shadow: inset 0 0 0 1px var(--line); }
+  .wordle .gw-grid { gap: 8px; margin: 0; }
+  .wordle .gw-row { gap: 8px; }
+  .wordle .gw-tile { border-radius: 10px; font-size: calc(var(--tile) * 0.48); }
+  .wordle .gw-side { grid-area: side; display: flex; flex-direction: column; justify-content: flex-end; gap: 10px; min-width: 0; }
+  .wordle .gw-msg { margin: 0; text-align: left; font-size: 13.5px; }
+  .wordle .gw-hint-btn { margin: 0; }
+  .wordle .gw-keys { gap: 6px; margin: 0; }
+  .wordle .gw-krow { gap: 5px; }
+  .wordle .gw-key { height: 48px; max-width: 36px; font-size: 14px; }
+  .wordle .gw-key.wide { max-width: 60px; font-size: 12px; }
+  .wordle .gw-end { margin: 0; }
+}
+.gw-legend, .gw-guessed { display: none; }
+@media (min-width: 1000px) and (min-height: 500px) {
+  .gw-legend, .gw-guessed { display: grid; list-style: none; margin: 0 0 auto; padding: 0; gap: 6px; }
+  .gw-legend li { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+  .gw-legend i, .gw-guessed em { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 6px; font: 700 13px var(--display); font-style: normal; color: #fff; }
+  .gw-legend i.g, .gw-guessed em.g { background: #16a34a; }
+  .gw-legend i.y, .gw-guessed em.y { background: #eab308; color: #1a1205; }
+  .gw-legend i.x { background: #334155; color: #cbd5e1; }
+  .gw-guessed { gap: 4px; max-height: 190px; overflow: auto; }
+  .gw-guessed li { display: flex; align-items: center; gap: 10px; padding: 5px 8px; border-radius: 10px; background: rgba(255, 255, 255, 0.04); font-size: 13px; }
+  .gw-guessed li.won { background: rgba(22, 163, 74, 0.15); }
+  .gw-guessed img { width: 24px; height: 16px; object-fit: cover; border-radius: 3px; }
+  .gw-guessed b { flex: 1; min-width: 0; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .gw-guessed span { display: flex; gap: 4px; font-size: 12px; color: #86efac; font-weight: 600; }
+  .gw-guessed em { width: 22px; height: 22px; font-size: 12px; }
+}

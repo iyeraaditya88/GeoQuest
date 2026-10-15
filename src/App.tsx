@@ -722,9 +722,9 @@ export default function App() {
   };
   const startPlayRef = useRef(startPlay);
   startPlayRef.current = startPlay;
-  const exitPlay = () => { setPlay(null); setHighlighted([]); };
+  const exitPlay = () => { setPlay(null); setHighlighted([]); setFeedback(null); };
   /** A game's answer: light it up and fly there. */
-  const revealOnGlobe = useCallback((c: string) => { setHighlighted([c]); cam.flyTo(c); }, [cam]);
+  const revealOnGlobe = useCallback((c: string) => { setFeedback(null); setHighlighted([c]); cam.flyTo(c); }, [cam]);
   // Trivia answers that are places light up on the map.
   const revealTrivia = useCallback((answer: string) => {
     const at = placeFor(answer);
@@ -1202,7 +1202,8 @@ export default function App() {
       <AnimatePresence>
         {play === 'top5' && <ErrorBoundary key="top5" name="Name the Top 5" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><Top5Game ai={ai} onHighlight={(ids) => (ids.length ? highlight(ids) : setHighlighted([]))} onExit={exitPlay} /></Suspense></ErrorBoundary>}
         {play === 'trivia' && <ErrorBoundary key="trivia" name="Geo Trivia" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><TriviaGame onReveal={revealTrivia} onExit={exitPlay} /></Suspense></ErrorBoundary>}
-        {play === 'wordle' && <ErrorBoundary key="wordle" name="Geo Wordle" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><GeoWordle onReveal={revealOnGlobe} onExit={exitPlay} onShowCountry={(c) => { exitPlay(); select(c); setHighlighted([c]); }} /></Suspense></ErrorBoundary>}
+        {play === 'wordle' && <ErrorBoundary key="wordle" name="Geo Wordle" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><GeoWordle onReveal={revealOnGlobe} onExit={exitPlay} onShowCountry={(c) => { exitPlay(); select(c); setHighlighted([c]); }}
+          onGuess={(c) => { setFeedback({ cca3: c, kind: 'bad' }); cam.flyTo(c); }} /></Suspense></ErrorBoundary>}
         {play === 'shapes' && <ErrorBoundary key="shapes" name="Guess the Country" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><ShapeGame onReveal={(c) => { setHighlighted([c]); cam.flyTo(c); }} onExit={exitPlay} /></Suspense></ErrorBoundary>}
         {play === 'capitals' && <ErrorBoundary key="capitals" name="Capitals" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><CapitalsGame onReveal={(c) => { setHighlighted([c]); cam.flyTo(c); }} onExit={exitPlay} /></Suspense></ErrorBoundary>}
       </AnimatePresence>

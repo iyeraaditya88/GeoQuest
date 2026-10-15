@@ -6,7 +6,7 @@ import confetti from 'canvas-confetti';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import { addDays, localDate } from '../lib/daily';
 import {
-  TRIES, addResult, bonusWordle, canHint, countriesOfLength, dailyWordle, emptyStats, invalidReason, keyStates,
+  TRIES, addResult, bonusWordle, canHint, countriesOfLength, countryFor, dailyWordle, emptyStats, invalidReason, keyStates,
   letters, score, wordleHints, wordleNumber, wordleShare, type Mark, type WordleStats,
 } from '../lib/wordle';
 import { track } from '../lib/analytics';
@@ -16,6 +16,8 @@ interface Props {
   onExit: () => void;
   /** Close the game and open this country on the globe. */
   onShowCountry: (cca3: string) => void;
+  /** A wrong guess: show that country on the globe. */
+  onGuess?: (cca3: string) => void;
 }
 type Mode = 'daily' | 'bonus';
 interface Row { guess: string; marks: Mark[] }
@@ -49,7 +51,7 @@ const loadStats = (): WordleStats => { try { return { ...emptyStats(), ...JSON.p
 const saveStats = (s: WordleStats) => { try { localStorage.setItem(STATS_KEY, JSON.stringify(s)); } catch { /* private mode */ } };
 
 /** Geo Wordle: guess the country in six tries — every guess a real country of the same length. */
-export function GeoWordle({ onReveal, onExit, onShowCountry }: Props) {
+export function GeoWordle({ onReveal, onExit, onShowCountry, onGuess }: Props) {
   const date = localDate();
   // Start where you left off: today's bonus round if you've begun one, else the Daily.
   const [start] = useState(() => { const b = loadBonus(date); return b ? { mode: 'bonus' as Mode, answer: b.a, ...b } : { mode: 'daily' as Mode, answer: dailyWordle(date), ...loadProgress(date) }; });
@@ -75,6 +77,14 @@ export function GeoWordle({ onReveal, onExit, onShowCountry }: Props) {
   const done = won || triesLeft <= 0;
   const keys = useMemo(() => keyStates(rows), [rows]);
   const hintTexts = useMemo(() => wordleHints(answer), [answer]);
+  // Each wrong guess lights up on the globe (where was that, again?).
+  const lastGuess = guesses[guesses.length - 1];
+  useEffect(() => {
+    if (done || !lastGuess) return;
+    const c = countryFor(lastGuess);
+    if (c) onGuess?.(c.cca3);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastGuess, done]);
 
   // Over: reveal on the globe (once per country), then the result — after the last row has flipped,
   // or straight away when reopening a Daily that's already finished.
@@ -184,6 +194,7 @@ export function GeoWordle({ onReveal, onExit, onShowCountry }: Props) {
         <span className={triesLeft <= 1 && !done ? 'warn' : ''}><b>{Math.max(0, triesLeft)}</b> {triesLeft === 1 ? 'try' : 'tries'} left</span>
       </div>
 
+      <div className="gw-board">
       <div className="gw-grid" role="grid" aria-label="Guesses">
         {lines.map((r, i) => r.kind === 'hint' ? (
           // A try spent on a hint shows the hint itself, in its place on the board.
@@ -205,7 +216,31 @@ export function GeoWordle({ onReveal, onExit, onShowCountry }: Props) {
           </motion.div>
         ))}
       </div>
+      </div>
 
+      <div className="gw-side">
+      {/* Desktop: what the colours mean, then the countries you've tried. */}
+      {rows.length === 0 ? (
+        <ul className="gw-legend" aria-label="How it works">
+          <li><i className="g">A</i> Right letter, right spot</li>
+          <li><i className="y">A</i> In the name, somewhere else</li>
+          <li><i className="x">A</i> Not in the name</li>
+        </ul>
+      ) : (
+        <ul className="gw-guessed" aria-label="Your guesses">
+          {rows.map((r, i) => {
+            const c = countryFor(r.guess);
+            const greens = r.marks.filter((m) => m === 'g').length, yellows = r.marks.filter((m) => m === 'y').length;
+            return (
+              <li key={i} className={r.guess === word ? 'won' : ''}>
+                {c && <img src={flagUrl(c.cca2, 80)} alt="" />}
+                <b>{c?.name ?? r.guess}</b>
+                <span>{r.guess === word ? 'Correct!' : <><em className="g">{greens}</em><em className="y">{yellows}</em></>}</span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
       <p className={`gw-msg ${msg ? 'bad' : ''}`} aria-live="polite">{msg ?? (done ? '' : rows.length === 0 ? 'Type any country’s letters (no spaces), then Enter.' : 'Green: right spot · Yellow: in the name, elsewhere')}</p>
 
       {hintable && (
@@ -233,6 +268,7 @@ export function GeoWordle({ onReveal, onExit, onShowCountry }: Props) {
           ))}
         </div>
       )}
+      </div>
 
       {createPortal(
         <AnimatePresence>
