@@ -2609,3 +2609,4 @@ svg.vy-flag { color: #2dd4bf; }
   .gw-guessed span { display: flex; gap: 4px; font-size: 12px; color: #86efac; font-weight: 600; }
   .gw-guessed em { width: 22px; height: 22px; font-size: 12px; }
 }
+.vy-row.hl { background: color-mix(in srgb, var(--c) 14%, transparent); box-shadow: inset 3px 0 0 var(--c); }

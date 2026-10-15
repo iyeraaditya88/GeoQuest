@@ -848,7 +848,7 @@ export default function App() {
     if (!voy) return [];
     const focus = voy.id ?? voy.hover;
     return VOYAGES.filter((v) => !voy.id || v.id === voy.id)
-      .map((v) => ({ id: v.id, points: routePoints(v), color: v.color, mode: !focus ? 'normal' as const : v.id === focus ? 'active' as const : 'faint' as const }));
+      .map((v) => ({ id: v.id, label: v.voyager, sub: `${v.years} · click to open`, points: routePoints(v), color: v.color, mode: !focus ? 'normal' as const : v.id === focus ? 'active' as const : 'faint' as const }));
   }, [voy]);
   const voyPins = useMemo(() => {
     const v = voy?.id ? BY_VOYAGE.get(voy.id) : null;
@@ -1052,6 +1052,8 @@ export default function App() {
         pins={globePins}
         onPin={(id) => (id.startsWith('stop:') ? stopVoyage(Number(id.slice(5))) : id.startsWith('era:') ? pickEra(id.slice(4)) : id === 'heart' || id.startsWith('hub:') ? placeEra(id) : openPlace(id))}
         paths={voy ? voyPaths : eraPaths}
+        onPathPick={voy && !voy.id ? (id) => { track('voyage', { v: id, from: 'globe' }); pickVoyage(id); } : undefined}
+        onPathHover={voy && !voy.id ? hoverVoyage : undefined}
         leftInset={leftInset + ((voy || eras) && vp.w > 900 ? 416 : 0)}
         nature={showNature}
         hidden={globeHidden || !!geo || liveState.immersive}
@@ -1249,7 +1251,7 @@ export default function App() {
       <AnimatePresence>
         {voy && (
           <ErrorBoundary key="voyages" name="Famous voyages" onClose={closeVoyages}>
-            <VoyagesPanel active={voy.id} stop={voy.stop} sailing={sailing} onSail={sail} onPick={pickVoyage} onHover={hoverVoyage} onStop={stopVoyage} onClose={closeVoyages} />
+            <VoyagesPanel active={voy.id} hover={voy.hover} stop={voy.stop} sailing={sailing} onSail={sail} onPick={pickVoyage} onHover={hoverVoyage} onStop={stopVoyage} onClose={closeVoyages} />
           </ErrorBoundary>
         )}
       </AnimatePresence>

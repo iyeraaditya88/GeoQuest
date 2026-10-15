@@ -20,7 +20,7 @@ import { escapeHtml } from '../lib/html';
 export type MapStyle = 'satellite' | 'political' | 'daynight';
 export type Feedback = { cca3: string; kind: 'good' | 'bad' | 'reveal' } | null;
 
-export interface GlobePath { id: string; points: [number, number][]; color: string; mode: 'active' | 'faint' | 'normal' }
+export interface GlobePath { id: string; points: [number, number][]; color: string; mode: 'active' | 'faint' | 'normal'; label?: string; sub?: string }
 export interface SailOptions {
   points: [number, number][];  // the route, [lat, lng]
   stopAt: number[];            // each stop's index in `points`
@@ -73,6 +73,9 @@ interface Props {
     | { lat: number; lng: number; kind: 'hub' | 'heart'; id: string; name: string; tone: string; active: boolean; emoji?: string })[];
   /** Routes drawn on the globe (famous voyages): the active one bright and moving, the rest faint. */
   paths?: GlobePath[];
+  /** Routes can be clicked (and hovered): which one. */
+  onPathPick?: (id: string) => void;
+  onPathHover?: (id: string | null) => void;
   /** One of "My places" was tapped on the globe */
   onPin?: (id: string) => void;
   arcs?: { startLat: number; startLng: number; endLat: number; endLng: number }[];
@@ -122,7 +125,7 @@ function angularDistance(a: { lat: number; lng: number }, b: { lat: number; lng:
 }
 
 export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
-  { selected, highlighted, style, autoRotate, feedback, quiz, liftUp, dropDown = false, hidden, nature = true, leftInset = 0, pickMode = false, sideView = false, pins = [], arcs = [], paths = NO_PATHS, onPick, onPin, onFeature, feature = null, onSelect, onInteract, onReady }, ref,
+  { selected, highlighted, style, autoRotate, feedback, quiz, liftUp, dropDown = false, hidden, nature = true, leftInset = 0, pickMode = false, sideView = false, pins = [], arcs = [], paths = NO_PATHS, onPathPick, onPathHover, onPick, onPin, onFeature, feature = null, onSelect, onInteract, onReady }, ref,
 ) {
   const globe = useRef<GlobeMethods | undefined>(undefined);
   const labelLayer = useRef<HTMLDivElement>(null);
@@ -165,6 +168,43 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.button === 0) press.current = { x: e.clientX, y: e.clientY, t: performance.now() };
   };
+  // Routes you can click: each one densified (so curves hit-test well), then tested on screen.
+  const pathPts = useMemo(() => (onPathPick ? paths.map((p) => {
+    const out: [number, number][] = [];
+    for (let i = 1; i < p.points.length; i++) {
+      const a: [number, number] = [p.points[i - 1][1], p.points[i - 1][0]], b: [number, number] = [p.points[i][1], p.points[i][0]];
+      const n = Math.max(1, Math.ceil((geoDistance(a, b) * 180) / Math.PI / 2));
+      const f = geoInterpolate(a, b);
+      for (let k = i === 1 ? 0 : 1; k <= n; k++) { const [lo, la] = f(k / n); out.push([la, lo]); }
+    }
+    return { id: p.id, pts: out, label: p.label, sub: p.sub };
+  }) : []), [paths, onPathPick]);
+  /** The route under a screen point (within `tol` px), or null. Only the near side of the globe counts. */
+  const pathAt = (x: number, y: number, tol: number) => {
+    const g = globe.current;
+    if (!g || !pathPts.length) return null;
+    const cam = (g.camera() as unknown as { position: THREE.Vector3 }).position;
+    const R2 = g.getGlobeRadius() ** 2;
+    let best: { id: string; d: number } | null = null;
+    for (const p of pathPts) {
+      let prev: { x: number; y: number } | null = null;
+      for (const [la, lo] of p.pts) {
+        const w = g.getCoords(la, lo, 0);
+        if (w.x * cam.x + w.y * cam.y + w.z * cam.z < R2 * 1.02) { prev = null; continue; } // round the back
+        const s2 = g.getScreenCoords(la, lo, 0.004);
+        if (prev) {
+          const dx = s2.x - prev.x, dy = s2.y - prev.y, L = dx * dx + dy * dy;
+          const t = L ? Math.max(0, Math.min(1, ((x - prev.x) * dx + (y - prev.y) * dy) / L)) : 0;
+          const d = Math.hypot(x - (prev.x + t * dx), y - (prev.y + t * dy));
+          if (d <= tol && (!best || d < best.d)) best = { id: p.id, d };
+        }
+        prev = s2;
+      }
+    }
+    return best?.id ?? null;
+  };
+  const pathHover = useRef<string | null>(null);
+
   // Hover: one cheap sphere hit + point-in-polygon per frame, instead of the
   // library raycasting every country mesh on every frame.
   const hoverRaf = useRef(0);
@@ -176,6 +216,17 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
       hoverRaf.current = 0;
       const g = globe.current, m = lastMove.current;
       if (!g || !m || dragging.current) return;
+      if (onPathPick) {
+        // Over a route: name it, and say it can be opened.
+        const pid = pathAt(m.x, m.y, 8);
+        if (pid !== pathHover.current) { pathHover.current = pid; onPathHover?.(pid); }
+        if (pid) {
+          const p = pathPts.find((q) => q.id === pid);
+          setHover(null);
+          cursor.set({ country: { name: p?.label ?? '', cca2: '', glyph: '⛵', sub: p?.sub ?? 'Click to open' } });
+          return;
+        }
+      }
       const geo = g.toGlobeCoords(m.x, m.y);
       const id = geo ? countryAt(geo.lat, geo.lng) : null;
       setHover((h) => (h === id ? h : id));
@@ -190,7 +241,7 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
       }
     });
   };
-  const onPointerLeave = () => { setHover(null); cursor.set({ country: null }); };
+  const onPointerLeave = () => { setHover(null); cursor.set({ country: null }); if (pathHover.current) { pathHover.current = null; onPathHover?.(null); } };
 
   const onPointerUp = (e: React.PointerEvent) => {
     const p = press.current;
@@ -203,6 +254,10 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const geo = g.toGlobeCoords(e.clientX - rect.left, e.clientY - rect.top);
     interactRef.current();
+    if (onPathPick) {
+      const pid = pathAt(e.clientX - rect.left, e.clientY - rect.top, e.pointerType === 'touch' ? 14 : 8);
+      if (pid) { onPathPick(pid); return; }
+    }
     if (pickMode) { if (geo) onPick?.(geo.lat, geo.lng); return; }
     let id = geo ? countryAt(geo.lat, geo.lng) : null;
     // Quizzes on a touchscreen: a fingertip that lands just off a small country (in the sea)

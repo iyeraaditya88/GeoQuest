@@ -7,6 +7,7 @@ import { track } from '../lib/analytics';
 
 interface Props {
   active: string | null;
+  hover?: string | null;   // a route hovered on the globe
   stop: number | null;
   sailing: boolean;
   onPick: (id: string | null) => void;
@@ -50,7 +51,7 @@ const Flag = ({ v, w = 80, className }: { v: Voyage; w?: 80 | 160; className?: s
   v.flag ? <img className={className} src={flagUrl(v.flag, w)} alt={v.sailedFor} title={`Sailed for ${v.sailedFor}`} /> : <Waves className={className} size={16} aria-label={v.sailedFor} />;
 
 /** Famous voyages: a timeline of them, and each one's story — routes and stops on the globe. */
-export function VoyagesPanel({ active, stop, sailing, onPick, onHover, onStop, onSail, onClose }: Props) {
+export function VoyagesPanel({ active, hover = null, stop, sailing, onPick, onHover, onStop, onSail, onClose }: Props) {
   const v = active ? BY_VOYAGE.get(active) ?? null : null;
   const scroller = useRef<HTMLDivElement>(null);
   useEffect(() => { scroller.current?.scrollTo({ top: 0 }); }, [active]);
@@ -85,14 +86,14 @@ export function VoyagesPanel({ active, stop, sailing, onPick, onHover, onStop, o
         <AnimatePresence mode="wait" initial={false}>
           {v
             ? <Detail key={v.id} v={v} stop={stop} sailing={sailing} onStop={onStop} onSail={onSail} onPick={onPick} />
-            : <List key="list" onPick={onPick} onHover={onHover} />}
+            : <List key="list" hover={hover} onPick={onPick} onHover={onHover} />}
         </AnimatePresence>
       </div>
     </motion.aside>
   );
 }
 
-function List({ onPick, onHover }: { onPick: (id: string) => void; onHover: (id: string | null) => void }) {
+function List({ hover, onPick, onHover }: { hover: string | null; onPick: (id: string) => void; onHover: (id: string | null) => void }) {
   return (
     <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.18 }} onMouseLeave={() => onHover(null)}>
       <ol className="vy-list">
@@ -108,7 +109,7 @@ function List({ onPick, onHover }: { onPick: (id: string) => void; onHover: (id:
                 </li>
               )}
               <motion.li initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(0.4, 0.025 * i) }}>
-                <button className="vy-row" style={{ ['--c' as string]: v.color }} onClick={() => { track('voyage', { v: v.id }); onPick(v.id); }}
+                <button className={`vy-row ${hover === v.id ? 'hl' : ''}`} style={{ ['--c' as string]: v.color }} onClick={() => { track('voyage', { v: v.id }); onPick(v.id); }}
                   onMouseEnter={() => onHover(v.id)} onFocus={() => onHover(v.id)}>
                   <span className="vy-year">{v.years.replace(/ – .*/, '')}</span>
                   <span className="vy-line" aria-hidden />
