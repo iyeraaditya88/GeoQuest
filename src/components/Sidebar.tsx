@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowRight, BarChart3, Grid3x3, Shapes, Inbox, MessageSquareHeart, BellRing, Binoculars, Brain, CalendarDays, Check, ChevronLeft, Dices, Drill, Gamepad2, Globe2, KeyRound, Landmark, Link2, ListOrdered, LogIn, LogOut, Map as MapIcon, MapPinned, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, Sparkles, SunMoon, Swords, UserRound, Users, X } from 'lucide-react';
+import { BarChart3, Grid3x3, Shapes, Inbox, MessageSquareHeart, BellRing, Binoculars, Brain, ChevronLeft, Dices, Drill, Gamepad2, Globe2, KeyRound, Landmark, Link2, ListOrdered, LogIn, LogOut, Map as MapIcon, MapPinned, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, Sparkles, SunMoon, Swords, UserRound, Users, X } from 'lucide-react';
 import type { MapStyle } from './GlobeView';
 
 export const SIDEBAR_W = { open: 268, rail: 72 } as const;
@@ -40,9 +40,6 @@ interface Props {
   onFeedback: () => void;
   onQuiz: () => void;
   /** Today's Daily challenge: done yet, the streak, and the theme */
-  daily?: { done: boolean; streak: number; theme: string };
-  dailyOn?: boolean;
-  onDaily: () => void;
   /** Morning reminders (notifications) */
   onReminders?: () => void;
   remindersOn?: boolean;
@@ -133,21 +130,6 @@ export function Sidebar(p: Props) {
         </div>
 
         <div className="sb-scroll">
-          {/* Today's Daily: the first thing in the menu */}
-          {rail ? (
-            <div className="sb-pad"><Item icon={CalendarDays} label={p.dailyOn ? 'Exit Daily' : 'Daily challenge'} rail onClick={act(p.onDaily)} active={p.dailyOn} accent /></div>
-          ) : (
-            <div className="sb-pad">
-              <button className={`sb-daily ${p.daily?.done ? 'done' : ''} ${p.dailyOn ? 'on' : ''}`} onClick={act(p.onDaily)}>
-                <span className="sbd-icon">{p.daily?.done && !p.dailyOn ? <Check size={18} /> : <CalendarDays size={18} />}</span>
-                <span className="sbd-text">
-                  <b>{p.dailyOn ? 'Exit Daily' : 'Daily challenge'}</b>
-                  <span>{p.dailyOn ? 'Come back any time today' : p.daily?.done ? `Done today${p.daily.streak > 1 ? ` · 🔥 ${p.daily.streak}` : ''} · see result` : `5 new countries today${p.daily && p.daily.streak > 1 ? ` · 🔥 ${p.daily.streak}` : ''}`}</span>
-                </span>
-                {!p.dailyOn && !p.daily?.done && <ArrowRight size={17} className="sbd-go" />}
-              </button>
-            </div>
-          )}
           <Section title="Play" rail={rail} action={p.onFriends && (
             <span className="sb-play-actions">
               <button className={`sb-pill ${p.matchOn ? 'on' : ''}`} onClick={act(p.onFriends)} title="Duel: live head-to-head with friends who are online">

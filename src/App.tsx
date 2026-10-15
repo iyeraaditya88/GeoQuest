@@ -71,7 +71,7 @@ import { QuizBar, type QuizMode, type QuizState } from './components/QuizBar';
 import { BY_CCA3 } from './lib/data';
 import { api } from './lib/api';
 import { CLUE_POOL, QUIZ_POOL, clueFor, nextTarget, pickRandom } from './lib/quiz';
-import { DAILY_N, dailyNumber, dailyPicks, localDate, pointsFor, themeOf, THEME_LABEL } from './lib/daily';
+import { DAILY_N, dailyNumber, dailyPicks, localDate, pointsFor, themeOf } from './lib/daily';
 import { DailyResult, type DailyBoardRow } from './components/DailyResult';
 import { Reminders } from './components/Reminders';
 import { SignInSheet } from './components/SignInSheet';
@@ -975,7 +975,6 @@ export default function App() {
         style={style}
         autoRotate={autoRotate}
         quizOn={!!quiz && !quiz.daily}
-        dailyOn={!!quiz?.daily}
         playOn={play}
         ai={ai}
         hosted={hosted}
@@ -994,8 +993,6 @@ export default function App() {
         onQuiz={() => (quiz ? exitQuiz() : startQuiz())}
         onPlaces={() => void startPlaces()}
         placesOn={placesOpen}
-        daily={daily ? { done: !!daily.mine && daily.date === localDate(), streak: daily.streak?.count ?? 0, theme: THEME_LABEL[themeOf(localDate())] } : { done: false, streak: 0, theme: THEME_LABEL[themeOf(localDate())] }}
-        onDaily={() => (quiz?.daily ? exitQuiz() : startDaily())}
         onReminders={() => (guest ? needSignIn('reminders') : setRemindersOpen(true))}
         remindersOn={remindersOn}
         onStreet={() => void startGeo()}
