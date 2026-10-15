@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { BarChart3, Grid3x3, Shapes, Inbox, BellRing, Binoculars, Brain, ChevronLeft, Dices, Drill, Gamepad2, Globe2, KeyRound, Landmark, Link2, ListOrdered, LogIn, LogOut, Map as MapIcon, MapPinned, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, Sparkles, SunMoon, Swords, UserRound, Users, X } from 'lucide-react';
+import { BarChart3, Grid3x3, Shapes, Inbox, BellRing, Binoculars, Brain, ChevronLeft, Drill, Ship, Gamepad2, Globe2, KeyRound, Landmark, Link2, ListOrdered, LogIn, LogOut, Map as MapIcon, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, Sparkles, SunMoon, Swords, UserRound, Users, X } from 'lucide-react';
 import type { MapStyle } from './GlobeView';
 
 export const SIDEBAR_W = { open: 268, rail: 72 } as const;
@@ -19,7 +19,6 @@ interface Props {
   playOn: null | 'top5' | 'capitals' | 'trivia' | 'shapes' | 'wordle';
   ai: boolean | null;
   onSearch: () => void;
-  onRandom: () => void;
   onAsk: () => void;
   onConnect: () => void;
   hosted?: boolean;
@@ -44,9 +43,9 @@ interface Props {
   remindersOn?: boolean;
   onStreet: () => void;
   antipodeOn: boolean;
+  voyagesOn: boolean;
+  onVoyages: () => void;
   /** My places: pins for home, friends and favourite spots */
-  onPlaces: () => void;
-  placesOn?: boolean;
   onAntipode: () => void;
   onTop5: () => void;
   onCapitals: () => void;
@@ -149,10 +148,9 @@ export function Sidebar(p: Props) {
           </Section>
 
           <Section title="Explore" rail={rail}>
-            <Item icon={Dices} label="Random country" rail={rail} onClick={act(p.onRandom)} />
             <Item icon={Sparkles} label="Ask the Atlas" rail={rail} onClick={act(p.onAsk)} accent />
             <Item icon={Drill} label={p.antipodeOn ? 'Exit antipode finder' : 'Antipode finder'} sub={p.antipodeOn ? undefined : 'Dig straight through the Earth'} rail={rail} active={p.antipodeOn} onClick={act(p.onAntipode)} />
-            <Item icon={MapPinned} label={p.placesOn ? 'Close My places' : 'My places'} sub={p.placesOn ? undefined : 'Pin home, friends & favourite spots'} rail={rail} active={p.placesOn} onClick={act(p.onPlaces)} />
+            <Item icon={Ship} label={p.voyagesOn ? 'Close Famous voyages' : 'Famous voyages'} sub={p.voyagesOn ? undefined : 'Columbus, Magellan, Cook & more'} rail={rail} active={p.voyagesOn} onClick={act(p.onVoyages)} />
           </Section>
 
           <Section title="Map" rail={rail}>

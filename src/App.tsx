@@ -63,6 +63,9 @@ import { countVisit, feedbackAsked, markFeedbackAsked, type FeedbackKind } from 
 import { FeaturePanel } from './components/FeaturePanel';
 import { featureInfo, type FeatureInfo, type FeatureRef } from './lib/features';
 import { AntipodeCard, type AntipodeStage } from './components/AntipodeCard';
+import { VoyagesPanel } from './components/VoyagesPanel';
+import { VOYAGES, BY_VOYAGE, routePoints, routeView } from './lib/voyages';
+import type { GlobePath } from './components/GlobeView';
 import { antipodeOf, describePlace, type Place } from './lib/antipode';
 import { placeFor } from './lib/trivia';
 import { SearchPalette } from './components/SearchPalette';
@@ -70,7 +73,7 @@ import { AskDock } from './components/AskDock';
 import { QuizBar, type QuizMode, type QuizState } from './components/QuizBar';
 import { BY_CCA3 } from './lib/data';
 import { api } from './lib/api';
-import { CLUE_POOL, QUIZ_POOL, clueFor, nextTarget, pickRandom } from './lib/quiz';
+import { CLUE_POOL, QUIZ_POOL, clueFor, nextTarget } from './lib/quiz';
 import { DAILY_N, dailyNumber, dailyPicks, localDate, pointsFor, themeOf } from './lib/daily';
 import { DailyResult, type DailyBoardRow } from './components/DailyResult';
 import { Reminders } from './components/Reminders';
@@ -563,12 +566,6 @@ export default function App() {
     if (activityWanted && (role === 'owner' || liveMode === 'local')) { setActivityWanted(false); setActivityOpen(true); }
   }, [inboxWanted, activityWanted, role, liveMode]);
 
-  const random = () => {
-    const pick = pickRandom(QUIZ_POOL, selected ?? undefined);
-    setHighlighted([]);
-    select(pick);
-  };
-
   // ── Street-view game ───────────────────────────────────
   const seen = useRef<string[]>([]);
   // Imagery provider: Mapillary when a token is connected, Panoramax as the open fallback.
@@ -766,24 +763,6 @@ export default function App() {
   }, [liveState.immersive]);
 
   // ── My places ──────────────────────────────────────────
-  const startPlaces = async () => {
-    if (placesOpen) { setPlacesOpen(false); return; }
-    if (isGuest(getAuth())) { needSignIn('places'); return; }
-    if (morphing.current) return;
-    if (geoRef.current) exitGeo();
-    if (antiRef.current) exitAntipode();
-    if (viewRef.current === 'flat') await toggleFlat(); // pins live on the globe
-    exitQuiz();
-    setPlay(null);
-    setSelected(null);
-    setHighlighted([]);
-    setFeature(null);
-    setDockOpen(false);
-    setAutoRotate(false);
-    setPlacesPick(null);
-    setPlacesOpen(true);
-    track('game', { g: 'places' });
-  };
   const openPlace = (id: string) => { setPlacesOpen(true); setPlacesFocus({ id, n: Date.now() }); setAutoRotate(false); };
   const placePins = useMemo(() => myPlaces.map((p) => ({ lat: p.lat, lng: p.lng, kind: 'place' as const, id: p.id, name: p.name, emoji: kindOf(p.kind).emoji, tone: p.kind })), [myPlaces]);
 
@@ -796,6 +775,64 @@ export default function App() {
   const diveTick = useRef<(p: number) => void>(() => {});
   // Starting a game puts the pins away.
   useEffect(() => { if (quiz || geo || play || anti || liveState.active) setPlacesOpen(false); }, [quiz, geo, play, anti, liveState.active]);
+
+  // ── Famous voyages ─────────────────────────────────────
+  const [voy, setVoy] = useState<{ id: string | null; stop: number | null; hover: string | null } | null>(null);
+  useEffect(() => { if (quiz || geo || play || anti || liveState.active) setVoy(null); }, [quiz, geo, play, anti, liveState.active]);
+  const startVoyages = async () => {
+    if (morphing.current) return;
+    track('game', { g: 'voyages' });
+    if (geoRef.current) exitGeo();
+    if (viewRef.current === 'flat') await toggleFlat(); // routes are drawn on the globe
+    setPlay(null);
+    exitQuiz();
+    if (antiRef.current) exitAntipode();
+    setSelected(null);
+    setHighlighted([]);
+    setFeature(null);
+    setDockOpen(false);
+    setAutoRotate(false);
+    setVoy({ id: null, stop: null, hover: null });
+    globe.current?.frame(22, -20, overview()); // the Atlantic world, where most of them sailed
+  };
+  // Phones: the sheet covers the lower half, so stand a little further back.
+  const narrow = () => window.innerWidth <= 900;
+  const overview = () => (narrow() ? 3.1 : 2.3);
+  const voyView = (v: Parameters<typeof routeView>[0]) => { const r = routeView(v); return narrow() ? { ...r, altitude: Math.min(3.4, r.altitude * 1.25) } : r; };
+  const closeVoyages = () => { setVoy(null); cam.reset(); };
+  const pickVoyage = useCallback((id: string | null) => {
+    setVoy((x) => (x ? { id, stop: null, hover: null } : x));
+    const v = id ? BY_VOYAGE.get(id) : null;
+    if (v) { const r = voyView(v); globe.current?.frame(r.lat, r.lng, r.altitude); } else globe.current?.frame(22, -20, overview());
+  }, []);
+  const voyRef = useRef(voy);
+  voyRef.current = voy;
+  const stopVoyage = useCallback((i: number | null) => {
+    const v = voyRef.current?.id ? BY_VOYAGE.get(voyRef.current.id) : null;
+    if (!v) return;
+    setVoy((x) => (x ? { ...x, stop: i } : x));
+    const r = voyView(v);
+    if (i === null) globe.current?.frame(r.lat, r.lng, r.altitude);
+    else globe.current?.frame(v.stops[i].at[0], v.stops[i].at[1], Math.min(r.altitude, 1.05));
+  }, []);
+  const hoverVoyage = useCallback((id: string | null) => setVoy((x) => (x && x.hover !== id ? { ...x, hover: id } : x)), []);
+  const voyPaths = useMemo<GlobePath[]>(() => {
+    if (!voy) return [];
+    const focus = voy.id ?? voy.hover;
+    return VOYAGES.filter((v) => !voy.id || v.id === voy.id)
+      .map((v) => ({ id: v.id, points: routePoints(v), color: v.color, mode: !focus ? 'normal' as const : v.id === focus ? 'active' as const : 'faint' as const }));
+  }, [voy]);
+  const voyPins = useMemo(() => {
+    const v = voy?.id ? BY_VOYAGE.get(voy.id) : null;
+    if (!v) return [];
+    const seen = new Set<string>();
+    return v.stops.flatMap((s, i) => {
+      const k = s.at.join(',');
+      if (seen.has(k)) return []; // a voyage ending where it began: one pin
+      seen.add(k);
+      return [{ lat: s.at[0], lng: s.at[1], kind: 'stop' as const, id: `stop:${i}`, n: i + 1, name: s.name, tone: v.color, active: voy?.stop === i }];
+    });
+  }, [voy]);
   const antiPins = useMemo(() => {
     if (!anti) return [];
     const pins: { lat: number; lng: number; kind: 'from' | 'to' }[] = [];
@@ -806,8 +843,8 @@ export default function App() {
   // What's pinned on the globe (one stable list, so pins aren't rebuilt on every render).
   const inGame = !!quiz || !!geo || !!play || liveState.active;
   const globePins = useMemo(
-    () => (anti ? antiPins : inGame ? NO_PINS : placesOpen && placesDraft ? [...placePins, { ...placesDraft, kind: 'guess' as const }] : placePins),
-    [anti, antiPins, inGame, placesOpen, placesDraft, placePins],
+    () => (voy ? voyPins : anti ? antiPins : inGame ? NO_PINS : placesOpen && placesDraft ? [...placePins, { ...placesDraft, kind: 'guess' as const }] : placePins),
+    [voy, voyPins, anti, antiPins, inGame, placesOpen, placesDraft, placePins],
   );
 
   const startAntipode = async () => {
@@ -882,7 +919,7 @@ export default function App() {
 
   // Newer version live: reload onto it the next time you switch away (so you never see it), or
   // straight away if you're back on the globe with nothing open. Never mid-game or mid-typing.
-  const idle = !quiz && !geo && !play && !anti && !liveState.active && !fbForm && !dockOpen && !placesOpen && !dailyCard && !signIn && !accountOpen && !inboxOpen && !activityOpen && !gamesOpen;
+  const idle = !quiz && !geo && !play && !anti && !voy && !liveState.active && !fbForm && !dockOpen && !placesOpen && !dailyCard && !signIn && !accountOpen && !inboxOpen && !activityOpen && !gamesOpen;
   useEffect(() => {
     if (!updateReady || !idle) return;
     if (document.visibilityState === 'hidden') { reloadForUpdate(); return; }
@@ -907,7 +944,7 @@ export default function App() {
   const rightInset = (country || feature) && !quiz && !geo && !play && !liveState.active ? panelWidth(vp.w, vp.h) : 0;
 
   // The tip at the bottom: first-timers' "Drag to spin", or what a mode needs (dropping pins, day/night).
-  const showHint = chrome && !selected && !quiz && !dockOpen && !geo && !play && !anti && !liveState.active && (!spun || placesOpen || (view === 'globe' && style === 'daynight'));
+  const showHint = chrome && !selected && !quiz && !dockOpen && !geo && !play && !anti && !voy && !liveState.active && (!spun || placesOpen || (view === 'globe' && style === 'daynight'));
   // The quiet footer (feedback + about/legal links): only on the bare globe, never over a game or panel.
   const footer = chrome && idle && !selected && !feature && !accountOpen && !(mobile && drawerOpen);
 
@@ -925,17 +962,18 @@ export default function App() {
         autoRotate={autoRotate}
         feedback={feedback}
         quiz={!!quiz || liveState.quiz}
-        liftUp={(dockOpen && !quiz) || (!!quiz && vp.w <= 600 && vp.h > vp.w)}
+        liftUp={(dockOpen && !quiz) || (!!voy && vp.w <= 900) || (!!quiz && vp.w <= 600 && vp.h > vp.w)}
         dropDown={!!play || placesOpen || (!!anti && anti.stage !== 'dive') || (!!quiz && !(vp.w <= 600 && vp.h > vp.w))}
         pickMode={(!!anti && anti.stage !== 'dive') || placesOpen}
         onPick={(lat, lng) => (placesOpen ? setPlacesPick({ lat, lng, n: Date.now() }) : pickAntipode(lat, lng))}
         pins={globePins}
-        onPin={openPlace}
-        leftInset={leftInset}
+        onPin={(id) => (id.startsWith('stop:') ? stopVoyage(Number(id.slice(5))) : openPlace(id))}
+        paths={voyPaths}
+        leftInset={leftInset + (voy && vp.w > 900 ? 416 : 0)}
         nature={showNature}
         hidden={globeHidden || !!geo || liveState.immersive}
-        onSelect={(c) => { if (matchClick.current) { matchClick.current(c); return; } if (liveRef.current.active) return; if (anti) return; if (quiz) quizClick(c); else if (c) select(c); else { setSelected(null); setHighlighted([]); setFeature(null); } }}
-        onFeature={(f) => { if (!anti && !quiz && !liveRef.current.active) void openFeature(f); }}
+        onSelect={(c) => { if (matchClick.current) { matchClick.current(c); return; } if (liveRef.current.active) return; if (anti || voyRef.current) return; if (quiz) quizClick(c); else if (c) select(c); else { setSelected(null); setHighlighted([]); setFeature(null); } }}
+        onFeature={(f) => { if (!anti && !voy && !quiz && !liveRef.current.active) void openFeature(f); }}
         feature={feature}
         onInteract={onGlobeInteract}
         onReady={() => { track('ready', { ms: Math.round(performance.now()) }); setTimeout(() => setReady(true), 300); }}
@@ -997,16 +1035,15 @@ export default function App() {
         onActivity={role === 'owner' || liveMode === 'local' ? () => setActivityOpen(true) : undefined}
         onInbox={role === 'owner' || liveMode === 'local' ? () => setInboxOpen(true) : undefined}
         onSearch={() => { setSearchOpen(true); track('search'); }}
-        onRandom={() => { if (quiz) exitQuiz(); random(); }}
         onAsk={() => { if (quiz) exitQuiz(); setDockOpen(true); }}
         onConnect={() => { if (quiz) exitQuiz(); setDockOpen(true); setKeyReq((n) => n + 1); }}
         onQuiz={() => (quiz ? exitQuiz() : startQuiz())}
-        onPlaces={() => void startPlaces()}
-        placesOn={placesOpen}
         onReminders={() => (guest ? needSignIn('reminders') : setRemindersOpen(true))}
         remindersOn={remindersOn}
         onStreet={() => void startGeo()}
         antipodeOn={!!anti}
+        voyagesOn={!!voy}
+        onVoyages={() => (voy ? closeVoyages() : void startVoyages())}
         onAntipode={() => (anti ? exitAntipode() : void startAntipode())}
         onTop5={() => (play === 'top5' ? exitPlay() : startPlay('top5'))}
         onCapitals={() => (play === 'capitals' ? exitPlay() : startPlay('capitals'))}
@@ -1046,7 +1083,7 @@ export default function App() {
 
       {/* Today's Daily, always one tap away at the top — the front door for new players, and the daily habit. */}
       <AnimatePresence>
-        {chrome && !(mobile && drawerOpen) && !quiz && !geo && !play && !anti && !liveState.active && !dailyCard && (() => {
+        {chrome && !(mobile && drawerOpen) && !quiz && !geo && !play && !anti && !voy && !liveState.active && !dailyCard && (() => {
           const done = !!daily?.mine && daily.date === localDate();
           const streak = daily?.streak?.count ?? 0;
           return (
@@ -1117,6 +1154,13 @@ export default function App() {
         )}
       </AnimatePresence>
       <AnimatePresence>
+        {voy && (
+          <ErrorBoundary key="voyages" name="Famous voyages" onClose={closeVoyages}>
+            <VoyagesPanel active={voy.id} stop={voy.stop} onPick={pickVoyage} onHover={hoverVoyage} onStop={stopVoyage} onClose={closeVoyages} />
+          </ErrorBoundary>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
         {anti && (
           <AntipodeCard
             key="antipode"
@@ -1138,7 +1182,7 @@ export default function App() {
         <FeaturePanel feature={quiz || geo || play || anti || liveState.active ? null : feature} onClose={() => setFeature(null)} onSelectCountry={select} onAsk={ask} />
         <CountryPanel country={quiz || geo || play || anti || liveState.active ? null : country} onClose={() => setSelected(null)} onSelect={select} onAsk={ask} />
       </ErrorBoundary>
-      {chrome && !quiz && !geo && !play && !anti && !liveState.active && <ErrorBoundary name="Ask the Atlas" onClose={() => setDockOpen(false)}><AskDock open={dockOpen} setOpen={setDockOpen} country={country} request={askReq} keyRequest={keyReq} onAiChange={setAi} onHosted={setHosted} onHighlight={highlight} onSelect={select}
+      {chrome && !quiz && !geo && !play && !anti && !voy && !liveState.active && <ErrorBoundary name="Ask the Atlas" onClose={() => setDockOpen(false)}><AskDock open={dockOpen} setOpen={setDockOpen} country={country} request={askReq} keyRequest={keyReq} onAiChange={setAi} onHosted={setHosted} onHighlight={highlight} onSelect={select}
         leading={<motion.button className={`play-fab ${playSeen ? '' : 'beckon'}`} onClick={openGames} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} aria-label="Play a game"><Gamepad2 size={18} /> Play</motion.button>} /></ErrorBoundary>}
       <ErrorBoundary name="Live play">
         <LivePlay mode={liveMode} me={liveMe} ai={ai} friendsReq={friendsReq} inviteReq={inviteReq} globe={matchGlobe} clickRef={matchClick} onState={setLiveState} owner={role === 'owner'} fab={chrome && !geo && !liveState.immersive} />
@@ -1161,13 +1205,13 @@ export default function App() {
       </AnimatePresence>
       {/* Guests: sign in, top right (where Friends is once you're signed in). */}
       <AnimatePresence>
-        {chrome && guest && !quiz && !geo && !play && !anti && !liveState.active && (
+        {chrome && guest && !quiz && !geo && !play && !anti && !voy && !liveState.active && (
           <motion.button key="signin-fab" className="signin-fab" onClick={() => needSignIn('general')} aria-label="Sign in"
             initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ delay: 0.5 }}>
             <LogIn size={17} /><span>Sign in</span>
           </motion.button>
         )}
-        {nudgeReady && chrome && !fbForm && !quiz && !geo && !play && !anti && !liveState.active && !dailyCard && !selected && !feature && !dockOpen && !placesOpen && !(mobile && drawerOpen) && !signIn && (
+        {nudgeReady && chrome && !fbForm && !quiz && !geo && !play && !anti && !voy && !liveState.active && !dailyCard && !selected && !feature && !dockOpen && !placesOpen && !(mobile && drawerOpen) && !signIn && (
           <motion.div key="fb-nudge" className="fb-nudge" role="status" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.6 } }} exit={{ opacity: 0, y: -10 }}>
             <span>Enjoying GeoQuest?<em className="fbn-more"> Help shape it</em></span>
             <button className="fbn-go" onClick={() => { dismissNudge(); openFeedbackHere(); }}>Send feedback</button>

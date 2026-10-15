@@ -19,6 +19,7 @@ import { escapeHtml } from '../lib/html';
 export type MapStyle = 'satellite' | 'political' | 'daynight';
 export type Feedback = { cca3: string; kind: 'good' | 'bad' | 'reveal' } | null;
 
+export interface GlobePath { id: string; points: [number, number][]; color: string; mode: 'active' | 'faint' | 'normal' }
 export interface GlobeView2D { lat: number; lng: number; altitude: number; cx: number; cy: number; r: number }
 
 export interface GlobeHandle {
@@ -53,7 +54,10 @@ interface Props {
   /** Street-view game: clicks drop a pin instead of selecting countries. */
   pickMode?: boolean;
   sideView?: boolean;
-  pins?: ({ lat: number; lng: number; kind: 'guess' | 'answer' | 'from' | 'to' } | { lat: number; lng: number; kind: 'place'; id: string; emoji: string; name: string; tone: string })[];
+  pins?: ({ lat: number; lng: number; kind: 'guess' | 'answer' | 'from' | 'to' } | { lat: number; lng: number; kind: 'place'; id: string; emoji: string; name: string; tone: string }
+    | { lat: number; lng: number; kind: 'stop'; id: string; n: number; name: string; tone: string; active: boolean })[];
+  /** Routes drawn on the globe (famous voyages): the active one bright and moving, the rest faint. */
+  paths?: GlobePath[];
   /** One of "My places" was tapped on the globe */
   onPin?: (id: string) => void;
   arcs?: { startLat: number; startLng: number; endLat: number; endLng: number }[];
@@ -68,6 +72,8 @@ interface Props {
 }
 
 const HOME_ALTITUDE = 1.75;
+const NO_PATHS: GlobePath[] = [];
+const alpha = (hex: string, a: number) => `rgba(${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)},${a})`;
 /**
  * Home view. The camera's field of view is vertical, so on a portrait phone the default
  * altitude makes the globe wider than the screen — back off until it fits the width.
@@ -101,7 +107,7 @@ function angularDistance(a: { lat: number; lng: number }, b: { lat: number; lng:
 }
 
 export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
-  { selected, highlighted, style, autoRotate, feedback, quiz, liftUp, dropDown = false, hidden, nature = true, leftInset = 0, pickMode = false, sideView = false, pins = [], arcs = [], onPick, onPin, onFeature, feature = null, onSelect, onInteract, onReady }, ref,
+  { selected, highlighted, style, autoRotate, feedback, quiz, liftUp, dropDown = false, hidden, nature = true, leftInset = 0, pickMode = false, sideView = false, pins = [], arcs = [], paths = NO_PATHS, onPick, onPin, onFeature, feature = null, onSelect, onInteract, onReady }, ref,
 ) {
   const globe = useRef<GlobeMethods | undefined>(undefined);
   const labelLayer = useRef<HTMLDivElement>(null);
@@ -589,15 +595,29 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
 
   // The pins' drawing functions stay the same between renders: the globe library rebuilds every
   // pin when they change — which, on each hover (a re-render), made pins flicker and re-drop.
-  const htmlAltitude = useCallback((d: object) => { const k = (d as { kind: string }).kind; return k === 'capital' ? 0.045 : k === 'sun' ? 0.02 : k === 'place' ? 0.008 : 0.012; }, []);
+  const htmlAltitude = useCallback((d: object) => { const k = (d as { kind: string }).kind; return k === 'capital' ? 0.045 : k === 'sun' ? 0.02 : k === 'place' ? 0.008 : k === 'stop' ? 0.006 : 0.012; }, []);
+  // Voyage routes (stable accessors, so the lines aren't rebuilt on every render).
+  const pathLat = useCallback((p: unknown) => (p as [number, number])[0], []);
+  const pathLng = useCallback((p: unknown) => (p as [number, number])[1], []);
+  const pathColor = useCallback((d: object) => { const p = d as GlobePath; return p.mode === 'faint' ? alpha(p.color, 0.3) : p.mode === 'active' ? p.color : alpha(p.color, 0.85); }, []);
+  const pathStroke = useCallback((d: object) => ((d as GlobePath).mode === 'active' ? 2.4 : 1.1), []);
+  const pathDash = useCallback((d: object) => ((d as GlobePath).mode === 'active' ? 0.02 : 1), []);
+  const pathGap = useCallback((d: object) => ((d as GlobePath).mode === 'active' ? 0.007 : 0), []);
+  const pathAnim = useCallback((d: object) => ((d as GlobePath).mode === 'active' ? 60_000 : 0), []);
   const htmlVisibility = useCallback((el: HTMLElement, visible: boolean) => {
     el.style.opacity = visible ? '' : '0';
     el.style.visibility = visible ? '' : 'hidden';
   }, []);
   const htmlElement = useCallback((d: object) => {
-    const it = d as { kind: string; name?: string; id?: string; emoji?: string; tone?: string };
+    const it = d as { kind: string; name?: string; id?: string; emoji?: string; tone?: string; n?: number; active?: boolean };
     const el = document.createElement('div');
-    if (it.kind === 'place') {
+    if (it.kind === 'stop') {
+      // A voyage's stop: its number in the route colour; the name shows on the current one (and on hover).
+      el.className = `stop-pin ${it.active ? 'on' : ''}`;
+      el.style.setProperty('--c', it.tone ?? '#fbbf24');
+      el.innerHTML = `<button type="button" aria-label="${escapeHtml(it.name ?? '')}"><i>${it.n ?? ''}</i><span>${escapeHtml(it.name ?? '')}</span></button>`;
+      el.querySelector('button')!.addEventListener('click', (e) => { e.stopPropagation(); onPinRef.current?.(it.id ?? ''); });
+    } else if (it.kind === 'place') {
       // My places: an emoji pin with its name; tap to open it.
       el.className = `place-pin k-${it.tone ?? ''}`;
       el.innerHTML = `<button type="button" aria-label="${escapeHtml(it.name ?? '')}"><i><b>${escapeHtml(it.emoji ?? '📍')}</b></i><span>${escapeHtml(it.name ?? '')}</span></button>`;
@@ -685,6 +705,18 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
         arcDashInitialGap={1}
         arcDashAnimateTime={1600}
         arcsTransitionDuration={0}
+        pathsData={paths}
+        pathPoints="points"
+        pathPointLat={pathLat}
+        pathPointLng={pathLng}
+        pathPointAlt={0.004}
+        pathResolution={1.5}
+        pathColor={pathColor}
+        pathStroke={pathStroke}
+        pathDashLength={pathDash}
+        pathDashGap={pathGap}
+        pathDashAnimateTime={pathAnim}
+        pathTransitionDuration={0}
       />
       </div>
       <div ref={labelLayer} className={`map-labels ${quiz ? 'quiz' : ''} ${style === 'political' ? '' : 'dark'}`} aria-hidden />

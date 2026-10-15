@@ -347,3 +347,24 @@ describe('geo wordle', () => {
     expect(st.streak).toBe(1);
   });
 });
+
+describe('famous voyages', () => {
+  it('has well-formed voyages: valid stops, routes and colours, oldest first', async () => {
+    const { VOYAGES, routePoints, voyageKm, routeView } = await import('../src/lib/voyages');
+    expect(new Set(VOYAGES.map((v) => v.id)).size).toBe(VOYAGES.length);
+    expect(VOYAGES.map((v) => v.year)).toEqual([...VOYAGES.map((v) => v.year)].sort((a, b) => a - b));
+    for (const v of VOYAGES) {
+      expect(v.color).toMatch(/^#[0-9a-f]{6}$/i);
+      expect(v.stops.length).toBeGreaterThanOrEqual(3);
+      // every stop is on the route, in order
+      const used = v.route.filter((p): p is number => typeof p === 'number');
+      expect(used).toEqual(v.stops.map((_, i) => i));
+      for (const [lat, lng] of routePoints(v)) { expect(Math.abs(lat)).toBeLessThanOrEqual(90); expect(Math.abs(lng)).toBeLessThanOrEqual(180); }
+      const d = voyageKm(v);
+      expect(d).toBeGreaterThan(2000);
+      expect(d).toBeLessThan(110_000);
+      const r = routeView(v);
+      expect(Number.isFinite(r.lat) && Number.isFinite(r.lng) && r.altitude > 0).toBe(true);
+    }
+  });
+});

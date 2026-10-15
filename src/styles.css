@@ -2373,3 +2373,89 @@ button.sb-user:hover { background: rgba(255, 255, 255, 0.05); }
 
 /* Desktop: with no tip under it, the Play / Ask row sits low, clear of the globe. */
 @media (min-width: 901px) { .app:not(.has-hint) .fab-row { bottom: calc(22px + var(--sb)); } }
+
+/* ── Famous voyages ───────────────────── */
+.voy-panel { position: fixed; z-index: 14; top: calc(16px + var(--st)); bottom: calc(16px + var(--sb)); left: calc(var(--li) + 16px + var(--sl)); width: 400px;
+  display: flex; flex-direction: column; border-radius: 22px; background: rgba(9, 14, 30, 0.94); backdrop-filter: blur(14px); box-shadow: var(--shadow); overflow: hidden; transition: left 0.55s var(--ease); }
+.voy-panel > .gc-head { padding: 12px 14px 8px; }
+.voy-panel .gc-title { flex: 1 1 auto; min-width: 0; }
+.voy-panel .gc-title span { white-space: normal; }
+.voy-grab { display: none; }
+.vy-badge { color: #fff; background: linear-gradient(135deg, #38bdf8, #1d4ed8); }
+.vy-back { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px 0 8px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--muted); background: rgba(255, 255, 255, 0.05); }
+.vy-back:hover { color: var(--text); background: rgba(255, 255, 255, 0.1); }
+.voy-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 14px 16px; scrollbar-width: thin; }
+/* The list: a timeline */
+.vy-list { list-style: none; margin: 0; padding: 2px 0 0; display: grid; gap: 2px; }
+.vy-row { position: relative; width: 100%; display: grid; grid-template-columns: 52px 12px minmax(0, 1fr) auto 16px; align-items: center; gap: 10px; padding: 11px 8px 11px 6px; border-radius: 14px; text-align: left; transition: background 0.15s; }
+.vy-row:hover, .vy-row:focus-visible { background: rgba(255, 255, 255, 0.06); }
+.vy-year { white-space: nowrap; font: 700 13px var(--display); color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.vy-line { position: relative; align-self: stretch; display: flex; justify-content: center; }
+.vy-line::before { content: ''; position: absolute; top: -12px; bottom: -12px; width: 2px; background: rgba(255, 255, 255, 0.08); }
+.vy-line::after { content: ''; position: relative; align-self: center; width: 12px; height: 12px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 3px rgba(9, 14, 30, 0.94), 0 0 12px var(--c); }
+.vy-list li:first-child .vy-line::before { top: 50%; }
+.vy-list li:last-child .vy-line::before { bottom: 50%; }
+.vy-text { display: grid; gap: 2px; min-width: 0; }
+.vy-text b { font: 600 14.5px var(--display); color: var(--text); }
+.vy-text span { font-size: 12.5px; line-height: 1.35; color: var(--muted); }
+.vy-flag { width: 24px; height: 16px; object-fit: cover; border-radius: 3px; opacity: 0.9; }
+.vy-go { color: var(--dim); }
+.vy-row:hover .vy-go { color: var(--text); }
+/* A voyage */
+.vy-detail { display: grid; gap: 12px; padding-top: 4px; }
+.vy-hero { display: flex; align-items: center; gap: 14px; }
+.vy-portrait { flex: none; width: 72px; height: 72px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; color: var(--c); background: rgba(255, 255, 255, 0.05); box-shadow: 0 0 0 2px var(--c), 0 6px 20px -6px var(--c); }
+.vy-portrait img { width: 100%; height: 100%; object-fit: cover; object-position: center 20%; }
+.vy-who { display: grid; gap: 3px; min-width: 0; }
+.vy-who b { font: 700 18px/1.2 var(--display); }
+.vy-who > span { font-size: 12.5px; color: var(--muted); }
+.vy-for { display: inline-flex; align-items: center; gap: 6px; }
+.vy-for img { width: 18px; height: 12px; object-fit: cover; border-radius: 2px; }
+.vy-title { margin: 2px 0 0; font: 700 24px/1.15 var(--display); letter-spacing: -0.01em; color: var(--c); text-wrap: balance; }
+.vy-facts { display: flex; flex-wrap: wrap; gap: 6px; }
+.vy-facts span { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; font-size: 12px; color: var(--text); background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 0 0 1px var(--line); }
+.vy-facts svg { color: var(--c); flex: none; }
+.vy-story, .vy-bio { margin: 0; font-size: 14px; line-height: 1.55; color: #cbd5e1; }
+.vy-tour { display: flex; align-items: center; gap: 8px; width: 100%; height: 44px; padding: 0 16px; border-radius: 14px; font-size: 14px; font-weight: 600; color: #0b1020; background: var(--c); box-shadow: 0 8px 22px -10px var(--c); transition: transform 0.15s, filter 0.15s; }
+.vy-tour:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.vy-tour em { margin-left: auto; font-style: normal; font-size: 12.5px; font-weight: 600; opacity: 0.75; }
+.vy-tour.on { color: var(--c); background: rgba(255, 255, 255, 0.06); box-shadow: inset 0 0 0 1.5px var(--c); }
+.vy-stops { list-style: none; margin: 0; padding: 0; display: grid; }
+.vy-stops li { position: relative; }
+.vy-stops li:not(:last-child)::before { content: ''; position: absolute; left: 21px; top: 34px; bottom: -6px; width: 2px; background: color-mix(in srgb, var(--c) 35%, transparent); }
+.vy-stops button { width: 100%; display: flex; gap: 12px; padding: 8px 8px 10px; border-radius: 12px; text-align: left; transition: background 0.15s; }
+.vy-stops button:hover { background: rgba(255, 255, 255, 0.05); }
+.vy-stops i { flex: none; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; font: 700 12.5px var(--display); font-style: normal; color: var(--c); background: rgba(9, 14, 30, 1); box-shadow: inset 0 0 0 2px var(--c); z-index: 1; }
+.vy-stops li.on button { background: color-mix(in srgb, var(--c) 14%, transparent); }
+.vy-stops li.on i { color: #0b1020; background: var(--c); }
+.vs-body { display: grid; gap: 3px; min-width: 0; padding-top: 4px; }
+.vs-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.vs-top b { font-size: 14px; font-weight: 600; color: var(--text); }
+.vs-top em { flex: none; font-style: normal; font-size: 11.5px; color: var(--dim); }
+.vs-note { font-size: 12.5px; line-height: 1.45; color: var(--muted); }
+.vy-mattered { margin: -4px 0 0; padding: 0 0 0 18px; display: grid; gap: 6px; font-size: 13.5px; line-height: 1.5; color: #cbd5e1; }
+.vy-mattered li::marker { color: var(--c); }
+.vy-wiki { display: inline-flex; align-items: center; gap: 6px; justify-self: start; font-size: 13px; font-weight: 600; color: var(--c); text-decoration: none; }
+.vy-wiki:hover { text-decoration: underline; }
+.vy-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--line); }
+.vy-nav button { display: flex; align-items: center; gap: 6px; padding: 10px; border-radius: 12px; text-align: left; color: var(--muted); background: rgba(255, 255, 255, 0.04); min-width: 0; }
+.vy-nav button:hover { color: var(--text); background: rgba(255, 255, 255, 0.08); }
+.vy-nav button.nx { justify-content: flex-end; text-align: right; }
+.vy-nav span { display: grid; min-width: 0; font-size: 12.5px; font-weight: 600; }
+.vy-nav em { font-style: normal; font-size: 10.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); }
+/* Stops on the globe */
+.stop-pin { pointer-events: auto; transform: translate(-50%, -50%); }
+.stop-pin button { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.stop-pin i { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; font: 700 11px var(--display); font-style: normal; color: var(--c); background: rgba(9, 14, 30, 0.92); box-shadow: inset 0 0 0 2px var(--c), 0 0 12px var(--c); transition: transform 0.2s var(--ease); }
+.stop-pin span { position: absolute; left: 28px; white-space: nowrap; padding: 3px 8px; border-radius: 7px; font-size: 12px; font-weight: 600; color: #fff; background: rgba(9, 14, 30, 0.88); opacity: 0; transform: translateX(-4px); transition: opacity 0.2s, transform 0.2s; pointer-events: none; }
+.stop-pin:hover span, .stop-pin.on span { opacity: 1; transform: none; }
+.stop-pin.on i { color: #0b1020; background: var(--c); transform: scale(1.25); }
+.stop-pin.on { z-index: 2; }
+@media (max-width: 900px) {
+  /* Phones: a bottom sheet; the globe lifts above it. */
+  .voy-panel { top: auto; left: 0 !important; right: 0; bottom: 0; width: auto; height: min(52dvh, 560px); border-radius: 22px 22px 0 0; padding-bottom: var(--sb); }
+  .voy-grab { display: block; width: 38px; height: 4px; margin: 8px auto 0; border-radius: 4px; background: rgba(255, 255, 255, 0.18); }
+  .voy-panel > .gc-head { padding-top: 6px; }
+  .vy-portrait { width: 60px; height: 60px; }
+  .vy-title { font-size: 21px; }
+}
