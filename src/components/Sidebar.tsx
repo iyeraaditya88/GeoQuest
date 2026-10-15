@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { BarChart3, Grid3x3, Shapes, Inbox, MessageSquareHeart, BellRing, Binoculars, Brain, ChevronLeft, Dices, Drill, Gamepad2, Globe2, KeyRound, Landmark, Link2, ListOrdered, LogIn, LogOut, Map as MapIcon, MapPinned, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, Sparkles, SunMoon, Swords, UserRound, Users, X } from 'lucide-react';
+import { BarChart3, Grid3x3, Shapes, Inbox, BellRing, Binoculars, Brain, ChevronLeft, Dices, Drill, Gamepad2, Globe2, KeyRound, Landmark, Link2, ListOrdered, LogIn, LogOut, Map as MapIcon, MapPinned, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, Sparkles, SunMoon, Swords, UserRound, Users, X } from 'lucide-react';
 import type { MapStyle } from './GlobeView';
 
 export const SIDEBAR_W = { open: 268, rail: 72 } as const;
@@ -37,7 +37,6 @@ interface Props {
   /** Owner: read players' feedback */
   onInbox?: () => void;
   /** Anyone: send feedback */
-  onFeedback: () => void;
   onQuiz: () => void;
   /** Today's Daily challenge: done yet, the streak, and the theme */
   /** Morning reminders (notifications) */
@@ -203,12 +202,6 @@ export function Sidebar(p: Props) {
 
         {/* Footer */}
         <div className="sb-foot">
-          {/* Always in view at the bottom of the menu (not scrolled away) */}
-          <button className="sb-fb" onClick={act(p.onFeedback)} data-tip={rail ? 'Send feedback' : undefined} aria-label="Send feedback">
-            <MessageSquareHeart size={16} />
-            <Fade show={!rail}><span className="sb-fb-text"><b>Send feedback</b><span>Ideas, bugs, feature requests</span></span></Fade>
-          </button>
-          {!rail && <nav className="sb-legal" aria-label="About GeoQuest"><a href="/countries">Countries</a><a href="/about">About</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></nav>}
           {/* The Atlas status only matters when it needs setting up (on the hosted site it's always on). */}
           {!(p.hosted && p.ai) && <button className={`sb-status ${p.ai ? 'ok' : ''}`} onClick={act(p.ai ? p.onAsk : p.onConnect)} data-tip={rail ? (p.ai ? 'Claude connected' : 'Connect Claude') : undefined}>
             {p.ai ? <i className="sb-live" /> : <KeyRound size={15} />}

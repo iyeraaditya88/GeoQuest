@@ -1,6 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { BellRing, CalendarDays, Check, Gamepad2, LogIn, X } from 'lucide-react';
+import { BellRing, CalendarDays, Check, Gamepad2, LogIn, MessageSquareHeart, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { GlobeView, type GlobeHandle, type GlobeView2D, type MapStyle, type Feedback } from './components/GlobeView';
 import { FlatAtlas, type AtlasHandle } from './components/FlatAtlas';
@@ -900,9 +900,12 @@ export default function App() {
   const leftInset = mobile || geo ? 0 : sbCollapsed ? SIDEBAR_W.rail : SIDEBAR_W.open;
   const rightInset = (country || feature) && !quiz && !geo && !play && !liveState.active ? panelWidth(vp.w, vp.h) : 0;
 
+  // The quiet footer (feedback + about/legal links): only on the bare globe, never over a game or panel.
+  const footer = chrome && idle && !selected && !feature && !accountOpen && !(mobile && drawerOpen);
+
   return (
     <div
-      className={`app ${ready ? 'ready' : ''}`}
+      className={`app ${ready ? 'ready' : ''} ${footer ? 'has-foot' : ''}`}
       style={{ '--li': `${leftInset}px`, '--ri': `${rightInset}px` } as React.CSSProperties}
     >
       <div className="space-glow" />
@@ -985,7 +988,6 @@ export default function App() {
         // (on your own machine there's no sign-in, so you're effectively the owner)
         onActivity={role === 'owner' || liveMode === 'local' ? () => setActivityOpen(true) : undefined}
         onInbox={role === 'owner' || liveMode === 'local' ? () => setInboxOpen(true) : undefined}
-        onFeedback={() => openFeedbackHere()}
         onSearch={() => { setSearchOpen(true); track('search'); }}
         onRandom={() => { if (quiz) exitQuiz(); random(); }}
         onAsk={() => { if (quiz) exitQuiz(); setDockOpen(true); }}
@@ -1135,6 +1137,20 @@ export default function App() {
       </ErrorBoundary>
       {/* Music on/off — top right (in Street View it moves into that screen's own top bar) */}
       {chrome && !geo && !liveState.immersive && <MusicButton className="music-fab" />}
+      {/* Feedback, bottom right; the About/legal links as a small footer line. */}
+      <AnimatePresence>
+        {footer && (
+          <motion.button key="fb-fab" className="fb-fab" onClick={() => openFeedbackHere()} aria-label="Send feedback" data-tip="Ideas, bugs, feature requests"
+            initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ delay: 0.3 }}>
+            <MessageSquareHeart size={17} /><span>Feedback</span>
+          </motion.button>
+        )}
+        {footer && (
+          <motion.nav key="app-legal" className="app-legal" aria-label="About GeoQuest" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ delay: 0.3 }}>
+            <a href="/countries">Countries</a><a href="/about">About</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a>
+          </motion.nav>
+        )}
+      </AnimatePresence>
       {/* Guests: sign in, top right (where Friends is once you're signed in). */}
       <AnimatePresence>
         {chrome && guest && !quiz && !geo && !play && !anti && !liveState.active && (
