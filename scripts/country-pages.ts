@@ -212,7 +212,7 @@ function indexPage() {
   return frame({
     title: 'Countries of the World — Maps, Capitals & Facts | GeoQuest',
     description: `Maps, capitals, neighbours and quick facts for ${PAGES.length} countries and territories, each shown on a 3D globe — plus free geography games to test yourself.`,
-    canonical: `${SITE}/countries`, image: `${SITE}/icons/og-home.jpg`, body,
+    canonical: `${SITE}/countries`, image: `${SITE}/icons/og-card.jpg`, body,
     jsonLd: [{ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'GeoQuest', item: `${SITE}/` },
       { '@type': 'ListItem', position: 2, name: 'Countries', item: `${SITE}/countries` },
