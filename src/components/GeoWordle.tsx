@@ -14,6 +14,8 @@ import { track } from '../lib/analytics';
 interface Props {
   onReveal: (cca3: string) => void;
   onExit: () => void;
+  /** Close the game and open this country on the globe. */
+  onShowCountry: (cca3: string) => void;
 }
 type Mode = 'daily' | 'bonus';
 interface Row { guess: string; marks: Mark[] }
@@ -32,16 +34,29 @@ function loadProgress(date: string): Progress {
   return { g: [], h: 0 };
 }
 const saveProgress = (date: string, p: Progress) => { try { localStorage.setItem(DAILY_KEY(date), JSON.stringify(p)); } catch { /* private mode */ } };
+/** Today's bonus round, if one was started (so reopening the game picks up the last game played). */
+const BONUS_KEY = 'gq-wordle-bonus';
+interface Bonus extends Progress { d: string; a: string }
+function loadBonus(date: string): Bonus | null {
+  try {
+    const v = JSON.parse(localStorage.getItem(BONUS_KEY) ?? 'null');
+    if (v && v.d === date && typeof v.a === 'string' && BY_CCA3.has(v.a) && Array.isArray(v.g)) return { d: v.d, a: v.a, g: v.g, h: Number(v.h) || 0 };
+  } catch { /* none */ }
+  return null;
+}
+const saveBonus = (b: Bonus) => { try { localStorage.setItem(BONUS_KEY, JSON.stringify(b)); } catch { /* private mode */ } };
 const loadStats = (): WordleStats => { try { return { ...emptyStats(), ...JSON.parse(localStorage.getItem(STATS_KEY) ?? '{}') }; } catch { return emptyStats(); } };
 const saveStats = (s: WordleStats) => { try { localStorage.setItem(STATS_KEY, JSON.stringify(s)); } catch { /* private mode */ } };
 
 /** Geo Wordle: guess the country in six tries — every guess a real country of the same length. */
-export function GeoWordle({ onReveal, onExit }: Props) {
+export function GeoWordle({ onReveal, onExit, onShowCountry }: Props) {
   const date = localDate();
-  const [mode, setMode] = useState<Mode>('daily');
-  const [answer, setAnswer] = useState(() => dailyWordle(date));
-  const [guesses, setGuesses] = useState<string[]>(() => loadProgress(date).g);
-  const [hints, setHints] = useState(() => loadProgress(date).h);
+  // Start where you left off: today's bonus round if you've begun one, else the Daily.
+  const [start] = useState(() => { const b = loadBonus(date); return b ? { mode: 'bonus' as Mode, answer: b.a, ...b } : { mode: 'daily' as Mode, answer: dailyWordle(date), ...loadProgress(date) }; });
+  const [mode, setMode] = useState<Mode>(start.mode);
+  const [answer, setAnswer] = useState(start.answer);
+  const [guesses, setGuesses] = useState<string[]>(start.g);
+  const [hints, setHints] = useState(start.h);
   const [typed, setTypedState] = useState('');
   const typedRef = useRef(''); // always current (Enter right after the last letter must see it)
   const setTyped = (v: string | ((t: string) => string)) => { const n = typeof v === 'function' ? v(typedRef.current) : v; typedRef.current = n; setTypedState(n); };
@@ -78,7 +93,7 @@ export function GeoWordle({ onReveal, onExit }: Props) {
   }, [done, answer, len]);
 
   const record = (next: string[], h: number, right: boolean) => {
-    if (mode === 'daily') saveProgress(date, { g: next, h });
+    persist(next, h);
     if (!right && TRIES - next.length - h > 0) return;
     track('score', { g: 'wordle', s: right ? next.length : 0, of: TRIES, h });
     if (right) window.setTimeout(() => confetti({ particleCount: 120, spread: 80, origin: { y: 0.3 }, colors: ['#34d399', '#facc15', '#fde68a'], disableForReducedMotion: true }), len * 90 + 300);
@@ -123,12 +138,14 @@ export function GeoWordle({ onReveal, onExit }: Props) {
     const h = hints + 1;
     setHints(h); setMsg(null);
     track('hint', { g: 'wordle', n: h });
-    if (mode === 'daily') saveProgress(date, { g: guesses, h });
+    persist(guesses, h);
   };
+  const persist = (g: string[], h: number, a = answer, m = mode) => (m === 'daily' ? saveProgress(date, { g, h }) : saveBonus({ d: date, a, g, h }));
   const bonus = () => {
     const a = bonusWordle(answer);
     track('game', { g: 'wordle', m: 'bonus' });
     setResultOpen(false); setMode('bonus'); setAnswer(a); setGuesses([]); setHints(0); setTyped(''); setMsg(null);
+    persist([], 0, a, 'bonus');
   };
   const share = async () => {
     const text = `${wordleShare(wordleNumber(date), rows.map((r) => r.marks), won, hints)}\n${location.origin}/?wordle=1&ref=share`;
@@ -221,7 +238,7 @@ export function GeoWordle({ onReveal, onExit }: Props) {
         <AnimatePresence>
           {resultOpen && done && (
             <WordleResult key="result" mode={mode} no={wordleNumber(date)} won={won} tries={rows.length} hints={hints} rows={rows} target={target.cca3}
-              stats={stats} copied={copied} onShare={() => void share()} onBonus={bonus} onClose={closeResult} />
+              stats={stats} copied={copied} onShare={() => void share()} onBonus={bonus} onClose={closeResult} onShow={() => onShowCountry(target.cca3)} />
           )}
         </AnimatePresence>,
         document.body,
@@ -231,9 +248,9 @@ export function GeoWordle({ onReveal, onExit }: Props) {
 }
 
 /** The result: the answer, your rows, and (for the Daily) your stats and guess distribution. */
-function WordleResult({ mode, no, won, tries, hints, rows, target, stats, copied, onShare, onBonus, onClose }: {
+function WordleResult({ mode, no, won, tries, hints, rows, target, stats, copied, onShare, onBonus, onClose, onShow }: {
   mode: Mode; no: number; won: boolean; tries: number; hints: number; rows: Row[]; target: string; stats: WordleStats; copied: boolean;
-  onShare: () => void; onBonus: () => void; onClose: () => void;
+  onShare: () => void; onBonus: () => void; onClose: () => void; onShow: () => void;
 }) {
   const c = BY_CCA3.get(target)!;
   useEffect(() => {
@@ -264,6 +281,7 @@ function WordleResult({ mode, no, won, tries, hints, rows, target, stats, copied
             <img src={flagUrl(c.cca2, 160)} alt="" />
             <div><b>{c.name}</b>{where && <span>{where}</span>}</div>
           </div>
+          <button className="gwr-globe" onClick={onShow}><Globe2 size={15} /> Show {c.name} on the globe</button>
           <div className="gwr-mini" aria-label="Your guesses">
             {rows.map((r, i) => <div key={i}>{r.marks.map((m, j) => <i key={j} className={m} />)}</div>)}
           </div>
@@ -296,7 +314,6 @@ function WordleResult({ mode, no, won, tries, hints, rows, target, stats, copied
           )}
           <button className={mode === 'daily' ? 'ghost-cta' : 'primary'} onClick={onBonus}><RotateCcw size={15} /> {mode === 'daily' ? 'Bonus round' : 'Another one'}</button>
         </div>
-        <button className="gwr-globe" onClick={onClose}><Globe2 size={14} /> See {c.name} on the globe</button>
         {mode === 'daily' && <p className="gwr-next">A new country every day.</p>}
       </motion.section>
     </motion.div>
