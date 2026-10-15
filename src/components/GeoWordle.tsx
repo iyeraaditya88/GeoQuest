@@ -169,8 +169,9 @@ export function GeoWordle({ onReveal, onExit }: Props) {
 
       <div className="gw-grid" role="grid" aria-label="Guesses">
         {lines.map((r, i) => r.kind === 'hint' ? (
+          // A try spent on a hint shows the hint itself, in its place on the board.
           <motion.div key={`h${i}`} className="gw-row gw-hintrow" role="row" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}>
-            <span><Lightbulb size={13} /> Used for a hint</span>
+            <Lightbulb size={14} /><span><em>Hint {i - (TRIES - hints) + 1}</em> {hintTexts[i - (TRIES - hints)]}</span>
           </motion.div>
         ) : (
           <motion.div key={`${mode}-${answer}-${i}`} className="gw-row" role="row" animate={r.kind === 'typing' && shake ? { x: [0, -8, 8, -5, 5, 0] } : {}} transition={{ duration: 0.35 }} data-shake={r.kind === 'typing' ? shake : 0}>
@@ -187,16 +188,6 @@ export function GeoWordle({ onReveal, onExit }: Props) {
           </motion.div>
         ))}
       </div>
-
-      <AnimatePresence initial={false}>
-        {hints > 0 && (
-          <motion.ul className="gw-hints" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
-            {hintTexts.slice(0, hints).map((h, i) => (
-              <motion.li key={h} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}><Lightbulb size={14} /><span><em>Hint {i + 1}</em> {h}</span></motion.li>
-            ))}
-          </motion.ul>
-        )}
-      </AnimatePresence>
 
       <p className={`gw-msg ${msg ? 'bad' : ''}`} aria-live="polite">{msg ?? (done ? '' : rows.length === 0 ? 'Type any country with this many letters, then Enter.' : 'Green: right spot · Yellow: in the name, elsewhere')}</p>
 
