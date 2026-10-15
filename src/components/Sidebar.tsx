@@ -158,13 +158,13 @@ export function Sidebar(p: Props) {
           )}>
             {rail && p.onFriends && <Item icon={Swords} label="Duel a friend" rail onClick={act(p.onFriends)} active={p.matchOn} tone="pink" />}
             {rail && p.onInvite && <Item icon={Link2} label="Invite with a link" rail onClick={act(p.onInvite)} />}
-            <Item icon={Gamepad2} tone="blue" label={p.quizOn ? 'Exit quiz' : 'Map quiz'} sub={p.quizOn ? undefined : 'Find countries, flags or clues'} rail={rail} active={p.quizOn} onClick={act(p.onQuiz)} />
-            <Item icon={Binoculars} tone="green" label="Street View" sub="Where in the world are you?" rail={rail} onClick={act(p.onStreet)} />
             <Item icon={Grid3x3} tone="lime" label={p.playOn === 'wordle' ? 'Exit Geo Wordle' : 'Geo Wordle'} sub={p.playOn === 'wordle' ? undefined : 'Wordle, but it’s a country'} rail={rail} active={p.playOn === 'wordle'} onClick={act(p.onWordle)} />
-            <Item icon={Shapes} tone="rose" label={p.playOn === 'shapes' ? 'Exit Guess the Country' : 'Guess the Country'} sub={p.playOn === 'shapes' ? undefined : 'Name it from its outline'} rail={rail} active={p.playOn === 'shapes'} onClick={act(p.onShapes)} />
-            <Item icon={Landmark} tone="amber" label={p.playOn === 'capitals' ? 'Exit Capitals' : 'Capitals'} sub={p.playOn === 'capitals' ? undefined : 'Country ↔ capital, 10 a round'} rail={rail} active={p.playOn === 'capitals'} onClick={act(p.onCapitals)} />
-            <Item icon={Brain} tone="violet" label={p.playOn === 'trivia' ? 'Exit Geo Trivia' : 'Geo Trivia'} sub={p.playOn === 'trivia' ? undefined : 'Gets harder as you get better'} rail={rail} active={p.playOn === 'trivia'} onClick={act(p.onTrivia)} />
+            <Item icon={Gamepad2} tone="blue" label={p.quizOn ? 'Exit quiz' : 'Map quiz'} sub={p.quizOn ? undefined : 'Find countries, flags or clues'} rail={rail} active={p.quizOn} onClick={act(p.onQuiz)} />
             <Item icon={ListOrdered} tone="teal" label={p.playOn === 'top5' ? 'Exit Top 5' : 'Name the Top 5'} sub={p.playOn === 'top5' ? undefined : 'Rivers, peaks, populations…'} rail={rail} active={p.playOn === 'top5'} onClick={act(p.onTop5)} />
+            <Item icon={Brain} tone="violet" label={p.playOn === 'trivia' ? 'Exit Geo Trivia' : 'Geo Trivia'} sub={p.playOn === 'trivia' ? undefined : 'Gets harder as you get better'} rail={rail} active={p.playOn === 'trivia'} onClick={act(p.onTrivia)} />
+            <Item icon={Shapes} tone="rose" label={p.playOn === 'shapes' ? 'Exit Guess the Country' : 'Guess the Country'} sub={p.playOn === 'shapes' ? undefined : 'Name it from its outline'} rail={rail} active={p.playOn === 'shapes'} onClick={act(p.onShapes)} />
+            <Item icon={Binoculars} tone="green" label="Street View" sub="Where in the world are you?" rail={rail} onClick={act(p.onStreet)} />
+            <Item icon={Landmark} tone="amber" label={p.playOn === 'capitals' ? 'Exit Capitals' : 'Capitals'} sub={p.playOn === 'capitals' ? undefined : 'Country ↔ capital, 10 a round'} rail={rail} active={p.playOn === 'capitals'} onClick={act(p.onCapitals)} />
           </Section>
 
           <Section title="Explore" rail={rail}>

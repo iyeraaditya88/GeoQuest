@@ -30,13 +30,13 @@ export function GamesSheet({ daily, duel, onPick, onClose }: Props) {
       line: daily.done ? `Done today${daily.streak > 1 ? ` · 🔥 ${daily.streak}` : ''} · see result` : `5 new countries today${daily.streak > 1 ? ` · 🔥 ${daily.streak}` : ''}`,
       badge: daily.done ? <span className="gs-done" aria-label="Done today"><Check size={12} /></span> : <span className="gs-new">New</span>,
     },
-    { key: 'quiz', icon: Gamepad2, name: 'Map quiz', line: 'Find countries, flags or clues', tone: 'blue' },
-    { key: 'street', icon: Binoculars, name: 'Street View', line: 'Where in the world are you?', tone: 'green' },
     { key: 'wordle', icon: Grid3x3, name: 'Geo Wordle', line: 'Wordle, but it’s a country', tone: 'lime' },
-    { key: 'shapes', icon: Shapes, name: 'Guess the Country', line: 'Name it from its outline', tone: 'rose' },
-    { key: 'capitals', icon: Landmark, name: 'Capitals', line: 'Country ↔ capital, 10 a round', tone: 'amber' },
-    { key: 'trivia', icon: Brain, name: 'Geo Trivia', line: 'Gets harder as you get better', tone: 'violet' },
+    { key: 'quiz', icon: Gamepad2, name: 'Map quiz', line: 'Find countries, flags or clues', tone: 'blue' },
     { key: 'top5', icon: ListOrdered, name: 'Name the Top 5', line: 'Rivers, peaks, populations…', tone: 'teal' },
+    { key: 'trivia', icon: Brain, name: 'Geo Trivia', line: 'Gets harder as you get better', tone: 'violet' },
+    { key: 'shapes', icon: Shapes, name: 'Guess the Country', line: 'Name it from its outline', tone: 'rose' },
+    { key: 'street', icon: Binoculars, name: 'Street View', line: 'Where in the world are you?', tone: 'green' },
+    { key: 'capitals', icon: Landmark, name: 'Capitals', line: 'Country ↔ capital, 10 a round', tone: 'amber' },
   ];
   if (duel) games.push({ key: 'duel', icon: Swords, name: 'Duel a friend', line: duel === 'play' ? 'Live, head-to-head' : 'Sign in to play friends live', tone: 'pink' });
 
