@@ -369,3 +369,21 @@ describe('famous voyages', () => {
     }
   });
 });
+
+describe('eras of civilization', () => {
+  it('runs in order, with growing population, sensible shares and places', async () => {
+    const { ERAS, eraView } = await import('../src/lib/eras');
+    expect(new Set(ERAS.map((e) => e.id)).size).toBe(ERAS.length);
+    for (let i = 1; i < ERAS.length; i++) expect(ERAS[i].pop).toBeGreaterThan(ERAS[i - 1].pop);
+    for (const e of ERAS) {
+      expect(e.hubs.length).toBeGreaterThanOrEqual(4);
+      expect(e.inventions.length).toBeGreaterThanOrEqual(4);
+      expect(e.events.length).toBeGreaterThanOrEqual(4);
+      if (e.share) { const { asia, europe, africa, americas, oceania } = e.share; expect(asia + europe + africa + americas + oceania).toBe(100); }
+      for (const [lat, lng] of [e.heart.at, ...e.hubs.map((h) => h.at), ...e.routes.flatMap((r) => r.points)]) {
+        expect(Math.abs(lat)).toBeLessThanOrEqual(90); expect(Math.abs(lng)).toBeLessThanOrEqual(180);
+      }
+      expect(eraView(e).altitude).toBeGreaterThan(0);
+    }
+  });
+});

@@ -69,7 +69,8 @@ interface Props {
   pickMode?: boolean;
   sideView?: boolean;
   pins?: ({ lat: number; lng: number; kind: 'guess' | 'answer' | 'from' | 'to' } | { lat: number; lng: number; kind: 'place'; id: string; emoji: string; name: string; tone: string }
-    | { lat: number; lng: number; kind: 'stop'; id: string; n: number; name: string; tone: string; active: boolean; dead?: boolean })[];
+    | { lat: number; lng: number; kind: 'stop'; id: string; n: number; name: string; tone: string; active: boolean; dead?: boolean }
+    | { lat: number; lng: number; kind: 'hub' | 'heart'; id: string; name: string; tone: string; active: boolean; emoji?: string })[];
   /** Routes drawn on the globe (famous voyages): the active one bright and moving, the rest faint. */
   paths?: GlobePath[];
   /** One of "My places" was tapped on the globe */
@@ -679,7 +680,7 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
 
   // The pins' drawing functions stay the same between renders: the globe library rebuilds every
   // pin when they change — which, on each hover (a re-render), made pins flicker and re-drop.
-  const htmlAltitude = useCallback((d: object) => { const k = (d as { kind: string }).kind; return k === 'capital' ? 0.045 : k === 'sun' ? 0.02 : k === 'place' ? 0.008 : k === 'stop' ? 0.006 : 0.012; }, []);
+  const htmlAltitude = useCallback((d: object) => { const k = (d as { kind: string }).kind; return k === 'capital' ? 0.045 : k === 'sun' ? 0.02 : k === 'place' ? 0.008 : k === 'stop' || k === 'hub' || k === 'heart' ? 0.006 : 0.012; }, []);
   // Voyage routes (stable accessors, so the lines aren't rebuilt on every render).
   const pathLat = useCallback((p: unknown) => (p as [number, number])[0], []);
   const pathLng = useCallback((p: unknown) => (p as [number, number])[1], []);
@@ -695,7 +696,13 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
   const htmlElement = useCallback((d: object) => {
     const it = d as { kind: string; name?: string; id?: string; emoji?: string; tone?: string; n?: number; active?: boolean; dead?: boolean };
     const el = document.createElement('div');
-    if (it.kind === 'stop') {
+    if (it.kind === 'hub' || it.kind === 'heart') {
+      // Eras: the heart of the human world (glowing) and the places where people thrived.
+      el.className = `${it.kind}-pin ${it.active ? 'on' : ''}`;
+      el.style.setProperty('--c', it.tone ?? '#fbbf24');
+      el.innerHTML = `<button type="button" aria-label="${escapeHtml(it.name ?? '')}"><i>${it.emoji ? `<b>${escapeHtml(it.emoji)}</b>` : ''}</i><span>${escapeHtml(it.name ?? '')}</span></button>`;
+      el.querySelector('button')!.addEventListener('click', (e) => { e.stopPropagation(); onPinRef.current?.(it.id ?? ''); });
+    } else if (it.kind === 'stop') {
       // A voyage's stop: its number in the route colour; the name shows on the current one (and on hover).
       el.className = `stop-pin ${it.active ? 'on' : ''} ${it.dead ? 'dead' : ''}`;
       el.style.setProperty('--c', it.tone ?? '#fbbf24');

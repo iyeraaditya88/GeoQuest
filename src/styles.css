@@ -2492,3 +2492,80 @@ svg.vy-flag { color: #2dd4bf; }
 @keyframes ss-wake { to { stroke-dashoffset: -12; } }
 @media (prefers-reduced-motion: reduce) { .ss-bob, .ss-wake { animation: none; } }
 .vy-death small { display: block; margin-top: 2px; font-size: 11.5px; color: #fca5a5; }
+
+/* ── Eras of civilization ─────────────── */
+.er-badge { color: #fff; background: linear-gradient(135deg, #f59e0b, #b45309); }
+.er-intro { margin: 2px 4px 10px; font-size: 13px; line-height: 1.5; color: var(--muted); }
+.er-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; position: relative; }
+.er-list::before { content: ''; position: absolute; left: 25px; top: 24px; bottom: 24px; width: 2px; background: linear-gradient(var(--line), rgba(255, 255, 255, 0.12), var(--line)); }
+.er-row { position: relative; width: 100%; display: grid; grid-template-columns: 34px minmax(0, 1fr) 16px; align-items: center; gap: 12px; padding: 10px 8px; border-radius: 14px; text-align: left; transition: background 0.15s; }
+.er-row:hover, .er-row:focus-visible { background: rgba(255, 255, 255, 0.06); }
+.er-dot { z-index: 1; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; font-size: 17px; background: rgba(9, 14, 30, 1); box-shadow: inset 0 0 0 2px var(--c), 0 0 14px color-mix(in srgb, var(--c) 45%, transparent); }
+.er-dot b { font-weight: 400; }
+.er-text { display: grid; gap: 3px; min-width: 0; }
+.er-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.er-top b { font: 600 14.5px var(--display); color: var(--text); }
+.er-top em { flex: none; font-style: normal; font-size: 11px; color: var(--dim); }
+.er-tag { font-size: 12.5px; line-height: 1.35; color: var(--muted); }
+.er-pop { position: relative; display: flex; align-items: center; height: 16px; margin-top: 2px; border-radius: 5px; background: rgba(255, 255, 255, 0.04); overflow: hidden; }
+.er-pop i { position: absolute; inset: 0 auto 0 0; border-radius: 5px; background: linear-gradient(90deg, color-mix(in srgb, var(--c) 25%, transparent), color-mix(in srgb, var(--c) 55%, transparent)); }
+.er-pop small { position: relative; display: inline-flex; align-items: center; gap: 4px; padding: 0 7px; font-size: 10.5px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+.er-hero { display: flex; align-items: center; gap: 14px; }
+.er-emoji { flex: none; width: 66px; height: 66px; display: grid; place-items: center; border-radius: 50%; font-size: 32px; background: color-mix(in srgb, var(--c) 14%, rgba(9, 14, 30, 1)); box-shadow: 0 0 0 2px var(--c), 0 6px 22px -6px var(--c); }
+.er-kicker { font: 600 10.5px var(--display); letter-spacing: 0.12em; text-transform: uppercase; color: var(--c) !important; }
+.er-detail .vy-who b { font-size: 21px; }
+.er-heart { display: flex; align-items: flex-start; gap: 12px; width: 100%; padding: 12px; border-radius: 14px; text-align: left; background: color-mix(in srgb, var(--c) 10%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 40%, transparent); transition: background 0.15s; }
+.er-heart:hover, .er-heart.on { background: color-mix(in srgb, var(--c) 18%, transparent); }
+.er-heart > span:last-child { display: grid; gap: 2px; min-width: 0; }
+.er-heart em { font-style: normal; font-size: 10.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--c); }
+.er-heart b { font: 600 15px var(--display); color: var(--text); }
+.er-heart small { font-size: 12.5px; line-height: 1.45; color: var(--muted); }
+.er-heart-dot { flex: none; width: 14px; height: 14px; margin: 4px 2px 0; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 0 var(--c); animation: er-pulse 2s infinite; }
+@keyframes er-pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c) 70%, transparent); } 80%, 100% { box-shadow: 0 0 0 12px transparent; } }
+.er-share { display: grid; gap: 6px; }
+.er-share-bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; gap: 2px; }
+.er-share-bar i { display: block; height: 100%; }
+.er-share-key { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11.5px; color: var(--muted); }
+.er-share-key span { display: inline-flex; align-items: center; gap: 5px; }
+.er-share-key i { width: 8px; height: 8px; border-radius: 2px; }
+.er-share-key b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.er-share small { font-size: 11px; color: var(--dim); }
+.er-hubs { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.er-hubs button { width: 100%; display: flex; gap: 10px; align-items: flex-start; padding: 7px 8px; border-radius: 10px; text-align: left; transition: background 0.15s; }
+.er-hubs button:hover, .er-hubs button.on { background: rgba(255, 255, 255, 0.06); }
+.er-hubs i { flex: none; width: 9px; height: 9px; margin-top: 5px; border-radius: 50%; background: var(--c); box-shadow: 0 0 8px var(--c); }
+.er-hubs span { display: grid; gap: 1px; min-width: 0; }
+.er-hubs b { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.er-hubs small { font-size: 12px; line-height: 1.4; color: var(--muted); }
+.er-inv { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.er-inv > span { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 12px; background: rgba(255, 255, 255, 0.04); box-shadow: inset 0 0 0 1px var(--line); }
+.er-inv b { flex: none; font-size: 19px; font-weight: 400; }
+.er-inv > span > span { display: grid; min-width: 0; }
+.er-inv strong { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.er-inv small { font-size: 11px; color: var(--dim); }
+.er-events { list-style: none; margin: 0; padding: 0 0 0 4px; display: grid; gap: 0; }
+.er-events li { position: relative; display: grid; gap: 1px; padding: 0 0 12px 18px; border-left: 2px solid color-mix(in srgb, var(--c) 35%, transparent); }
+.er-events li:last-child { padding-bottom: 0; }
+.er-events li::before { content: ''; position: absolute; left: -6px; top: 3px; width: 10px; height: 10px; border-radius: 50%; background: rgba(9, 14, 30, 1); box-shadow: inset 0 0 0 2px var(--c); }
+.er-events em { font-style: normal; font-size: 11.5px; font-weight: 600; color: var(--c); }
+.er-events span { font-size: 13px; line-height: 1.45; color: #cbd5e1; }
+.er-next { display: grid; gap: 10px; padding: 12px; border-radius: 14px; background: rgba(255, 255, 255, 0.04); box-shadow: inset 0 0 0 1px var(--line); }
+.er-next p { margin: 0; font-size: 13.5px; line-height: 1.55; color: #cbd5e1; }
+.er-next button { display: flex; align-items: center; gap: 8px; justify-content: center; height: 42px; border-radius: 12px; font-size: 13.5px; font-weight: 600; color: #0b1020; background: var(--n); box-shadow: 0 8px 22px -10px var(--n); }
+.er-next button:hover { filter: brightness(1.08); }
+/* On the globe */
+.heart-pin, .hub-pin { pointer-events: auto; transform: translate(-50%, -50%); }
+.heart-pin button, .hub-pin button { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.heart-pin i { position: relative; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; font-style: normal; background: rgba(9, 14, 30, 0.9); box-shadow: inset 0 0 0 2px var(--c), 0 0 18px var(--c); }
+.heart-pin i::after { content: ''; position: absolute; inset: -2px; border-radius: 50%; animation: er-ring 2.2s ease-out infinite; box-shadow: 0 0 0 2px var(--c); opacity: 0; }
+@keyframes er-ring { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(2.6); opacity: 0; } }
+.heart-pin i b { font-size: 15px; font-weight: 400; }
+.heart-pin span, .hub-pin span { position: absolute; left: calc(100% + 6px); white-space: nowrap; padding: 3px 8px; border-radius: 7px; font-size: 12px; font-weight: 600; color: #fff; background: rgba(9, 14, 30, 0.86); pointer-events: none; }
+.heart-pin span { opacity: 0; transition: opacity 0.2s; }
+.heart-pin.on span, .heart-pin:hover span { opacity: 1; }
+.heart-pin.on i { transform: scale(1.12); }
+.hub-pin i { width: 12px; height: 12px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 2px rgba(9, 14, 30, 0.9), 0 0 10px var(--c); }
+.hub-pin span { left: 18px; font-size: 11px; font-weight: 500; opacity: 0.85; }
+.hub-pin.on i { transform: scale(1.4); }
+.hub-pin.on span { opacity: 1; font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .heart-pin i::after, .er-heart-dot { animation: none; } }
