@@ -985,6 +985,7 @@ export function StreetGame({ game, mlyToken, onPick, onGuess, onNext, onExit, on
       <AnimatePresence>
         {game.status === 'result' && last && (
           <motion.div className="sv-result" initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.15 }}>
+            {!match && <button className="result-x" onClick={onExit} aria-label="Close game"><X size={17} /></button>}
             <div className="svr-top">
               <div>
                 <div className="svr-kicker">{last.km < 25 ? 'Incredible!' : last.km < 300 ? 'Great guess' : last.guessCountry === last.country ? 'Right country!' : last.km < 1500 ? 'Not bad' : 'Way off — next time!'}</div>
@@ -1013,6 +1014,7 @@ export function StreetGame({ game, mlyToken, onPick, onGuess, onNext, onExit, on
       {/* Final */}
       {game.status === 'final' && (
         <motion.div className="sv-final" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}>
+          <button className="result-x" onClick={onExit} aria-label="Close game"><X size={17} /></button>
           <div className="svf-head">
             <Trophy size={26} className="svf-trophy" />
             <div>

@@ -255,6 +255,7 @@ function Results({ s, onLeave, onRematch, rematch, onAccept, onDecline, onExpire
   return (
     <motion.div className="mt-results-wrap" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
       <motion.section className="mt-results" initial={{ y: 24, scale: 0.97 }} animate={{ y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 28 }}>
+        <button className="result-x" onClick={onLeave} aria-label="Close"><X size={17} /></button>
         <div className="mt-r-kicker">{GAMES[s.game].label}</div>
         <h2>{!s.script ? 'No match this time' : aborted ? 'Match ended' : s.reason ? 'Match ended early' : tie ? 'It’s a draw!' : iWon ? 'You win!' : `${top?.name ?? '—'} wins`}</h2>
         {(s.reason || (aborted && !ranked.length)) && <p className="mt-r-reason">{s.reason}</p>}

@@ -64,16 +64,45 @@ export function invalidReason(guess: string, answer: string): string | null {
   return null;
 }
 
-/** The nudge after three misses: the continent. */
-export function wordleHint(answer: string) {
+/** Hints are offered after this many guesses; each one uses up a try. */
+export const HINT_AFTER = 3;
+export const MAX_HINTS = 2;
+/** May a hint be taken now? (Always leaves at least one try to use it.) */
+export const canHint = (guesses: number, hints: number, won: boolean) =>
+  !won && guesses >= HINT_AFTER && hints < MAX_HINTS && TRIES - guesses - hints >= 2;
+
+const people = (n: number) => (n >= 1e9 ? `${(n / 1e9).toFixed(1)} billion` : n >= 1e6 ? `${Math.round(n / 1e6)} million` : `${Math.round(n / 1e3)} thousand`);
+/**
+ * The hints, in order: where it is (the region), then what it's like (people, neighbours, coast).
+ * Clues, never the answer: no name, letters, capital or flag.
+ */
+export function wordleHints(answer: string): string[] {
   const c = BY_CCA3.get(answer);
-  if (!c) return '';
-  const where = c.region === 'Americas' ? (c.subregion === 'South America' ? 'South America' : c.subregion === 'Caribbean' ? 'the Caribbean' : c.subregion === 'Central America' ? 'Central America' : 'North America') : c.region;
-  return `Hint: it’s in ${where}.`;
+  if (!c) return [];
+  const region = c.region === 'Americas'
+    ? (c.subregion === 'South America' ? 'South America' : c.subregion === 'Caribbean' ? 'the Caribbean' : c.subregion === 'Central America' ? 'Central America' : 'North America')
+    : c.subregion === 'Australia and New Zealand' ? 'Oceania' : c.subregion || c.region;
+  const n = c.borders.length;
+  const land = n === 0 ? 'no land borders' : `${n} land neighbour${n === 1 ? '' : 's'}`;
+  const coast = c.landlocked ? 'no coastline' : n === 0 ? 'surrounded by sea' : 'a coastline';
+  return [`It’s in ${region}.`, `About ${people(c.population)} people · ${land} · ${coast}.`];
 }
 
-/** "GeoQuest Wordle #12 4/6" plus the coloured rows (no letters, no spoilers). */
-export function wordleShare(no: number, rows: Mark[][], won: boolean) {
+// ── Stats (the Daily, on this device) ──
+export interface WordleStats { played: number; wins: number; streak: number; best: number; last: string | null; dist: number[] }
+export const emptyStats = (): WordleStats => ({ played: 0, wins: 0, streak: 0, best: 0, last: null, dist: Array(TRIES).fill(0) });
+/** Add today's Daily to the stats (once per day). `tries` = guesses it took (null = not solved). */
+export function addResult(st: WordleStats, date: string, tries: number | null, yesterday: string): WordleStats {
+  if (st.last === date) return st;
+  const won = tries !== null;
+  const streak = won ? (st.last === yesterday ? st.streak + 1 : 1) : 0;
+  const dist = [...st.dist];
+  if (won) dist[tries! - 1] = (dist[tries! - 1] ?? 0) + 1;
+  return { played: st.played + 1, wins: st.wins + (won ? 1 : 0), streak, best: Math.max(st.best, streak), last: date, dist };
+}
+
+/** "GeoQuest Wordle #12 4/6 💡1" plus the coloured rows (no letters, no spoilers). */
+export function wordleShare(no: number, rows: Mark[][], won: boolean, hints = 0) {
   const sq = (m: Mark) => (m === 'g' ? '🟩' : m === 'y' ? '🟨' : '⬛');
-  return `GeoQuest Wordle #${no} ${won ? rows.length : 'X'}/${TRIES}\n${rows.map((r) => r.map(sq).join('')).join('\n')}`;
+  return `GeoQuest Wordle #${no} ${won ? rows.length : 'X'}/${TRIES}${hints ? ` 💡${hints}` : ''}\n${rows.map((r) => r.map(sq).join('')).join('\n')}`;
 }

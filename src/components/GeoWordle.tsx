@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { motion } from 'motion/react';
-import { Check, Copy, Delete, Grid3x3, RotateCcw, Share2, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { AnimatePresence, motion } from 'motion/react';
+import { BarChart3, Check, Copy, Delete, Globe2, Grid3x3, Lightbulb, RotateCcw, Share2, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { BY_CCA3, flagUrl } from '../lib/data';
-import { localDate } from '../lib/daily';
-import { TRIES, bonusWordle, countriesOfLength, dailyWordle, invalidReason, keyStates, letters, score, wordleHint, wordleNumber, wordleShare, type Mark } from '../lib/wordle';
+import { addDays, localDate } from '../lib/daily';
+import {
+  TRIES, addResult, bonusWordle, canHint, countriesOfLength, dailyWordle, emptyStats, invalidReason, keyStates,
+  letters, score, wordleHints, wordleNumber, wordleShare, type Mark, type WordleStats,
+} from '../lib/wordle';
 import { track } from '../lib/analytics';
 
 interface Props {
@@ -13,58 +17,85 @@ interface Props {
 }
 type Mode = 'daily' | 'bonus';
 interface Row { guess: string; marks: Mark[] }
+interface Progress { g: string[]; h: number }
 
 const KEYS = ['QWERTYUIOP', 'ASDFGHJKL', '+ZXCVBNM-'];
-const saved = (date: string): string[] => { try { const v = JSON.parse(localStorage.getItem(`gq-wordle-${date}`) ?? '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
-const save = (date: string, guesses: string[]) => { try { localStorage.setItem(`gq-wordle-${date}`, JSON.stringify(guesses)); } catch { /* private mode */ } };
+const VERDICT = ['Genius!', 'Magnificent!', 'Impressive!', 'Splendid!', 'Great!', 'Phew!'];
+const DAILY_KEY = (date: string) => `gq-wordle-${date}`;
+const STATS_KEY = 'gq-wordle-stats';
+function loadProgress(date: string): Progress {
+  try {
+    const v = JSON.parse(localStorage.getItem(DAILY_KEY(date)) ?? 'null');
+    if (Array.isArray(v)) return { g: v, h: 0 }; // (saved by the first version: just the guesses)
+    if (v && Array.isArray(v.g)) return { g: v.g, h: Number(v.h) || 0 };
+  } catch { /* none */ }
+  return { g: [], h: 0 };
+}
+const saveProgress = (date: string, p: Progress) => { try { localStorage.setItem(DAILY_KEY(date), JSON.stringify(p)); } catch { /* private mode */ } };
+const loadStats = (): WordleStats => { try { return { ...emptyStats(), ...JSON.parse(localStorage.getItem(STATS_KEY) ?? '{}') }; } catch { return emptyStats(); } };
+const saveStats = (s: WordleStats) => { try { localStorage.setItem(STATS_KEY, JSON.stringify(s)); } catch { /* private mode */ } };
 
-/** Geo Wordle: guess today's country in six tries — every guess a real country of the same length. */
+/** Geo Wordle: guess the country in six tries — every guess a real country of the same length. */
 export function GeoWordle({ onReveal, onExit }: Props) {
   const date = localDate();
   const [mode, setMode] = useState<Mode>('daily');
   const [answer, setAnswer] = useState(() => dailyWordle(date));
-  const [guesses, setGuesses] = useState<string[]>(() => saved(date));
+  const [guesses, setGuesses] = useState<string[]>(() => loadProgress(date).g);
+  const [hints, setHints] = useState(() => loadProgress(date).h);
   const [typed, setTypedState] = useState('');
-  // The letters typed so far, always current (Enter right after the last letter must see it).
-  const typedRef = useRef('');
-  const setTyped = (v: string | ((t: string) => string)) => {
-    const next = typeof v === 'function' ? v(typedRef.current) : v;
-    typedRef.current = next;
-    setTypedState(next);
-  };
+  const typedRef = useRef(''); // always current (Enter right after the last letter must see it)
+  const setTyped = (v: string | ((t: string) => string)) => { const n = typeof v === 'function' ? v(typedRef.current) : v; typedRef.current = n; setTypedState(n); };
   const [msg, setMsg] = useState<string | null>(null);
   const [shake, setShake] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [stats, setStats] = useState(loadStats);
+  const [resultOpen, setResultOpen] = useState(false);
 
   const target = BY_CCA3.get(answer)!;
   const word = letters(target.name);
   const len = word.length;
   const rows: Row[] = useMemo(() => guesses.map((g) => ({ guess: letters(g), marks: score(g, word) })), [guesses, word]);
   const won = rows.some((r) => r.guess === word);
-  const done = won || rows.length >= TRIES;
+  const triesLeft = TRIES - rows.length - hints;
+  const done = won || triesLeft <= 0;
   const keys = useMemo(() => keyStates(rows), [rows]);
+  const hintTexts = useMemo(() => wordleHints(answer), [answer]);
 
-  // Reveal on the globe once it's over (also when reopening a finished Daily) — once per country.
+  // Over: reveal on the globe (once per country), then the result — after the last row has flipped,
+  // or straight away when reopening a Daily that's already finished.
+  const finishedAtOpen = useRef(done);
   const revealed = useRef<string | null>(null);
   useEffect(() => {
-    if (done && revealed.current !== answer) { revealed.current = answer; onReveal(answer); }
+    if (!done || revealed.current === answer) return;
+    revealed.current = answer;
+    onReveal(answer);
   }, [done, answer, onReveal]);
+  useEffect(() => {
+    if (!done) return;
+    const t = window.setTimeout(() => setResultOpen(true), finishedAtOpen.current ? 350 : len * 90 + 900);
+    finishedAtOpen.current = false;
+    return () => window.clearTimeout(t);
+  }, [done, answer, len]);
+
+  const record = (next: string[], h: number, right: boolean) => {
+    if (mode === 'daily') saveProgress(date, { g: next, h });
+    if (!right && TRIES - next.length - h > 0) return;
+    track('score', { g: 'wordle', s: right ? next.length : 0, of: TRIES, h });
+    if (right) window.setTimeout(() => confetti({ particleCount: 120, spread: 80, origin: { y: 0.3 }, colors: ['#34d399', '#facc15', '#fde68a'], disableForReducedMotion: true }), len * 90 + 300);
+    if (mode === 'daily') { const st = addResult(loadStats(), date, right ? next.length : null, addDays(date, -1)); saveStats(st); setStats(st); }
+  };
 
   const submit = useCallback(() => {
     if (done) return;
-    const typed = typedRef.current;
-    const bad = invalidReason(typed, word);
+    const t = typedRef.current;
+    const bad = invalidReason(t, word);
     if (bad) { setMsg(bad); setShake((n) => n + 1); return; }
-    if (guesses.some((g) => letters(g) === letters(typed))) { setMsg('Already tried that one.'); setShake((n) => n + 1); return; }
-    const next = [...guesses, typed];
+    if (guesses.some((g) => letters(g) === letters(t))) { setMsg('Already tried that one.'); setShake((n) => n + 1); return; }
+    const next = [...guesses, t];
     setGuesses(next); setTyped(''); setMsg(null);
-    if (mode === 'daily') save(date, next);
-    const right = letters(typed) === word;
-    if (right || next.length >= TRIES) {
-      track('score', { g: 'wordle', s: right ? next.length : 0, of: TRIES });
-      if (right) confetti({ particleCount: 110, spread: 80, origin: { y: 0.25 }, colors: ['#34d399', '#facc15', '#fde68a'], disableForReducedMotion: true });
-    }
-  }, [done, word, guesses, mode, date]);
+    record(next, hints, letters(t) === word);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [done, word, guesses, hints, mode, date]);
 
   const press = useCallback((k: string) => {
     if (done) return;
@@ -72,35 +103,50 @@ export function GeoWordle({ onReveal, onExit }: Props) {
     if (k === 'ENTER') submit();
     else if (k === 'BACK') setTyped((t) => t.slice(0, -1));
     else if (/^[A-Z]$/.test(k)) setTyped((t) => (t.length < len ? t + k : t));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [done, submit, len]);
 
-  // The real keyboard too (unless you're typing somewhere else).
+  // The real keyboard too (unless you're typing somewhere else, or the result is open).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey || (e.target as HTMLElement)?.closest?.('input, textarea')) return;
+      if (resultOpen || e.metaKey || e.ctrlKey || e.altKey || (e.target as HTMLElement)?.closest?.('input, textarea')) return;
       if (e.key === 'Enter') { e.preventDefault(); press('ENTER'); }
       else if (e.key === 'Backspace') press('BACK');
       else if (/^[a-z]$/i.test(e.key)) press(e.key.toUpperCase());
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [press]);
+  }, [press, resultOpen]);
 
+  const takeHint = () => {
+    if (!canHint(rows.length, hints, won)) return;
+    const h = hints + 1;
+    setHints(h); setMsg(null);
+    track('hint', { g: 'wordle', n: h });
+    if (mode === 'daily') saveProgress(date, { g: guesses, h });
+  };
   const bonus = () => {
     const a = bonusWordle(answer);
     track('game', { g: 'wordle', m: 'bonus' });
-    setMode('bonus'); setAnswer(a); setGuesses([]); setTyped(''); setMsg(null);
+    setResultOpen(false); setMode('bonus'); setAnswer(a); setGuesses([]); setHints(0); setTyped(''); setMsg(null);
   };
   const share = async () => {
-    const text = `${wordleShare(wordleNumber(date), rows.map((r) => r.marks), won)}\n${location.origin}/?wordle=1&ref=share`;
+    const text = `${wordleShare(wordleNumber(date), rows.map((r) => r.marks), won, hints)}\n${location.origin}/?wordle=1&ref=share`;
     track('share', { g: 'wordle' });
     if (typeof navigator.share === 'function') { await navigator.share({ text }).catch(() => null); return; }
     try { await navigator.clipboard.writeText(text); } catch { /* blocked */ }
     setCopied(true); window.setTimeout(() => setCopied(false), 1800);
   };
+  const closeResult = useCallback(() => setResultOpen(false), []);
 
-  const misses = rows.filter((r) => r.guess !== word).length;
-  const lines = Array.from({ length: TRIES }, (_, i) => rows[i] ?? (i === rows.length && !done ? { guess: typed, marks: [] as Mark[] } : { guess: '', marks: [] as Mark[] }));
+  // The grid: guesses, the row being typed, empty rows — and the tries spent on hints, from the bottom.
+  const lines = Array.from({ length: TRIES }, (_, i) => {
+    if (i < rows.length) return { kind: 'guess' as const, ...rows[i] };
+    if (i >= TRIES - hints) return { kind: 'hint' as const, guess: '', marks: [] as Mark[] };
+    if (i === rows.length && !done) return { kind: 'typing' as const, guess: typed, marks: [] as Mark[] };
+    return { kind: 'empty' as const, guess: '', marks: [] as Mark[] };
+  });
+  const hintable = !done && canHint(rows.length, hints, won);
 
   return (
     <motion.div className="game-card wordle" style={{ ['--n' as string]: len }} initial={{ y: -30, opacity: 0, scale: 0.98 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: -20, opacity: 0, scale: 0.98 }} transition={{ type: 'spring', stiffness: 320, damping: 30 }}>
@@ -108,47 +154,70 @@ export function GeoWordle({ onReveal, onExit }: Props) {
         <span className="gc-badge gw-badge"><Grid3x3 size={15} /></span>
         <div className="gc-title">
           <b>Geo Wordle</b>
-          <span>{mode === 'daily' ? `Daily #${wordleNumber(date)}` : 'Bonus round'} · {len} letters · {countriesOfLength(len)} countries this long</span>
+          <span>{mode === 'daily' ? `Daily #${wordleNumber(date)}` : 'Bonus round'}</span>
         </div>
         <span className="gc-spacer" />
+        {done && <button className="icon-btn" onClick={() => setResultOpen(true)} aria-label="Results"><BarChart3 size={16} /></button>}
         <button className="icon-btn" onClick={onExit} aria-label="Close game"><X size={17} /></button>
       </header>
 
+      <div className="gw-info">
+        <span><b>{len}</b> letters</span>
+        <span><b>{countriesOfLength(len)}</b> countries this long</span>
+        <span className={triesLeft <= 1 && !done ? 'warn' : ''}><b>{Math.max(0, triesLeft)}</b> {triesLeft === 1 ? 'try' : 'tries'} left</span>
+      </div>
+
       <div className="gw-grid" role="grid" aria-label="Guesses">
-        {lines.map((r, i) => (
-          <motion.div key={`${mode}-${answer}-${i}`} className="gw-row" role="row" animate={i === rows.length && shake ? { x: [0, -8, 8, -5, 5, 0] } : {}} transition={{ duration: 0.35 }} data-shake={i === rows.length ? shake : 0}>
+        {lines.map((r, i) => r.kind === 'hint' ? (
+          <motion.div key={`h${i}`} className="gw-row gw-hintrow" role="row" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}>
+            <span><Lightbulb size={13} /> Used for a hint</span>
+          </motion.div>
+        ) : (
+          <motion.div key={`${mode}-${answer}-${i}`} className="gw-row" role="row" animate={r.kind === 'typing' && shake ? { x: [0, -8, 8, -5, 5, 0] } : {}} transition={{ duration: 0.35 }} data-shake={r.kind === 'typing' ? shake : 0}>
             {Array.from({ length: len }, (_, j) => {
               const ch = r.guess[j] ?? '';
               const m = r.marks[j];
               return (
-                <motion.span key={j} role="gridcell" className={`gw-tile ${m ?? (ch ? 'typed' : '')}`}
-                  initial={false} animate={m ? { rotateX: [90, 0] } : {}} transition={{ delay: j * 0.08, duration: 0.28 }}>{ch}</motion.span>
+                <motion.span key={`${j}-${ch}-${m ?? ''}`} role="gridcell" className={`gw-tile ${m ?? (ch ? 'typed' : '')}`}
+                  initial={m ? { rotateX: 90 } : ch && r.kind === 'typing' ? { scale: 1.14 } : false}
+                  animate={m ? { rotateX: 0 } : { scale: 1 }}
+                  transition={m ? { delay: j * 0.09, duration: 0.3 } : { duration: 0.12 }}>{ch}</motion.span>
               );
             })}
           </motion.div>
         ))}
       </div>
 
-      <p className={`gw-msg ${msg ? 'bad' : ''}`}>{msg ?? (done ? '' : misses >= 3 ? wordleHint(answer) : 'Type a country. Green = right spot, yellow = in it elsewhere.')}</p>
+      <AnimatePresence initial={false}>
+        {hints > 0 && (
+          <motion.ul className="gw-hints" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+            {hintTexts.slice(0, hints).map((h, i) => (
+              <motion.li key={h} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}><Lightbulb size={14} /><span><em>Hint {i + 1}</em> {h}</span></motion.li>
+            ))}
+          </motion.ul>
+        )}
+      </AnimatePresence>
+
+      <p className={`gw-msg ${msg ? 'bad' : ''}`} aria-live="polite">{msg ?? (done ? '' : rows.length === 0 ? 'Type any country with this many letters, then Enter.' : 'Green: right spot · Yellow: in the name, elsewhere')}</p>
+
+      {hintable && (
+        <motion.button className="gw-hint-btn" onClick={takeHint} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+          <Lightbulb size={15} /> <b>{hints ? 'Another hint' : 'Stuck? Get a hint'}</b> <em>costs 1 try</em>
+        </motion.button>
+      )}
 
       {done ? (
         <div className={`gw-end ${won ? 'won' : ''}`}>
           <img src={flagUrl(target.cca2, 160)} alt="" />
-          <div>
-            <b>{won ? `✓ ${target.name}` : target.name}</b>
-            <span>{won ? `In ${rows.length} ${rows.length === 1 ? 'try' : 'tries'}!` : 'Have a look on the globe'}{target.capital[0] ? ` · Capital: ${target.capital[0]}` : ''}</span>
-          </div>
-          <div className="gw-end-actions">
-            {mode === 'daily' && <button className="primary sm" onClick={() => void share()}>{copied ? <><Check size={14} /> Copied</> : typeof navigator.share === 'function' ? <><Share2 size={14} /> Share</> : <><Copy size={14} /> Copy</>}</button>}
-            <button className="ghost-cta" onClick={bonus}><RotateCcw size={14} /> {mode === 'daily' ? 'Bonus round' : 'Another'}</button>
-          </div>
+          <div><b>{target.name}</b><span>{won ? `Solved in ${rows.length}/${TRIES}` : 'Not this time'}{target.capital[0] ? ` · ${target.capital[0]}` : ''}</span></div>
+          <button className="primary sm" onClick={() => setResultOpen(true)}><BarChart3 size={14} /> Results</button>
         </div>
       ) : (
         <div className="gw-keys" aria-label="Keyboard">
           {KEYS.map((row) => (
             <div key={row} className="gw-krow">
               {[...row].map((k) => k === '+'
-                ? <button key="enter" className="gw-key wide" onClick={() => press('ENTER')}>Enter</button>
+                ? <button key="enter" className="gw-key wide enter" onClick={() => press('ENTER')}>Enter</button>
                 : k === '-'
                   ? <button key="back" className="gw-key wide" onClick={() => press('BACK')} aria-label="Delete"><Delete size={18} /></button>
                   : <button key={k} className={`gw-key ${keys[k] ?? ''}`} onClick={() => press(k)}>{k}</button>)}
@@ -156,6 +225,89 @@ export function GeoWordle({ onReveal, onExit }: Props) {
           ))}
         </div>
       )}
+
+      {createPortal(
+        <AnimatePresence>
+          {resultOpen && done && (
+            <WordleResult key="result" mode={mode} no={wordleNumber(date)} won={won} tries={rows.length} hints={hints} rows={rows} target={target.cca3}
+              stats={stats} copied={copied} onShare={() => void share()} onBonus={bonus} onClose={closeResult} />
+          )}
+        </AnimatePresence>,
+        document.body,
+      )}
+    </motion.div>
+  );
+}
+
+/** The result: the answer, your rows, and (for the Daily) your stats and guess distribution. */
+function WordleResult({ mode, no, won, tries, hints, rows, target, stats, copied, onShare, onBonus, onClose }: {
+  mode: Mode; no: number; won: boolean; tries: number; hints: number; rows: Row[]; target: string; stats: WordleStats; copied: boolean;
+  onShare: () => void; onBonus: () => void; onClose: () => void;
+}) {
+  const c = BY_CCA3.get(target)!;
+  useEffect(() => {
+    // Esc closes just this (caught first, so it doesn't also close the game).
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [onClose]);
+  const most = Math.max(1, ...stats.dist);
+  const winPct = stats.played ? Math.round((stats.wins / stats.played) * 100) : 0;
+  const where = [c.capital[0] && `Capital ${c.capital[0]}`, c.subregion || c.region].filter(Boolean).join(' · ');
+  return (
+    <motion.div className="people-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
+      <motion.section className="people gw-result" role="dialog" aria-modal="true" aria-label="Geo Wordle result" onClick={(e) => e.stopPropagation()}
+        initial={{ y: 18, scale: 0.97, opacity: 0 }} animate={{ y: 0, scale: 1, opacity: 1 }} exit={{ y: 10, opacity: 0 }} transition={{ type: 'spring', stiffness: 320, damping: 28 }}>
+        <header className="gc-head">
+          <span className="gc-badge gw-badge"><Grid3x3 size={15} /></span>
+          <div className="gc-title"><b>Geo Wordle</b><span>{mode === 'daily' ? `Daily #${no}` : 'Bonus round'}</span></div>
+          <span className="gc-spacer" />
+          <button className="icon-btn" onClick={onClose} aria-label="Close"><X size={17} /></button>
+        </header>
+
+        <div className={`gwr-hero ${won ? 'won' : ''}`}>
+          <motion.div className="gwr-verdict" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 400, damping: 16, delay: 0.1 }}>
+            {won ? VERDICT[Math.min(tries + hints, TRIES) - 1] : 'So close!'}
+          </motion.div>
+          <div className="gwr-answer">
+            <img src={flagUrl(c.cca2, 160)} alt="" />
+            <div><b>{c.name}</b>{where && <span>{where}</span>}</div>
+          </div>
+          <div className="gwr-mini" aria-label="Your guesses">
+            {rows.map((r, i) => <div key={i}>{r.marks.map((m, j) => <i key={j} className={m} />)}</div>)}
+          </div>
+          <div className="gwr-sub">{won ? `Solved in ${tries}/${TRIES}` : `Not solved this time`}{hints ? ` · 💡 ${hints} hint${hints > 1 ? 's' : ''}` : ''}</div>
+        </div>
+
+        {mode === 'daily' && (
+          <>
+            <div className="gwr-stats">
+              <div><b>{stats.played}</b><span>Played</span></div>
+              <div><b>{winPct}</b><span>Win %</span></div>
+              <div><b>{stats.streak}</b><span>Streak</span></div>
+              <div><b>{stats.best}</b><span>Best</span></div>
+            </div>
+            <div className="fr-label">Guess distribution</div>
+            <ol className="gwr-dist">
+              {stats.dist.map((n, i) => (
+                <li key={i} className={won && tries === i + 1 ? 'today' : ''}>
+                  <span>{i + 1}</span>
+                  <motion.i initial={{ width: '8%' }} animate={{ width: `${Math.max(8, (n / most) * 100)}%` }} transition={{ delay: 0.15 + i * 0.05, duration: 0.45 }}><b>{n}</b></motion.i>
+                </li>
+              ))}
+            </ol>
+          </>
+        )}
+
+        <div className="gwr-actions">
+          {mode === 'daily' && (
+            <button className="primary" onClick={onShare}>{copied ? <><Check size={15} /> Copied</> : typeof navigator.share === 'function' ? <><Share2 size={15} /> Share</> : <><Copy size={15} /> Copy result</>}</button>
+          )}
+          <button className={mode === 'daily' ? 'ghost-cta' : 'primary'} onClick={onBonus}><RotateCcw size={15} /> {mode === 'daily' ? 'Bonus round' : 'Another one'}</button>
+        </div>
+        <button className="gwr-globe" onClick={onClose}><Globe2 size={14} /> See {c.name} on the globe</button>
+        {mode === 'daily' && <p className="gwr-next">A new country every day.</p>}
+      </motion.section>
     </motion.div>
   );
 }

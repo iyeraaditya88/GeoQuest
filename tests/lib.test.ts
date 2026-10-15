@@ -314,5 +314,36 @@ describe('geo wordle', () => {
     expect(WORDLE_POOL).toContain(dailyWordle('2026-10-14'));
     for (const c of WORDLE_POOL) expect(countriesOfLength(c.length) >= 0).toBe(true);
     expect(wordleShare(12, [['x', 'y', 'g'], ['g', 'g', 'g']], true)).toBe('GeoQuest Wordle #12 2/6\n⬛🟨🟩\n🟩🟩🟩');
+    expect(wordleShare(12, [['g', 'g', 'g']], true, 2)).toBe('GeoQuest Wordle #12 1/6 💡2\n🟩🟩🟩');
+  });
+  it('offers hints after 3 guesses, costing a try, and never gives the answer away', async () => {
+    const { canHint, wordleHints, WORDLE_POOL } = await import('../src/lib/wordle');
+    const { BY_CCA3 } = await import('../src/lib/data');
+    expect(canHint(2, 0, false)).toBe(false);
+    expect(canHint(3, 0, false)).toBe(true);
+    expect(canHint(3, 1, false)).toBe(true);
+    expect(canHint(4, 1, false)).toBe(false); // would leave no try to use it
+    expect(canHint(3, 2, false)).toBe(false); // two at most
+    expect(canHint(3, 0, true)).toBe(false);
+    for (const cca3 of WORDLE_POOL) {
+      const c = BY_CCA3.get(cca3)!;
+      const hs = wordleHints(cca3);
+      expect(hs).toHaveLength(2);
+      for (const h of hs) {
+        expect(h.toLowerCase()).not.toContain(c.name.toLowerCase());
+        if (c.capital[0]) expect(h).not.toContain(c.capital[0]);
+      }
+    }
+  });
+  it('keeps Daily stats: streaks, best and the guess distribution (once a day)', async () => {
+    const { addResult, emptyStats } = await import('../src/lib/wordle');
+    let st = addResult(emptyStats(), '2026-10-12', 3, '2026-10-11');
+    st = addResult(st, '2026-10-13', 5, '2026-10-12');
+    expect(addResult(st, '2026-10-13', 1, '2026-10-12')).toBe(st); // same day: unchanged
+    expect(st).toMatchObject({ played: 2, wins: 2, streak: 2, best: 2, dist: [0, 0, 1, 0, 1, 0] });
+    st = addResult(st, '2026-10-14', null, '2026-10-13');
+    expect(st).toMatchObject({ played: 3, wins: 2, streak: 0, best: 2 });
+    st = addResult(st, '2026-10-16', 2, '2026-10-15');
+    expect(st.streak).toBe(1);
   });
 });
