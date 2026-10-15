@@ -64,7 +64,7 @@ import { FeaturePanel } from './components/FeaturePanel';
 import { featureInfo, type FeatureInfo, type FeatureRef } from './lib/features';
 import { AntipodeCard, type AntipodeStage } from './components/AntipodeCard';
 import { VoyagesPanel } from './components/VoyagesPanel';
-import { VOYAGES, BY_VOYAGE, routePoints, routeView } from './lib/voyages';
+import { VOYAGES, BY_VOYAGE, routePoints, routeView, voyageKm } from './lib/voyages';
 import type { GlobePath } from './components/GlobeView';
 import { antipodeOf, describePlace, type Place } from './lib/antipode';
 import { placeFor } from './lib/trivia';
@@ -779,6 +779,7 @@ export default function App() {
   // ── Famous voyages ─────────────────────────────────────
   const [voy, setVoy] = useState<{ id: string | null; stop: number | null; hover: string | null } | null>(null);
   useEffect(() => { if (quiz || geo || play || anti || liveState.active) setVoy(null); }, [quiz, geo, play, anti, liveState.active]);
+  useEffect(() => { if (!voy) { sailStop.current?.(); sailStop.current = null; setSailing(false); } }, [voy]);
   const startVoyages = async () => {
     if (morphing.current) return;
     track('game', { g: 'voyages' });
@@ -799,22 +800,46 @@ export default function App() {
   const narrow = () => window.innerWidth <= 900;
   const overview = () => (narrow() ? 3.1 : 2.3);
   const voyView = (v: Parameters<typeof routeView>[0]) => { const r = routeView(v); return narrow() ? { ...r, altitude: Math.min(3.4, r.altitude * 1.25) } : r; };
-  const closeVoyages = () => { setVoy(null); cam.reset(); };
+  // Sailing: a ship follows the route, the camera following it, pausing at each stop.
+  const [sailing, setSailing] = useState(false);
+  const sailStop = useRef<(() => void) | null>(null);
+  const stopSail = useCallback(() => { sailStop.current?.(); sailStop.current = null; setSailing(false); }, []);
+  const sail = (on: boolean) => {
+    stopSail();
+    const v = voy?.id ? BY_VOYAGE.get(voy.id) : null;
+    if (!on || !v) return;
+    const points = routePoints(v);
+    const stopAt = v.route.flatMap((p, i) => (typeof p === 'number' ? [i] : []));
+    const from = voy?.stop !== null && voy?.stop !== undefined && voy.stop < v.stops.length - 1 ? voy.stop : 0;
+    const km = voyageKm(v);
+    sailStop.current = globe.current?.sail({
+      points, stopAt, from, color: v.color,
+      seconds: Math.min(80, Math.max(26, km / 800)), // for the whole route: slow, steady sailing
+      pauseMs: 2600,
+      altitude: narrow() ? 2.1 : 1.45,
+      onStop: (i) => setVoy((x) => (x ? { ...x, stop: i } : x)),
+      onDone: () => { sailStop.current = null; setSailing(false); },
+    }) ?? null;
+    setSailing(!!sailStop.current);
+  };
+  const closeVoyages = () => { stopSail(); setVoy(null); cam.reset(); };
   const pickVoyage = useCallback((id: string | null) => {
+    stopSail();
     setVoy((x) => (x ? { id, stop: null, hover: null } : x));
     const v = id ? BY_VOYAGE.get(id) : null;
     if (v) { const r = voyView(v); globe.current?.frame(r.lat, r.lng, r.altitude); } else globe.current?.frame(22, -20, overview());
-  }, []);
+  }, [stopSail]);
   const voyRef = useRef(voy);
   voyRef.current = voy;
   const stopVoyage = useCallback((i: number | null) => {
     const v = voyRef.current?.id ? BY_VOYAGE.get(voyRef.current.id) : null;
     if (!v) return;
+    stopSail();
     setVoy((x) => (x ? { ...x, stop: i } : x));
     const r = voyView(v);
     if (i === null) globe.current?.frame(r.lat, r.lng, r.altitude);
     else globe.current?.frame(v.stops[i].at[0], v.stops[i].at[1], Math.min(r.altitude, 1.05));
-  }, []);
+  }, [stopSail]);
   const hoverVoyage = useCallback((id: string | null) => setVoy((x) => (x && x.hover !== id ? { ...x, hover: id } : x)), []);
   const voyPaths = useMemo<GlobePath[]>(() => {
     if (!voy) return [];
@@ -830,7 +855,7 @@ export default function App() {
       const k = s.at.join(',');
       if (seen.has(k)) return []; // a voyage ending where it began: one pin
       seen.add(k);
-      return [{ lat: s.at[0], lng: s.at[1], kind: 'stop' as const, id: `stop:${i}`, n: i + 1, name: s.name, tone: v.color, active: voy?.stop === i }];
+      return [{ lat: s.at[0], lng: s.at[1], kind: 'stop' as const, id: `stop:${i}`, n: i + 1, name: s.name, tone: v.color, active: voy?.stop === i, dead: !!v.deaths?.some((d) => d.stop === i) }];
     });
   }, [voy]);
   const antiPins = useMemo(() => {
@@ -1156,7 +1181,7 @@ export default function App() {
       <AnimatePresence>
         {voy && (
           <ErrorBoundary key="voyages" name="Famous voyages" onClose={closeVoyages}>
-            <VoyagesPanel active={voy.id} stop={voy.stop} onPick={pickVoyage} onHover={hoverVoyage} onStop={stopVoyage} onClose={closeVoyages} />
+            <VoyagesPanel active={voy.id} stop={voy.stop} sailing={sailing} onSail={sail} onPick={pickVoyage} onHover={hoverVoyage} onStop={stopVoyage} onClose={closeVoyages} />
           </ErrorBoundary>
         )}
       </AnimatePresence>

@@ -1,9 +1,12 @@
 // Famous voyages: who sailed where, the route (drawn on the globe), the stops along the way, and why
 // it mattered. Routes are [lat, lng] and keep to the sea between stops (extra points steer them
-// round coasts); a number in a route is the index of a stop.
+// round coasts); a number in a route is the index of a stop. More voyages live in voyagesMore.ts.
+import { MORE } from './voyagesMore';
 
 export type LL = [number, number];
 export interface Stop { name: string; at: LL; when: string; note: string }
+/** Someone who died on the voyage, at a stop. */
+export interface Death { stop: number; who: string; text: string }
 export interface Voyage {
   id: string;
   voyager: string;         // who
@@ -11,7 +14,7 @@ export interface Voyage {
   title: string;           // the voyage, in a few words
   years: string;
   year: number;            // for ordering
-  flag: string;            // ISO 3166 alpha-2 of who they sailed for
+  flag?: string;           // ISO 3166 alpha-2 of who they sailed for (none: Polynesian navigators)
   sailedFor: string;
   ships: string;
   crew: string;
@@ -26,9 +29,10 @@ export interface Voyage {
   route: (number | LL)[];
   /** Where to centre the camera when the route spans half the world (else: the route's middle). */
   focus?: LL;
+  deaths?: Death[];
 }
 
-export const VOYAGES: Voyage[] = [
+const LIST: Voyage[] = [
   {
     id: 'leif-erikson', voyager: 'Leif Erikson', short: 'Leif', title: 'Vinland', years: 'c. 1000', year: 1000,
     flag: 'is', sailedFor: 'Norse Greenland', ships: '1 knarr', crew: '~35', color: '#93c5fd',
@@ -50,7 +54,7 @@ export const VOYAGES: Voyage[] = [
     route: [0, [60.4, -48.5], [62.4, -58.5], 1, [59.5, -61.5], 2, [52.6, -55.3], 3],
   },
   {
-    id: 'zheng-he', voyager: 'Zheng He', short: 'Zheng He', title: 'The Treasure Fleet', years: '1431 – 1433', year: 1431,
+    id: 'zheng-he', deaths: [{ stop: 7, who: 'Zheng He', text: 'Zheng He is thought to have died on the voyage home in 1433, probably near Calicut, and to have been buried at sea.' }], voyager: 'Zheng He', short: 'Zheng He', title: 'The Treasure Fleet', years: '1431 – 1433', year: 1431,
     flag: 'cn', sailedFor: 'Ming China', ships: '~100, incl. giant treasure ships', crew: '~27,000', color: '#f87171',
     tagline: 'The greatest fleet of its age crosses the Indian Ocean',
     story: 'Admiral Zheng He led seven vast expeditions for the Ming emperors. On the last, his fleet carried envoys and gifts to more than twenty kingdoms — Java, Malacca, Sri Lanka, Calicut, Hormuz — while smaller squadrons reached Mecca and the coast of East Africa.',
@@ -168,7 +172,7 @@ export const VOYAGES: Voyage[] = [
     route: [0, [33, -13], [26, -16.8], 1, [5, -25], 2, [-8.5, -34.5], [-11.5, -37], 3, [-17, -38.5], [-21, -40.2], [-23.1, -42.5], 4, [-24.2, -45.5], [-26, -47.8], [-30, -48.5], [-36, -53.5], 5, [-30, -30], [-10, -20], [8.2, -14.2], [20, -25], [37.5, -25.5], 6],
   },
   {
-    id: 'magellan-elcano', focus: [-15, -75], voyager: 'Ferdinand Magellan & Juan Sebastián Elcano', short: 'Magellan', title: 'First voyage around the world', years: '1519 – 1522', year: 1519,
+    id: 'magellan-elcano', focus: [-15, -75], deaths: [{ stop: 5, who: 'Ferdinand Magellan', text: 'Magellan is killed in battle on Mactan, 27 April 1521, by warriors of the chief Lapulapu. Elcano later takes command of the Victoria.' }], voyager: 'Ferdinand Magellan & Juan Sebastián Elcano', short: 'Magellan', title: 'First voyage around the world', years: '1519 – 1522', year: 1519,
     flag: 'es', sailedFor: 'Spain', ships: '5 ships — only the Victoria returned', crew: '~270 (18 came home)', color: '#38bdf8',
     tagline: 'The first voyage all the way around the world',
     story: 'Magellan, a Portuguese captain sailing for Spain, set out to reach the Spice Islands by sailing west. He found a passage through the tip of South America and crossed the vast Pacific — then was killed in the Philippines. Juan Sebastián Elcano brought the last ship, the Victoria, home.',
@@ -294,6 +298,8 @@ export const VOYAGES: Voyage[] = [
   },
 ];
 
+/** Oldest first: the timeline. */
+export const VOYAGES = [...LIST, ...MORE].sort((a, b) => a.year - b.year);
 export const BY_VOYAGE = new Map(VOYAGES.map((v) => [v.id, v]));
 
 /** The full path as points (stops filled in). */

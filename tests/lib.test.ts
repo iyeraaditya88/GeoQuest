@@ -363,6 +363,7 @@ describe('famous voyages', () => {
       const d = voyageKm(v);
       expect(d).toBeGreaterThan(2000);
       expect(d).toBeLessThan(110_000);
+      for (const d of v.deaths ?? []) expect(v.stops[d.stop]).toBeDefined();
       const r = routeView(v);
       expect(Number.isFinite(r.lat) && Number.isFinite(r.lng) && r.altitude > 0).toBe(true);
     }

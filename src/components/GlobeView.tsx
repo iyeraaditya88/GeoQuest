@@ -2,6 +2,7 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRe
 import Globe, { type GlobeMethods } from 'react-globe.gl';
 import * as THREE from 'three';
 import { animate } from 'motion/react';
+import { geoDistance, geoInterpolate } from 'd3-geo';
 import { BY_CCA3, FEATURES, POLITICAL_COLOR, altitudeFor, countryAt, fmtCompact, shade, type CountryFeature } from '../lib/data';
 import { createLabelLayer } from '../lib/mapLabels';
 import { cursor } from '../lib/cursor';
@@ -20,6 +21,17 @@ export type MapStyle = 'satellite' | 'political' | 'daynight';
 export type Feedback = { cca3: string; kind: 'good' | 'bad' | 'reveal' } | null;
 
 export interface GlobePath { id: string; points: [number, number][]; color: string; mode: 'active' | 'faint' | 'normal' }
+export interface SailOptions {
+  points: [number, number][];  // the route, [lat, lng]
+  stopAt: number[];            // each stop's index in `points`
+  from: number;                // the stop to set out from
+  seconds: number;             // how long sailing the whole route takes (pauses not included)
+  pauseMs: number;             // time at each stop
+  altitude: number;            // camera height while following
+  color: string;
+  onStop: (i: number) => void;
+  onDone: () => void;
+}
 export interface GlobeView2D { lat: number; lng: number; altitude: number; cx: number; cy: number; r: number }
 
 export interface GlobeHandle {
@@ -32,6 +44,8 @@ export interface GlobeHandle {
   setPov: (lat: number, lng: number, altitude?: number) => void;
   pause: () => void;
   resume: () => void;
+  /** Famous voyages: sail a ship along a route (camera following), pausing at each stop. Returns a stop function. */
+  sail: (o: SailOptions) => () => void;
   /** Antipode finder: tunnel from `from` through the core to its antipode. */
   dive: (from: { lat: number; lng: number }, hooks?: DiveHooks) => { finished: Promise<void>; cancel: () => void } | null;
 }
@@ -55,7 +69,7 @@ interface Props {
   pickMode?: boolean;
   sideView?: boolean;
   pins?: ({ lat: number; lng: number; kind: 'guess' | 'answer' | 'from' | 'to' } | { lat: number; lng: number; kind: 'place'; id: string; emoji: string; name: string; tone: string }
-    | { lat: number; lng: number; kind: 'stop'; id: string; n: number; name: string; tone: string; active: boolean })[];
+    | { lat: number; lng: number; kind: 'stop'; id: string; n: number; name: string; tone: string; active: boolean; dead?: boolean })[];
   /** Routes drawn on the globe (famous voyages): the active one bright and moving, the rest faint. */
   paths?: GlobePath[];
   /** One of "My places" was tapped on the globe */
@@ -225,8 +239,10 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
     return px / perDeg;
   };
 
+  const moved = useRef(false); // something already aimed the camera (so the opening fly-in mustn't)
   const flyToPov = useCallback((to: { lat: number; lng: number; altitude: number }, ms?: number) => {
     const g = globe.current;
+    moved.current = true;
     if (!g) return;
     cancelFlight();
     const from = g.pointOfView();
@@ -268,6 +284,74 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
       const c = g.getScreenCoords(pov.lat, pov.lng, 0);
       const focal = window.innerHeight / 2 / Math.tan((cam.fov * Math.PI) / 360);
       return { ...pov, cx: c.x, cy: c.y, r: focal * Math.tan(Math.asin(Math.min(1, R / dist))) };
+    },
+    sail(o) {
+      const g = globe.current, host = wrap.current;
+      if (!g || !host || o.points.length < 2) return () => {};
+      cancelFlight();
+      // Distances along the route (radians), and where each stop falls.
+      const ll = o.points.map(([la, lo]) => [lo, la] as [number, number]);
+      const cum = [0];
+      for (let i = 1; i < ll.length; i++) cum.push(cum[i - 1] + geoDistance(ll[i - 1], ll[i]));
+      const total = cum[cum.length - 1];
+      const at = o.stopAt.map((i) => cum[i]);
+      const speed = total / (o.seconds * 1000); // radians per ms
+      const where = (d: number): [number, number] => {
+        let j = 0;
+        while (j < cum.length - 2 && cum[j + 1] < d) j++;
+        const seg = cum[j + 1] - cum[j];
+        const [lo, la] = seg > 0 ? geoInterpolate(ll[j], ll[j + 1])(Math.min(1, Math.max(0, (d - cum[j]) / seg))) : ll[j];
+        return [la, lo];
+      };
+      // The ship: drawn over the globe, turned to its heading, bobbing gently.
+      const ship = document.createElement('div');
+      ship.className = 'sail-ship';
+      ship.style.setProperty('--c', o.color);
+      ship.innerHTML = `<div class="ss-turn"><div class="ss-bob"><svg viewBox="0 0 48 56" aria-hidden="true">
+        <path class="ss-wake" d="M20 42 C 17 48, 13 52, 9 55 M28 42 C 31 48, 35 52, 39 55"/>
+        <path class="ss-hull" d="M24 4 C 32 13, 33 29, 29 44 L19 44 C 15 29, 16 13, 24 4 Z"/>
+        <path class="ss-deck" d="M24 10 C 28 17, 29 28, 27 40 L21 40 C 19 28, 20 17, 24 10 Z"/>
+        <path class="ss-sail" d="M11 19 Q 24 27 37 19"/><path class="ss-sail" d="M14 31 Q 24 37 34 31"/>
+        <circle class="ss-mast" cx="24" cy="22" r="1.8"/><circle class="ss-mast" cx="24" cy="33" r="1.6"/>
+      </svg></div></div>`;
+      host.appendChild(ship);
+      let follow = true;
+      const stopFollow = () => { follow = false; };
+      host.addEventListener('pointerdown', stopFollow);
+      let d = at[o.from] ?? 0, next = o.from + 1, last = performance.now(), raf = 0, done = false;
+      let pauseUntil = last + o.pauseMs + 1100;
+      o.onStop(o.from);
+      const [la0, lo0] = where(d);
+      flyToPov({ lat: la0, lng: lo0, altitude: o.altitude }, 1100);
+      const followFrom = last + 1150; // after the flight to the start
+      const place = () => {
+        const [la, lo] = where(d);
+        const [la2, lo2] = where(Math.min(total, d + 0.004));
+        const a = g.getScreenCoords(la, lo, 0.01), b = g.getScreenCoords(la2, lo2, 0.01);
+        ship.style.transform = `translate(${a.x}px, ${a.y}px)`;
+        if (Math.hypot(b.x - a.x, b.y - a.y) > 0.5) ship.style.setProperty('--h', `${Math.atan2(b.x - a.x, a.y - b.y)}rad`);
+        return [la, lo] as const;
+      };
+      const tick = (now: number) => {
+        const dt = Math.min(64, now - last);
+        last = now;
+        if (now >= pauseUntil) {
+          d += speed * dt;
+          if (next < at.length && d >= at[next]) {
+            d = at[next];
+            o.onStop(next);
+            pauseUntil = now + o.pauseMs;
+            next++;
+          }
+        }
+        const [la, lo] = place();
+        if (follow && now >= followFrom) g.pointOfView({ lat: la, lng: lo, altitude: g.pointOfView().altitude }, 0);
+        if (next >= at.length && now >= pauseUntil) { if (!done) { done = true; cleanup(); o.onDone(); } return; }
+        raf = requestAnimationFrame(tick);
+      };
+      const cleanup = () => { cancelAnimationFrame(raf); host.removeEventListener('pointerdown', stopFollow); ship.classList.add('gone'); window.setTimeout(() => ship.remove(), 400); };
+      raf = requestAnimationFrame(tick);
+      return () => { if (!done) { done = true; cleanup(); } };
     },
     setPov(lat, lng, altitude = homeView().altitude) { cancelFlight(); globe.current?.pointOfView({ lat, lng, altitude }, 0); },
     dive(from, hooks) {
@@ -609,13 +693,13 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
     el.style.visibility = visible ? '' : 'hidden';
   }, []);
   const htmlElement = useCallback((d: object) => {
-    const it = d as { kind: string; name?: string; id?: string; emoji?: string; tone?: string; n?: number; active?: boolean };
+    const it = d as { kind: string; name?: string; id?: string; emoji?: string; tone?: string; n?: number; active?: boolean; dead?: boolean };
     const el = document.createElement('div');
     if (it.kind === 'stop') {
       // A voyage's stop: its number in the route colour; the name shows on the current one (and on hover).
-      el.className = `stop-pin ${it.active ? 'on' : ''}`;
+      el.className = `stop-pin ${it.active ? 'on' : ''} ${it.dead ? 'dead' : ''}`;
       el.style.setProperty('--c', it.tone ?? '#fbbf24');
-      el.innerHTML = `<button type="button" aria-label="${escapeHtml(it.name ?? '')}"><i>${it.n ?? ''}</i><span>${escapeHtml(it.name ?? '')}</span></button>`;
+      el.innerHTML = `<button type="button" aria-label="${escapeHtml(it.name ?? '')}"><i>${it.dead ? '†' : it.n ?? ''}</i><span>${escapeHtml(it.name ?? '')}</span></button>`;
       el.querySelector('button')!.addEventListener('click', (e) => { e.stopPropagation(); onPinRef.current?.(it.id ?? ''); });
     } else if (it.kind === 'place') {
       // My places: an emoji pin with its name; tap to open it.
@@ -667,8 +751,10 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
         onGlobeReady={() => {
           setupControls();
           const home = homeView();
-          globe.current?.pointOfView({ ...home, altitude: home.altitude + 1.85 }, 0);
-          requestAnimationFrame(() => flyToPov(home, 2600));
+          if (!moved.current) {
+            globe.current?.pointOfView({ ...home, altitude: home.altitude + 1.85 }, 0);
+            requestAnimationFrame(() => { if (!moved.current) { flyToPov(home, 2600); moved.current = false; } });
+          }
           tuneQuality();
           // Lift the boot screen only once the globe's imagery is in (never a white globe).
           const needs = style === 'political' ? [] : style === 'daynight'

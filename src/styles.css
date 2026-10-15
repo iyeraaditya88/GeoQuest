@@ -2459,3 +2459,36 @@ button.sb-user:hover { background: rgba(255, 255, 255, 0.05); }
   .vy-portrait { width: 60px; height: 60px; }
   .vy-title { font-size: 21px; }
 }
+
+/* Voyages: eras, deaths, the sailing ship */
+.vy-era { display: grid; gap: 2px; padding: 16px 8px 6px 70px; }
+.vy-list > .vy-era:first-child { padding-top: 4px; }
+.vy-era b { font: 700 11px var(--display); letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); }
+.vy-era span { font-size: 12px; color: var(--dim); }
+.vy-dagger { margin-left: 6px; font-style: normal; font-weight: 700; color: #f87171; }
+.vy-legend { margin: 12px 0 0; text-align: center; font-size: 11.5px; color: var(--dim); }
+.vy-legend em { font-style: normal; font-weight: 700; color: #f87171; }
+svg.vy-flag { color: #2dd4bf; }
+.vy-death { display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 10px 12px; border-radius: 12px; text-align: left; font-size: 13px; line-height: 1.4; color: #fecaca; background: rgba(239, 68, 68, 0.09); box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.35); }
+.vy-death:hover { background: rgba(239, 68, 68, 0.15); }
+.vy-death em { flex: none; font: 700 18px/1 var(--display); font-style: normal; color: #f87171; }
+.vy-death b { color: #fff; }
+.vy-stops li.dead i { color: #fecaca; background: #450a0a; box-shadow: inset 0 0 0 2px #f87171; font-size: 15px; }
+.vy-stops li.dead.on i { color: #fff; background: #dc2626; }
+.vs-death { margin-top: 4px; padding: 7px 10px; border-radius: 9px; font-size: 12.5px; line-height: 1.45; color: #fecaca; background: rgba(239, 68, 68, 0.1); border-left: 2px solid #f87171; }
+.stop-pin.dead i { color: #fecaca; background: #450a0a; box-shadow: inset 0 0 0 2px #f87171, 0 0 14px rgba(248, 113, 113, 0.8); font-size: 14px; }
+.stop-pin.dead.on i { color: #fff; background: #dc2626; }
+.sail-ship { position: absolute; left: 0; top: 0; z-index: 3; width: 0; height: 0; pointer-events: none; transition: opacity 0.4s; }
+.sail-ship.gone { opacity: 0; }
+.ss-turn { position: absolute; left: -22px; top: -26px; width: 44px; height: 52px; transform: rotate(var(--h, 0rad)); transition: transform 0.6s ease-out; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 10px color-mix(in srgb, var(--c) 60%, transparent)); }
+.ss-bob { width: 100%; height: 100%; animation: ss-bob 2.8s ease-in-out infinite; }
+.ss-bob svg { width: 100%; height: 100%; overflow: visible; }
+@keyframes ss-bob { 0%, 100% { transform: rotate(-4deg) scale(1); } 50% { transform: rotate(4deg) scale(1.04); } }
+.ss-hull { fill: #7c4a1e; stroke: #fde7c4; stroke-width: 1.5; }
+.ss-deck { fill: #a16207; }
+.ss-sail { fill: none; stroke: #fffbeb; stroke-width: 4.5; stroke-linecap: round; }
+.ss-mast { fill: var(--c); }
+.ss-wake { fill: none; stroke: rgba(255, 255, 255, 0.55); stroke-width: 1.6; stroke-linecap: round; stroke-dasharray: 3 3; animation: ss-wake 0.9s linear infinite; }
+@keyframes ss-wake { to { stroke-dashoffset: -12; } }
+@media (prefers-reduced-motion: reduce) { .ss-bob, .ss-wake { animation: none; } }
+.vy-death small { display: block; margin-top: 2px; font-size: 11.5px; color: #fca5a5; }
