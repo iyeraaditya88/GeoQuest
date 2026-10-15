@@ -387,3 +387,20 @@ describe('eras of civilization', () => {
     }
   });
 });
+
+describe('empires of the world', () => {
+  it('lists real countries, sane dates and places, oldest first', async () => {
+    const { EMPIRES, empireView } = await import('../src/lib/empires');
+    const { BY_CCA3 } = await import('../src/lib/data');
+    expect(new Set(EMPIRES.map((e) => e.id)).size).toBe(EMPIRES.length);
+    for (let i = 1; i < EMPIRES.length; i++) expect(EMPIRES[i].from).toBeGreaterThanOrEqual(EMPIRES[i - 1].from);
+    for (const e of EMPIRES) {
+      expect(e.to).toBeGreaterThan(e.from);
+      for (const c of e.countries) expect(BY_CCA3.has(c), `${e.id}: ${c}`).toBe(true);
+      expect(new Set(e.countries).size).toBe(e.countries.length);
+      expect(e.rulers.length).toBeGreaterThanOrEqual(3);
+      for (const [lat, lng] of [e.capital.at, ...e.places.map((p) => p.at)]) { expect(Math.abs(lat)).toBeLessThanOrEqual(90); expect(Math.abs(lng)).toBeLessThanOrEqual(180); }
+      expect(empireView(e).altitude).toBeGreaterThan(0);
+    }
+  });
+});

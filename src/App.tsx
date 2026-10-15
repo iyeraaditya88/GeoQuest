@@ -65,6 +65,8 @@ import { featureInfo, type FeatureInfo, type FeatureRef } from './lib/features';
 import { AntipodeCard, type AntipodeStage } from './components/AntipodeCard';
 import { VoyagesPanel } from './components/VoyagesPanel';
 import { ErasPanel } from './components/ErasPanel';
+import { EmpiresPanel } from './components/EmpiresPanel';
+import { EMPIRES, BY_EMPIRE, empireView } from './lib/empires';
 import { ERAS, BY_ERA, eraView } from './lib/eras';
 import { VOYAGES, BY_VOYAGE, routePoints, routeView, voyageKm } from './lib/voyages';
 import type { GlobePath } from './components/GlobeView';
@@ -796,6 +798,7 @@ export default function App() {
     setDockOpen(false);
     setAutoRotate(false);
     setEras(null);
+    setEmp(null);
     setVoy({ id: null, stop: null, hover: null });
     globe.current?.frame(22, -20, overview()); // the Atlantic world, where most of them sailed
   };
@@ -862,6 +865,64 @@ export default function App() {
     });
   }, [voy]);
 
+  // ── Empires of the world ───────────────────────────────
+  const [emp, setEmp] = useState<{ id: string | null; place: string | null; hover: string | null } | null>(null);
+  useEffect(() => { if (quiz || geo || play || anti || liveState.active) setEmp(null); }, [quiz, geo, play, anti, liveState.active]);
+  const empWorld = () => globe.current?.frame(30, 40, narrow() ? 3.2 : 2.5);
+  const startEmpires = async () => {
+    if (morphing.current) return;
+    track('game', { g: 'empires' });
+    if (geoRef.current) exitGeo();
+    if (viewRef.current === 'flat') await toggleFlat();
+    setPlay(null);
+    exitQuiz();
+    if (antiRef.current) exitAntipode();
+    setVoy(null);
+    setEras(null);
+    setSelected(null);
+    setHighlighted([]);
+    setFeature(null);
+    setDockOpen(false);
+    setAutoRotate(false);
+    setEmp({ id: null, place: null, hover: null });
+    empWorld();
+  };
+  const closeEmpires = () => { setEmp(null); cam.reset(); };
+  const frameEmpire = (id: string) => {
+    const e = BY_EMPIRE.get(id);
+    if (!e) return;
+    const v = empireView(e);
+    globe.current?.frame(v.lat, v.lng, narrow() ? Math.min(3.4, v.altitude * 1.25) : v.altitude);
+  };
+  const pickEmpire = (id: string | null) => {
+    setEmp((x) => (x ? { id, place: null, hover: null } : x));
+    if (id) frameEmpire(id); else empWorld();
+  };
+  const placeEmpire = (place: string | null) => {
+    const e = emp?.id ? BY_EMPIRE.get(emp.id) : null;
+    if (!e) return;
+    setEmp((x) => (x ? { ...x, place } : x));
+    const at = place === 'capital' ? e.capital.at : place?.startsWith('place:') ? e.places[Number(place.slice(6))]?.at : null;
+    if (at) globe.current?.frame(at[0], at[1], Math.min(empireView(e).altitude, 1.3));
+    else frameEmpire(e.id);
+  };
+  const hoverEmpire = useCallback((id: string | null) => setEmp((x) => (x && x.hover !== id ? { ...x, hover: id } : x)), []);
+  const empOpen = useRef(false);
+  empOpen.current = !!emp;
+  const empTint = useMemo(() => {
+    const e = emp ? BY_EMPIRE.get(emp.id ?? emp.hover ?? '') : null;
+    return e ? { color: e.color, ids: e.countries } : null;
+  }, [emp]);
+  const empPins = useMemo(() => {
+    if (!emp) return [];
+    const e = emp.id ? BY_EMPIRE.get(emp.id) : null;
+    if (!e) return EMPIRES.map((x) => ({ lat: x.capital.at[0], lng: x.capital.at[1], kind: 'heart' as const, id: `emp:${x.id}`, name: `${x.name} — ${x.capital.name}`, tone: x.color, emoji: x.emoji, active: emp.hover === x.id }));
+    return [
+      { lat: e.capital.at[0], lng: e.capital.at[1], kind: 'heart' as const, id: 'capital', name: e.capital.name, tone: e.color, emoji: e.emoji, active: true },
+      ...e.places.map((p, i) => ({ lat: p.at[0], lng: p.at[1], kind: 'hub' as const, id: `place:${i}`, name: p.name, tone: e.color, active: emp.place === `place:${i}` })),
+    ];
+  }, [emp]);
+
   // ── Eras of civilization ───────────────────────────────
   const [eras, setEras] = useState<{ id: string | null; place: string | null; hover: string | null } | null>(null);
   useEffect(() => { if (quiz || geo || play || anti || liveState.active) setEras(null); }, [quiz, geo, play, anti, liveState.active]);
@@ -875,6 +936,7 @@ export default function App() {
     exitQuiz();
     if (antiRef.current) exitAntipode();
     setVoy(null);
+    setEmp(null);
     setSelected(null);
     setHighlighted([]);
     setFeature(null);
@@ -926,8 +988,8 @@ export default function App() {
   // What's pinned on the globe (one stable list, so pins aren't rebuilt on every render).
   const inGame = !!quiz || !!geo || !!play || liveState.active;
   const globePins = useMemo(
-    () => (voy ? voyPins : eras ? eraPins : anti ? antiPins : inGame ? NO_PINS : placesOpen && placesDraft ? [...placePins, { ...placesDraft, kind: 'guess' as const }] : placePins),
-    [voy, voyPins, eras, eraPins, anti, antiPins, inGame, placesOpen, placesDraft, placePins],
+    () => (voy ? voyPins : eras ? eraPins : emp ? empPins : anti ? antiPins : inGame ? NO_PINS : placesOpen && placesDraft ? [...placePins, { ...placesDraft, kind: 'guess' as const }] : placePins),
+    [voy, voyPins, eras, eraPins, emp, empPins, anti, antiPins, inGame, placesOpen, placesDraft, placePins],
   );
 
   const startAntipode = async () => {
@@ -1002,7 +1064,7 @@ export default function App() {
 
   // Newer version live: reload onto it the next time you switch away (so you never see it), or
   // straight away if you're back on the globe with nothing open. Never mid-game or mid-typing.
-  const idle = !quiz && !geo && !play && !anti && !voy && !eras && !liveState.active && !fbForm && !dockOpen && !placesOpen && !dailyCard && !signIn && !accountOpen && !inboxOpen && !activityOpen && !gamesOpen;
+  const idle = !quiz && !geo && !play && !anti && !voy && !eras && !emp && !liveState.active && !fbForm && !dockOpen && !placesOpen && !dailyCard && !signIn && !accountOpen && !inboxOpen && !activityOpen && !gamesOpen;
   useEffect(() => {
     if (!updateReady || !idle) return;
     if (document.visibilityState === 'hidden') { reloadForUpdate(); return; }
@@ -1027,7 +1089,7 @@ export default function App() {
   const rightInset = (country || feature) && !quiz && !geo && !play && !liveState.active ? panelWidth(vp.w, vp.h) : 0;
 
   // The tip at the bottom: first-timers' "Drag to spin", or what a mode needs (dropping pins, day/night).
-  const showHint = chrome && !selected && !quiz && !dockOpen && !geo && !play && !anti && !voy && !eras && !liveState.active && (!spun || placesOpen || (view === 'globe' && style === 'daynight'));
+  const showHint = chrome && !selected && !quiz && !dockOpen && !geo && !play && !anti && !voy && !eras && !emp && !liveState.active && (!spun || placesOpen || (view === 'globe' && style === 'daynight'));
   // The quiet footer (feedback + about/legal links): only on the bare globe, never over a game or panel.
   const footer = chrome && idle && !selected && !feature && !accountOpen && !(mobile && drawerOpen);
 
@@ -1045,20 +1107,21 @@ export default function App() {
         autoRotate={autoRotate}
         feedback={feedback}
         quiz={!!quiz || liveState.quiz}
-        liftUp={(dockOpen && !quiz) || ((!!voy || !!eras) && vp.w <= 900) || (!!quiz && vp.w <= 600 && vp.h > vp.w)}
+        liftUp={(dockOpen && !quiz) || ((!!voy || !!eras || !!emp) && vp.w <= 900) || (!!quiz && vp.w <= 600 && vp.h > vp.w)}
         dropDown={!!play || placesOpen || (!!anti && anti.stage !== 'dive') || (!!quiz && !(vp.w <= 600 && vp.h > vp.w))}
         pickMode={(!!anti && anti.stage !== 'dive') || placesOpen}
         onPick={(lat, lng) => (placesOpen ? setPlacesPick({ lat, lng, n: Date.now() }) : pickAntipode(lat, lng))}
         pins={globePins}
-        onPin={(id) => (id.startsWith('stop:') ? stopVoyage(Number(id.slice(5))) : id.startsWith('era:') ? pickEra(id.slice(4)) : id === 'heart' || id.startsWith('hub:') ? placeEra(id) : openPlace(id))}
+        onPin={(id) => (id.startsWith('stop:') ? stopVoyage(Number(id.slice(5))) : id.startsWith('era:') ? pickEra(id.slice(4)) : id === 'heart' || id.startsWith('hub:') ? placeEra(id) : id.startsWith('emp:') ? pickEmpire(id.slice(4)) : id === 'capital' || id.startsWith('place:') ? placeEmpire(id) : openPlace(id))}
         paths={voy ? voyPaths : eraPaths}
+        tint={empTint}
         onPathPick={voy && !voy.id ? (id) => { track('voyage', { v: id, from: 'globe' }); pickVoyage(id); } : undefined}
         onPathHover={voy && !voy.id ? hoverVoyage : undefined}
-        leftInset={leftInset + ((voy || eras) && vp.w > 900 ? 416 : 0)}
+        leftInset={leftInset + ((voy || eras || emp) && vp.w > 900 ? 416 : 0)}
         nature={showNature}
         hidden={globeHidden || !!geo || liveState.immersive}
-        onSelect={(c) => { if (matchClick.current) { matchClick.current(c); return; } if (liveRef.current.active) return; if (anti || voyRef.current || erasOpen.current) return; if (quiz) quizClick(c); else if (c) select(c); else { setSelected(null); setHighlighted([]); setFeature(null); } }}
-        onFeature={(f) => { if (!anti && !voy && !eras && !quiz && !liveRef.current.active) void openFeature(f); }}
+        onSelect={(c) => { if (matchClick.current) { matchClick.current(c); return; } if (liveRef.current.active) return; if (anti || voyRef.current || erasOpen.current || empOpen.current) return; if (quiz) quizClick(c); else if (c) select(c); else { setSelected(null); setHighlighted([]); setFeature(null); } }}
+        onFeature={(f) => { if (!anti && !voy && !eras && !emp && !quiz && !liveRef.current.active) void openFeature(f); }}
         feature={feature}
         onInteract={onGlobeInteract}
         onReady={() => { track('ready', { ms: Math.round(performance.now()) }); setTimeout(() => setReady(true), 300); }}
@@ -1129,6 +1192,8 @@ export default function App() {
         antipodeOn={!!anti}
         voyagesOn={!!voy}
         erasOn={!!eras}
+        empiresOn={!!emp}
+        onEmpires={() => (emp ? closeEmpires() : void startEmpires())}
         onEras={() => (eras ? closeEras() : void startEras())}
         onVoyages={() => (voy ? closeVoyages() : void startVoyages())}
         onAntipode={() => (anti ? exitAntipode() : void startAntipode())}
@@ -1170,7 +1235,7 @@ export default function App() {
 
       {/* Today's Daily, always one tap away at the top — the front door for new players, and the daily habit. */}
       <AnimatePresence>
-        {chrome && !(mobile && drawerOpen) && !quiz && !geo && !play && !anti && !voy && !eras && !liveState.active && !dailyCard && (() => {
+        {chrome && !(mobile && drawerOpen) && !quiz && !geo && !play && !anti && !voy && !eras && !emp && !liveState.active && !dailyCard && (() => {
           const done = !!daily?.mine && daily.date === localDate();
           const streak = daily?.streak?.count ?? 0;
           return (
@@ -1242,6 +1307,13 @@ export default function App() {
         )}
       </AnimatePresence>
       <AnimatePresence>
+        {emp && (
+          <ErrorBoundary key="empires" name="Empires of the world" onClose={closeEmpires}>
+            <EmpiresPanel active={emp.id} hover={emp.hover} place={emp.place} onPick={pickEmpire} onHover={hoverEmpire} onPlace={placeEmpire} onClose={closeEmpires} />
+          </ErrorBoundary>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
         {eras && (
           <ErrorBoundary key="eras" name="Eras of civilization" onClose={closeEras}>
             <ErasPanel active={eras.id} place={eras.place} onPick={pickEra} onHover={hoverEra} onPlace={placeEra} onClose={closeEras} />
@@ -1277,7 +1349,7 @@ export default function App() {
         <FeaturePanel feature={quiz || geo || play || anti || liveState.active ? null : feature} onClose={() => setFeature(null)} onSelectCountry={select} onAsk={ask} />
         <CountryPanel country={quiz || geo || play || anti || liveState.active ? null : country} onClose={() => setSelected(null)} onSelect={select} onAsk={ask} />
       </ErrorBoundary>
-      {chrome && !quiz && !geo && !play && !anti && !voy && !eras && !liveState.active && <ErrorBoundary name="Ask the Atlas" onClose={() => setDockOpen(false)}><AskDock open={dockOpen} setOpen={setDockOpen} country={country} request={askReq} keyRequest={keyReq} onAiChange={setAi} onHosted={setHosted} onHighlight={highlight} onSelect={select}
+      {chrome && !quiz && !geo && !play && !anti && !voy && !eras && !emp && !liveState.active && <ErrorBoundary name="Ask the Atlas" onClose={() => setDockOpen(false)}><AskDock open={dockOpen} setOpen={setDockOpen} country={country} request={askReq} keyRequest={keyReq} onAiChange={setAi} onHosted={setHosted} onHighlight={highlight} onSelect={select}
         leading={<motion.button className={`play-fab ${playSeen ? '' : 'beckon'}`} onClick={openGames} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} aria-label="Play a game"><Gamepad2 size={18} /> Play</motion.button>} /></ErrorBoundary>}
       <ErrorBoundary name="Live play">
         <LivePlay mode={liveMode} me={liveMe} ai={ai} friendsReq={friendsReq} inviteReq={inviteReq} globe={matchGlobe} clickRef={matchClick} onState={setLiveState} owner={role === 'owner'} fab={chrome && !geo && !liveState.immersive} />
@@ -1300,13 +1372,13 @@ export default function App() {
       </AnimatePresence>
       {/* Guests: sign in, top right (where Friends is once you're signed in). */}
       <AnimatePresence>
-        {chrome && guest && !quiz && !geo && !play && !anti && !voy && !eras && !liveState.active && (
+        {chrome && guest && !quiz && !geo && !play && !anti && !voy && !eras && !emp && !liveState.active && (
           <motion.button key="signin-fab" className="signin-fab" onClick={() => needSignIn('general')} aria-label="Sign in"
             initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ delay: 0.5 }}>
             <LogIn size={17} /><span>Sign in</span>
           </motion.button>
         )}
-        {nudgeReady && chrome && !fbForm && !quiz && !geo && !play && !anti && !voy && !eras && !liveState.active && !dailyCard && !selected && !feature && !dockOpen && !placesOpen && !(mobile && drawerOpen) && !signIn && (
+        {nudgeReady && chrome && !fbForm && !quiz && !geo && !play && !anti && !voy && !eras && !emp && !liveState.active && !dailyCard && !selected && !feature && !dockOpen && !placesOpen && !(mobile && drawerOpen) && !signIn && (
           <motion.div key="fb-nudge" className="fb-nudge" role="status" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.6 } }} exit={{ opacity: 0, y: -10 }}>
             <span>Enjoying GeoQuest?<em className="fbn-more"> Help shape it</em></span>
             <button className="fbn-go" onClick={() => { dismissNudge(); openFeedbackHere(); }}>Send feedback</button>

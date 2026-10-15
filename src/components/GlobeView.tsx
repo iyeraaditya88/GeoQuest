@@ -73,6 +73,8 @@ interface Props {
     | { lat: number; lng: number; kind: 'hub' | 'heart'; id: string; name: string; tone: string; active: boolean; emoji?: string })[];
   /** Routes drawn on the globe (famous voyages): the active one bright and moving, the rest faint. */
   paths?: GlobePath[];
+  /** Countries filled in one colour (an empire's extent). */
+  tint?: { color: string; ids: string[] } | null;
   /** Routes can be clicked (and hovered): which one. */
   onPathPick?: (id: string) => void;
   onPathHover?: (id: string | null) => void;
@@ -125,7 +127,7 @@ function angularDistance(a: { lat: number; lng: number }, b: { lat: number; lng:
 }
 
 export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
-  { selected, highlighted, style, autoRotate, feedback, quiz, liftUp, dropDown = false, hidden, nature = true, leftInset = 0, pickMode = false, sideView = false, pins = [], arcs = [], paths = NO_PATHS, onPathPick, onPathHover, onPick, onPin, onFeature, feature = null, onSelect, onInteract, onReady }, ref,
+  { selected, highlighted, style, autoRotate, feedback, quiz, liftUp, dropDown = false, hidden, nature = true, leftInset = 0, pickMode = false, sideView = false, pins = [], arcs = [], paths = NO_PATHS, tint = null, onPathPick, onPathHover, onPick, onPin, onFeature, feature = null, onSelect, onInteract, onReady }, ref,
 ) {
   const globe = useRef<GlobeMethods | undefined>(undefined);
   const labelLayer = useRef<HTMLDivElement>(null);
@@ -620,11 +622,13 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
   const activeFeatures = useMemo(() => FEATURES.filter((f) => f.properties.cca3 && active.has(f.properties.cca3)), [active]);
 
   // Base fill and hover fill per country; hover is blended in/out over a few frames.
+  const tintSet = useMemo(() => (tint ? new Set(tint.ids) : null), [tint]);
   const baseFill = useCallback((id: string | null): RGBA => {
     if (id && active.has(id)) return [0, 0, 0, 0]; // drawn lifted instead
+    if (id && tint && tintSet?.has(id)) return rgba(alpha(tint.color, political ? 0.8 : 0.58));
     if (political) return rgba((id && POLITICAL_COLOR.get(id)) || '#e5e7eb');
     return rgba(selected && !quiz ? 'rgba(4,8,20,0.22)' : 'rgba(255,255,255,0.02)');
-  }, [active, political, selected, quiz]);
+  }, [active, political, selected, quiz, tint, tintSet]);
   const hoverFill = useCallback((id: string | null): RGBA => {
     if (id && active.has(id)) return [0, 0, 0, 0];
     if (political) return rgba(shade((id && POLITICAL_COLOR.get(id)) || '#e5e7eb', -0.2));
@@ -642,7 +646,7 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
   // Full repaint when the scene state changes (keeping any hover mid-animation).
   useEffect(() => {
     countryLayer.current?.paintAll((id) => blendRef.current(id, hoverFx.current?.strength(id) ?? 0));
-  }, [layerReady, active, political, selected, quiz]);
+  }, [layerReady, active, political, selected, quiz, tint]);
   // Hover: fade the fill and a bright outline in/out.
   useEffect(() => {
     hoverFx.current?.set(hover, !!hover && !active.has(hover));

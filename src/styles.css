@@ -2610,3 +2610,32 @@ svg.vy-flag { color: #2dd4bf; }
   .gw-guessed em { width: 22px; height: 22px; font-size: 12px; }
 }
 .vy-row.hl { background: color-mix(in srgb, var(--c) 14%, transparent); box-shadow: inset 3px 0 0 var(--c); }
+
+/* ── Empires of the world ─────────────── */
+.em-badge { color: #fff; background: linear-gradient(135deg, #e11d48, #7e22ce); }
+.em-axis { position: sticky; top: 0; z-index: 2; height: 22px; margin: 0 8px 4px; background: rgba(9, 14, 30, 0.96); border-bottom: 1px solid var(--line); }
+.em-axis span { position: absolute; bottom: 4px; translate: -50% 0; font-size: 9.5px; font-weight: 600; color: var(--dim); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.em-axis span:last-child { translate: -100% 0; }
+.em-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.em-row { width: 100%; display: grid; gap: 6px; padding: 8px; border-radius: 12px; text-align: left; transition: background 0.15s; }
+.em-row:hover, .em-row:focus-visible, .em-row.hl { background: color-mix(in srgb, var(--c) 12%, transparent); }
+.em-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.em-top b { font: 600 14px var(--display); color: var(--text); min-width: 0; }
+.em-top em { flex: none; font-style: normal; font-size: 11px; color: var(--dim); }
+.em-track { position: relative; height: 10px; border-radius: 5px; background: rgba(255, 255, 255, 0.04); }
+.em-grid { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(255, 255, 255, 0.06); }
+.em-bar { position: absolute; top: 0; bottom: 0; min-width: 4px; border-radius: 5px; background: var(--c); box-shadow: 0 0 10px color-mix(in srgb, var(--c) 60%, transparent); }
+.em-detail .vy-who b { font-size: 21px; }
+.em-detail .vy-who > span:last-child { font-size: 12.5px; line-height: 1.4; color: var(--muted); }
+.em-today { display: grid; gap: 8px; padding: 12px; border-radius: 14px; background: rgba(255, 255, 255, 0.03); box-shadow: inset 0 0 0 1px var(--line); }
+.em-today-label { font-size: 12.5px; color: var(--muted); }
+.em-flags { display: flex; flex-wrap: wrap; gap: 5px; }
+.em-flags span { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px 3px 4px; border-radius: 999px; font-size: 11.5px; color: var(--text); background: color-mix(in srgb, var(--c) 12%, transparent); }
+.em-flags img { width: 18px; height: 12px; object-fit: cover; border-radius: 2px; }
+.em-today small { font-size: 11.5px; color: var(--dim); font-style: italic; }
+.em-rulers { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.em-rulers li { display: grid; gap: 2px; padding-left: 12px; border-left: 2px solid color-mix(in srgb, var(--c) 50%, transparent); }
+.em-rulers li > span { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.em-rulers b { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.em-rulers em { flex: none; font-style: normal; font-size: 11.5px; color: var(--c); }
+.em-rulers small { font-size: 12.5px; line-height: 1.45; color: var(--muted); }

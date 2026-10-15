@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { BarChart3, Grid3x3, Shapes, Inbox, BellRing, Binoculars, Brain, ChevronLeft, Drill, Hourglass, Ship, Gamepad2, Globe2, KeyRound, Landmark, Link2, ListOrdered, LogIn, LogOut, Map as MapIcon, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, SunMoon, Swords, UserRound, Users, X } from 'lucide-react';
+import { BarChart3, Grid3x3, Shapes, Inbox, BellRing, Binoculars, Brain, ChevronLeft, Castle, Drill, Hourglass, Ship, Gamepad2, Globe2, KeyRound, Landmark, Link2, ListOrdered, LogIn, LogOut, Map as MapIcon, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, SunMoon, Swords, UserRound, Users, X } from 'lucide-react';
 import type { MapStyle } from './GlobeView';
 
 export const SIDEBAR_W = { open: 268, rail: 72 } as const;
@@ -45,6 +45,8 @@ interface Props {
   antipodeOn: boolean;
   voyagesOn: boolean;
   erasOn: boolean;
+  empiresOn: boolean;
+  onEmpires: () => void;
   onEras: () => void;
   onVoyages: () => void;
   /** My places: pins for home, friends and favourite spots */
@@ -153,6 +155,7 @@ export function Sidebar(p: Props) {
             <Item icon={Drill} label={'Antipode finder'} sub={'Dig straight through the Earth'} rail={rail} active={p.antipodeOn} onClick={act(p.onAntipode)} />
             <Item icon={Ship} label="Famous voyages" sub="Columbus, Magellan, Cook & more" rail={rail} active={p.voyagesOn} onClick={act(p.onVoyages)} />
             <Item icon={Hourglass} label="Eras of civilization" sub="Stone Age to today" rail={rail} active={p.erasOn} onClick={act(p.onEras)} />
+            <Item icon={Castle} label="Empires of the world" sub="Rome, the Ottomans, the Mughals & more" rail={rail} active={p.empiresOn} onClick={act(p.onEmpires)} />
           </Section>
 
           <Section title="Map" rail={rail}>
