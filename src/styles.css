@@ -2370,3 +2370,6 @@ button.sb-user:hover { background: rgba(255, 255, 255, 0.05); }
   .fb-fab { right: calc(14px + var(--sr)); bottom: calc(96px + var(--sb)); width: 44px; height: 44px; padding: 0; justify-content: center; }
   .fb-fab span { display: none; }
 }
+
+/* Desktop: with no tip under it, the Play / Ask row sits low, clear of the globe. */
+@media (min-width: 901px) { .app:not(.has-hint) .fab-row { bottom: calc(22px + var(--sb)); } }

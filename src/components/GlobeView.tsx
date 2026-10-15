@@ -75,7 +75,11 @@ const HOME_ALTITUDE = 1.75;
 function homeView() {
   const w = window.innerWidth, h = window.innerHeight;
   const focal = h / 2 / Math.tan((50 * Math.PI) / 360); // globe.gl's default 50° fov
-  const fit = 1 / Math.sin(Math.atan((0.46 * w) / focal)) - 1; // altitude where the disc spans 92% of the width
+  const altFor = (half: number) => 1 / Math.sin(Math.atan(half / focal)) - 1; // altitude where the disc's radius is `half` px
+  // Fit the width (92% of it), and the height between the top buttons and the Play / Ask row at the
+  // bottom, so the globe never sits under them.
+  const reserve = w < 900 ? 92 : 80;
+  const fit = Math.max(altFor(0.46 * w), altFor(h / 2 - reserve));
   // (A zero-sized window — background tab, hidden pane — gives NaN: never feed that to the camera.)
   return { lat: 24, lng: 12, altitude: Number.isFinite(fit) ? Math.max(HOME_ALTITUDE, fit) : HOME_ALTITUDE };
 }

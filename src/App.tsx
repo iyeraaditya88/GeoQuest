@@ -191,6 +191,12 @@ export default function App() {
   const [accountOpen, setAccountOpen] = useState(false);
   // The Play button (beside Ask) and its games sheet. It glows until it's been tapped once.
   const [gamesOpen, setGamesOpen] = useState(false);
+  // The "Drag to spin" tip is for first-timers: gone (for good) once they've touched the globe.
+  const [spun, setSpun] = useState(() => { try { return localStorage.getItem('gq-spun') === '1'; } catch { return false; } });
+  const onGlobeInteract = () => {
+    setAutoRotate(false);
+    if (!spun) { setSpun(true); try { localStorage.setItem('gq-spun', '1'); } catch { /* private mode */ } }
+  };
   const [playSeen, setPlaySeen] = useState(() => { try { return localStorage.getItem('gq-play-seen') === '1'; } catch { return false; } });
   const openGames = () => {
     setGamesOpen(true);
@@ -900,12 +906,14 @@ export default function App() {
   const leftInset = mobile || geo ? 0 : sbCollapsed ? SIDEBAR_W.rail : SIDEBAR_W.open;
   const rightInset = (country || feature) && !quiz && !geo && !play && !liveState.active ? panelWidth(vp.w, vp.h) : 0;
 
+  // The tip at the bottom: first-timers' "Drag to spin", or what a mode needs (dropping pins, day/night).
+  const showHint = chrome && !selected && !quiz && !dockOpen && !geo && !play && !anti && !liveState.active && (!spun || placesOpen || (view === 'globe' && style === 'daynight'));
   // The quiet footer (feedback + about/legal links): only on the bare globe, never over a game or panel.
   const footer = chrome && idle && !selected && !feature && !accountOpen && !(mobile && drawerOpen);
 
   return (
     <div
-      className={`app ${ready ? 'ready' : ''} ${footer ? 'has-foot' : ''}`}
+      className={`app ${ready ? 'ready' : ''} ${footer ? 'has-foot' : ''} ${showHint ? 'has-hint' : ''}`}
       style={{ '--li': `${leftInset}px`, '--ri': `${rightInset}px` } as React.CSSProperties}
     >
       <div className="space-glow" />
@@ -929,7 +937,7 @@ export default function App() {
         onSelect={(c) => { if (matchClick.current) { matchClick.current(c); return; } if (liveRef.current.active) return; if (anti) return; if (quiz) quizClick(c); else if (c) select(c); else { setSelected(null); setHighlighted([]); setFeature(null); } }}
         onFeature={(f) => { if (!anti && !quiz && !liveRef.current.active) void openFeature(f); }}
         feature={feature}
-        onInteract={() => setAutoRotate(false)}
+        onInteract={onGlobeInteract}
         onReady={() => { track('ready', { ms: Math.round(performance.now()) }); setTimeout(() => setReady(true), 300); }}
       />
 
@@ -949,7 +957,7 @@ export default function App() {
             feature={feature}
             onFeature={(f) => { if (!quiz && !liveRef.current.active) void openFeature(f); }}
             onSelect={(c) => (matchClick.current ? matchClick.current(c) : liveRef.current.active ? undefined : quiz ? quizClick(c) : c ? select(c) : (setSelected(null), setHighlighted([]), setFeature(null)))}
-            onInteract={() => setAutoRotate(false)}
+            onInteract={onGlobeInteract}
             onReady={() => { morphing.current = false; }}
           />
         </div>
@@ -1056,7 +1064,7 @@ export default function App() {
 
       {/* Onboarding hint */}
       <AnimatePresence>
-        {chrome && !selected && !quiz && !dockOpen && !geo && !play && !anti && !liveState.active && (
+        {showHint && (
           <motion.div className="hint" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ delay: 0.9 }}>
             <span className="pulse-dot" />{' '}
             {placesOpen
