@@ -7,7 +7,7 @@ import { isBotAgent } from './bots';
 type Data = Record<string, string | number>;
 type Event = [at: number, name: string, data?: Data];
 
-const TICK = 15_000; // active-time resolution
+const TICK = 5_000; // how often time in use is added up
 const IDLE = 90_000; // no input for this long = not counted as in use
 // Each send is a storage write, so: once a minute in (so even short visits count), then every
 // 15 minutes, and when they leave — not every time a phone flicks to another app and back.
@@ -39,6 +39,19 @@ let s = { sid: id(), start: Date.now(), active: 0, events: [] as Event[] };
 // an open tab nobody touches isn't engagement.
 let lastInput = 0;
 let touched = false;
+// Time in use, measured exactly: from each tap/click/key/scroll until the next one — or until
+// IDLE passes with none — while the app is on screen. (Not rounded to ticks: a 10-second visit
+// that ends by switching to the share sheet still counts its 10 seconds.)
+let activeMs = 0;
+let accruedAt = 0;
+function accrue(now = Date.now(), onScreen = document.visibilityState === 'visible') {
+  const ms = onScreen ? activeSpan(accruedAt, now, lastInput, IDLE) : 0;
+  if (ms > 0) { activeMs += ms; s.active = Math.round(activeMs / 1000); dirty = true; }
+  accruedAt = now;
+}
+/** Milliseconds in use between `from` and `now`: up to `idle` after the last input (none before any input). */
+export const activeSpan = (from: number, now: number, lastInput: number, idle: number) =>
+  from && lastInput ? Math.max(0, Math.min(now, lastInput + idle) - from) : 0;
 let lastSent = 0;
 let hiddenAt = 0;
 let dirty = false;
@@ -58,6 +71,7 @@ export function device() {
 
 function send() {
   if (!started) return;
+  accrue();
   const first = !lastSent;
   lastSent = Date.now();
   dirty = false;
@@ -81,12 +95,14 @@ export function startAnalytics() {
   if (started || BOT || typeof window === 'undefined') return;
   started = true;
   window.setInterval(() => {
-    if (document.visibilityState === 'visible' && Date.now() - lastInput < IDLE) { s.active += TICK / 1000; dirty = true; }
+    accrue();
     if (dirty && Date.now() - lastSent > EVERY) send();
   }, TICK);
   window.setTimeout(() => { if (!lastSent) send(); }, FIRST); // so even a short visit is recorded
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') {
+      // (the event fires after the page is hidden: count up to now as on screen, then stop)
+      accrue(Date.now(), true);
       hiddenAt = Date.now();
       if (dirty && (!lastSent || Date.now() - lastSent > AWAY_SEND)) send();
     } else if (hiddenAt && Date.now() - hiddenAt > NEW_VISIT) {
@@ -94,8 +110,10 @@ export function startAnalytics() {
       s = { sid: id(), start: Date.now(), active: 0, events: [] };
       lastInput = 0;
       touched = false;
+      activeMs = 0;
       dirty = true;
     }
+    if (document.visibilityState === 'visible') accruedAt = Date.now(); // time away never counts
   });
   window.addEventListener('pagehide', () => { if (dirty) send(); });
 }
@@ -103,6 +121,7 @@ export function startAnalytics() {
 // Input is watched from the moment the app loads (before analytics starts), so the first tap counts.
 if (typeof window !== 'undefined' && !BOT) {
   const input = () => {
+    accrue();
     lastInput = Date.now();
     if (!touched) { touched = true; track('touch'); }
   };

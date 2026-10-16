@@ -404,3 +404,14 @@ describe('empires of the world', () => {
     }
   });
 });
+
+describe('time in use', () => {
+  it('counts from each input until the next, or until idle — never before the first input', async () => {
+    const { activeSpan } = await import('../src/lib/analytics');
+    const IDLE = 90_000;
+    expect(activeSpan(1000, 20_000, 0, IDLE)).toBe(0);                // no input yet
+    expect(activeSpan(19_000, 29_000, 19_000, IDLE)).toBe(10_000);    // tapped at 19 s, left at 29 s
+    expect(activeSpan(10_000, 300_000, 10_000, IDLE)).toBe(90_000);   // stopped counting after 90 s idle
+    expect(activeSpan(200_000, 300_000, 10_000, IDLE)).toBe(0);       // long idle: nothing more
+  });
+});
