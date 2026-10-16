@@ -77,7 +77,7 @@ import { AskDock } from './components/AskDock';
 import { QuizBar, type QuizMode, type QuizState } from './components/QuizBar';
 import { BY_CCA3 } from './lib/data';
 import { api } from './lib/api';
-import { CLUE_POOL, QUIZ_POOL, clueFor, nextTarget } from './lib/quiz';
+import { CLUE_POOL, QUIZ_POOL, TINY, clueFor, nextTarget } from './lib/quiz';
 import { DAILY_N, dailyNumber, dailyPicks, localDate, pointsFor, themeOf } from './lib/daily';
 import { DailyResult, type DailyBoardRow } from './components/DailyResult';
 import { Reminders } from './components/Reminders';
@@ -987,9 +987,16 @@ export default function App() {
   }, [anti]);
   // What's pinned on the globe (one stable list, so pins aren't rebuilt on every render).
   const inGame = !!quiz || !!geo || !!play || liveState.active;
+  // Quizzes where you find countries on the globe: a tap circle on every small country.
+  const tinyClick = (c: string) => { if (matchClick.current) matchClick.current(c); else if (quiz) quizClick(c); };
+  const findOnGlobe = (!!quiz || liveState.quiz) && !geo;
+  const tinyPins = useMemo(() => (findOnGlobe ? TINY.map((c) => ({
+    lat: c.latlng[0], lng: c.latlng[1], kind: 'tiny' as const, id: `tiny:${c.cca3}`,
+    state: feedback?.cca3 === c.cca3 ? feedback.kind : undefined,
+  })) : NO_PINS), [findOnGlobe, feedback]);
   const globePins = useMemo(
-    () => (voy ? voyPins : eras ? eraPins : emp ? empPins : anti ? antiPins : inGame ? NO_PINS : placesOpen && placesDraft ? [...placePins, { ...placesDraft, kind: 'guess' as const }] : placePins),
-    [voy, voyPins, eras, eraPins, emp, empPins, anti, antiPins, inGame, placesOpen, placesDraft, placePins],
+    () => (voy ? voyPins : eras ? eraPins : emp ? empPins : anti ? antiPins : findOnGlobe ? tinyPins : inGame ? NO_PINS : placesOpen && placesDraft ? [...placePins, { ...placesDraft, kind: 'guess' as const }] : placePins),
+    [voy, voyPins, eras, eraPins, emp, empPins, findOnGlobe, tinyPins, anti, antiPins, inGame, placesOpen, placesDraft, placePins],
   );
 
   const startAntipode = async () => {
@@ -1112,7 +1119,7 @@ export default function App() {
         pickMode={(!!anti && anti.stage !== 'dive') || placesOpen}
         onPick={(lat, lng) => (placesOpen ? setPlacesPick({ lat, lng, n: Date.now() }) : pickAntipode(lat, lng))}
         pins={globePins}
-        onPin={(id) => (id.startsWith('stop:') ? stopVoyage(Number(id.slice(5))) : id.startsWith('era:') ? pickEra(id.slice(4)) : id === 'heart' || id.startsWith('hub:') ? placeEra(id) : id.startsWith('emp:') ? pickEmpire(id.slice(4)) : id === 'capital' || id.startsWith('place:') ? placeEmpire(id) : openPlace(id))}
+        onPin={(id) => (id.startsWith('tiny:') ? tinyClick(id.slice(5)) : id.startsWith('stop:') ? stopVoyage(Number(id.slice(5))) : id.startsWith('era:') ? pickEra(id.slice(4)) : id === 'heart' || id.startsWith('hub:') ? placeEra(id) : id.startsWith('emp:') ? pickEmpire(id.slice(4)) : id === 'capital' || id.startsWith('place:') ? placeEmpire(id) : openPlace(id))}
         paths={voy ? voyPaths : eraPaths}
         tint={empTint}
         onPathPick={voy && !voy.id ? (id) => { track('voyage', { v: id, from: 'globe' }); pickVoyage(id); } : undefined}

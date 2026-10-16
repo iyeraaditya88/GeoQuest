@@ -71,7 +71,8 @@ interface Props {
   sideView?: boolean;
   pins?: ({ lat: number; lng: number; kind: 'guess' | 'answer' | 'from' | 'to' } | { lat: number; lng: number; kind: 'place'; id: string; emoji: string; name: string; tone: string }
     | { lat: number; lng: number; kind: 'stop'; id: string; n: number; name: string; tone: string; active: boolean; dead?: boolean }
-    | { lat: number; lng: number; kind: 'hub' | 'heart'; id: string; name: string; tone: string; active: boolean; emoji?: string })[];
+    | { lat: number; lng: number; kind: 'hub' | 'heart'; id: string; name: string; tone: string; active: boolean; emoji?: string }
+    | { lat: number; lng: number; kind: 'tiny'; id: string; state?: 'good' | 'bad' | 'reveal' })[];
   /** Routes drawn on the globe (famous voyages): the active one bright and moving, the rest faint. */
   paths?: GlobePath[];
   /** Countries filled in one colour (an empire's extent). */
@@ -518,7 +519,8 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
     };
     ctl.addEventListener('change', tuneSpeed);
     tuneSpeed();
-    ctl.minDistance = g.getGlobeRadius() * 1.12;
+    // As close as possible without passing through a raised (selected) country: ~380 km up.
+    ctl.minDistance = g.getGlobeRadius() * 1.06;
     // Always allow zooming out a bit past the home view (which is further out on phones).
     ctl.maxDistance = g.getGlobeRadius() * Math.max(4.5, (homeView().altitude + 1) * 1.15);
     ctl.autoRotate = autoRotate;
@@ -743,7 +745,7 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
 
   // The pins' drawing functions stay the same between renders: the globe library rebuilds every
   // pin when they change — which, on each hover (a re-render), made pins flicker and re-drop.
-  const htmlAltitude = useCallback((d: object) => { const k = (d as { kind: string }).kind; return k === 'capital' ? 0.045 : k === 'sun' ? 0.02 : k === 'place' ? 0.008 : k === 'stop' || k === 'hub' || k === 'heart' ? 0.006 : 0.012; }, []);
+  const htmlAltitude = useCallback((d: object) => { const k = (d as { kind: string }).kind; return k === 'capital' ? 0.045 : k === 'sun' ? 0.02 : k === 'place' ? 0.008 : k === 'stop' || k === 'hub' || k === 'heart' || k === 'tiny' ? 0.006 : 0.012; }, []);
   // Routes (voyages, eras): our own layer — highlighting changes materials, never geometry.
   useEffect(() => { routeLayer.current?.set(paths); }, [paths, layerReady]);
   useEffect(() => () => routeLayer.current?.destroy(), []);
@@ -752,9 +754,14 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
     el.style.visibility = visible ? '' : 'hidden';
   }, []);
   const htmlElement = useCallback((d: object) => {
-    const it = d as { kind: string; name?: string; id?: string; emoji?: string; tone?: string; n?: number; active?: boolean; dead?: boolean };
+    const it = d as { kind: string; name?: string; id?: string; emoji?: string; tone?: string; n?: number; active?: boolean; dead?: boolean; state?: string };
     const el = document.createElement('div');
-    if (it.kind === 'hub' || it.kind === 'heart') {
+    if (it.kind === 'tiny') {
+      // A small country's tap circle (quizzes). Unnamed on purpose — it mustn't give the answer away.
+      el.className = `tiny-pin ${it.state ?? ''}`;
+      el.innerHTML = '<button type="button" aria-label="Small country"><i></i></button>';
+      el.querySelector('button')!.addEventListener('click', (e) => { e.stopPropagation(); onPinRef.current?.(it.id ?? ''); });
+    } else if (it.kind === 'hub' || it.kind === 'heart') {
       // Eras: the heart of the human world (glowing) and the places where people thrived.
       el.className = `${it.kind}-pin ${it.active ? 'on' : ''}`;
       el.style.setProperty('--c', it.tone ?? '#fbbf24');
