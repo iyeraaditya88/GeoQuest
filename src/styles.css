@@ -2640,9 +2640,10 @@ svg.vy-flag { color: #2dd4bf; }
 .em-rulers em { flex: none; font-style: normal; font-size: 11.5px; color: var(--c); }
 .em-rulers small { font-size: 12.5px; line-height: 1.45; color: var(--muted); }
 
-/* Quizzes: a tap circle on every small country (all of them, so none is a giveaway) */
-.tiny-pin { pointer-events: none; transform: translate(-50%, -50%); }
-.tiny-pin i { display: block; width: 20px; height: 20px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px rgba(255, 247, 228, 0.7), 0 0 0 1px rgba(3, 7, 18, 0.45); background: rgba(255, 247, 228, 0.06); transition: transform 0.15s, background 0.15s, box-shadow 0.15s; }
+/* Quizzes: a ring on every small country (all of them, so none is a giveaway) — only once zoomed in */
+.tiny-pin { pointer-events: none; transform: translate(-50%, -50%); opacity: 0; transition: opacity 0.3s; }
+.zoomed-in .tiny-pin, .tiny-pin.good, .tiny-pin.bad, .tiny-pin.reveal { opacity: 1; }
+.tiny-pin i { display: block; width: 16px; height: 16px; border-radius: 50%; box-shadow: inset 0 0 0 1.2px rgba(255, 247, 228, 0.55); transition: transform 0.15s, background 0.15s, box-shadow 0.15s; }
 .tiny-pin.good i { background: rgba(52, 211, 153, 0.75); box-shadow: inset 0 0 0 2px #34d399, 0 0 14px #34d399; transform: scale(1.25); }
 .tiny-pin.bad i { background: rgba(248, 113, 113, 0.7); box-shadow: inset 0 0 0 2px #f87171, 0 0 12px #f87171; }
 .tiny-pin.reveal i { background: rgba(251, 191, 36, 0.75); box-shadow: inset 0 0 0 2px #fbbf24, 0 0 16px #fbbf24; transform: scale(1.3); animation: tiny-pulse 1.2s ease-in-out infinite; }

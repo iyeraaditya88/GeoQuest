@@ -8,8 +8,8 @@ export const CLUE_POOL = Object.keys(CURATED).filter((k) => MAPPABLE.has(k));
  * Countries too small (or too scattered) to tap reliably on the globe: in quizzes each gets a tap
  * circle. All of them get one, so the circles never give away which country is being asked for.
  */
-const ARCHIPELAGOS = new Set(['BHS', 'FJI', 'VUT', 'SLB', 'KIR', 'FSM', 'MHL', 'TON', 'WSM', 'PLW', 'MDV', 'SYC', 'CPV', 'COM', 'STP', 'MUS', 'TTO', 'NRU', 'TUV', 'TLS']);
-export const TINY = COUNTRIES.filter((c) => c.un && MAPPABLE.has(c.cca3) && (c.area < 12000 || ARCHIPELAGOS.has(c.cca3)));
+const ARCHIPELAGOS = new Set(['BHS', 'FJI', 'VUT', 'SLB', 'KIR', 'FSM', 'MHL', 'TON', 'WSM', 'PLW', 'MDV', 'SYC', 'CPV', 'COM', 'STP', 'MUS', 'NRU', 'TUV', 'TLS', 'BRN']);
+export const TINY = COUNTRIES.filter((c) => c.un && MAPPABLE.has(c.cca3) && (c.area < 5000 || ARCHIPELAGOS.has(c.cca3)));
 export const pickRandom = <T,>(xs: T[], not?: T) => { let x: T; do { x = xs[Math.floor(Math.random() * xs.length)]; } while (xs.length > 1 && x === not); return x; };
 
 // ── No repeats: a shuffled deck per quiz mode ──

@@ -94,6 +94,8 @@ interface Props {
 }
 
 const HOME_ALTITUDE = 1.75;
+/** Small-country rings (quizzes) appear — and catch taps — only when zoomed in this close. */
+const TINY_ALT = 0.6;
 const NO_PATHS: GlobePath[] = [];
 const alpha = (hex: string, a: number) => `rgba(${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)},${a})`;
 /**
@@ -212,7 +214,7 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
   /** A small country's ring under a screen point (quizzes), or null. Near side of the globe only. */
   const tinyAt = (x: number, y: number, tol: number) => {
     const g = globe.current;
-    if (!g) return null;
+    if (!g || g.pointOfView().altitude > TINY_ALT) return null;
     const cam = (g.camera() as unknown as { position: THREE.Vector3 }).position;
     const R2 = g.getGlobeRadius() ** 2;
     let best: { id: string; d: number } | null = null;
@@ -553,6 +555,10 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
       cursor.set({ dragging: true });
     });
     ctl.addEventListener('end', () => { dragging.current = false; cursor.set({ dragging: false }); });
+    // Show the small-country rings only once zoomed in (a class on the wrapper; CSS fades them).
+    const zoomedIn = () => { const on = g.pointOfView().altitude <= TINY_ALT; if (wrap.current && wrap.current.classList.contains('zoomed-in') !== on) wrap.current.classList.toggle('zoomed-in', on); };
+    ctl.addEventListener('change', zoomedIn);
+    zoomedIn();
     g.renderer().setPixelRatio(Math.min(window.devicePixelRatio, 2));
     // Country fills + borders as two merged draws (see countryMesh.ts).
     const layer = buildCountryLayer(FEATURES, R);
