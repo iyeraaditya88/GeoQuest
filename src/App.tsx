@@ -988,7 +988,6 @@ export default function App() {
   // What's pinned on the globe (one stable list, so pins aren't rebuilt on every render).
   const inGame = !!quiz || !!geo || !!play || liveState.active;
   // Quizzes where you find countries on the globe: a tap circle on every small country.
-  const tinyClick = (c: string) => { if (matchClick.current) matchClick.current(c); else if (quiz) quizClick(c); };
   const findOnGlobe = (!!quiz || liveState.quiz) && !geo;
   const tinyPins = useMemo(() => (findOnGlobe ? TINY.map((c) => ({
     lat: c.latlng[0], lng: c.latlng[1], kind: 'tiny' as const, id: `tiny:${c.cca3}`,
@@ -1119,7 +1118,7 @@ export default function App() {
         pickMode={(!!anti && anti.stage !== 'dive') || placesOpen}
         onPick={(lat, lng) => (placesOpen ? setPlacesPick({ lat, lng, n: Date.now() }) : pickAntipode(lat, lng))}
         pins={globePins}
-        onPin={(id) => (id.startsWith('tiny:') ? tinyClick(id.slice(5)) : id.startsWith('stop:') ? stopVoyage(Number(id.slice(5))) : id.startsWith('era:') ? pickEra(id.slice(4)) : id === 'heart' || id.startsWith('hub:') ? placeEra(id) : id.startsWith('emp:') ? pickEmpire(id.slice(4)) : id === 'capital' || id.startsWith('place:') ? placeEmpire(id) : openPlace(id))}
+        onPin={(id) => (id.startsWith('stop:') ? stopVoyage(Number(id.slice(5))) : id.startsWith('era:') ? pickEra(id.slice(4)) : id === 'heart' || id.startsWith('hub:') ? placeEra(id) : id.startsWith('emp:') ? pickEmpire(id.slice(4)) : id === 'capital' || id.startsWith('place:') ? placeEmpire(id) : openPlace(id))}
         paths={voy ? voyPaths : eraPaths}
         tint={empTint}
         onPathPick={voy && !voy.id ? (id) => { track('voyage', { v: id, from: 'globe' }); pickVoyage(id); } : undefined}

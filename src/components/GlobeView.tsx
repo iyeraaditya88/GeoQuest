@@ -209,6 +209,23 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
     return best?.id ?? null;
   };
   const pathHover = useRef<string | null>(null);
+  /** A small country's ring under a screen point (quizzes), or null. Near side of the globe only. */
+  const tinyAt = (x: number, y: number, tol: number) => {
+    const g = globe.current;
+    if (!g) return null;
+    const cam = (g.camera() as unknown as { position: THREE.Vector3 }).position;
+    const R2 = g.getGlobeRadius() ** 2;
+    let best: { id: string; d: number } | null = null;
+    for (const p of pins) {
+      if (p.kind !== 'tiny') continue;
+      const w = g.getCoords(p.lat, p.lng, 0);
+      if (w.x * cam.x + w.y * cam.y + w.z * cam.z < R2 * 1.02) continue;
+      const s2 = g.getScreenCoords(p.lat, p.lng, 0.006);
+      const d = Math.hypot(x - s2.x, y - s2.y);
+      if (d <= tol && (!best || d < best.d)) best = { id: p.id.replace(/^tiny:/, ''), d };
+    }
+    return best?.id ?? null;
+  };
 
   // Hover: one cheap sphere hit + point-in-polygon per frame, instead of the
   // library raycasting every country mesh on every frame.
@@ -264,6 +281,9 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
       if (pid) { onPathPick(pid); return; }
     }
     if (pickMode) { if (geo) onPick?.(geo.lat, geo.lng); return; }
+    // A tap on a small country's ring counts as that country (it wins over the bigger country around it).
+    const tiny = quiz ? tinyAt(e.clientX - rect.left, e.clientY - rect.top, e.pointerType === 'touch' ? 20 : 13) : null;
+    if (tiny) { onSelect(tiny); return; }
     let id = geo ? countryAt(geo.lat, geo.lng) : null;
     // Quizzes on a touchscreen: a fingertip that lands just off a small country (in the sea)
     // still counts — take the nearest country within finger reach.
@@ -758,9 +778,10 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
     const el = document.createElement('div');
     if (it.kind === 'tiny') {
       // A small country's tap circle (quizzes). Unnamed on purpose — it mustn't give the answer away.
+      // Drawn only — it never catches touches (so pinch and drag always reach the globe); taps on it
+      // are recognised by the globe's own tap handling (see tinyAt).
       el.className = `tiny-pin ${it.state ?? ''}`;
-      el.innerHTML = '<button type="button" aria-label="Small country"><i></i></button>';
-      el.querySelector('button')!.addEventListener('click', (e) => { e.stopPropagation(); onPinRef.current?.(it.id ?? ''); });
+      el.innerHTML = '<i></i>';
     } else if (it.kind === 'hub' || it.kind === 'heart') {
       // Eras: the heart of the human world (glowing) and the places where people thrived.
       el.className = `${it.kind}-pin ${it.active ? 'on' : ''}`;
