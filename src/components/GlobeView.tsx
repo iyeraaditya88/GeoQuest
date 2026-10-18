@@ -174,6 +174,9 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
   // library's which drops any click with movement.
   const press = useRef<{ x: number; y: number; t: number } | null>(null);
   const onPointerDown = (e: React.PointerEvent) => {
+    // Your fingers win: any touch, drag or pinch stops an automatic camera move (e.g. the flight to a
+    // country) — otherwise the flight keeps setting the camera each frame and fights the gesture.
+    cancelFlight();
     if (e.button === 0) press.current = { x: e.clientX, y: e.clientY, t: performance.now() };
   };
   // Routes you can click: each one densified (so curves hit-test well), then tested on screen.
