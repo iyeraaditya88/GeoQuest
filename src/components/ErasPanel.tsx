@@ -73,7 +73,7 @@ function List({ onPick, onHover }: { onPick: (id: string) => void; onHover: (id:
       <ol className="er-list">
         {ERAS.map((e, i) => (
           <motion.li key={e.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.035 * i }}>
-            <button className="er-row" style={{ ['--c' as string]: e.color }} onClick={() => { track('era', { e: e.id }); onPick(e.id); }}
+            <button className="er-row" style={{ ['--c' as string]: e.color }} onClick={() => { onPick(e.id); }}
               onMouseEnter={() => onHover(e.id)} onFocus={() => onHover(e.id)}>
               <span className="er-dot" aria-hidden><b>{e.emoji}</b></span>
               <span className="er-text">
@@ -159,7 +159,7 @@ function Detail({ e, place, onPlace, onPick }: { e: Era; place: string | null; o
         {next && <button onClick={() => onPick(next.id)} style={{ ['--n' as string]: next.color }}><span aria-hidden>{next.emoji}</span> Continue to the {next.name} <ArrowRight size={15} /></button>}
       </div>
 
-      <a className="vy-wiki" href={`https://en.wikipedia.org/wiki/${e.wiki}`} target="_blank" rel="noopener noreferrer">Read more on Wikipedia <ExternalLink size={13} /></a>
+      <a className="vy-wiki" onClick={() => track('wiki', { k: 'era', id: e.id })} href={`https://en.wikipedia.org/wiki/${e.wiki}`} target="_blank" rel="noopener noreferrer">Read more on Wikipedia <ExternalLink size={13} /></a>
 
       <nav className="vy-nav" aria-label="More eras">
         {prev ? <button onClick={() => onPick(prev.id)}><ChevronLeft size={16} /><span><em>Earlier</em>{prev.name}</span></button> : <span />}

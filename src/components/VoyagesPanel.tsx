@@ -109,7 +109,7 @@ function List({ hover, onPick, onHover }: { hover: string | null; onPick: (id: s
                 </li>
               )}
               <motion.li initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(0.4, 0.025 * i) }}>
-                <button className={`vy-row ${hover === v.id ? 'hl' : ''}`} style={{ ['--c' as string]: v.color }} onClick={() => { track('voyage', { v: v.id }); onPick(v.id); }}
+                <button className={`vy-row ${hover === v.id ? 'hl' : ''}`} style={{ ['--c' as string]: v.color }} onClick={() => { onPick(v.id); }}
                   onMouseEnter={() => onHover(v.id)} onFocus={() => onHover(v.id)}>
                   <span className="vy-year">{v.years.replace(/ – .*/, '')}</span>
                   <span className="vy-line" aria-hidden />
@@ -200,7 +200,7 @@ function Detail({ v, stop, sailing, onStop, onSail, onPick }: { v: Voyage; stop:
 
       <div className="fr-label">About {v.short}</div>
       <p className="vy-bio">{v.bio}</p>
-      <a className="vy-wiki" href={`https://en.wikipedia.org/wiki/${v.wiki}`} target="_blank" rel="noopener noreferrer">Read more on Wikipedia <ExternalLink size={13} /></a>
+      <a className="vy-wiki" onClick={() => track('wiki', { k: 'voyage', id: v.id })} href={`https://en.wikipedia.org/wiki/${v.wiki}`} target="_blank" rel="noopener noreferrer">Read more on Wikipedia <ExternalLink size={13} /></a>
 
       <nav className="vy-nav" aria-label="More voyages">
         {prev ? <button onClick={() => onPick(prev.id)}><ChevronLeft size={16} /><span><em>Earlier</em>{prev.voyager}</span></button> : <span />}

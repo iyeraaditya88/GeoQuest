@@ -1,3 +1,4 @@
+import { track } from '../lib/analytics';
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion, animate } from 'motion/react';
 import { PanelShell } from './PanelShell';
@@ -36,8 +37,9 @@ interface Props {
 type Tab = 'overview' | 'geoguessr';
 
 export function CountryPanel({ country, onClose, onSelect, onAsk }: Props) {
-  const [tab, setTab] = useState<Tab>('overview');
-  useEffect(() => setTab('overview'), [country?.cca3]);
+  const [tab, setTabState] = useState<Tab>('overview');
+  const setTab = (t: Tab) => { if (t !== tab && t === 'geoguessr' && country) track('tab', { t, c: country.cca3 }); setTabState(t); };
+  useEffect(() => setTabState('overview'), [country?.cca3]);
 
   return (
     <AnimatePresence>

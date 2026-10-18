@@ -74,7 +74,7 @@ function List({ hover, onPick, onHover }: { hover: string | null; onPick: (id: s
       <ol className="em-list">
         {EMPIRES.map((e, i) => (
           <motion.li key={e.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(0.4, 0.03 * i) }}>
-            <button className={`em-row ${hover === e.id ? 'hl' : ''}`} style={{ ['--c' as string]: e.color }} onClick={() => { track('empire', { e: e.id }); onPick(e.id); }}
+            <button className={`em-row ${hover === e.id ? 'hl' : ''}`} style={{ ['--c' as string]: e.color }} onClick={() => { onPick(e.id); }}
               onMouseEnter={() => onHover(e.id)} onFocus={() => onHover(e.id)}>
               <span className="em-top">
                 <b><span aria-hidden>{e.emoji}</span> {e.name}</b>
@@ -155,7 +155,7 @@ function Detail({ e, place, onPlace, onPick }: { e: Empire; place: string | null
       <div className="fr-label"><TrendingDown size={12} /> How it ended</div>
       <div className="er-next"><p>{e.fall}</p></div>
 
-      <a className="vy-wiki" href={`https://en.wikipedia.org/wiki/${e.wiki}`} target="_blank" rel="noopener noreferrer">Read more on Wikipedia <ExternalLink size={13} /></a>
+      <a className="vy-wiki" onClick={() => track('wiki', { k: 'empire', id: e.id })} href={`https://en.wikipedia.org/wiki/${e.wiki}`} target="_blank" rel="noopener noreferrer">Read more on Wikipedia <ExternalLink size={13} /></a>
 
       <nav className="vy-nav" aria-label="More empires">
         {prev ? <button onClick={() => onPick(prev.id)}><ChevronLeft size={16} /><span><em>Earlier</em>{prev.name}</span></button> : <span />}

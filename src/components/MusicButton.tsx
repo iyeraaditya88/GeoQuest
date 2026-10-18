@@ -1,3 +1,4 @@
+import { track } from '../lib/analytics';
 import { useSyncExternalStore } from 'react';
 import { VolumeX } from 'lucide-react';
 import { music, musicMuted } from '../lib/music';
@@ -12,7 +13,7 @@ export function MusicButton({ className = '' }: { className?: string }) {
   return (
     <button
       className={`music-btn ${muted ? 'off' : ''} ${status === 'waiting' ? 'waiting' : ''} ${className}`}
-      onClick={(e) => { e.stopPropagation(); music.setMuted(!muted); }}
+      onClick={(e) => { e.stopPropagation(); track('setting', { k: 'music', v: muted ? 'on' : 'off' }); music.setMuted(!muted); }}
       aria-label={muted ? 'Turn music on' : 'Mute music'}
       aria-pressed={!muted}
       title={muted ? 'Music off — tap to turn on' : 'Music on — tap to mute'}

@@ -1,3 +1,6 @@
+import { BY_VOYAGE } from '../lib/voyages';
+import { BY_ERA } from '../lib/eras';
+import { BY_EMPIRE } from '../lib/empires';
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { AlertTriangle, BarChart3, Bell, ChevronDown, Loader2, Monitor, RotateCw, Smartphone, Tablet, X } from 'lucide-react';
@@ -35,7 +38,13 @@ const placeLabel = (p?: Place) => (p ? [p.city, p.country].filter(Boolean).join(
 interface Person { name: string; role: string; status: string; createdAt: number; lastLogin: number | null }
 
 const RANGES = [{ days: 1, label: 'Today' }, { days: 7, label: '7 days' }, { days: 30, label: '30 days' }] as const;
-const GAME_NAMES: Record<string, string> = { daily: 'Daily challenge', quiz: 'Map quiz', street: 'Street View', duel: 'Duel', capitals: 'Capitals', shapes: 'Guess the Country', wordle: 'Geo Wordle', trivia: 'Geo Trivia', top5: 'Top 5', antipode: 'Antipode' };
+const GAME_NAMES: Record<string, string> = { daily: 'Daily challenge', quiz: 'Map quiz', street: 'Street View', duel: 'Duel', capitals: 'Capitals', shapes: 'Guess the Country', wordle: 'Geo Wordle', trivia: 'Geo Trivia', top5: 'Top 5', antipode: 'Antipode finder', voyages: 'Famous voyages', eras: 'Eras of civilization', empires: 'Empires of the world', places: 'My places' };
+/** Things to explore (rather than games to play) — counted separately. */
+const EXPLORE = new Set(['voyages', 'eras', 'empires', 'antipode', 'places']);
+const voyageName = (id: unknown) => BY_VOYAGE.get(String(id))?.voyager ?? String(id);
+const eraName = (id: unknown) => BY_ERA.get(String(id))?.name ?? String(id);
+const empireName = (id: unknown) => BY_EMPIRE.get(String(id))?.name ?? String(id);
+const OPENED: Record<string, string> = { games: 'the Play menu', menu: 'the menu', ask: 'Ask the Atlas', feedback: 'the feedback form' };
 
 const dur = (sec: number) => {
   const m = Math.round(sec / 60);
@@ -54,7 +63,22 @@ function describe([, name, d = {}]: Event) {
   switch (name) {
     case 'country': return `Opened ${country(d.c)}`;
     case 'feature': return `Looked at ${d.n}`;
-    case 'game': return `Started ${GAME_NAMES[d.g] ?? d.g}${d.m && d.m !== 'find' ? ` (${d.m})` : ''}`;
+    case 'game': return EXPLORE.has(String(d.g)) ? `Opened ${GAME_NAMES[d.g] ?? d.g}` : `Started ${GAME_NAMES[d.g] ?? d.g}${d.m && d.m !== 'find' ? ` (${d.m})` : ''}`;
+    case 'voyage': return d.m === 'sail' ? `Sailed ${voyageName(d.v)}’s voyage` : `Read about ${voyageName(d.v)}’s voyage${d.from === 'globe' ? ' (tapped its route)' : ''}`;
+    case 'voyage_stop': return `Looked at a stop on ${voyageName(d.v)}’s voyage: ${d.p}`;
+    case 'era': return `Read about the ${eraName(d.e)}`;
+    case 'era_place': return `${eraName(d.e)}: looked at ${d.p}`;
+    case 'empire': return `Read about the ${empireName(d.e)}`;
+    case 'empire_place': return `${empireName(d.e)}: looked at ${d.p}`;
+    case 'wiki': return `Opened Wikipedia (${d.k === 'voyage' ? voyageName(d.id) : d.k === 'era' ? eraName(d.id) : d.k === 'empire' ? empireName(d.id) : d.id})`;
+    case 'tab': return `Opened the GeoGuessr tips for ${country(d.c)}`;
+    case 'setting': return d.k === 'style' ? `Switched the map to ${d.v}` : d.k === 'view' ? `Switched to the ${d.v === 'flat' ? 'flat atlas' : 'globe'}` : `Turned ${d.k === 'rivers' ? 'rivers & mountains' : d.k === 'autorotate' ? 'auto-rotate' : d.k} ${d.v}`;
+    case 'share': return `Shared their ${GAME_NAMES[d.g] ?? d.g} result`;
+    case 'hint': return `Used a hint in ${GAME_NAMES[d.g] ?? d.g}`;
+    case 'feedback': return `Sent feedback (${d.k})`;
+    case 'signin_prompt': return 'Was asked to sign in';
+    case 'reminder': return d.on ? 'Turned on the morning reminder' : 'Turned off the morning reminder';
+    case 'place': return 'Saved a place';
     case 'score': return `Finished ${GAME_NAMES[d.g] ?? d.g}: ${fmtInt(Number(d.s))}${d.of ? ` / ${fmtInt(Number(d.of))}` : ' pts'}`;
     case 'match': return `Live ${GAME_NAMES[d.g] ?? d.g} match: #${d.r} of ${d.n}`;
     case 'ask': return 'Asked Claude a question';
@@ -62,7 +86,7 @@ function describe([, name, d = {}]: Event) {
     case 'crash': return `Error in ${d.w}`;
     case 'ready': return `Globe loaded${d.ms ? ` (${(Number(d.ms) / 1000).toFixed(1)} s)` : ''}`;
     case 'touch': return 'First tap or click';
-    case 'open': return d.w === 'games' ? 'Opened the Play menu' : `Opened ${d.w}`;
+    case 'open': return `Opened ${OPENED[String(d.w)] ?? d.w}`;
     case 'launch': return `Picked ${GAME_NAMES[d.g] ?? (d.g === 'duel' ? 'Duel' : d.g)} from the Play menu`;
     default: return name;
   }
@@ -125,13 +149,15 @@ export function ActivityPanel({ open, onClose }: { open: boolean; onClose: () =>
     for (const s of all) {
       const p = players.get(s.user) ?? { name: s.user, visits: 0, active: 0, last: 0, devices: new Set(), games: {} };
       p.visits++; p.active += s.active; p.last = Math.max(p.last, s.last); p.devices.add(s.device);
-      for (const [, n, d] of s.events) if (n === 'game' && d?.g) p.games[d.g] = (p.games[d.g] ?? 0) + 1;
+      for (const [, n, d] of s.events) if (n === 'game' && d?.g && !EXPLORE.has(String(d.g))) p.games[d.g] = (p.games[d.g] ?? 0) + 1;
       players.set(s.user, p);
     }
     const ranked = [...players.values()].sort((a, b) => b.active - a.active);
     const maxActive = Math.max(1, ...ranked.map((p) => p.active));
 
     const games: Record<string, { plays: number; best: number }> = {};
+    const explore: Record<string, number> = {};
+    const explored: Record<string, number> = {}; // 'voyage:magellan' → views
     const countries: Record<string, number> = {};
     const places: Record<string, { n: number; cc?: string }> = {};
     // The funnel starts from the first visit that reported loading (when this was added), and
@@ -143,8 +169,8 @@ export function ActivityPanel({ open, onClose }: { open: boolean; onClose: () =>
       { label: 'Visits', n: measured.length },
       { label: 'Globe loaded', n: measured.filter((s) => has(s, 'ready')).length },
       { label: 'Interacted', n: measured.filter(interacted).length },
-      { label: 'Explored', n: measured.filter((s) => has(s, 'country', 'feature', 'open', 'launch', 'game', 'search', 'ask')).length },
-      { label: 'Played a game', n: measured.filter((s) => has(s, 'game')).length },
+      { label: 'Explored', n: measured.filter((s) => has(s, 'country', 'feature', 'open', 'launch', 'game', 'search', 'ask', 'voyage', 'era', 'empire')).length },
+      { label: 'Played a game', n: measured.filter((s) => s.events.some((e) => e[1] === 'game' && !EXPLORE.has(String(e[2]?.g)))).length },
       { label: 'Finished one', n: measured.filter((s) => has(s, 'score', 'match')).length },
     ] : [];
     const medianLoad = loads.length ? loads[Math.floor(loads.length / 2)] : 0;
@@ -156,7 +182,9 @@ export function ActivityPanel({ open, onClose }: { open: boolean; onClose: () =>
     }
     const crashes: { user: string; at: number; d: Data }[] = [];
     for (const s of sessions) for (const [at, n, d] of s.events) {
-      if (n === 'game' && d?.g) (games[d.g] ??= { plays: 0, best: 0 }).plays++;
+      if (n === 'game' && d?.g && EXPLORE.has(String(d.g))) explore[d.g] = (explore[d.g] ?? 0) + 1;
+      else if (n === 'game' && d?.g) (games[d.g] ??= { plays: 0, best: 0 }).plays++;
+      if ((n === 'voyage' && d?.v && d.m !== 'sail') || (n === 'era' && d?.e) || (n === 'empire' && d?.e)) { const k = `${n}:${n === 'voyage' ? d.v : d.e}`; explored[k] = (explored[k] ?? 0) + 1; }
       if (n === 'score' && d?.g) { const g = (games[d.g] ??= { plays: 0, best: 0 }); g.best = Math.max(g.best, Number(d.s) || 0); }
       if (n === 'country' && d?.c) countries[d.c] = (countries[d.c] ?? 0) + 1;
       if (n === 'crash') crashes.push({ user: s.user, at: s.start + at * 1000, d: d ?? {} });
@@ -167,6 +195,11 @@ export function ActivityPanel({ open, onClose }: { open: boolean; onClose: () =>
       sessions, ranked, maxActive, total, absent, crashes,
       players: new Set(sessions.map((s) => s.user)).size,
       games: Object.entries(games).sort((a, b) => b[1].plays - a[1].plays),
+      explore: Object.entries(explore).sort((a, b) => b[1] - a[1]),
+      explored: Object.entries(explored).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([k, n]) => {
+        const [kind, id] = k.split(':');
+        return { label: kind === 'voyage' ? voyageName(id) : kind === 'era' ? eraName(id) : empireName(id), kind, n };
+      }),
       countries: Object.entries(countries).sort((a, b) => b[1] - a[1]).slice(0, 10),
       funnel, medianLoad,
       sources: Object.entries(sources).sort((a, b) => b[1] - a[1]),
@@ -273,6 +306,25 @@ export function ActivityPanel({ open, onClose }: { open: boolean; onClose: () =>
                   </div>
                 )}
 
+                {view.explore.length > 0 && (
+                  <div className="ac-two">
+                    <div>
+                      <div className="fr-label">Explore</div>
+                      <ul className="ac-bars">
+                        {view.explore.map(([g, n]) => (
+                          <li key={g}><span>{GAME_NAMES[g] ?? g}</span><i style={{ width: `${(n / view.explore[0][1]) * 100}%` }} /><b>{n}</b></li>
+                        ))}
+                      </ul>
+                    </div>
+                    {view.explored.length > 0 && (
+                      <div>
+                        <div className="fr-label">Most-read voyages, eras & empires</div>
+                        <div className="ac-chips">{view.explored.map((x) => <span key={x.kind + x.label}>{x.label} <b>{x.n}</b></span>)}</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {view.sources.length > 0 && (
                   <>
                     <div className="fr-label">How they found GeoQuest <span className="ac-hint">tag your links with ?ref=yt, ?ref=reddit…</span></div>
@@ -291,7 +343,8 @@ export function ActivityPanel({ open, onClose }: { open: boolean; onClose: () =>
                 <ul className="ac-visits">
                   {view.sessions.slice(0, 60).map((s) => {
                     const open = expanded === s.sid;
-                    const games = s.events.filter((e) => e[1] === 'game').length;
+                    const games = s.events.filter((e) => e[1] === 'game' && !EXPLORE.has(String(e[2]?.g))).length;
+                    const explores = s.events.filter((e) => e[1] === 'game' && EXPLORE.has(String(e[2]?.g))).length;
                     const seen = new Set(s.events.filter((e) => e[1] === 'country').map((e) => e[2]?.c)).size;
                     return (
                       <li key={s.sid} className={open ? 'open' : ''}>
@@ -304,6 +357,7 @@ export function ActivityPanel({ open, onClose }: { open: boolean; onClose: () =>
                             {s.events.some((e) => e[1] === 'crash') && <em className="bad">error</em>}
                             {!interacted(s) && <em className="quiet">bounced</em>}
                             {games > 0 && <em>{games} game{games === 1 ? '' : 's'}</em>}
+                            {explores > 0 && <em className="ac-explore">explored</em>}
                             {seen > 0 && <em>{seen} countr{seen === 1 ? 'y' : 'ies'}</em>}
                           </span>
                           <span className="ac-v-dev" title={`${s.os} · ${s.browser}${s.pwa ? ' · installed app' : ''}`}><DeviceIcon d={s.device} /></span>

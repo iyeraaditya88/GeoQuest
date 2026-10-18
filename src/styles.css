@@ -2648,3 +2648,4 @@ svg.vy-flag { color: #2dd4bf; }
 .tiny-pin.bad i { background: rgba(248, 113, 113, 0.7); box-shadow: inset 0 0 0 2px #f87171, 0 0 12px #f87171; }
 .tiny-pin.reveal i { background: rgba(251, 191, 36, 0.75); box-shadow: inset 0 0 0 2px #fbbf24, 0 0 16px #fbbf24; transform: scale(1.3); animation: tiny-pulse 1.2s ease-in-out infinite; }
 @keyframes tiny-pulse { 50% { box-shadow: inset 0 0 0 2px #fbbf24, 0 0 0 8px rgba(251, 191, 36, 0.2); } }
+.ac-v-sum em.ac-explore { color: #7dd3fc; background: rgba(56, 189, 248, 0.12); }

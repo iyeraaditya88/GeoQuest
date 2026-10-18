@@ -229,6 +229,19 @@ export default function App() {
   const toggleNature = () => setNature((v) => { try { localStorage.setItem('gq-nature', v ? '0' : '1'); } catch { /* private mode */ } return !v; });
   const [searchOpen, setSearchOpen] = useState(false);
   const [dockOpen, setDockOpen] = useState(false);
+  // Activity: panels opened and settings changed (however they were opened). Skips the first render.
+  useEffect(() => { if (drawerOpen) track('open', { w: 'menu' }); }, [drawerOpen]);
+  useEffect(() => { if (dockOpen) track('open', { w: 'ask' }); }, [dockOpen]);
+  useEffect(() => { if (fbForm) track('open', { w: 'feedback' }); }, [fbForm]);
+  // Settings: logged only when they actually change from what they were (never on load).
+  const was = useRef({ style, view, nature });
+  useEffect(() => {
+    const w = was.current;
+    if (style !== w.style) track('setting', { k: 'style', v: style });
+    if (view !== w.view) track('setting', { k: 'view', v: view });
+    if (nature !== w.nature) track('setting', { k: 'rivers', v: nature ? 'on' : 'off' });
+    was.current = { style, view, nature };
+  }, [style, view, nature]);
   const [askReq, setAskReq] = useState<{ prompt: string; n: number } | null>(null);
   const [quiz, setQuiz] = useState<QuizState | null>(null);
   // The Daily challenge: today's status (from the server), and the result card.
@@ -829,7 +842,8 @@ export default function App() {
     setSailing(!!sailStop.current);
   };
   const closeVoyages = () => { stopSail(); setVoy(null); cam.reset(); };
-  const pickVoyage = useCallback((id: string | null) => {
+  const pickVoyage = useCallback((id: string | null, from?: string) => {
+    if (id) track('voyage', from ? { v: id, from } : { v: id });
     stopSail();
     setVoy((x) => (x ? { id, stop: null, hover: null } : x));
     const v = id ? BY_VOYAGE.get(id) : null;
@@ -841,6 +855,7 @@ export default function App() {
     const v = voyRef.current?.id ? BY_VOYAGE.get(voyRef.current.id) : null;
     if (!v) return;
     stopSail();
+    if (i !== null) track('voyage_stop', { v: v.id, p: v.stops[i]?.name ?? String(i) });
     setVoy((x) => (x ? { ...x, stop: i } : x));
     const r = voyView(v);
     if (i === null) globe.current?.frame(r.lat, r.lng, r.altitude);
@@ -895,12 +910,14 @@ export default function App() {
     globe.current?.frame(v.lat, v.lng, narrow() ? Math.min(3.4, v.altitude * 1.25) : v.altitude);
   };
   const pickEmpire = (id: string | null) => {
+    if (id) track('empire', { e: id });
     setEmp((x) => (x ? { id, place: null, hover: null } : x));
     if (id) frameEmpire(id); else empWorld();
   };
   const placeEmpire = (place: string | null) => {
     const e = emp?.id ? BY_EMPIRE.get(emp.id) : null;
     if (!e) return;
+    if (place) track('empire_place', { e: e.id, p: place === 'capital' ? e.capital.name : e.places[Number(place.slice(6))]?.name ?? place });
     setEmp((x) => (x ? { ...x, place } : x));
     const at = place === 'capital' ? e.capital.at : place?.startsWith('place:') ? e.places[Number(place.slice(6))]?.at : null;
     if (at) globe.current?.frame(at[0], at[1], Math.min(empireView(e).altitude, 1.3));
@@ -947,6 +964,7 @@ export default function App() {
   };
   const closeEras = () => { setEras(null); cam.reset(); };
   const pickEra = (id: string | null) => {
+    if (id) track('era', { e: id });
     setEras((x) => (x ? { id, place: null, hover: null } : x));
     const e = id ? BY_ERA.get(id) : null;
     if (!e) { eraWorld(); return; }
@@ -956,6 +974,7 @@ export default function App() {
   const placeEra = (place: string | null) => {
     const e = eras?.id ? BY_ERA.get(eras.id) : null;
     if (!e) return;
+    if (place) track('era_place', { e: e.id, p: place === 'heart' ? e.heart.name : e.hubs[Number(place.slice(4))]?.name ?? place });
     setEras((x) => (x ? { ...x, place } : x));
     const v = eraView(e);
     const at = place === 'heart' ? e.heart.at : place?.startsWith('hub:') ? e.hubs[Number(place.slice(4))]?.at : null;
@@ -1121,7 +1140,7 @@ export default function App() {
         onPin={(id) => (id.startsWith('stop:') ? stopVoyage(Number(id.slice(5))) : id.startsWith('era:') ? pickEra(id.slice(4)) : id === 'heart' || id.startsWith('hub:') ? placeEra(id) : id.startsWith('emp:') ? pickEmpire(id.slice(4)) : id === 'capital' || id.startsWith('place:') ? placeEmpire(id) : openPlace(id))}
         paths={voy ? voyPaths : eraPaths}
         tint={empTint}
-        onPathPick={voy && !voy.id ? (id) => { track('voyage', { v: id, from: 'globe' }); pickVoyage(id); } : undefined}
+        onPathPick={voy && !voy.id ? (id) => pickVoyage(id, 'globe') : undefined}
         onPathHover={voy && !voy.id ? hoverVoyage : undefined}
         leftInset={leftInset + ((voy || eras || emp) && vp.w > 900 ? 416 : 0)}
         nature={showNature}
@@ -1216,7 +1235,7 @@ export default function App() {
         matchOn={liveState.active}
         onToggleView={() => void toggleFlat()}
         onStyle={setStyle}
-        onAutoRotate={() => setAutoRotate((v) => !v)}
+        onAutoRotate={() => setAutoRotate((v) => { track('setting', { k: 'autorotate', v: v ? 'off' : 'on' }); return !v; })}
         nature={nature}
         onNature={toggleNature}
         onReset={() => { setSelected(null); setHighlighted([]); cam.reset(); }}
