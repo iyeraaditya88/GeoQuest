@@ -436,3 +436,61 @@ describe('wrong-guess hints', () => {
     expect(missHint('MEX', 'USA', 1, [64, -152])).toMatch(/Mexico is about [\d,]+ km south-east of Alaska/); // same continent: no "look in North America"
   });
 });
+
+describe('solve the mystery', () => {
+  it('builds solvable cases: distinct stops, honest unambiguous clues, a fair line-up', async () => {
+    const { makeCase, dailyCase, LEGS } = await import('../src/lib/mystery');
+    const { BY_CCA3, COUNTRIES } = await import('../src/lib/data');
+    const { CURATED } = await import('../src/data/curated');
+    for (let i = 0; i < 300; i++) {
+      const c = makeCase(`test-${i}`);
+      expect(c.route).toHaveLength(LEGS + 1);
+      expect(new Set(c.route).size).toBe(LEGS + 1);
+      c.legs.forEach((leg, k) => {
+        const target = BY_CCA3.get(leg.to)!;
+        expect(leg.tier).toBe(k + 1);
+        const clues = leg.witnesses.filter((w) => w.clue).map((w) => w.clue!);
+        expect(clues.length).toBeGreaterThanOrEqual(2);
+        for (const cl of clues) expect(cl.text).not.toContain(target.name); // never gives the answer away
+        if (leg.options) {
+          expect(new Set(leg.options).size).toBe(leg.options.length);
+          expect(leg.options).toContain(leg.to);
+          // On the board, the capital/flag/currency clues can't also describe a wrong option.
+          for (const o of leg.options.filter((x) => x !== leg.to)) {
+            const oc = BY_CCA3.get(o)!;
+            for (const cl of clues) {
+              if (cl.kind === 'capital') expect(cl.text).not.toContain(oc.capital[0]);
+              if (cl.kind === 'flag') expect(cl.flag).not.toBe(oc.cca2);
+              if (cl.kind === 'river' && CURATED[o]?.river) expect(cl.text).not.toContain(CURATED[o].river.replace(/\s*\(.*\)/, ''));
+            }
+          }
+        }
+      });
+      // Line-up: the culprit plus three who each differ by exactly one trait.
+      expect(c.lineup).toHaveLength(4);
+      expect(c.lineup).toContain(c.culprit);
+      for (const s of c.lineup.filter((x) => x !== c.culprit)) {
+        expect(Number(s.look !== c.culprit.look) + Number(s.hobby !== c.culprit.hobby) + Number(s.ride !== c.culprit.ride)).toBe(1);
+      }
+      // All three traits are handed out along the way.
+      const traits = c.legs.flatMap((l) => l.witnesses.filter((w) => w.trait).map((w) => w.trait!.kind));
+      expect(new Set(traits)).toEqual(new Set(['look', 'hobby', 'ride']));
+    }
+    expect(dailyCase('2026-10-18')).toEqual(dailyCase('2026-10-18'));
+    expect(dailyCase('2026-10-18').route).not.toEqual(dailyCase('2026-10-19').route);
+    expect(COUNTRIES.length).toBeGreaterThan(0);
+  });
+  it('ranks, stats and the share line', async () => {
+    const { rankFor, addCase, emptyMysteryStats, caseShare, dailyCase } = await import('../src/lib/mystery');
+    expect(rankFor(0).name).toBe('Trainee');
+    expect(rankFor(3).name).toBe('Inspector');
+    expect(rankFor(20).name).toBe('Master Detective');
+    let st = addCase(emptyMysteryStats(), '2026-10-17', true, '2026-10-16');
+    st = addCase(st, '2026-10-18', true, '2026-10-17');
+    expect(st).toMatchObject({ played: 2, solved: 2, streak: 2 });
+    expect(addCase(st, '2026-10-18', false, '2026-10-17')).toBe(st); // once a day
+    expect(addCase(st, null, true, null)).toMatchObject({ played: 3, solved: 3, streak: 2 }); // practice: no streak change
+    const line = caseShare(12, dailyCase('2026-10-18'), { solved: true, hoursLeft: 31, deadEnds: 1, wrongSuspect: false });
+    expect(line).toMatch(/^🕵️ GeoQuest Case #12 — solved with 31 h to spare · 1 dead end\n/);
+  });
+});

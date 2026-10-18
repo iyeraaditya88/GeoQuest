@@ -18,12 +18,14 @@ const StreetGame = lazy(() => loadStreet().then((m) => ({ default: m.StreetGame 
 const loadTop5 = () => fresh(import('./components/Top5Game'));
 const loadCapitals = () => fresh(import('./components/CapitalsGame'));
 const loadShapes = () => fresh(import('./components/ShapeGame'));
+const loadMystery = () => fresh(import('./components/MysteryGame'));
 const loadWordle = () => fresh(import('./components/GeoWordle'));
 const loadTrivia = () => fresh(import('./components/TriviaGame'));
 const TriviaGame = lazy(() => loadTrivia().then((m) => ({ default: m.TriviaGame })));
 const Top5Game = lazy(() => loadTop5().then((m) => ({ default: m.Top5Game })));
 const CapitalsGame = lazy(() => loadCapitals().then((m) => ({ default: m.CapitalsGame })));
 const ShapeGame = lazy(() => loadShapes().then((m) => ({ default: m.ShapeGame })));
+const MysteryGame = lazy(() => loadMystery().then((m) => ({ default: m.MysteryGame })));
 const GeoWordle = lazy(() => loadWordle().then((m) => ({ default: m.GeoWordle })));
 
 // Shown for the moment a game's code is still downloading, so a click never looks ignored.
@@ -272,7 +274,7 @@ export default function App() {
   const [placesFocus, setPlacesFocus] = useState<{ id: string; n: number } | null>(null);
   const [placesDraft, setPlacesDraft] = useState<{ lat: number; lng: number } | null>(null); // a new pin being named
   const { places: myPlaces } = usePlaces();
-  const [play, setPlay] = useState<null | 'top5' | 'capitals' | 'trivia' | 'shapes' | 'wordle'>(null);
+  const [play, setPlay] = useState<null | 'top5' | 'capitals' | 'trivia' | 'shapes' | 'wordle' | 'mystery'>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const timer = useRef<number | undefined>(undefined);
 
@@ -295,7 +297,7 @@ export default function App() {
   const selectRef = useRef(select);
   selectRef.current = select;
   // Arrived from a country page (?country=IND / ?play=1): act once the globe is ready.
-  const linkWanted = useRef<{ country?: string; play?: boolean; wordle?: boolean } | null>(null);
+  const linkWanted = useRef<{ country?: string; play?: boolean; wordle?: boolean; mystery?: boolean } | null>(null);
 
   // ── Rivers, ranges, peaks & lakes: click one to open its panel ──
   const [feature, setFeature] = useState<FeatureInfo | null>(null);
@@ -371,7 +373,6 @@ export default function App() {
     window.setTimeout(() => { setAtlasFrom(null); morphing.current = false; }, 420);
   };
 
-  useEffect(() => { cursor.set({ hideLabel: !!quiz }); }, [quiz]);
 
   // ── Quiz ────────────────────────────────────────────────
   const startQuiz = (mode: QuizMode = 'find') => {
@@ -518,7 +519,7 @@ export default function App() {
   // ── Feedback ──────────────────────────────────────────
   /** Where in the app they are right now (sent with feedback, so a bug report has context). */
   const whereNow = () => quiz ? (quiz.daily ? `Daily #${quiz.daily.no}` : `Map quiz (${quiz.mode})`)
-    : geo ? 'Street View' : play === 'top5' ? 'Name the Top 5' : play === 'capitals' ? 'Capitals' : play === 'trivia' ? 'Geo Trivia' : play === 'shapes' ? 'Guess the Country' : play === 'wordle' ? 'Geo Wordle'
+    : geo ? 'Street View' : play === 'top5' ? 'Name the Top 5' : play === 'capitals' ? 'Capitals' : play === 'trivia' ? 'Geo Trivia' : play === 'shapes' ? 'Guess the Country' : play === 'wordle' ? 'Geo Wordle' : play === 'mystery' ? 'Solve the Mystery'
     : anti ? 'Antipode finder' : liveRef.current.active ? 'Live duel' : dailyCard ? 'Daily result' : placesOpen ? 'My places'
     : country ? `Country: ${country.name}` : feature ? `Map: ${feature.name}` : view === 'flat' ? 'Atlas' : 'Globe';
   const whereRef = useRef(whereNow);
@@ -539,6 +540,7 @@ export default function App() {
     if (linkCountry && BY_CCA3.has(linkCountry)) linkWanted.current = { country: linkCountry };
     if (url.searchParams.has('play')) linkWanted.current = { ...linkWanted.current, play: true };
     if (url.searchParams.has('wordle')) linkWanted.current = { ...linkWanted.current, wordle: true };
+    if (url.searchParams.has('mystery')) linkWanted.current = { ...linkWanted.current, mystery: true };
     if (url.searchParams.has('country') || url.searchParams.has('play') || url.searchParams.has('wordle')) {
       url.searchParams.delete('country'); url.searchParams.delete('play'); url.searchParams.delete('wordle');
       history.replaceState(null, '', url.pathname + url.search + url.hash);
@@ -564,6 +566,7 @@ export default function App() {
       if (w?.country) selectRef.current(w.country);
       if (w?.play) setGamesOpen(true);
       if (w?.wordle) startPlayRef.current('wordle');
+      if (w?.mystery) startPlayRef.current('mystery');
     }, 500);
   }, [ready]);
 
@@ -724,7 +727,7 @@ export default function App() {
   const restartGeo = () => { seen.current = []; void loadRound(1, []); };
 
   // ── Word games (Top 5, Capitals) ───────────────────────
-  const startPlay = (g: 'top5' | 'capitals' | 'trivia' | 'shapes' | 'wordle') => {
+  const startPlay = (g: 'top5' | 'capitals' | 'trivia' | 'shapes' | 'wordle' | 'mystery') => {
     track('game', { g });
     if (geoRef.current) exitGeo();
     if (antiRef.current) exitAntipode();
@@ -733,11 +736,32 @@ export default function App() {
     setHighlighted([]);
     setDockOpen(false);
     setAutoRotate(false);
+    if (g === 'mystery' && viewRef.current === 'flat') void toggleFlat(); // the chase happens on the globe
     setPlay(g);
   };
   const startPlayRef = useRef(startPlay);
   startPlayRef.current = startPlay;
   const exitPlay = () => { setPlay(null); setHighlighted([]); setFeedback(null); };
+  // Solve the Mystery on the globe: flight arcs, where you are, globe taps on the hard legs, the trail.
+  const [mxArc, setMxArc] = useState<{ startLat: number; startLng: number; endLat: number; endLng: number }[]>([]);
+  const [mxRoute, setMxRoute] = useState<string[] | null>(null);
+  const [mxPicking, setMxPicking] = useState(false);
+  const mysteryPick = useRef<((cca3: string) => void) | null>(null);
+  const playRef = useRef(play);
+  playRef.current = play;
+  const mxFly = useCallback((from: string, to: string) => {
+    const a = BY_CCA3.get(from), b = BY_CCA3.get(to);
+    if (!a || !b) return;
+    setMxArc([{ startLat: a.latlng[0], startLng: a.latlng[1], endLat: b.latlng[0], endLng: b.latlng[1] }]);
+    const mid = { lat: (a.latlng[0] + b.latlng[0]) / 2, lng: a.latlng[1] + (((((b.latlng[1] - a.latlng[1]) % 360) + 540) % 360) - 180) / 2 };
+    globe.current?.frame(mid.lat, mid.lng, 2.2);
+    window.setTimeout(() => { setMxArc([]); cam.flyTo(to); }, 1500);
+  }, [cam]);
+  const mxFocus = useCallback((c: string | null) => { setHighlighted(c ? [c] : []); if (c) cam.flyTo(c); }, [cam]);
+  const mxSetPick = useCallback((fn: ((cca3: string) => void) | null) => { mysteryPick.current = fn; setMxPicking(!!fn); }, []);
+  const mxPaths = useMemo<GlobePath[]>(() => (mxRoute ? [{ id: 'mystery', points: mxRoute.map((c) => BY_CCA3.get(c)!.latlng), color: '#fbbf24', mode: 'active' }] : []), [mxRoute]);
+  // Hover names stay hidden while you're meant to find a country (quizzes, the mystery's hard legs).
+  useEffect(() => { cursor.set({ hideLabel: !!quiz || mxPicking || play === 'mystery' }); }, [quiz, mxPicking, play]);
   /** A game's answer: light it up and fly there. */
   const revealOnGlobe = useCallback((c: string) => { setFeedback(null); setHighlighted([c]); cam.flyTo(c); }, [cam]);
   // Trivia answers that are places light up on the map.
@@ -1007,7 +1031,7 @@ export default function App() {
   // What's pinned on the globe (one stable list, so pins aren't rebuilt on every render).
   const inGame = !!quiz || !!geo || !!play || liveState.active;
   // Quizzes where you find countries on the globe: a tap circle on every small country.
-  const findOnGlobe = (!!quiz || liveState.quiz) && !geo;
+  const findOnGlobe = (!!quiz || liveState.quiz || mxPicking) && !geo;
   const tinyPins = useMemo(() => (findOnGlobe ? TINY.map((c) => ({
     lat: c.latlng[0], lng: c.latlng[1], kind: 'tiny' as const, id: `tiny:${c.cca3}`,
     state: feedback?.cca3 === c.cca3 ? feedback.kind : undefined,
@@ -1103,7 +1127,7 @@ export default function App() {
   // deploy has replaced. (Street View is big — it stays on demand.)
   useEffect(() => {
     if (!ready) return;
-    preload([loadTop5, loadCapitals, loadTrivia, loadShapes, loadWordle, ...(role === 'owner' || liveMode === 'local' ? [loadActivity, loadInbox] : [])]);
+    preload([loadTop5, loadCapitals, loadTrivia, loadShapes, loadWordle, loadMystery, ...(role === 'owner' || liveMode === 'local' ? [loadActivity, loadInbox] : [])]);
   }, [ready, role, liveMode]);
 
   // Rivers and mountains step aside during a quiz (Map quiz, the Daily, a live quiz): the borders are what matter then.
@@ -1131,21 +1155,22 @@ export default function App() {
         style={style}
         autoRotate={autoRotate}
         feedback={feedback}
-        quiz={!!quiz || liveState.quiz}
-        liftUp={(dockOpen && !quiz) || ((!!voy || !!eras || !!emp) && vp.w <= 900) || (!!quiz && vp.w <= 600 && vp.h > vp.w)}
-        dropDown={!!play || placesOpen || (!!anti && anti.stage !== 'dive') || (!!quiz && !(vp.w <= 600 && vp.h > vp.w))}
+        quiz={!!quiz || liveState.quiz || mxPicking}
+        liftUp={(dockOpen && !quiz) || ((!!voy || !!eras || !!emp || play === 'mystery') && vp.w <= 900) || (!!quiz && vp.w <= 600 && vp.h > vp.w)}
+        dropDown={(!!play && play !== 'mystery') || placesOpen || (!!anti && anti.stage !== 'dive') || (!!quiz && !(vp.w <= 600 && vp.h > vp.w))}
         pickMode={(!!anti && anti.stage !== 'dive') || placesOpen}
         onPick={(lat, lng) => (placesOpen ? setPlacesPick({ lat, lng, n: Date.now() }) : pickAntipode(lat, lng))}
         pins={globePins}
         onPin={(id) => (id.startsWith('stop:') ? stopVoyage(Number(id.slice(5))) : id.startsWith('era:') ? pickEra(id.slice(4)) : id === 'heart' || id.startsWith('hub:') ? placeEra(id) : id.startsWith('emp:') ? pickEmpire(id.slice(4)) : id === 'capital' || id.startsWith('place:') ? placeEmpire(id) : openPlace(id))}
-        paths={voy ? voyPaths : eraPaths}
+        paths={voy ? voyPaths : eras ? eraPaths : mxPaths}
+        arcs={mxArc}
         tint={empTint}
         onPathPick={voy && !voy.id ? (id) => pickVoyage(id, 'globe') : undefined}
         onPathHover={voy && !voy.id ? hoverVoyage : undefined}
-        leftInset={leftInset + ((voy || eras || emp) && vp.w > 900 ? 416 : 0)}
+        leftInset={leftInset + ((voy || eras || emp || play === 'mystery') && vp.w > 900 ? 416 : 0)}
         nature={showNature}
         hidden={globeHidden || !!geo || liveState.immersive}
-        onSelect={(c, at) => { if (matchClick.current) { matchClick.current(c); return; } if (liveRef.current.active) return; if (anti || voyRef.current || erasOpen.current || empOpen.current) return; if (quiz) quizClick(c, at); else if (c) select(c); else { setSelected(null); setHighlighted([]); setFeature(null); } }}
+        onSelect={(c, at) => { if (mysteryPick.current) { if (c) mysteryPick.current(c); return; } if (playRef.current === 'mystery') return; /* mid-case, taps only answer — no peeking at countries */ if (matchClick.current) { matchClick.current(c); return; } if (liveRef.current.active) return; if (anti || voyRef.current || erasOpen.current || empOpen.current) return; if (quiz) quizClick(c, at); else if (c) select(c); else { setSelected(null); setHighlighted([]); setFeature(null); } }}
         onFeature={(f) => { if (!anti && !voy && !eras && !emp && !quiz && !liveRef.current.active) void openFeature(f); }}
         feature={feature}
         onInteract={onGlobeInteract}
@@ -1226,6 +1251,7 @@ export default function App() {
         onCapitals={() => (play === 'capitals' ? exitPlay() : startPlay('capitals'))}
         onShapes={() => (play === 'shapes' ? exitPlay() : startPlay('shapes'))}
         onWordle={() => (play === 'wordle' ? exitPlay() : startPlay('wordle'))}
+        onMystery={() => (play === 'mystery' ? exitPlay() : startPlay('mystery'))}
         onTrivia={() => (play === 'trivia' ? exitPlay() : startPlay('trivia'))}
         onFriends={liveMode && liveMe ? () => setFriendsReq((n) => n + 1) : guest ? () => needSignIn('friends') : undefined}
         onInvite={liveMode && liveMe ? () => setInviteReq((n) => n + 1) : guest ? () => needSignIn('friends') : undefined}
@@ -1296,6 +1322,7 @@ export default function App() {
         {play === 'trivia' && <ErrorBoundary key="trivia" name="Geo Trivia" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><TriviaGame onReveal={revealTrivia} onExit={exitPlay} /></Suspense></ErrorBoundary>}
         {play === 'wordle' && <ErrorBoundary key="wordle" name="Geo Wordle" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><GeoWordle onReveal={revealOnGlobe} onExit={exitPlay} onShowCountry={(c) => { exitPlay(); select(c); setHighlighted([c]); }}
           onGuess={(c) => { setFeedback({ cca3: c, kind: 'bad' }); cam.flyTo(c); }} /></Suspense></ErrorBoundary>}
+        {play === 'mystery' && <ErrorBoundary key="mystery" name="Solve the Mystery" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><MysteryGame onFly={mxFly} onFocus={mxFocus} setGlobePick={mxSetPick} onRoute={setMxRoute} onExit={exitPlay} /></Suspense></ErrorBoundary>}
         {play === 'shapes' && <ErrorBoundary key="shapes" name="Guess the Country" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><ShapeGame onReveal={(c) => { setHighlighted([c]); cam.flyTo(c); }} onExit={exitPlay} /></Suspense></ErrorBoundary>}
         {play === 'capitals' && <ErrorBoundary key="capitals" name="Capitals" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><CapitalsGame onReveal={(c) => { setHighlighted([c]); cam.flyTo(c); }} onExit={exitPlay} /></Suspense></ErrorBoundary>}
       </AnimatePresence>

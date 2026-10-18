@@ -20,7 +20,7 @@ export const themeOf = (_date: string): DailyTheme => 'find';
 export const THEME_LABEL: Record<DailyTheme, string> = { find: 'Find it', flag: 'Flags', clue: 'Clues' };
 
 // A small seeded random generator (same seed → same sequence on every device).
-function seeded(text: string) {
+export function seeded(text: string) {
   let h = 1779033703 ^ text.length;
   for (let i = 0; i < text.length; i++) { h = Math.imul(h ^ text.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }
   let a = h >>> 0;

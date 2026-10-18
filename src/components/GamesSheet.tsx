@@ -1,9 +1,9 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { motion } from 'motion/react';
-import { Binoculars, Brain, CalendarDays, Check, Gamepad2, Grid3x3, Landmark, ListOrdered, Shapes, Swords, X } from 'lucide-react';
+import { Binoculars, Brain, CalendarDays, Check, Gamepad2, Grid3x3, HatGlasses, Landmark, ListOrdered, Shapes, Swords, X } from 'lucide-react';
 import { track } from '../lib/analytics';
 
-export type GameKey = 'daily' | 'quiz' | 'street' | 'wordle' | 'shapes' | 'capitals' | 'trivia' | 'top5' | 'duel';
+export type GameKey = 'daily' | 'quiz' | 'street' | 'wordle' | 'mystery' | 'shapes' | 'capitals' | 'trivia' | 'top5' | 'duel';
 
 interface Props {
   daily: { done: boolean; streak: number };
@@ -31,6 +31,7 @@ export function GamesSheet({ daily, duel, onPick, onClose }: Props) {
       badge: daily.done ? <span className="gs-done" aria-label="Done today"><Check size={12} /></span> : <span className="gs-new">New</span>,
     },
     { key: 'wordle', icon: Grid3x3, name: 'Geo Wordle', line: 'Wordle, but it’s a country', tone: 'lime' },
+    { key: 'mystery', icon: HatGlasses, name: 'Solve the Mystery', line: 'Chase a thief across the world', tone: 'indigo', badge: <span className="gs-new">New</span> },
     { key: 'quiz', icon: Gamepad2, name: 'Map quiz', line: 'Find countries, flags or clues', tone: 'blue' },
     { key: 'top5', icon: ListOrdered, name: 'Name the Top 5', line: 'Rivers, peaks, populations…', tone: 'teal' },
     { key: 'trivia', icon: Brain, name: 'Geo Trivia', line: 'Gets harder as you get better', tone: 'violet' },

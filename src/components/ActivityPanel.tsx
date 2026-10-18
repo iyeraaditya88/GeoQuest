@@ -38,7 +38,7 @@ const placeLabel = (p?: Place) => (p ? [p.city, p.country].filter(Boolean).join(
 interface Person { name: string; role: string; status: string; createdAt: number; lastLogin: number | null }
 
 const RANGES = [{ days: 1, label: 'Today' }, { days: 7, label: '7 days' }, { days: 30, label: '30 days' }] as const;
-const GAME_NAMES: Record<string, string> = { daily: 'Daily challenge', quiz: 'Map quiz', street: 'Street View', duel: 'Duel', capitals: 'Capitals', shapes: 'Guess the Country', wordle: 'Geo Wordle', trivia: 'Geo Trivia', top5: 'Top 5', antipode: 'Antipode finder', voyages: 'Famous voyages', eras: 'Eras of civilization', empires: 'Empires of the world', places: 'My places' };
+const GAME_NAMES: Record<string, string> = { daily: 'Daily challenge', quiz: 'Map quiz', street: 'Street View', duel: 'Duel', capitals: 'Capitals', shapes: 'Guess the Country', wordle: 'Geo Wordle', mystery: 'Solve the Mystery', trivia: 'Geo Trivia', top5: 'Top 5', antipode: 'Antipode finder', voyages: 'Famous voyages', eras: 'Eras of civilization', empires: 'Empires of the world', places: 'My places' };
 /** Things to explore (rather than games to play) — counted separately. */
 const EXPLORE = new Set(['voyages', 'eras', 'empires', 'antipode', 'places']);
 const voyageName = (id: unknown) => BY_VOYAGE.get(String(id))?.voyager ?? String(id);
@@ -79,6 +79,7 @@ function describe([, name, d = {}]: Event) {
     case 'signin_prompt': return 'Was asked to sign in';
     case 'reminder': return d.on ? 'Turned on the morning reminder' : 'Turned off the morning reminder';
     case 'place': return 'Saved a place';
+    case 'mystery_leg': return `Mystery, step ${d.t}: ${d.ok ? 'found the trail' : 'hit a dead end'}`;
     case 'score': return `Finished ${GAME_NAMES[d.g] ?? d.g}: ${fmtInt(Number(d.s))}${d.of ? ` / ${fmtInt(Number(d.of))}` : ' pts'}`;
     case 'match': return `Live ${GAME_NAMES[d.g] ?? d.g} match: #${d.r} of ${d.n}`;
     case 'ask': return 'Asked Claude a question';

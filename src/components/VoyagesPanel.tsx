@@ -4,6 +4,7 @@ import { Anchor, ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, ExternalLin
 import { flagUrl } from '../lib/data';
 import { VOYAGES, BY_VOYAGE, voyageKm, type Voyage } from '../lib/voyages';
 import { track } from '../lib/analytics';
+import { wikiPhoto } from '../lib/wiki';
 
 interface Props {
   active: string | null;
@@ -27,20 +28,9 @@ const ERAS = [
 ];
 const eraOf = (year: number) => ERAS.findIndex((e) => year < e.to);
 
-// Portraits from Wikipedia (once per page).
-const photos = new Map<string, Promise<string | null>>();
-function photoFor(page: string) {
-  if (!photos.has(page)) {
-    photos.set(page, fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(page)}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j: { thumbnail?: { source?: string } } | null) => j?.thumbnail?.source ?? null)
-      .catch(() => null));
-  }
-  return photos.get(page)!;
-}
 function Portrait({ v }: { v: Voyage }) {
   const [src, setSrc] = useState<string | null>(null);
-  useEffect(() => { let live = true; setSrc(null); void photoFor(v.wiki).then((s) => { if (live) setSrc(s); }); return () => { live = false; }; }, [v.wiki]);
+  useEffect(() => { let live = true; setSrc(null); void wikiPhoto(v.wiki).then((s) => { if (live) setSrc(s); }); return () => { live = false; }; }, [v.wiki]);
   return (
     <span className="vy-portrait" style={{ ['--c' as string]: v.color }}>
       {src ? <img src={src} alt={v.voyager} /> : <Ship size={26} />}
