@@ -50,23 +50,62 @@ function continent(c: Country) {
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 
 /**
- * The nudge after a wrong guess. It says which country was picked (so the hint clearly follows from
- * it), then: same continent → "Y is about 300 km north of X"; another continent → "a long way
- * off — look in Africa". The second miss narrows it down with neighbours.
+ * Overseas parts that the map draws as part of their country (Natural Earth merges them): a tap on
+ * French Guiana registers as France. Named here so the hint can say what was really tapped, and
+ * measure from there rather than from Paris.
  */
-export function missHint(targetId: string, clickedId: string, misses: number) {
+const OVERSEAS: { of: string; name: string; at: [number, number]; km: number; continent: string }[] = [
+  { of: 'FRA', name: 'French Guiana', at: [4.0, -53.0], km: 450, continent: 'South America' },
+  { of: 'FRA', name: 'Guadeloupe', at: [16.2, -61.55], km: 150, continent: 'the Caribbean' },
+  { of: 'FRA', name: 'Martinique', at: [14.64, -61.02], km: 100, continent: 'the Caribbean' },
+  { of: 'FRA', name: 'Réunion', at: [-21.11, 55.53], km: 150, continent: 'Africa' },
+  { of: 'FRA', name: 'Mayotte', at: [-12.83, 45.15], km: 100, continent: 'Africa' },
+  { of: 'USA', name: 'Alaska', at: [64, -152], km: 1900, continent: 'North America' },
+  { of: 'USA', name: 'Hawaii', at: [20.8, -157], km: 600, continent: 'Oceania' },
+  { of: 'NOR', name: 'Svalbard', at: [78.5, 17], km: 500, continent: 'Europe' },
+  { of: 'ESP', name: 'the Canary Islands', at: [28.3, -15.7], km: 400, continent: 'Africa' },
+  { of: 'PRT', name: 'the Azores', at: [38.5, -28], km: 450, continent: 'Europe' },
+  { of: 'PRT', name: 'Madeira', at: [32.7, -16.9], km: 150, continent: 'Africa' },
+  { of: 'ECU', name: 'the Galápagos Islands', at: [-0.6, -90.4], km: 350, continent: 'South America' },
+  { of: 'CHL', name: 'Easter Island', at: [-27.1, -109.35], km: 120, continent: 'Oceania' },
+  { of: 'NLD', name: 'the Dutch Caribbean', at: [14.5, -66], km: 600, continent: 'the Caribbean' },
+];
+/** The overseas part of `cca3` a tap at `at` landed in, if any. */
+export function overseasAt(cca3: string, at?: [number, number]) {
+  if (!at) return null;
+  return OVERSEAS.find((o) => o.of === cca3 && distKm(o.at, at) <= o.km) ?? null;
+}
+
+/**
+ * The nudge after a wrong guess. It says what was picked (so the hint clearly follows from it),
+ * then — by real distance, not by continent labels:
+ *   neighbours / next door  → "So close — …"
+ *   a shared neighbour      → "Not far — Ukraine is on the other side of Russia, to the west."
+ *   within a few thousand km → "Y is about 2,300 km north-west of X."
+ *   far away                → "That's a long way from Y — try looking in Africa."
+ * The second miss narrows it down with neighbours.
+ * `at` is where the tap landed — so a tap on French Guiana is treated as French Guiana, not France.
+ */
+export function missHint(targetId: string, clickedId: string, misses: number, at?: [number, number]) {
   const t = BY_CCA3.get(targetId), c = BY_CCA3.get(clickedId);
   if (!t) return '';
   const parts: string[] = [];
   let wayOff = false;
   if (c) {
-    const km = distKm(c.latlng, t.latlng);
-    wayOff = continent(c) !== continent(t); // same continent: direction and distance help more
-    parts.push(`You picked ${the(c)}.`);
-    if (t.borders.includes(c.cca3)) parts.push(`So close — ${the(t)} borders ${the(c)}, to the ${compass(bearing(c.latlng, t.latlng))}.`);
+    const part = overseasAt(c.cca3, at);
+    const from = part ? part.at : c.latlng;            // measure from what was actually tapped
+    const fromName = part ? part.name : the(c);
+    const km = distKm(from, t.latlng);
+    const dir = compass(bearing(from, t.latlng));
+    const via = part ? null : t.borders.map((b) => BY_CCA3.get(b)).find((n) => n && c.borders.includes(n.cca3));
+    const sameContinent = (part ? part.continent : continent(c)) === continent(t);
+    wayOff = km > 7000 || (!sameContinent && km > 2500 && !via);
+    parts.push(part ? `You picked ${part.name} (part of ${the(c)}).` : `You picked ${the(c)}.`);
+    if (!part && t.borders.includes(c.cca3)) parts.push(`So close — ${the(t)} borders ${the(c)}, to the ${dir}.`);
     else if (km < 150) parts.push(`So close — ${the(t)} is right next to it.`);
-    else if (wayOff) parts.push(`That’s a long way from ${the(t)} — try looking in ${continent(t)}.`);
-    else parts.push(`${cap(the(t))} is ${roundKm(km)} ${compass(bearing(c.latlng, t.latlng))} of ${the(c)}.`);
+    else if (via) parts.push(km < 3000 ? `Not far — ${the(t)} is on the other side of ${the(via)}, to the ${dir}.` : `${cap(the(t))} is on the other side of ${the(via)}, to the ${dir}.`);
+    else if (wayOff) parts.push(sameContinent ? `That’s a long way from ${the(t)} — it’s about ${roundKm(km).replace('about ', '')} ${dir}.` : `That’s a long way from ${the(t)} — try looking in ${continent(t)}.`);
+    else parts.push(`${cap(the(t))} is ${roundKm(km)} ${dir} of ${fromName}.`);
   }
   if (misses === 1) {
     // Way off: the continent was the hint. Otherwise narrow it to the region.

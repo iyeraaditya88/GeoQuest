@@ -88,7 +88,8 @@ interface Props {
   onFeature?: (f: FeatureRef) => void;
   /** The selected feature (highlighted; its panel is open). */
   feature?: FeatureInfo | null;
-  onSelect: (cca3: string | null) => void;
+  /** A country was clicked; `at` = where the tap landed (overseas parts belong to their country). */
+  onSelect: (cca3: string | null, at?: [number, number]) => void;
   onInteract: () => void;
   onReady: () => void;
 }
@@ -290,7 +291,7 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
     // Quizzes on a touchscreen: a fingertip that lands just off a small country (in the sea)
     // still counts — take the nearest country within finger reach.
     if (!id && quiz && e.pointerType === 'touch') id = nearestCountry(g, e.clientX - rect.left, e.clientY - rect.top, 16);
-    const choose = () => { if (id) onSelect(id); else if (!quiz) onSelect(null); };
+    const choose = () => { if (id) onSelect(id, geo ? [geo.lat, geo.lng] : undefined); else if (!quiz) onSelect(null); };
     // A click right on a river line opens the river; anywhere else, the country.
     if (geo && natureRef.current && !quiz && onFeature) {
       // A fingertip is imprecise: on touch only a near-exact hit on the line counts (labels stay tappable).

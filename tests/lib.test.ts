@@ -415,3 +415,24 @@ describe('time in use', () => {
     expect(activeSpan(200_000, 300_000, 10_000, IDLE)).toBe(0);       // long idle: nothing more
   });
 });
+
+describe('wrong-guess hints', () => {
+  it('names an overseas part and measures from where you tapped (French Guiana is not France)', async () => {
+    const { missHint } = await import('../src/lib/quizCoach');
+    const h = missHint('PRY', 'FRA', 1, [4, -53]);
+    expect(h).toMatch(/French Guiana \(part of France\)/);
+    expect(h).toMatch(/Paraguay is about [\d,]+ km south of French Guiana/);
+    expect(h).not.toMatch(/long way/);
+    // A tap in France itself still says France.
+    expect(missHint('PRY', 'FRA', 1, [46.5, 2.5])).toMatch(/^You picked France\./);
+  });
+  it('judges "way off" by distance, and spots a shared neighbour', async () => {
+    const { missHint } = await import('../src/lib/quizCoach');
+    const h = missHint('UKR', 'KAZ', 1);
+    expect(h).toMatch(/Not far — Ukraine is on the other side of Russia, to the west/);
+    expect(h).not.toMatch(/long way/);
+    expect(missHint('UKR', 'AUS', 1)).toMatch(/long way from Ukraine — try looking in Europe/);
+    expect(missHint('UKR', 'POL', 1)).toMatch(/borders Poland/);
+    expect(missHint('MEX', 'USA', 1, [64, -152])).toMatch(/Mexico is about [\d,]+ km south-east of Alaska/); // same continent: no "look in North America"
+  });
+});

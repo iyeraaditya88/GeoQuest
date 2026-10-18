@@ -389,7 +389,7 @@ export default function App() {
   const scored = (q: QuizState, revealed: boolean): QuizState =>
     q.daily && q.daily.points.length === q.daily.i ? { ...q, daily: { ...q.daily, points: [...q.daily.points, pointsFor(q.misses, revealed)] } } : q;
 
-  const quizClick = (cca3: string | null) => {
+  const quizClick = (cca3: string | null, at?: [number, number]) => {
     if (!quiz || !cca3 || quiz.result === 'good' || quiz.result === 'reveal') return;
     if (cca3 === quiz.target) {
       const streak = quiz.streak + 1;
@@ -412,7 +412,7 @@ export default function App() {
         setFeedback({ cca3: quiz.target, kind: 'reveal' });
         cam.flyTo(quiz.target, 1200);
       } else {
-        setQuiz({ ...quiz, misses, result: 'bad', hint: missHint(quiz.target, cca3, misses) });
+        setQuiz({ ...quiz, misses, result: 'bad', hint: missHint(quiz.target, cca3, misses, at) });
         setFeedback({ cca3, kind: 'bad' });
         window.clearTimeout(timer.current);
         timer.current = window.setTimeout(() => setFeedback(null), 700);
@@ -1126,7 +1126,7 @@ export default function App() {
         leftInset={leftInset + ((voy || eras || emp) && vp.w > 900 ? 416 : 0)}
         nature={showNature}
         hidden={globeHidden || !!geo || liveState.immersive}
-        onSelect={(c) => { if (matchClick.current) { matchClick.current(c); return; } if (liveRef.current.active) return; if (anti || voyRef.current || erasOpen.current || empOpen.current) return; if (quiz) quizClick(c); else if (c) select(c); else { setSelected(null); setHighlighted([]); setFeature(null); } }}
+        onSelect={(c, at) => { if (matchClick.current) { matchClick.current(c); return; } if (liveRef.current.active) return; if (anti || voyRef.current || erasOpen.current || empOpen.current) return; if (quiz) quizClick(c, at); else if (c) select(c); else { setSelected(null); setHighlighted([]); setFeature(null); } }}
         onFeature={(f) => { if (!anti && !voy && !eras && !emp && !quiz && !liveRef.current.active) void openFeature(f); }}
         feature={feature}
         onInteract={onGlobeInteract}
