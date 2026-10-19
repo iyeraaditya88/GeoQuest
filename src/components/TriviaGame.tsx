@@ -4,6 +4,8 @@ import { Brain, ChevronsDown, ChevronsUp, Flame, RotateCcw, X } from 'lucide-rea
 import confetti from 'canvas-confetti';
 import { LEVELS, POINTS, ROUND, UP_AFTER, loadBest, nextQuestion, saveBest, type TriviaQ } from '../lib/trivia';
 import { track } from '../lib/analytics';
+import { resultText, triviaShare } from '../lib/share';
+import { ShareButton } from './ShareButton';
 
 interface Props {
   /** Show the answer on the globe (when it's a country or a known city). */
@@ -168,6 +170,7 @@ export function TriviaGame({ onReveal, onExit }: Props) {
               {r.correct}/{ROUND} correct · reached <b className={`tv-name l${r.peak}`}>{LEVELS[r.peak]}</b>
               {r.score >= best && r.score > 0 ? ' · new best!' : best ? ` · best ${best.toLocaleString('en-US')}` : ''}
             </span>
+            <ShareButton game="trivia" label="Share" className="share-sm" text={() => resultText('trivia', triviaShare(r.score, r.correct, ROUND, LEVELS[r.peak]))} />
             <button className="primary sm" onClick={restart} autoFocus><RotateCcw size={14} /> Play again</button>
           </motion.div>
         )}

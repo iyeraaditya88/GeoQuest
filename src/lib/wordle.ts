@@ -102,7 +102,7 @@ export function addResult(st: WordleStats, date: string, tries: number | null, y
 }
 
 /** "GeoQuest Wordle #12 4/6 💡1" plus the coloured rows (no letters, no spoilers). */
-export function wordleShare(no: number, rows: Mark[][], won: boolean, hints = 0) {
+export function wordleShare(no: number | null, rows: Mark[][], won: boolean, hints = 0) {
   const sq = (m: Mark) => (m === 'g' ? '🟩' : m === 'y' ? '🟨' : '⬛');
-  return `GeoQuest Wordle #${no} ${won ? rows.length : 'X'}/${TRIES}${hints ? ` 💡${hints}` : ''}\n${rows.map((r) => r.map(sq).join('')).join('\n')}`;
+  return `GeoQuest Wordle ${no === null ? 'bonus' : `#${no}`} ${won ? rows.length : 'X'}/${TRIES}${hints ? ` 💡${hints}` : ''}\n${rows.map((r) => r.map(sq).join('')).join('\n')}`;
 }

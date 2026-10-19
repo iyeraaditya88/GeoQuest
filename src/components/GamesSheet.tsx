@@ -2,6 +2,8 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { motion } from 'motion/react';
 import { Binoculars, Brain, CalendarDays, Check, Gamepad2, Grid3x3, HatGlasses, Landmark, ListOrdered, Shapes, Swords, X } from 'lucide-react';
 import { track } from '../lib/analytics';
+import { inviteText, isShareGame } from '../lib/share';
+import { ShareButton } from './ShareButton';
 
 export type GameKey = 'daily' | 'quiz' | 'street' | 'wordle' | 'mystery' | 'shapes' | 'capitals' | 'trivia' | 'top5' | 'duel';
 
@@ -55,11 +57,14 @@ export function GamesSheet({ daily, duel, onPick, onClose }: Props) {
         </header>
         <div className="gs-grid">
           {games.map(({ key, icon: Icon, name, line, tone, badge }) => (
-            <button key={key} className={`gs-card t-${tone} ${key === 'daily' ? 'wide' : ''}`} onClick={() => pick(key)}>
-              <span className="gs-icon"><Icon size={20} /></span>
-              <span className="gs-text"><b>{name}</b><span>{line}</span></span>
-              {badge}
-            </button>
+            <div key={key} className={`gs-item ${key === 'daily' ? 'wide' : ''}`}>
+              <button className={`gs-card t-${tone} ${key === 'daily' ? 'wide' : ''}`} onClick={() => pick(key)}>
+                <span className="gs-icon"><Icon size={20} /></span>
+                <span className="gs-text"><b>{name}</b><span>{line}</span></span>
+                {badge}
+              </button>
+              {isShareGame(key) && <ShareButton game={key} kind="invite" text={() => inviteText(key)} className="gs-share" />}
+            </div>
           ))}
         </div>
       </motion.section>

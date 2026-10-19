@@ -21,6 +21,8 @@ import { api } from '../lib/api';
 import { Click, TOUCH } from '../lib/touch';
 import { escapeHtml } from '../lib/html';
 import { MusicButton } from './MusicButton';
+import { resultText, streetShare } from '../lib/share';
+import { ShareButton } from './ShareButton';
 
 
 export interface RoundResult {
@@ -1038,6 +1040,7 @@ export function StreetGame({ game, mlyToken, onPick, onGuess, onNext, onExit, on
           </ul>
           <div className="svf-actions">
             <button className="primary" onClick={onRestart}><RotateCcw size={15} /> Play again</button>
+            {!match && <ShareButton game="street" label="Share score" className="ghost-cta svf-share" text={() => resultText('street', streetShare(game.results.map((r) => r.score)))} />}
             <button className="ghost-cta" onClick={onExit}>Back to the globe</button>
           </div>
         </motion.div>

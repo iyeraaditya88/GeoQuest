@@ -5,6 +5,8 @@ import confetti from 'canvas-confetti';
 import { flagUrl, type Country } from '../lib/data';
 import { makeRound, type Level } from '../lib/capitals';
 import { track } from '../lib/analytics';
+import { capitalsShare, resultText } from '../lib/share';
+import { ShareButton } from './ShareButton';
 
 interface Props {
   onReveal: (cca3: string) => void;
@@ -111,6 +113,7 @@ export function CapitalsGame({ onReveal, onExit }: Props) {
           <motion.div key="done" className="cap-done" initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}>
             <span className="t5-score">{score}<small>/{round.length}</small></span>
             <span className="t5-verdict">{score === round.length ? 'Perfect round!' : score >= 8 ? 'Capital expert.' : score >= 5 ? 'Nice work.' : 'Keep exploring the globe!'}</span>
+            <ShareButton game="capitals" label="Share" className="share-sm" text={() => resultText('capitals', capitalsShare(score, round.length))} />
             <button className="primary sm" onClick={() => restart()} autoFocus><RotateCcw size={14} /> Play again</button>
           </motion.div>
         )}

@@ -6,6 +6,8 @@ import { geoCentroid, geoDistance, geoGraticule10, geoOrthographic, geoPath } fr
 import { BY_CCA3, FEATURES, FEATURES_110, flagUrl } from '../lib/data';
 import { TRIES, ZOOM, guessClue, matchGuess, nearbyCapitals, newShapeRound, shapePoints, stageClue, suggest } from '../lib/shapes';
 import { track } from '../lib/analytics';
+import { resultText, shapesShare } from '../lib/share';
+import { ShareButton } from './ShareButton';
 
 interface Props {
   /** Fly the globe to the answer (and highlight it) */
@@ -137,7 +139,10 @@ export function ShapeGame({ onReveal, onExit }: Props) {
                 return <li key={c}><img src={flagUrl(ct?.cca2 ?? '', 80)} alt="" /><span>{ct?.name}</span><b className={points[k] ? '' : 'zero'}>{points[k] ?? 0}</b></li>;
               })}
             </ul>
-            <button className="primary sm" onClick={again} autoFocus><RotateCcw size={14} /> Play again</button>
+            <div className="sg-done-actions">
+              <ShareButton game="shapes" label="Share" className="share-sm" text={() => resultText('shapes', shapesShare(targets.map((_, k) => points[k] ?? 0), shapePoints(0, true)))} />
+              <button className="primary sm" onClick={again} autoFocus><RotateCcw size={14} /> Play again</button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

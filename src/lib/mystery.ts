@@ -278,12 +278,16 @@ export function takeaway(c: Case) {
   });
 }
 
-/** The share line: "🕵️ GeoQuest Case #12 — solved with 31 h to spare 🇵🇹→🇲🇦→…". */
-export function caseShare(no: number, c: Case, r: CaseResult) {
+/**
+ * The share line — no spoilers: a square per stop (🟩 straight there, 🟨 one dead end, 🟥 more,
+ * ⬛ never reached), then 🔒 caught or 💨 escaped. Never the countries, flags or culprit.
+ * "🕵️ GeoQuest Case #12 — solved with 31 h to spare · 1 dead end\n🟩🟨🟩🟩🟩 🔒"
+ */
+export function caseShare(no: number | null, c: Case, r: CaseResult, wrongPerLeg: number[] = [], reached = c.legs.length) {
   const rank = c.level === 3 ? '' : ` (${levelOf(c.level).name})`;
-  const flag = (cc: string) => String.fromCodePoint(...[...cc.toUpperCase()].map((ch) => 0x1f1a5 + ch.charCodeAt(0)));
-  const trail = c.route.map((id) => flag(BY_CCA3.get(id)!.cca2)).join('→');
-  return `🕵️ GeoQuest Case #${no}${rank} — ${r.solved ? `solved with ${r.hoursLeft} h to spare` : 'the thief got away'}${r.deadEnds ? ` · ${r.deadEnds} dead end${r.deadEnds > 1 ? 's' : ''}` : ''}\n${trail}`;
+  const title = no === null ? `🕵️ GeoQuest mystery${rank}` : `🕵️ GeoQuest Case #${no}${rank}`;
+  const squares = c.legs.map((_, i) => (i >= reached ? '⬛' : !wrongPerLeg[i] ? '🟩' : wrongPerLeg[i] === 1 ? '🟨' : '🟥')).join('');
+  return `${title} — ${r.solved ? `solved with ${r.hoursLeft} h to spare` : 'the thief got away'}${r.deadEnds ? ` · ${r.deadEnds} dead end${r.deadEnds > 1 ? 's' : ''}` : ''}\n${squares} ${r.solved ? '🔒' : '💨'}`;
 }
 
 // ── Stats (on this device) ──

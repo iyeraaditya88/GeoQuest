@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowLeft, ArrowRight, Award, Check, HatGlasses, Clock, Copy, Globe2, Lightbulb, NotebookPen, Plane, RotateCcw, Share2, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Award, Check, HatGlasses, Clock, Globe2, Lightbulb, NotebookPen, Plane, RotateCcw, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import { addDays, localDate, dailyNumber } from '../lib/daily';
@@ -13,6 +13,8 @@ import { TRAITS, type Suspect, type TraitKind } from '../data/mysteryCast';
 import { wikiPhoto } from '../lib/wiki';
 import { track } from '../lib/analytics';
 import { api } from '../lib/api';
+import { resultText } from '../lib/share';
+import { ShareButton } from './ShareButton';
 import { canUseAccount, getAuth } from '../lib/session';
 
 /** How much of the screen the game wants: all of it, a slim sheet over the globe, or just a banner. */
@@ -211,7 +213,6 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
   const [notesOpen, setNotesOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [resultOpen, setResultOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [talk, setTalk] = useState<number | null>(null); // the witness whose bubble is open
   const [trail, setTrail] = useState(false);              // case over: looking at the trail on the globe
 
@@ -278,14 +279,8 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
     setResultOpen(false); setTrail(false); onRoute(null);
     setMode('practice'); setSeed(`practice-${Date.now()}`); setSt(fresh(career.level));
   };
-  const share = async () => {
-    if (!st.result) return;
-    const text = `${caseShare(dailyNumber(date), kase, st.result)}\n${location.origin}/?mystery=1&ref=share`;
-    track('share', { g: 'mystery' });
-    if (typeof navigator.share === 'function') { await navigator.share({ text }).catch(() => null); return; }
-    try { await navigator.clipboard.writeText(text); } catch { /* blocked */ }
-    setCopied(true); window.setTimeout(() => setCopied(false), 1800);
-  };
+  /** The result to share: squares per stop, never the countries or the culprit. */
+  const shareMsg = () => st.result ? resultText('mystery', caseShare(mode === 'daily' ? dailyNumber(date) : null, kase, st.result, st.wrong.map((w) => w.length), st.result.solved ? legsN : Math.min(legsN, st.at + 1))) : '';
 
   const notes = useMemo(() => kase.legs.flatMap((l, i) => st.heard[i].map((w) => ({ leg: i, w: l.witnesses[w] }))), [kase, st.heard]);
   const traits = notes.filter((n) => n.w.trait).map((n) => n.w.trait!);
@@ -472,8 +467,8 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
       {createPortal(
         <AnimatePresence>
           {resultOpen && st.result && (
-            <Report key="report" kase={kase} result={st.result} mode={mode} no={dailyNumber(date)} career={career} copied={copied}
-              onShare={() => void share()} onPractice={practice} onClose={() => setResultOpen(false)} onTrail={() => { setResultOpen(false); setTrail(true); }} />
+            <Report key="report" kase={kase} result={st.result} mode={mode} no={dailyNumber(date)} career={career}
+              shareMsg={shareMsg} onPractice={practice} onClose={() => setResultOpen(false)} onTrail={() => { setResultOpen(false); setTrail(true); }} />
           )}
         </AnimatePresence>,
         document.body,
@@ -582,8 +577,8 @@ function Briefing({ kase, career, onStart }: { kase: Case; career: Career; onSta
   );
 }
 
-function Report({ kase, result, mode, no, career, copied, onShare, onPractice, onClose, onTrail }: {
-  kase: Case; result: CaseResult; mode: Mode; no: number; career: Career; copied: boolean; onShare: () => void; onPractice: () => void; onClose: () => void; onTrail: () => void;
+function Report({ kase, result, mode, no, career, shareMsg, onPractice, onClose, onTrail }: {
+  kase: Case; result: CaseResult; mode: Mode; no: number; career: Career; shareMsg: () => string; onPractice: () => void; onClose: () => void; onTrail: () => void;
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
@@ -629,8 +624,8 @@ function Report({ kase, result, mode, no, career, copied, onShare, onPractice, o
 
         <div className="mx-report-bar">
         <div className="gwr-actions">
-          {mode === 'daily' && <button className="primary" onClick={onShare}>{copied ? <><Check size={15} /> Copied</> : typeof navigator.share === 'function' ? <><Share2 size={15} /> Share</> : <><Copy size={15} /> Copy result</>}</button>}
-          <button className={mode === 'daily' ? 'ghost-cta' : 'primary'} onClick={onPractice}><RotateCcw size={15} /> {mode === 'daily' ? 'Practice case' : 'Another case'}</button>
+          <ShareButton game="mystery" text={shareMsg} label="Share result" className="primary" />
+          <button className="ghost-cta" onClick={onPractice}><RotateCcw size={15} /> {mode === 'daily' ? 'Practice case' : 'Another case'}</button>
         </div>
         <button className="gwr-globe" onClick={onTrail}><Globe2 size={15} /> See the trail on the globe</button>
         </div>

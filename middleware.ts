@@ -5,6 +5,7 @@
 import { next, rewrite } from '@vercel/functions';
 import { dailyNumber, localDate } from './src/lib/daily.js';
 import { isCountryPath } from './src/lib/countryPages.js';
+import { GAME_PITCH, isShareGame } from './src/lib/shareGames.js';
 
 export const config = { runtime: 'nodejs' };
 
@@ -47,6 +48,19 @@ export function dailyPreview(html: string, url?: URL) {
   return out;
 }
 
+/** The home page's preview tags, retitled for a shared game link (/?game=wordle). */
+export function gamePreview(html: string, url?: URL) {
+  const g = url?.searchParams.get('game');
+  if (!isShareGame(g)) return html;
+  const title = `${GAME_PITCH[g].name} on GeoQuest — can you beat me?`;
+  const desc = `${GAME_PITCH[g].pitch}. Free, on a 3D globe, no sign-up needed.`;
+  const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  return html
+    .replace(/<title>[^<]*<\/title>/, `<title>${esc(title)}</title>`)
+    .replace(/(<meta (?:property|name)="(?:og|twitter):title" content=")[^"]*"/g, `$1${esc(title)}"`)
+    .replace(/(<meta (?:property|name)="(?:og|twitter):description" content=")[^"]*"/g, `$1${esc(desc)}"`);
+}
+
 export default async function middleware(request: Request) {
   const url = new URL(request.url);
   const main = process.env.PUBLIC_HOST;
@@ -57,10 +71,11 @@ export default async function middleware(request: Request) {
   if (PAGES.has(url.pathname)) return rewrite(new URL('/login.html' + url.search, url));
   if (INFO_PAGES.has(url.pathname)) return rewrite(new URL(`${url.pathname}.html`, url));
   if (isCountryPath(url.pathname)) return rewrite(new URL(`${url.pathname}.html`, url)); // /country/india → the built page
-  if (url.pathname === '/' && url.searchParams.has('daily') && PREVIEW_BOTS.test(request.headers.get('user-agent') ?? '')) {
+  const shared = url.searchParams.has('daily') ? dailyPreview : url.searchParams.has('game') ? gamePreview : null;
+  if (url.pathname === '/' && shared && PREVIEW_BOTS.test(request.headers.get('user-agent') ?? '')) {
     try {
       const page = await fetch(new URL('/index.html', url));
-      if (page.ok) return new Response(dailyPreview(await page.text(), url), { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=300' } });
+      if (page.ok) return new Response(shared(await page.text(), url), { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=300' } });
     } catch { /* fall through to the normal page */ }
   }
   return next();

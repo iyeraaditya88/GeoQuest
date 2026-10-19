@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { motion } from 'motion/react';
-import { CalendarDays, Check, Copy, Flame, MessageSquareHeart, Share2, Star, Trophy, X } from 'lucide-react';
+import { CalendarDays, Flame, MessageSquareHeart, Star, Trophy, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import { DAILY_N, MAX_POINTS, THEME_LABEL, dailyNumber, shareLine, themeOf, total } from '../lib/daily';
 import { useFavorites } from '../lib/favorites';
 import { Reminders } from './Reminders';
 import { openFeedback } from '../lib/feedback';
-import { track } from '../lib/analytics';
+import { resultText } from '../lib/share';
+import { ShareButton } from './ShareButton';
 
 export interface DailyBoardRow { name: string; points: number[]; total: number }
 interface Props {
@@ -31,7 +32,6 @@ const sq = (p: number) => (p === 3 ? 'g' : p === 2 ? 'y' : p === 1 ? 'o' : 'x');
 /** Today's Daily: score, streak, the five countries, share, today's board and the morning reminder. */
 export function DailyResult({ date, targets, points, streak, board, me, fresh, onClose, onReminder, guest = false }: Props) {
   const score = total(points);
-  const [copied, setCopied] = useState(false);
   const { favs } = useFavorites(me ?? 'you');
   useEffect(() => {
     if (fresh && score >= MAX - 3) confetti({ particleCount: 140, spread: 85, origin: { y: 0.3 }, colors: ['#fde68a', '#fbbf24', '#34d399', '#7dd3fc'], disableForReducedMotion: true });
@@ -44,14 +44,7 @@ export function DailyResult({ date, targets, points, streak, board, me, fresh, o
 
   const text = shareLine(date, points);
   // Wordle-style: your squares, and a link that drops whoever opens it straight into today's Daily.
-  const share = async () => {
-    const msg = `${text}\nYour turn — find today’s 5 countries 🌍\n${location.origin}/?daily=${dailyNumber(date)}&r=${points.join('')}&ref=share`;
-    track('share', { g: 'daily' });
-    if (typeof navigator.share === 'function') { await navigator.share({ text: msg }).catch(() => null); return; }
-    try { await navigator.clipboard.writeText(msg); } catch { /* blocked */ }
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1800);
-  };
+  const shareMsg = () => resultText('daily', text, `${location.origin}/?daily=${dailyNumber(date)}&r=${points.join('')}&ref=share`);
   const rows = [...(board ?? [])].sort((a, b) => b.total - a.total || Number(favs.includes(b.name)) - Number(favs.includes(a.name)) || a.name.localeCompare(b.name));
   const verdict = score === MAX ? 'Perfect!' : score >= 12 ? 'Brilliant' : score >= 9 ? 'Nicely done' : score >= 5 ? 'Good effort' : 'Tomorrow’s another day';
 
@@ -92,7 +85,7 @@ export function DailyResult({ date, targets, points, streak, board, me, fresh, o
         </ul>
 
         <p className="dy-share-note">Share your squares — anyone who taps the link plays today’s five, then shares theirs.</p>
-        <button className="primary dy-share" onClick={() => void share()}>{copied ? <><Check size={15} /> Copied</> : typeof navigator.share === 'function' ? <><Share2 size={15} /> Share result</> : <><Copy size={15} /> Copy result</>}</button>
+        <ShareButton game="daily" text={shareMsg} label="Share result" className="primary dy-share" />
 
         {!guest && <div className="fr-label"><Trophy size={12} /> Today’s board</div>}
         {guest ? null : rows.length ? (

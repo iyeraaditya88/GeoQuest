@@ -2896,3 +2896,27 @@ svg.vy-flag { color: #2dd4bf; }
 @keyframes mx-shine { 50% { transform: rotate(-12deg) scale(1.12); } }
 @media (max-height: 640px) { .mx-rank { padding: 7px 10px; } .mx-rank-badge { width: 32px; height: 32px; } }
 @media (prefers-reduced-motion: reduce) { .mx-medal { animation: none; } }
+
+/* Games list: a share button on every game */
+.gs-item { position: relative; display: grid; min-width: 0; }
+.gs-item.wide { grid-column: 1 / -1; }
+.gs-item.wide .gs-card { padding-right: 56px; }
+.gs-share { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; color: var(--muted); background: rgba(255, 255, 255, 0.05); transition: color 0.15s, background 0.15s; }
+.gs-share:hover { color: var(--text); background: rgba(255, 255, 255, 0.12); }
+.gs-item.wide .gs-share { top: 50%; translate: 0 -50%; right: 12px; }
+.share-sm { flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 36px; height: 34px; padding: 0 10px; border-radius: 10px; font-size: 13px; font-weight: 600; color: var(--cyan); background: rgba(125, 211, 252, 0.08); box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.3); }
+.share-sm:hover { background: rgba(125, 211, 252, 0.16); }
+.t5-done .share-sm, .cap-done .share-sm { margin-left: auto; }
+.t5-done .share-sm + .primary, .cap-done .share-sm + .primary { margin-left: 0; }
+.sg-done-actions { display: flex; gap: 8px; align-items: center; }
+.quiz-share { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; color: var(--muted); background: rgba(255, 255, 255, 0.05); }
+.quiz-share:hover { color: var(--text); background: rgba(255, 255, 255, 0.12); }
+.svf-actions .ghost-cta, .gwr-actions .ghost-cta { margin-top: 0; }
+.svf-actions { flex-wrap: wrap; }
+.svf-actions > .svf-share { order: 3; flex-basis: 100%; }
+.t5-done, .cap-done { flex-wrap: wrap; row-gap: 10px; }
+.t5-done .t5-verdict, .cap-done .t5-verdict { min-width: 140px; }
+/* End of round: score and verdict on top, Share and the main button underneath */
+.t5-done .t5-verdict, .cap-done .t5-verdict { flex: 1 0 calc(100% - 80px); }
+.t5-done .share-sm, .cap-done .share-sm { margin-left: 0; height: 40px; padding: 0 16px; }
+.t5-done .share-sm ~ .primary, .cap-done .share-sm ~ .primary { flex: 1 1 auto; justify-content: center; height: 40px; }

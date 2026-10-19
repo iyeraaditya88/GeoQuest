@@ -96,6 +96,7 @@ import { panelWidth } from './lib/layout';
 import { MusicButton } from './components/MusicButton';
 import { music } from './lib/music';
 import type { MysteryStage } from './components/MysteryGame';
+import { isShareGame, type ShareGame } from './lib/share';
 
 function loadBest() { try { return Number(localStorage.getItem('gq-best') ?? 0); } catch { return 0; } }
 function saveBest(n: number) { try { localStorage.setItem('gq-best', String(n)); } catch { /* ignore */ } }
@@ -298,7 +299,7 @@ export default function App() {
   const selectRef = useRef(select);
   selectRef.current = select;
   // Arrived from a country page (?country=IND / ?play=1): act once the globe is ready.
-  const linkWanted = useRef<{ country?: string; play?: boolean; wordle?: boolean; mystery?: boolean } | null>(null);
+  const linkWanted = useRef<{ country?: string; play?: boolean; game?: ShareGame } | null>(null);
 
   // ── Rivers, ranges, peaks & lakes: click one to open its panel ──
   const [feature, setFeature] = useState<FeatureInfo | null>(null);
@@ -517,6 +518,9 @@ export default function App() {
     else startPlay(g);
   };
 
+  const launchRef = useRef(launch);
+  launchRef.current = launch;
+
   // ── Feedback ──────────────────────────────────────────
   /** Where in the app they are right now (sent with feedback, so a bug report has context). */
   const whereNow = () => quiz ? (quiz.daily ? `Daily #${quiz.daily.no}` : `Map quiz (${quiz.mode})`)
@@ -540,10 +544,11 @@ export default function App() {
     const linkCountry = url.searchParams.get('country')?.toUpperCase();
     if (linkCountry && BY_CCA3.has(linkCountry)) linkWanted.current = { country: linkCountry };
     if (url.searchParams.has('play')) linkWanted.current = { ...linkWanted.current, play: true };
-    if (url.searchParams.has('wordle')) linkWanted.current = { ...linkWanted.current, wordle: true };
-    if (url.searchParams.has('mystery')) linkWanted.current = { ...linkWanted.current, mystery: true };
-    if (url.searchParams.has('country') || url.searchParams.has('play') || url.searchParams.has('wordle')) {
-      url.searchParams.delete('country'); url.searchParams.delete('play'); url.searchParams.delete('wordle');
+    // Shared game links: ?game=trivia (and the older ?wordle=1, ?mystery=1).
+    const linkGame = url.searchParams.get('game') ?? (url.searchParams.has('wordle') ? 'wordle' : url.searchParams.has('mystery') ? 'mystery' : null);
+    if (isShareGame(linkGame)) linkWanted.current = { ...linkWanted.current, game: linkGame };
+    if (['country', 'play', 'wordle', 'mystery', 'game'].some((k) => url.searchParams.has(k))) {
+      for (const k of ['country', 'play', 'wordle', 'mystery', 'game']) url.searchParams.delete(k);
       history.replaceState(null, '', url.pathname + url.search + url.hash);
     }
     if (url.searchParams.has('feedback') || url.searchParams.has('inbox') || url.searchParams.has('activity')) {
@@ -566,8 +571,7 @@ export default function App() {
       linkWanted.current = null;
       if (w?.country) selectRef.current(w.country);
       if (w?.play) setGamesOpen(true);
-      if (w?.wordle) startPlayRef.current('wordle');
-      if (w?.mystery) startPlayRef.current('mystery');
+      if (w?.game) { track('launch', { g: w.game, v: 'link' }); launchRef.current(w.game); }
     }, 500);
   }, [ready]);
 

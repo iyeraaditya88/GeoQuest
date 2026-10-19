@@ -176,6 +176,14 @@ describe('shared Daily link preview', () => {
     expect(out.match(/GeoQuest Daily — can you find today’s 5 countries\?/g)).toHaveLength(3);
     expect(out).toContain('og:description" content="A new set of 5 countries every day');
   });
+  it('retitles a shared game link (?game=…), and ignores unknown games', async () => {
+    const { gamePreview } = await import('../middleware');
+    const html = '<title>GeoQuest</title><meta property="og:title" content="GeoQuest" /><meta property="og:description" content="x" />';
+    const out = gamePreview(html, new URL('https://playgeoquest.app/?game=wordle&ref=share'));
+    expect(out.match(/Geo Wordle on GeoQuest — can you beat me\?/g)).toHaveLength(2);
+    expect(out).toContain('content="Wordle, but the word is a country.');
+    expect(gamePreview(html, new URL('https://playgeoquest.app/?game=<script>'))).toBe(html);
+  });
   it('shows the score in the picture when the link carries one', async () => {
     const { dailyPreview } = await import('../middleware');
     const html = '<title>GeoQuest</title><meta property="og:title" content="GeoQuest" /><meta property="og:image" content="old.jpg" /><meta name="twitter:image" content="old.jpg" />';
@@ -495,7 +503,16 @@ describe('solve the mystery', () => {
     expect(addCase(st, '2026-10-18', false, '2026-10-17')).toBe(st); // once a day
     expect(addCase(st, null, true, null)).toMatchObject({ played: 3, solved: 3, streak: 2 }); // practice: no streak change
     const line = caseShare(12, dailyCase('2026-10-18'), { solved: true, hoursLeft: 31, deadEnds: 1, wrongSuspect: false });
-    expect(line).toMatch(/^🕵️ GeoQuest Case #12 — solved with 31 h to spare · 1 dead end\n/);
+    expect(line).toMatch(/^🕵️ GeoQuest Case #12 — solved with 31 h to spare · 1 dead end\n(?:🟩){5} 🔒$/u);
+    // No spoilers: no flags, countries, capitals or the culprit — just a square per stop.
+    const kase = dailyCase('2026-10-18');
+    const spoil = caseShare(12, kase, { solved: false, hoursLeft: 0, deadEnds: 3, wrongSuspect: false }, [0, 1, 2], 3);
+    expect(spoil).toMatch(/\n🟩🟨🟥⬛⬛ 💨$/);
+    expect(spoil).not.toMatch(/[\u{1F1E6}-\u{1F1FF}]/u);
+    const { BY_CCA3 } = await import('../src/lib/data');
+    for (const id of kase.route) { const k = BY_CCA3.get(id)!; expect(spoil).not.toContain(k.name); expect(spoil).not.toContain(k.capital[0]); }
+    expect(spoil).not.toContain(kase.culprit.name);
+    expect(caseShare(null, kase, { solved: true, hoursLeft: 9, deadEnds: 0, wrongSuspect: false })).toMatch(/^🕵️ GeoQuest mystery — solved/);
     expect(caseShare(12, dailyCase('2026-10-18', 1), { solved: false, hoursLeft: 0, deadEnds: 0, wrongSuspect: false })).toMatch(/^🕵️ GeoQuest Case #12 \(Rookie\) — the thief got away/);
   });
   it('career: promotion takes steady good work; a rough patch steps you down gently', async () => {
@@ -521,5 +538,25 @@ describe('solve the mystery', () => {
     expect(cleanCareer(null)).toBe(null);
     const a = { ...newCareer(), at: 1 }, b = { ...newCareer(), level: 3 as const, at: 2 };
     expect(newerCareer(a, b)).toBe(b); expect(newerCareer(b, a)).toBe(b); expect(newerCareer(null, a)).toBe(a);
+  });
+});
+
+describe('sharing', () => {
+  it('every game has a link and an invite; result lines carry scores, never answers', async () => {
+    const sh = await import('../src/lib/share');
+    for (const g of sh.SHARE_GAMES) {
+      expect(sh.gameLink(g)).toMatch(new RegExp(`/\\?game=${g}&ref=share$`));
+      expect(sh.inviteText(g)).toContain(sh.gameLink(g));
+      expect(sh.isShareGame(g)).toBe(true);
+    }
+    expect(sh.isShareGame('duel')).toBe(false);
+    expect(sh.top5Share('Longest rivers in Africa', [true, false, true, true, false])).toBe('🏆 GeoQuest Top 5 — Longest rivers in Africa: 3/5\n🟩⬛🟩🟩⬛');
+    expect(sh.shapesShare([5, 3, 0], 5)).toBe('🧩 GeoQuest Guess the Country — 8/15\n🟩🟨⬛');
+    expect(sh.streetShare([4800, 2100, 0])).toBe('📍 GeoQuest Street View — 6,900 / 15,000\n🟩🟨⬛');
+    expect(sh.capitalsShare(7, 10)).toBe('🏛️ GeoQuest Capitals — 7/10\n🟩🟩🟩🟩🟩🟩🟩⬛⬛⬛');
+    expect(sh.triviaShare(1240, 8, 10, 'Hard')).toBe('🧠 GeoQuest Trivia — 1,240 pts · 8/10 correct · reached Hard');
+    expect(sh.resultText('quiz', 'x')).toMatch(/^x\nYour turn 🌍\nhttp.*\?game=quiz&ref=share$/);
+    const { wordleShare } = await import('../src/lib/wordle');
+    expect(wordleShare(null, [['g', 'y', 'b', 'b', 'g']], true, 1)).toBe('GeoQuest Wordle bonus 1/6 💡1\n🟩🟨⬛⬛🟩');
   });
 });

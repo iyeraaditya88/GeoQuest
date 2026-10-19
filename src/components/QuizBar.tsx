@@ -2,6 +2,8 @@ import { AnimatePresence, motion } from 'motion/react';
 import { ArrowRight, CalendarDays, Flag, Flame, Lightbulb, MapPinned, SkipForward, X } from 'lucide-react';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import { Click } from '../lib/touch';
+import { quizShare, resultText } from '../lib/share';
+import { ShareButton } from './ShareButton';
 
 export type QuizMode = 'find' | 'flag' | 'clue';
 export interface QuizState {
@@ -70,6 +72,7 @@ export function QuizBar({ quiz, onMode, onSkip, onNext, onExit }: Props) {
                   <span title="Current streak"><Flame size={14} /> {quiz.streak}</span>
                   <span className="muted">best {quiz.best}</span>
                   <span className="muted">{quiz.score}/{quiz.rounds}</span>
+                  {quiz.rounds > 0 && <ShareButton game="quiz" className="quiz-share" text={() => resultText('quiz', quizShare(MODES.find((m) => m.id === quiz.mode)?.short ?? MODES.find((m) => m.id === quiz.mode)?.label ?? 'Find it', quiz.score, quiz.rounds, quiz.best))} />}
                 </div>
               </>
             )}

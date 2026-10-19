@@ -5,6 +5,8 @@ import confetti from 'canvas-confetti';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import { matchAnswer, norm, shuffledQuestions, type Top5Question } from '../lib/top5';
 import { api } from '../lib/api';
+import { resultText, top5Share } from '../lib/share';
+import { ShareButton } from './ShareButton';
 
 const STRIKES = 3;
 
@@ -167,6 +169,7 @@ export function Top5Game({ ai, onHighlight, onExit }: Props) {
         <div className="t5-done">
           <span className="t5-score">{found.size}<small>/5</small></span>
           <span className="t5-verdict">{found.size === 5 ? 'Flawless.' : found.size >= 3 ? 'Solid geography.' : found.size >= 1 ? 'Getting there.' : 'Tough one!'}</span>
+          <ShareButton game="top5" label="Share" className="share-sm" text={() => resultText('top5', top5Share(q.title, q.answers.map((_, i) => found.has(i))))} />
           <button className="primary sm" onClick={next} autoFocus>Next question <ArrowRight size={15} /></button>
         </div>
       )}

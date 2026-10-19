@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'motion/react';
-import { BarChart3, Check, Copy, Delete, Globe2, Grid3x3, Lightbulb, RotateCcw, Share2, X } from 'lucide-react';
+import { BarChart3, Delete, Globe2, Grid3x3, Lightbulb, RotateCcw, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import { addDays, localDate } from '../lib/daily';
@@ -10,6 +10,8 @@ import {
   letters, score, wordleHints, wordleNumber, wordleShare, type Mark, type WordleStats,
 } from '../lib/wordle';
 import { track } from '../lib/analytics';
+import { resultText } from '../lib/share';
+import { ShareButton } from './ShareButton';
 
 interface Props {
   onReveal: (cca3: string) => void;
@@ -64,7 +66,6 @@ export function GeoWordle({ onReveal, onExit, onShowCountry, onGuess }: Props) {
   const setTyped = (v: string | ((t: string) => string)) => { const n = typeof v === 'function' ? v(typedRef.current) : v; typedRef.current = n; setTypedState(n); };
   const [msg, setMsg] = useState<string | null>(null);
   const [shake, setShake] = useState(0);
-  const [copied, setCopied] = useState(false);
   const [stats, setStats] = useState(loadStats);
   const [resultOpen, setResultOpen] = useState(false);
 
@@ -157,13 +158,8 @@ export function GeoWordle({ onReveal, onExit, onShowCountry, onGuess }: Props) {
     setResultOpen(false); setMode('bonus'); setAnswer(a); setGuesses([]); setHints(0); setTyped(''); setMsg(null);
     persist([], 0, a, 'bonus');
   };
-  const share = async () => {
-    const text = `${wordleShare(wordleNumber(date), rows.map((r) => r.marks), won, hints)}\n${location.origin}/?wordle=1&ref=share`;
-    track('share', { g: 'wordle' });
-    if (typeof navigator.share === 'function') { await navigator.share({ text }).catch(() => null); return; }
-    try { await navigator.clipboard.writeText(text); } catch { /* blocked */ }
-    setCopied(true); window.setTimeout(() => setCopied(false), 1800);
-  };
+  /** The result to share: coloured squares only — no letters, no country. */
+  const shareMsg = () => resultText('wordle', wordleShare(mode === 'daily' ? wordleNumber(date) : null, rows.map((r) => r.marks), won, hints));
   const closeResult = useCallback(() => setResultOpen(false), []);
 
   // The grid: guesses, the row being typed, empty rows — and the tries spent on hints, from the bottom.
@@ -274,7 +270,7 @@ export function GeoWordle({ onReveal, onExit, onShowCountry, onGuess }: Props) {
         <AnimatePresence>
           {resultOpen && done && (
             <WordleResult key="result" mode={mode} no={wordleNumber(date)} won={won} tries={rows.length} hints={hints} rows={rows} target={target.cca3}
-              stats={stats} copied={copied} onShare={() => void share()} onBonus={bonus} onClose={closeResult} onShow={() => onShowCountry(target.cca3)} />
+              stats={stats} shareMsg={shareMsg} onBonus={bonus} onClose={closeResult} onShow={() => onShowCountry(target.cca3)} />
           )}
         </AnimatePresence>,
         document.body,
@@ -284,9 +280,9 @@ export function GeoWordle({ onReveal, onExit, onShowCountry, onGuess }: Props) {
 }
 
 /** The result: the answer, your rows, and (for the Daily) your stats and guess distribution. */
-function WordleResult({ mode, no, won, tries, hints, rows, target, stats, copied, onShare, onBonus, onClose, onShow }: {
-  mode: Mode; no: number; won: boolean; tries: number; hints: number; rows: Row[]; target: string; stats: WordleStats; copied: boolean;
-  onShare: () => void; onBonus: () => void; onClose: () => void; onShow: () => void;
+function WordleResult({ mode, no, won, tries, hints, rows, target, stats, shareMsg, onBonus, onClose, onShow }: {
+  mode: Mode; no: number; won: boolean; tries: number; hints: number; rows: Row[]; target: string; stats: WordleStats; shareMsg: () => string;
+  onBonus: () => void; onClose: () => void; onShow: () => void;
 }) {
   const c = BY_CCA3.get(target)!;
   useEffect(() => {
@@ -345,10 +341,8 @@ function WordleResult({ mode, no, won, tries, hints, rows, target, stats, copied
         )}
 
         <div className="gwr-actions">
-          {mode === 'daily' && (
-            <button className="primary" onClick={onShare}>{copied ? <><Check size={15} /> Copied</> : typeof navigator.share === 'function' ? <><Share2 size={15} /> Share</> : <><Copy size={15} /> Copy result</>}</button>
-          )}
-          <button className={mode === 'daily' ? 'ghost-cta' : 'primary'} onClick={onBonus}><RotateCcw size={15} /> {mode === 'daily' ? 'Bonus round' : 'Another one'}</button>
+          <ShareButton game="wordle" text={shareMsg} label="Share result" className="primary" />
+          <button className="ghost-cta" onClick={onBonus}><RotateCcw size={15} /> {mode === 'daily' ? 'Bonus round' : 'Another one'}</button>
         </div>
         {mode === 'daily' && <p className="gwr-next">A new country every day.</p>}
       </motion.section>
