@@ -73,13 +73,13 @@ const BUILDERS: Record<ClueKind, Builder> = {
     make: (c) => {
       const cur = c.currencies[0];
       if (!cur) return null;
-      return { kind: 'currency', text: `She changed all her cash into ${lastWord(cur.name)}${/s$/.test(lastWord(cur.name)) ? '' : 's'}.`, why: `The ${cur.name} is the currency of ${c.name}.` };
+      return { kind: 'currency', text: `They changed all their cash into ${lastWord(cur.name)}${/s$/.test(lastWord(cur.name)) ? '' : 's'}.`, why: `The ${cur.name} is the currency of ${c.name}.` };
     },
     fits: (clue, o) => o.currencies.some((x) => clue.text.includes(` ${lastWord(x.name)}`)),
   },
   language: {
     kind: 'language',
-    make: (c) => (c.languages[0] ? { kind: 'language', text: `He was practising ${c.languages[0]} phrases from a little book.`, why: `${c.languages[0]} is spoken in ${c.name}.` } : null),
+    make: (c) => (c.languages[0] ? { kind: 'language', text: `They were practising ${c.languages[0]} phrases from a little book.`, why: `${c.languages[0]} is spoken in ${c.name}.` } : null),
     fits: (clue, o) => o.languages.some((l) => clue.text.includes(` ${l} `)),
   },
   river: {
@@ -89,12 +89,12 @@ const BUILDERS: Record<ClueKind, Builder> = {
   },
   peak: {
     kind: 'peak',
-    make: (c) => { const p = CURATED[c.cca3]?.peak; return p ? { kind: 'peak', text: `She bought climbing gear — said she’d stand on top of ${strip(p)}.`, why: `${strip(p)} is the highest peak in ${c.name}.` } : null; },
+    make: (c) => { const p = CURATED[c.cca3]?.peak; return p ? { kind: 'peak', text: `They bought climbing gear — said they’d stand on top of ${strip(p)}.`, why: `${strip(p)} is the highest peak in ${c.name}.` } : null; },
     fits: (clue, o) => { const p = CURATED[o.cca3]?.peak; return !!p && clue.text.includes(strip(p)); },
   },
   range: {
     kind: 'range',
-    make: (c) => { const r = CURATED[c.cca3]?.range?.split('·')[0].trim(); return r ? { kind: 'range', text: `He bought hiking maps of the ${r}.`, why: `The ${r} run through ${c.name}.` } : null; },
+    make: (c) => { const r = CURATED[c.cca3]?.range?.split('·')[0].trim(); return r ? { kind: 'range', text: `They bought hiking maps of the ${r}.`, why: `${c.name} is home to the ${r}.` } : null; },
     fits: (clue, o) => { const r = CURATED[o.cca3]?.range; return !!r && r.split('·').some((x) => clue.text.includes(x.trim())); },
   },
   tip: {
@@ -108,7 +108,7 @@ const BUILDERS: Record<ClueKind, Builder> = {
   },
   drive: {
     kind: 'drive',
-    make: (c) => ({ kind: 'drive', text: `She grumbled about having to drive on the ${c.drive} again.`, why: `${c.name} drives on the ${c.drive}.` }),
+    make: (c) => ({ kind: 'drive', text: `They grumbled about having to drive on the ${c.drive} again.`, why: `${c.name} drives on the ${c.drive}.` }),
     fits: (clue, o) => clue.text.includes(`on the ${o.drive} `),
   },
   neighbours: {

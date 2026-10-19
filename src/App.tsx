@@ -95,6 +95,7 @@ import { localName } from './lib/live';
 import { panelWidth } from './lib/layout';
 import { MusicButton } from './components/MusicButton';
 import { music } from './lib/music';
+import type { MysteryStage } from './components/MysteryGame';
 
 function loadBest() { try { return Number(localStorage.getItem('gq-best') ?? 0); } catch { return 0; } }
 function saveBest(n: number) { try { localStorage.setItem('gq-best', String(n)); } catch { /* ignore */ } }
@@ -746,6 +747,7 @@ export default function App() {
   const [mxArc, setMxArc] = useState<{ startLat: number; startLng: number; endLat: number; endLng: number }[]>([]);
   const [mxRoute, setMxRoute] = useState<string[] | null>(null);
   const [mxPicking, setMxPicking] = useState(false);
+  const [mxStage, setMxStage] = useState<MysteryStage>('mini');
   const mysteryPick = useRef<((cca3: string) => void) | null>(null);
   const playRef = useRef(play);
   playRef.current = play;
@@ -757,8 +759,14 @@ export default function App() {
     globe.current?.frame(mid.lat, mid.lng, 2.2);
     window.setTimeout(() => { setMxArc([]); cam.flyTo(to); }, 1500);
   }, [cam]);
-  const mxFocus = useCallback((c: string | null) => { setHighlighted(c ? [c] : []); if (c) cam.flyTo(c); }, [cam]);
-  const mxSetPick = useCallback((fn: ((cca3: string) => void) | null) => { mysteryPick.current = fn; setMxPicking(!!fn); }, []);
+  const mxAt = useRef<string | null>(null);
+  const mxFocus = useCallback((c: string | null) => { mxAt.current = c; setHighlighted(c ? [c] : []); if (c) cam.flyTo(c); }, [cam]);
+  const mxSetPick = useCallback((fn: ((cca3: string) => void) | null) => {
+    mysteryPick.current = fn; setMxPicking(!!fn);
+    // Finding the next country: pull back to see the whole region around you.
+    const at = fn && mxAt.current ? BY_CCA3.get(mxAt.current) : null;
+    if (at) window.setTimeout(() => globe.current?.frame(at.latlng[0], at.latlng[1], 2.3), 120);
+  }, []);
   const mxPaths = useMemo<GlobePath[]>(() => (mxRoute ? [{ id: 'mystery', points: mxRoute.map((c) => BY_CCA3.get(c)!.latlng), color: '#fbbf24', mode: 'active' }] : []), [mxRoute]);
   // Hover names stay hidden while you're meant to find a country (quizzes, the mystery's hard legs).
   useEffect(() => { cursor.set({ hideLabel: !!quiz || mxPicking || play === 'mystery' }); }, [quiz, mxPicking, play]);
@@ -796,6 +804,20 @@ export default function App() {
     setAutoRotate(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveState.active]);
+  // Looking at the finished trail: pull back so the whole route fits.
+  useEffect(() => {
+    if (play !== 'mystery' || mxStage !== 'mini' || !mxRoute) return;
+    const pts = mxRoute.map((c) => BY_CCA3.get(c)!.latlng);
+    const x = pts.reduce((t, p) => t + Math.cos((p[1] * Math.PI) / 180), 0), y = pts.reduce((t, p) => t + Math.sin((p[1] * Math.PI) / 180), 0);
+    globe.current?.frame(pts.reduce((t, p) => t + p[0], 0) / pts.length, (Math.atan2(y, x) * 180) / Math.PI, 3);
+  }, [play, mxStage, mxRoute]);
+  // The mystery's full-screen scenes on phones cover the globe too.
+  const mxCovers = play === 'mystery' && mxStage === 'full' && vp.w <= 900;
+  useEffect(() => {
+    if (!mxCovers) return;
+    const t = window.setTimeout(() => globe.current?.pause(), 450);
+    return () => { window.clearTimeout(t); globe.current?.resume(); };
+  }, [mxCovers]);
   // Street View matches cover the screen: stop drawing the globe underneath.
   useEffect(() => {
     if (!liveState.immersive) return;
@@ -1322,7 +1344,7 @@ export default function App() {
         {play === 'trivia' && <ErrorBoundary key="trivia" name="Geo Trivia" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><TriviaGame onReveal={revealTrivia} onExit={exitPlay} /></Suspense></ErrorBoundary>}
         {play === 'wordle' && <ErrorBoundary key="wordle" name="Geo Wordle" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><GeoWordle onReveal={revealOnGlobe} onExit={exitPlay} onShowCountry={(c) => { exitPlay(); select(c); setHighlighted([c]); }}
           onGuess={(c) => { setFeedback({ cca3: c, kind: 'bad' }); cam.flyTo(c); }} /></Suspense></ErrorBoundary>}
-        {play === 'mystery' && <ErrorBoundary key="mystery" name="Solve the Mystery" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><MysteryGame onFly={mxFly} onFocus={mxFocus} setGlobePick={mxSetPick} onRoute={setMxRoute} onExit={exitPlay} /></Suspense></ErrorBoundary>}
+        {play === 'mystery' && <ErrorBoundary key="mystery" name="Solve the Mystery" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><MysteryGame onFly={mxFly} onFocus={mxFocus} setGlobePick={mxSetPick} onRoute={setMxRoute} onStage={setMxStage} onExit={exitPlay} /></Suspense></ErrorBoundary>}
         {play === 'shapes' && <ErrorBoundary key="shapes" name="Guess the Country" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><ShapeGame onReveal={(c) => { setHighlighted([c]); cam.flyTo(c); }} onExit={exitPlay} /></Suspense></ErrorBoundary>}
         {play === 'capitals' && <ErrorBoundary key="capitals" name="Capitals" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><CapitalsGame onReveal={(c) => { setHighlighted([c]); cam.flyTo(c); }} onExit={exitPlay} /></Suspense></ErrorBoundary>}
       </AnimatePresence>
