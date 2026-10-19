@@ -1,17 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowLeft, ArrowRight, Check, HatGlasses, Clock, Copy, Globe2, Lightbulb, NotebookPen, Plane, RotateCcw, Share2, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Award, Check, HatGlasses, Clock, Copy, Globe2, Lightbulb, NotebookPen, Plane, RotateCcw, Share2, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import { addDays, localDate, dailyNumber } from '../lib/daily';
 import {
-  CLOCK, COST, LEGS, addCase, caseShare, dailyCase, emptyMysteryStats, flightHours, makeCase, nextRank, rankFor, takeaway, traitLabel,
-  type Case, type CaseResult, type MysteryStats, type Witness,
+  COST, addCase, addMerit, meritFor, careerFromStats, caseShare, cleanCareer, dailyCase, emptyMysteryStats, flightHours, levelOf, makeCase, newCareer, newerCareer, takeaway, traitLabel,
+  type Career, type CareerChange, type Case, type CaseResult, type MysteryStats, type Witness,
 } from '../lib/mystery';
-import { SUSPECTS, TRAITS, type Suspect, type TraitKind } from '../data/mysteryCast';
+import { TRAITS, type Suspect, type TraitKind } from '../data/mysteryCast';
 import { wikiPhoto } from '../lib/wiki';
 import { track } from '../lib/analytics';
+import { api } from '../lib/api';
+import { canUseAccount, getAuth } from '../lib/session';
 
 /** How much of the screen the game wants: all of it, a slim sheet over the globe, or just a banner. */
 export type MysteryStage = 'full' | 'mini' | 'banner';
@@ -34,10 +36,21 @@ interface State {
   bought: boolean[];             // per leg: options bought (globe legs)
   accused: string[];             // wrong suspects named
   result: CaseResult | null;
+  level?: number;                // the rank this case was played at (older saves: Senior Detective)
+  change?: CareerChange;         // promoted or stepped down by this case
 }
-const fresh = (): State => ({ phase: 'brief', at: 0, used: 0, heard: Array.from({ length: LEGS }, () => []), wrong: Array.from({ length: LEGS }, () => []), bought: Array(LEGS).fill(false), accused: [], result: null });
+const fresh = (level: number): State => {
+  const n = levelOf(level).tiers.length;
+  return { phase: 'brief', at: 0, used: 0, heard: Array.from({ length: n }, () => []), wrong: Array.from({ length: n }, () => []), bought: Array(n).fill(false), accused: [], result: null, level };
+};
 const KEY = (date: string) => `gq-mystery-${date}`;
 const STATS = 'gq-mystery-stats';
+const CAREER = 'gq-mystery-career';
+/** Your rank: on this device, and (signed in) on your account so it follows you around. */
+function loadCareer(stats: MysteryStats): Career {
+  return cleanCareer(load(CAREER)) ?? (stats.solved > 0 ? careerFromStats(stats.solved) : newCareer());
+}
+const pushCareer = (c: Career) => { if (canUseAccount(getAuth())) void api('/api/progress/mystery', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(c) }).catch(() => null); };
 const load = (k: string) => { try { return JSON.parse(localStorage.getItem(k) ?? 'null'); } catch { return null; } };
 const save = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } };
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -175,9 +188,26 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
   const date = localDate();
   const [mode, setMode] = useState<Mode>('daily');
   const [seed, setSeed] = useState(`mystery-${date}`);
-  const kase: Case = useMemo(() => (mode === 'daily' ? dailyCase(date) : makeCase(seed)), [mode, seed, date]);
-  const [st, setSt] = useState<State>(() => load(KEY(date)) ?? fresh());
   const [stats, setStats] = useState<MysteryStats>(() => ({ ...emptyMysteryStats(), ...(load(STATS) ?? {}) }));
+  const [career, setCareer] = useState<Career>(() => loadCareer(stats));
+  const [st, setSt] = useState<State>(() => load(KEY(date)) ?? fresh(career.level));
+  const caseLevel = st.level ?? 3;
+  const kase: Case = useMemo(() => (mode === 'daily' ? dailyCase(date, caseLevel) : makeCase(seed, caseLevel)), [mode, seed, date, caseLevel]);
+  const legsN = kase.legs.length;
+  // Signed in: bring the account's rank in (the newer copy wins), and start today's case at it if untouched.
+  useEffect(() => {
+    if (!canUseAccount(getAuth())) return;
+    let live = true;
+    void api('/api/progress').then((r) => r.json()).then((d) => {
+      if (!live) return;
+      const local = cleanCareer(load(CAREER));
+      const best = newerCareer(local, cleanCareer(d?.mystery)) ?? loadCareer(stats);
+      save(CAREER, best); setCareer(best);
+      if (local && best === local) pushCareer(best); // this device is ahead: catch the account up
+      setSt((s) => (s.phase === 'brief' && s.used === 0 && (s.level ?? 3) !== best.level ? fresh(best.level) : s));
+    }).catch(() => null);
+    return () => { live = false; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [notesOpen, setNotesOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [resultOpen, setResultOpen] = useState(false);
@@ -185,9 +215,9 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
   const [talk, setTalk] = useState<number | null>(null); // the witness whose bubble is open
   const [trail, setTrail] = useState(false);              // case over: looking at the trail on the globe
 
-  const left = Math.max(0, CLOCK - st.used);
+  const left = Math.max(0, kase.clock - st.used);
   const here = kase.route[st.at];
-  const leg = st.at < LEGS ? kase.legs[st.at] : null;
+  const leg = st.at < legsN ? kase.legs[st.at] : null;
   const globeLeg = st.phase === 'travel' && !!leg && !leg.options && !st.bought[st.at];
   const stage: MysteryStage = st.phase === 'flying' ? 'banner' : globeLeg || (st.phase === 'over' && trail) ? 'mini' : 'full';
   useEffect(() => { onStage(stage); }, [stage, onStage]);
@@ -198,15 +228,19 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
   useEffect(() => () => { setGlobePick(null); onRoute(null); onFocus(null); onStage('mini'); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const finish = useCallback((s: State, solved: boolean): State => {
-    const result: CaseResult = { solved, hoursLeft: Math.max(0, CLOCK - s.used), deadEnds: s.wrong.reduce((t, w) => t + w.length, 0), wrongSuspect: s.accused.length > 0 };
-    track('score', { g: 'mystery', s: solved ? result.hoursLeft : 0, of: CLOCK, m: mode });
+    const result: CaseResult = { solved, hoursLeft: Math.max(0, kase.clock - s.used), deadEnds: s.wrong.reduce((t, w) => t + w.length, 0), wrongSuspect: s.accused.length > 0 };
+    track('score', { g: 'mystery', s: solved ? result.hoursLeft : 0, of: kase.clock, m: mode, lv: kase.level });
     if (solved) window.setTimeout(() => confetti({ particleCount: 150, spread: 90, origin: { y: 0.35 }, colors: ['#fbbf24', '#fde68a', '#a5b4fc', '#f8fafc'], disableForReducedMotion: true }), 700);
     const nst = addCase(stats, mode === 'daily' ? date : null, solved, mode === 'daily' ? addDays(date, -1) : null);
     setStats(nst); save(STATS, nst);
+    // The career: merit for this case; promotion (or a step down) when it's earned.
+    const { career: nc, change } = addMerit(career, result);
+    setCareer(nc); save(CAREER, nc); pushCareer(nc);
+    if (change) track('mystery_rank', { to: nc.level, dir: change });
     onRoute(kase.route);
-    return { ...s, phase: 'over', result };
-  }, [stats, mode, date, kase, onRoute]);
-  const spend = (s: State, h: number): State => { const n = { ...s, used: s.used + h }; return CLOCK - n.used <= 0 ? finish(n, false) : n; };
+    return { ...s, phase: 'over', result, change };
+  }, [stats, career, mode, date, kase, onRoute]);
+  const spend = (s: State, h: number): State => { const n = { ...s, used: s.used + h }; return kase.clock - n.used <= 0 ? finish(n, false) : n; };
   useEffect(() => { if (st.phase === 'over') onRoute(kase.route); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const flash = (t: string) => { setToast(t); window.setTimeout(() => setToast(null), 2600); };
 
@@ -224,7 +258,7 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
       onFly(from, cca3);
       const n = spend({ ...st, phase: 'flying' }, flightHours(from, cca3));
       commit(n);
-      if (n.phase === 'flying') { const landed: State = { ...n, at: n.at + 1, phase: n.at + 1 >= LEGS ? 'lineup' : 'stop' }; window.setTimeout(() => commit(landed), 2600); }
+      if (n.phase === 'flying') { const landed: State = { ...n, at: n.at + 1, phase: n.at + 1 >= legsN ? 'lineup' : 'stop' }; window.setTimeout(() => commit(landed), 2600); }
     } else {
       if (st.wrong[st.at].includes(cca3)) return;
       track('mystery_leg', { t: leg.tier, ok: 0 });
@@ -242,7 +276,7 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
   const practice = () => {
     track('game', { g: 'mystery', m: 'practice' });
     setResultOpen(false); setTrail(false); onRoute(null);
-    setMode('practice'); setSeed(`practice-${Date.now()}`); setSt(fresh());
+    setMode('practice'); setSeed(`practice-${Date.now()}`); setSt(fresh(career.level));
   };
   const share = async () => {
     if (!st.result) return;
@@ -264,7 +298,7 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
       {stage !== 'banner' && (
         <header className="mx-top">
           <span className="gc-badge mx-badge"><HatGlasses size={15} /></span>
-          <div className="mx-top-title"><b>Solve the Mystery</b><span>{mode === 'daily' ? `Case of the Day #${dailyNumber(date)}` : 'Practice case'} · {rankFor(stats.solved).name}</span></div>
+          <div className="mx-top-title"><b>Solve the Mystery</b><span>{mode === 'daily' ? `Case of the Day #${dailyNumber(date)}` : 'Practice case'} · {levelOf(caseLevel).name}</span></div>
           {st.phase !== 'brief' && (
             <span className={`mx-clock ${left <= 12 ? 'low' : ''}`} title="Hours left on the case clock"><Clock size={13} /> <motion.b key={left} initial={{ y: -6, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>{left}</motion.b> h</span>
           )}
@@ -274,13 +308,13 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
 
       <AnimatePresence mode="wait" initial={false}>
         {/* ── Briefing ── */}
-        {st.phase === 'brief' && <Briefing key="brief" kase={kase} onStart={() => commit({ ...st, phase: 'stop' })} />}
+        {st.phase === 'brief' && <Briefing key="brief" kase={kase} career={career} onStart={() => commit({ ...st, phase: 'stop' })} />}
 
         {/* ── A stop: the scene, the witnesses, their words ── */}
         {st.phase === 'stop' && leg && (
           <Scene key={`stop-${st.at}`} cca3={here} label={st.at === 0 ? 'The crime scene' : 'You arrive in'}>
             {st.at > 0 && prevWhy.length > 0 && <Director mood="cheer" text={`Good call! ${prevWhy[0]}`} />}
-            {st.at === 0 && <Director text={`Start here, Inspector. Talk to the witnesses — each costs ${COST.interview} hours. One may describe the thief.`} />}
+            {st.at === 0 && <Director text={`Start here, ${levelOf(caseLevel).name}. Talk to the witnesses — each costs ${COST.interview} hours. One may describe the thief.`} />}
             <div className="mx-stage">
               <AnimatePresence mode="wait">
                 {talk !== null && leg.witnesses[talk] ? (
@@ -330,7 +364,7 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
             ) : (
               <>
                 <div className="mx-board" role="list" aria-label="Departures">
-                  <div className="mx-board-head"><Plane size={14} /> DEPARTURES <em>Leg {st.at + 1} of {LEGS}</em></div>
+                  <div className="mx-board-head"><Plane size={14} /> DEPARTURES <em>Leg {st.at + 1} of {legsN}</em></div>
                   {(leg.options ?? leg.extra).map((id, i) => {
                     const c = BY_CCA3.get(id)!;
                     const dead = st.wrong[st.at].includes(id);
@@ -358,14 +392,14 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
           <motion.div key="flying" className="mx-flying" initial={{ y: -40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -40, opacity: 0 }}>
             <img src={flagUrl(BY_CCA3.get(here)!.cca2, 80)} alt="" />
             <span className="mx-path"><motion.i initial={{ left: '0%' }} animate={{ left: '100%' }} transition={{ duration: 2.4, ease: 'easeInOut' }}><Plane size={16} /></motion.i></span>
-            <img src={flagUrl(BY_CCA3.get(kase.route[Math.min(st.at + 1, LEGS)])!.cca2, 80)} alt="" />
+            <img src={flagUrl(BY_CCA3.get(kase.route[Math.min(st.at + 1, legsN)])!.cca2, 80)} alt="" />
           </motion.div>
         )}
 
         {/* ── The hideout: name the thief ── */}
         {st.phase === 'lineup' && (
           <Scene key="lineup" cca3={here} label="The hideout" dim>
-            <Director mood="warn" text={`This is it — four Magpies are hiding here in ${BY_CCA3.get(here)?.capital[0]}. Check your notes and name the thief.`} />
+            <Director mood="warn" text={`This is it — ${kase.lineup.length === 3 ? 'three' : 'four'} Magpies are hiding here in ${BY_CCA3.get(here)?.capital[0]}. Check your notes and name the thief.`} />
             <div className="mx-traits">
               {(['look', 'hobby', 'ride'] as TraitKind[]).map((k) => {
                 const t = traits.find((x) => x.kind === k);
@@ -413,6 +447,7 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
               <b>{st.result.solved ? `${kase.culprit.name}, “${kase.culprit.alias}”` : 'A Magpie got away'}</b>
               <p>{st.result.solved ? `${kase.item[0].toUpperCase()}${kase.item.slice(1)} is safe — with ${st.result.hoursLeft} hours to spare.` : `${kase.item[0].toUpperCase()}${kase.item.slice(1)} is still missing. The trail taught us plenty, though.`}</p>
             </div>
+            <CareerNews change={st.change ?? null} career={career} gained={meritFor(st.result)} />
             <div className="mx-actions">
               <button className="ghost-cta" onClick={() => setTrail(true)} aria-label="See the trail on the globe"><Globe2 size={15} /> Trail</button>
               <button className="ghost-cta" onClick={practice}><RotateCcw size={15} /> New case</button>
@@ -437,7 +472,7 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
       {createPortal(
         <AnimatePresence>
           {resultOpen && st.result && (
-            <Report key="report" kase={kase} result={st.result} mode={mode} no={dailyNumber(date)} stats={stats} copied={copied}
+            <Report key="report" kase={kase} result={st.result} mode={mode} no={dailyNumber(date)} career={career} copied={copied}
               onShare={() => void share()} onPractice={practice} onClose={() => setResultOpen(false)} onTrail={() => { setResultOpen(false); setTrail(true); }} />
           )}
         </AnimatePresence>,
@@ -477,9 +512,49 @@ function Quote({ w, tail }: { w: Witness; tail: string }) {
   );
 }
 
-function Briefing({ kase, onStart }: { kase: Case; onStart: () => void }) {
+/** Your rank, and how close the next one is (merit pips). */
+function RankStrip({ career, gained }: { career: Career; gained?: number }) {
+  const lvl = levelOf(career.level);
+  const next = career.level < 5 ? levelOf(career.level + 1) : null;
+  return (
+    <div className="mx-rank">
+      <span className="mx-rank-badge" aria-hidden><Award size={18} /><b>{career.level}</b></span>
+      <span className="mx-rank-text">
+        <b>{lvl.name}{gained !== undefined && <em className={gained > 0 ? 'up' : 'down'}>{gained > 0 ? `+${gained}` : gained} merit</em>}</b>
+        <small>{lvl.blurb}</small>
+      </span>
+      {next ? (
+        <span className="mx-pips" title={`${career.merit} of ${lvl.need} merit to ${next.name}`} aria-label={`${career.merit} of ${lvl.need} merit to ${next.name}`}>
+          <span>{Array.from({ length: lvl.need }, (_, i) => <i key={i} className={i < career.merit ? 'on' : ''} />)}</span>
+          <small>to {next.name}</small>
+        </span>
+      ) : <span className="mx-pips"><small>Top rank</small></span>}
+    </div>
+  );
+}
+/** After a case: a promotion, a step down, or progress toward the next rank. */
+function CareerNews({ change, career, gained }: { change: CareerChange; career: Career; gained: number }) {
+  const lvl = levelOf(career.level);
+  if (change === 'up') return (
+    <motion.div className="mx-promo" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 1.5, type: 'spring', stiffness: 300, damping: 16 }}>
+      <span className="mx-medal" aria-hidden><Award size={26} /></span>
+      <span><em>Promoted!</em><b>You’re now a {lvl.name}</b><small>Harder cases from here: {lvl.blurb}.</small></span>
+    </motion.div>
+  );
+  if (change === 'down') return (
+    <motion.div className="mx-promo down" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.4 }}>
+      <span><em>A few easier cases</em><b>Back to {lvl.name} for now</b><small>Solve a couple and you’ll climb right back up.</small></span>
+    </motion.div>
+  );
+  return <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.4 }}><RankStrip career={career} gained={gained} /></motion.div>;
+}
+
+function Briefing({ kase, career, onStart }: { kase: Case; career: Career; onStart: () => void }) {
   const start = BY_CCA3.get(kase.start)!;
-  const text = `Inspector — last night ${kase.item} vanished from the national museum in ${start.capital[0]}. One of the Magpies took it. Follow the trail across the world: talk to witnesses, work out where the thief fled, and name them at their hideout. You have ${CLOCK} hours.`;
+  const lvl = levelOf(kase.level);
+  const rookie = career.cases === 0 && kase.level === 1;
+  const opener = rookie ? 'So you’re our new Rookie. Let’s see if you can crack this one. Last night' : `${lvl.name} — last night`;
+  const text = `${opener} ${kase.item} vanished from the national museum in ${start.capital[0]}. One of the Magpies took it. Follow the trail across the world: talk to witnesses, work out where the thief fled, and name them at their hideout. You have ${kase.clock} hours.`;
   const [shown, done, skip] = useTypewriter(text, 14);
   return (
     <motion.div className="mx-brief" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, y: -10 }} onClick={skip}>
@@ -499,7 +574,7 @@ function Briefing({ kase, onStart }: { kase: Case; onStart: () => void }) {
         <b>The theft of {kase.item}</b>
         <p>{shown}{!done && <span className="mx-caret" aria-hidden />}</p>
       </div>
-      <div className="mx-gang" aria-hidden>{SUSPECTS.slice(0, 6).map((s) => <Silhouette key={s.id} s={s} size={30} />)}<span>The Magpies</span></div>
+      <RankStrip career={career} />
       <div className="mx-actions">
         <button className="mx-go" onClick={(e) => { e.stopPropagation(); onStart(); }}>Take the case <ArrowRight size={16} /></button>
       </div>
@@ -507,8 +582,8 @@ function Briefing({ kase, onStart }: { kase: Case; onStart: () => void }) {
   );
 }
 
-function Report({ kase, result, mode, no, stats, copied, onShare, onPractice, onClose, onTrail }: {
-  kase: Case; result: CaseResult; mode: Mode; no: number; stats: MysteryStats; copied: boolean; onShare: () => void; onPractice: () => void; onClose: () => void; onTrail: () => void;
+function Report({ kase, result, mode, no, career, copied, onShare, onPractice, onClose, onTrail }: {
+  kase: Case; result: CaseResult; mode: Mode; no: number; career: Career; copied: boolean; onShare: () => void; onPractice: () => void; onClose: () => void; onTrail: () => void;
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
@@ -517,7 +592,7 @@ function Report({ kase, result, mode, no, stats, copied, onShare, onPractice, on
   }, [onClose]);
   const learned = useMemo(() => takeaway(kase), [kase]);
   const hide = BY_CCA3.get(kase.route[kase.route.length - 1])!;
-  const rank = rankFor(stats.solved), next = nextRank(stats.solved);
+  const rank = levelOf(career.level), next = career.level < 5 ? levelOf(career.level + 1) : null;
   return (
     <motion.div className="people-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
       <motion.section className="people mx-report" role="dialog" aria-modal="true" aria-label="Case report" onClick={(e) => e.stopPropagation()}
@@ -532,7 +607,7 @@ function Report({ kase, result, mode, no, stats, copied, onShare, onPractice, on
           <div className="mx-score">
             <span><b>{result.hoursLeft}</b> hours to spare</span>
             <span><b>{result.deadEnds}</b> dead end{result.deadEnds === 1 ? '' : 's'}</span>
-            <span><b>{rank.name}</b>{next ? ` · ${next.at - stats.solved} more to ${next.name}` : ''}</span>
+            <span><b>{rank.name}</b>{next ? ` · ${Math.max(0, rank.need - career.merit)} merit to ${next.name}` : ''}</span>
           </div>
         </div>
 

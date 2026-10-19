@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 import { blobEnabled, readBlobDoc, writeBlob, writeLocalFile } from './storage.js';
 
 const localFile = () => process.env.GQ_PREFS_FILE ?? '.prefs.local.json';
-type Local = Record<string, { favorites?: string[]; seen?: number }>;
+type Local = Record<string, { favorites?: string[]; seen?: number; progress?: Record<string, unknown> }>;
 const readLocal = async (): Promise<Local> => { try { return JSON.parse(await readFile(localFile(), 'utf8')); } catch { return {}; } };
 
 async function readBlob<T>(path: string): Promise<T | null> {
@@ -28,6 +28,23 @@ export async function setFavorites(user: string, favorites: string[]) {
     return;
   }
   await writeJson(`prefs/${user}.json`, { favorites });
+}
+
+// Game progress (e.g. the mystery rank), so it follows you between devices. One document per player.
+export async function getProgress(user: string): Promise<Record<string, unknown>> {
+  if (!blobEnabled()) return (await readLocal())[user]?.progress ?? {};
+  return (await readBlob<Record<string, unknown>>(`progress/${user}.json`)) ?? {};
+}
+export async function setProgress(user: string, key: string, value: unknown) {
+  const all = { ...(await getProgress(user)), [key]: value };
+  if (!blobEnabled()) {
+    const local = await readLocal();
+    local[user] = { ...local[user], progress: all };
+    await writeLocalFile(localFile(), JSON.stringify(local));
+    return all;
+  }
+  await writeJson(`progress/${user}.json`, all);
+  return all;
 }
 
 // Last seen: written at most every few minutes per player (per server instance).

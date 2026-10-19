@@ -79,6 +79,7 @@ function describe([, name, d = {}]: Event) {
     case 'signin_prompt': return 'Was asked to sign in';
     case 'reminder': return d.on ? 'Turned on the morning reminder' : 'Turned off the morning reminder';
     case 'place': return 'Saved a place';
+    case 'mystery_rank': return `Mystery: ${d.dir === 'up' ? 'promoted' : 'stepped down'} to ${(['Rookie', 'Detective', 'Senior Detective', 'Inspector', 'Master Detective'] as const)[Number(d.to) - 1] ?? 'a new rank'}`;
     case 'mystery_leg': return `Mystery, step ${d.t}: ${d.ok ? 'found the trail' : 'hit a dead end'}`;
     case 'score': return `Finished ${GAME_NAMES[d.g] ?? d.g}: ${fmtInt(Number(d.s))}${d.of ? ` / ${fmtInt(Number(d.of))}` : ' pts'}`;
     case 'match': return `Live ${GAME_NAMES[d.g] ?? d.g} match: #${d.r} of ${d.n}`;

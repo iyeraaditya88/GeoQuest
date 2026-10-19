@@ -5,6 +5,7 @@ import * as live from '../live.js';
 import * as prefs from '../prefs.js';
 import { historyFor, saveMatch, type MatchRecord } from '../matches.js';
 import { HOSTED, fail, rateLimit } from '../http.js';
+import { cleanCareer } from '../../src/lib/mysteryCareer.js';
 
 /** A game's options (level, region…): a small plain object, or none — they travel inside signed links. */
 const smallOpts = (o: unknown): Record<string, unknown> =>
@@ -30,6 +31,14 @@ export function registerLive(app: express.Express) {
     const list = (req.body as { favorites?: unknown })?.favorites;
     const favorites = [...new Set((Array.isArray(list) ? list : []).map(accounts.normName))].filter((n) => accounts.validName(n) && n !== me(req)).slice(0, 40);
     try { await prefs.setFavorites(me(req), favorites); res.json({ favorites }); } catch (err) { fail(res, 500, err); }
+  });
+
+  // Game progress (per player): currently just the mystery career.
+  app.get('/api/progress', async (req, res) => { res.json(await prefs.getProgress(me(req))); });
+  app.put('/api/progress/mystery', rateLimit(60, 10 * 60_000), async (req, res) => {
+    const career = cleanCareer(req.body);
+    if (!career) { fail(res, 400, 'Bad progress.'); return; }
+    try { await prefs.setProgress(me(req), 'mystery', career); res.json({ mystery: career }); } catch (err) { fail(res, 500, err); }
   });
 
   // Open invite links: pick a game, share the link; anyone signed in who opens it joins your lobby.

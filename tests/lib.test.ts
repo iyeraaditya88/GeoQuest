@@ -439,16 +439,20 @@ describe('wrong-guess hints', () => {
 
 describe('solve the mystery', () => {
   it('builds solvable cases: distinct stops, honest unambiguous clues, a fair line-up', async () => {
-    const { makeCase, dailyCase, LEGS } = await import('../src/lib/mystery');
+    const { makeCase, dailyCase, LEVELS } = await import('../src/lib/mystery');
     const { BY_CCA3, COUNTRIES } = await import('../src/lib/data');
     const { CURATED } = await import('../src/data/curated');
-    for (let i = 0; i < 300; i++) {
-      const c = makeCase(`test-${i}`);
-      expect(c.route).toHaveLength(LEGS + 1);
-      expect(new Set(c.route).size).toBe(LEGS + 1);
+    for (let i = 0; i < 400; i++) {
+      const lvl = LEVELS[i % 5];
+      const c = makeCase(`test-${i}`, lvl.n);
+      expect(c.level).toBe(lvl.n);
+      expect(c.clock).toBe(lvl.clock);
+      expect(c.route).toHaveLength(lvl.tiers.length + 1);
+      expect(new Set(c.route).size).toBe(lvl.tiers.length + 1);
       c.legs.forEach((leg, k) => {
         const target = BY_CCA3.get(leg.to)!;
-        expect(leg.tier).toBe(k + 1);
+        expect(leg.tier).toBe(lvl.tiers[k]);
+        expect(!!leg.options).toBe(leg.tier <= 3); // tiers 4–5: find it on the globe
         const clues = leg.witnesses.filter((w) => w.clue).map((w) => w.clue!);
         expect(clues.length).toBeGreaterThanOrEqual(2);
         for (const cl of clues) expect(cl.text).not.toContain(target.name); // never gives the answer away
@@ -466,8 +470,8 @@ describe('solve the mystery', () => {
           }
         }
       });
-      // Line-up: the culprit plus three who each differ by exactly one trait.
-      expect(c.lineup).toHaveLength(4);
+      // Line-up: the culprit plus look-alikes who each differ by exactly one trait (two for a Rookie).
+      expect(c.lineup).toHaveLength(lvl.lineup);
       expect(c.lineup).toContain(c.culprit);
       for (const s of c.lineup.filter((x) => x !== c.culprit)) {
         expect(Number(s.look !== c.culprit.look) + Number(s.hobby !== c.culprit.hobby) + Number(s.ride !== c.culprit.ride)).toBe(1);
@@ -477,14 +481,14 @@ describe('solve the mystery', () => {
       expect(new Set(traits)).toEqual(new Set(['look', 'hobby', 'ride']));
     }
     expect(dailyCase('2026-10-18')).toEqual(dailyCase('2026-10-18'));
+    expect(dailyCase('2026-10-18', 3)).toEqual(makeCase('mystery-2026-10-18')); // Senior Detective keeps the original daily
+    expect(dailyCase('2026-10-18', 1).route).toHaveLength(4);
+    expect(dailyCase('2026-10-18', 1)).toEqual(dailyCase('2026-10-18', 1));
     expect(dailyCase('2026-10-18').route).not.toEqual(dailyCase('2026-10-19').route);
     expect(COUNTRIES.length).toBeGreaterThan(0);
   });
   it('ranks, stats and the share line', async () => {
-    const { rankFor, addCase, emptyMysteryStats, caseShare, dailyCase } = await import('../src/lib/mystery');
-    expect(rankFor(0).name).toBe('Trainee');
-    expect(rankFor(3).name).toBe('Inspector');
-    expect(rankFor(20).name).toBe('Master Detective');
+    const { addCase, emptyMysteryStats, caseShare, dailyCase } = await import('../src/lib/mystery');
     let st = addCase(emptyMysteryStats(), '2026-10-17', true, '2026-10-16');
     st = addCase(st, '2026-10-18', true, '2026-10-17');
     expect(st).toMatchObject({ played: 2, solved: 2, streak: 2 });
@@ -492,5 +496,30 @@ describe('solve the mystery', () => {
     expect(addCase(st, null, true, null)).toMatchObject({ played: 3, solved: 3, streak: 2 }); // practice: no streak change
     const line = caseShare(12, dailyCase('2026-10-18'), { solved: true, hoursLeft: 31, deadEnds: 1, wrongSuspect: false });
     expect(line).toMatch(/^🕵️ GeoQuest Case #12 — solved with 31 h to spare · 1 dead end\n/);
+    expect(caseShare(12, dailyCase('2026-10-18', 1), { solved: false, hoursLeft: 0, deadEnds: 0, wrongSuspect: false })).toMatch(/^🕵️ GeoQuest Case #12 \(Rookie\) — the thief got away/);
+  });
+  it('career: promotion takes steady good work; a rough patch steps you down gently', async () => {
+    const { addMerit, newCareer, careerFromStats, cleanCareer, newerCareer, levelOf } = await import('../src/lib/mysteryCareer');
+    const clean = { solved: true, deadEnds: 0, wrongSuspect: false }, messy = { solved: true, deadEnds: 2, wrongSuspect: true }, miss = { solved: false, deadEnds: 3, wrongSuspect: false };
+    let c = newCareer();
+    expect(levelOf(c.level).name).toBe('Rookie');
+    // One clean case isn't enough: a Rookie needs 3 merit.
+    let r = addMerit(c, clean, 1); expect(r.change).toBe(null); expect(r.career).toMatchObject({ level: 1, merit: 2 });
+    r = addMerit(r.career, messy, 2); expect(r.change).toBe('up'); expect(r.career).toMatchObject({ level: 2, merit: 0, cases: 2, at: 2 });
+    c = r.career;
+    // Misses cost merit (never below 0); three in a row steps down a rank, never below Rookie.
+    r = addMerit(c, miss); r = addMerit(r.career, miss); expect(r.career).toMatchObject({ level: 2, misses: 2 });
+    r = addMerit(r.career, clean); expect(r.career.misses).toBe(0);
+    r = addMerit(r.career, miss); r = addMerit(r.career, miss); r = addMerit(r.career, miss);
+    expect(r.change).toBe('down'); expect(r.career.level).toBe(1);
+    r = addMerit(addMerit(addMerit(r.career, miss).career, miss).career, miss); expect(r.career.level).toBe(1);
+    // Top rank stays put.
+    expect(addMerit({ ...newCareer(), level: 5, merit: 40 }, clean).career.level).toBe(5);
+    // Older players start where their solved cases put them; storage is checked.
+    expect(careerFromStats(0).level).toBe(1); expect(careerFromStats(1).level).toBe(2); expect(careerFromStats(9).level).toBe(3);
+    expect(cleanCareer({ level: 9, merit: -3, misses: 'x', cases: 2.4, at: 5 })).toEqual({ level: 5, merit: 0, misses: 0, cases: 2, at: 5 });
+    expect(cleanCareer(null)).toBe(null);
+    const a = { ...newCareer(), at: 1 }, b = { ...newCareer(), level: 3 as const, at: 2 };
+    expect(newerCareer(a, b)).toBe(b); expect(newerCareer(b, a)).toBe(b); expect(newerCareer(null, a)).toBe(a);
   });
 });

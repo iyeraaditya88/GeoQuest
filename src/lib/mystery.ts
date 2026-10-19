@@ -7,10 +7,11 @@ import { CURATED } from '../data/curated';
 import { QUIZ_POOL } from './quiz';
 import { seeded } from './daily';
 import { distKm } from './quizCoach';
-import { ITEMS, RANKS, SUSPECTS, TRAITS, WITNESS, type Suspect, type TraitKind } from '../data/mysteryCast';
+import { levelOf, type LevelNo } from './mysteryCareer';
+export * from './mysteryCareer';
+import { ITEMS, SUSPECTS, TRAITS, WITNESS, type Suspect, type TraitKind } from '../data/mysteryCast';
 
-export const LEGS = 5;          // travel decisions: S0 → S1 … → S5 (the hideout)
-export const CLOCK = 96;        // hours on the case clock
+export const LEGS = 5;          // travel decisions at Senior Detective level: S0 → S1 … → S5 (the hideout)
 export const COST = { interview: 2, deadEnd: 6, wrongSuspect: 10, options: 3 } as const;
 /** Hours to fly between two countries (a short hop is still a few hours). */
 export const flightHours = (a: string, b: string) => {
@@ -31,6 +32,8 @@ export interface Leg {
 }
 export interface Case {
   seed: string;
+  level: LevelNo;
+  clock: number;
   item: string;
   start: string;              // the crime scene
   route: string[];            // [start, …, hideout]
@@ -201,31 +204,33 @@ function optionsFor(target: Country, tier: Leg['tier'], rnd: () => number, n: nu
   return picked;
 }
 
-/** Build a whole case from a seed ('mystery-2026-10-18' for the Daily). */
-export function makeCase(seed: string): Case {
+/** Build a whole case from a seed ('mystery-2026-10-18' for the Daily) at a level (rank). */
+export function makeCase(seed: string, levelNo: number = 3): Case {
+  const level = levelOf(levelNo);
   const rnd = seeded(seed);
   const item = ITEMS[Math.floor(rnd() * ITEMS.length)];
   const culprit = SUSPECTS[Math.floor(rnd() * SUSPECTS.length)];
-  // The route: famous places first, any curated country later; never the same country twice.
+  // The route: famous places on easy legs, any curated country later; never the same country twice.
   const used = new Set<string>();
   const take = (pred: (c: Country) => boolean) => {
     const c = shuffle(ROUTE_POOL.filter((x) => !used.has(x.cca3) && pred(x)), rnd)[0] ?? shuffle(ROUTE_POOL.filter((x) => !used.has(x.cca3)), rnd)[0];
     used.add(c.cca3);
     return c;
   };
+  const stopFor = (tier: Leg['tier']) => (tier === 1 ? (c: Country) => famous(c) && c.population > 20e6 : tier === 2 ? famous : tier === 3 ? () => true : (c: Country) => c.borders.length >= 2);
   const start = take((c) => c.population > 10e6);
-  const route = [start, take((c) => famous(c) && c.population > 20e6), take(famous), take(() => true), take((c) => c.borders.length >= 2), take((c) => c.borders.length >= 2)];
+  const route = [start, ...level.tiers.map((t) => take(stopFor(t)))];
 
   // Suspect traits: one per stop at the first three stops (look, hobby, ride — in a shuffled order).
   const traitOrder = shuffle<TraitKind>(['look', 'hobby', 'ride'], rnd);
 
   const legs: Leg[] = [];
-  for (let i = 1; i <= LEGS; i++) {
-    const tier = i as Leg['tier'];
+  level.tiers.forEach((tier, k) => {
+    const i = k + 1;
     const target = route[i];
     const board = tier <= 3;
     const opts = board ? optionsFor(target, tier, rnd, tier === 1 ? 2 : 3) : optionsFor(target, tier, rnd, 4);
-    const clues = cluesFor(target, tier, opts, rnd, i <= 3 ? 2 : 3);
+    const clues = cluesFor(target, tier, opts, rnd, board ? 2 : 3);
     const witnesses: Witness[] = clues.map((clue) => ({ ...WITNESS_OF(clue.kind), clue }));
     if (i <= 3) {
       const kind = traitOrder[i - 1];
@@ -238,9 +243,11 @@ export function makeCase(seed: string): Case {
       options: board ? shuffle([target, ...opts], rnd).map((c) => c.cca3) : null,
       extra: board ? [] : shuffle([target, ...opts], rnd).map((c) => c.cca3),
     });
-  }
-  const lineup = shuffle([culprit, ...SUSPECTS.filter((s) => (s.look !== culprit.look ? 1 : 0) + (s.hobby !== culprit.hobby ? 1 : 0) + (s.ride !== culprit.ride ? 1 : 0) === 1)], rnd);
-  return { seed, item, start: start.cca3, route: route.map((c) => c.cca3), legs, culprit, lineup };
+  });
+  // The line-up: the culprit and look-alikes who differ by exactly one trait (two of them for a Rookie).
+  let lineup = shuffle([culprit, ...SUSPECTS.filter((s) => (s.look !== culprit.look ? 1 : 0) + (s.hobby !== culprit.hobby ? 1 : 0) + (s.ride !== culprit.ride ? 1 : 0) === 1)], rnd);
+  if (level.lineup === 3) lineup = [culprit, ...lineup.filter((s) => s !== culprit).slice(0, 2)].sort((a, b) => lineup.indexOf(a) - lineup.indexOf(b));
+  return { seed, level: level.n, clock: level.clock, item, start: start.cca3, route: route.map((c) => c.cca3), legs, culprit, lineup };
 }
 
 const WITNESS_OF = (k: string) => WITNESS[k] ?? { role: 'Witness', icon: '👤' };
@@ -250,13 +257,11 @@ export function traitLine(kind: TraitKind, value: 0 | 1) {
 }
 export const traitLabel = (kind: TraitKind, value: 0 | 1) => (kind === 'look' ? `Wears ${TRAITS.look[value]}` : kind === 'hobby' ? `Loves ${TRAITS.hobby[value]}` : `Travels by ${TRAITS.ride[value]}`);
 
-/** The Daily case. */
-export const dailyCase = (date: string) => makeCase(`mystery-${date}`);
+/** The Daily case: the same for everyone at the same rank (Senior Detective keeps the original seed). */
+export const dailyCase = (date: string, level: number = 3) => makeCase(level === 3 ? `mystery-${date}` : `mystery-${date}-L${level}`, level);
 
 // ── Results ──
 export interface CaseResult { solved: boolean; hoursLeft: number; deadEnds: number; wrongSuspect: boolean }
-export const rankFor = (solved: number) => [...RANKS].reverse().find((r) => solved >= r.at)!;
-export const nextRank = (solved: number) => RANKS.find((r) => r.at > solved) ?? null;
 
 /** What you learned: one card per country on the trail. */
 export function takeaway(c: Case) {
@@ -275,9 +280,10 @@ export function takeaway(c: Case) {
 
 /** The share line: "🕵️ GeoQuest Case #12 — solved with 31 h to spare 🇵🇹→🇲🇦→…". */
 export function caseShare(no: number, c: Case, r: CaseResult) {
+  const rank = c.level === 3 ? '' : ` (${levelOf(c.level).name})`;
   const flag = (cc: string) => String.fromCodePoint(...[...cc.toUpperCase()].map((ch) => 0x1f1a5 + ch.charCodeAt(0)));
   const trail = c.route.map((id) => flag(BY_CCA3.get(id)!.cca2)).join('→');
-  return `🕵️ GeoQuest Case #${no} — ${r.solved ? `solved with ${r.hoursLeft} h to spare` : 'the thief got away'}${r.deadEnds ? ` · ${r.deadEnds} dead end${r.deadEnds > 1 ? 's' : ''}` : ''}\n${trail}`;
+  return `🕵️ GeoQuest Case #${no}${rank} — ${r.solved ? `solved with ${r.hoursLeft} h to spare` : 'the thief got away'}${r.deadEnds ? ` · ${r.deadEnds} dead end${r.deadEnds > 1 ? 's' : ''}` : ''}\n${trail}`;
 }
 
 // ── Stats (on this device) ──

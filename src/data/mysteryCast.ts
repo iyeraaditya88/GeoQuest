@@ -54,9 +54,3 @@ export const WITNESS: Record<string, { role: string; icon: string }> = {
   hobby: { role: 'Bookseller', icon: '📚' },
   ride: { role: 'Station guard', icon: '🚉' },
 };
-
-/** Ranks, earned by cases solved (our own ladder). */
-export const RANKS = [
-  { at: 0, name: 'Trainee' }, { at: 1, name: 'Field Agent' }, { at: 3, name: 'Inspector' },
-  { at: 7, name: 'Senior Inspector' }, { at: 15, name: 'Master Detective' },
-];
