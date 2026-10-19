@@ -33,13 +33,13 @@ export function GamesSheet({ daily, duel, onPick, onClose }: Props) {
       badge: daily.done ? <span className="gs-done" aria-label="Done today"><Check size={12} /></span> : <span className="gs-new">New</span>,
     },
     { key: 'wordle', icon: Grid3x3, name: 'Geo Wordle', line: 'Wordle, but it’s a country', tone: 'lime' },
-    { key: 'mystery', icon: HatGlasses, name: 'Solve the Mystery', line: 'Chase a thief across the world', tone: 'indigo', badge: <span className="gs-new">New</span> },
     { key: 'quiz', icon: Gamepad2, name: 'Map quiz', line: 'Find countries, flags or clues', tone: 'blue' },
     { key: 'top5', icon: ListOrdered, name: 'Name the Top 5', line: 'Rivers, peaks, populations…', tone: 'teal' },
     { key: 'trivia', icon: Brain, name: 'Geo Trivia', line: 'Gets harder as you get better', tone: 'violet' },
     { key: 'shapes', icon: Shapes, name: 'Guess the Country', line: 'Name it from its outline', tone: 'rose' },
     { key: 'street', icon: Binoculars, name: 'Street View', line: 'Where in the world are you?', tone: 'green' },
     { key: 'capitals', icon: Landmark, name: 'Capitals', line: 'Country ↔ capital, 10 a round', tone: 'amber' },
+    { key: 'mystery', icon: HatGlasses, name: 'Solve the Mystery', line: 'Chase a thief across the world', tone: 'indigo', badge: <span className="gs-new">New</span> },
   ];
   if (duel) games.push({ key: 'duel', icon: Swords, name: 'Duel a friend', line: duel === 'play' ? 'Live, head-to-head' : 'Sign in to play friends live', tone: 'pink' });
 

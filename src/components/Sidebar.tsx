@@ -144,13 +144,13 @@ export function Sidebar(p: Props) {
             {rail && p.onFriends && <Item icon={Swords} label="Duel a friend" rail onClick={act(p.onFriends)} active={p.matchOn} tone="pink" />}
             {rail && p.onInvite && <Item icon={Link2} label="Invite with a link" rail onClick={act(p.onInvite)} />}
             <Item icon={Grid3x3} tone="lime" label={'Geo Wordle'} sub={'Wordle, but it’s a country'} rail={rail} active={p.playOn === 'wordle'} onClick={act(p.onWordle)} />
-            <Item icon={HatGlasses} tone="indigo" label="Solve the Mystery" sub="Chase a thief across the world" rail={rail} active={p.playOn === 'mystery'} onClick={act(p.onMystery)} />
             <Item icon={Gamepad2} tone="blue" label={'Map quiz'} sub={'Find countries, flags or clues'} rail={rail} active={p.quizOn} onClick={act(p.onQuiz)} />
             <Item icon={ListOrdered} tone="teal" label={'Name the Top 5'} sub={'Rivers, peaks, populations…'} rail={rail} active={p.playOn === 'top5'} onClick={act(p.onTop5)} />
             <Item icon={Brain} tone="violet" label={'Geo Trivia'} sub={'Gets harder as you get better'} rail={rail} active={p.playOn === 'trivia'} onClick={act(p.onTrivia)} />
             <Item icon={Shapes} tone="rose" label={'Guess the Country'} sub={'Name it from its outline'} rail={rail} active={p.playOn === 'shapes'} onClick={act(p.onShapes)} />
             <Item icon={Binoculars} tone="green" label="Street View" sub="Where in the world are you?" rail={rail} onClick={act(p.onStreet)} />
             <Item icon={Landmark} tone="amber" label={'Capitals'} sub={'Country ↔ capital, 10 a round'} rail={rail} active={p.playOn === 'capitals'} onClick={act(p.onCapitals)} />
+            <Item icon={HatGlasses} tone="indigo" label="Solve the Mystery" sub="Chase a thief across the world" rail={rail} active={p.playOn === 'mystery'} onClick={act(p.onMystery)} />
           </Section>
 
           <Section title="Explore" rail={rail}>
