@@ -1,7 +1,7 @@
 // The live match on screen: lobby → 3-2-1 → questions with a live scoreboard → podium.
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowRight, Copy, Share2, Binoculars, Brain, Check, Crown, Flag, Gamepad2, Heart, Landmark, Lightbulb, ListOrdered, Loader2, LogOut, RotateCcw, Sparkles, Swords, X } from 'lucide-react';
+import { ArrowRight, Copy, Share2, Binoculars, Brain, Check, Crown, Flag, Gamepad2, Heart, Landmark, Lightbulb, ListOrdered, Loader2, LogOut, RotateCcw, Sparkles, Swords, X, Zap } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import { GAMES, INVITE_MS, QUIZ_MODES, speedPoints, type GameId, type Invite, type MatchSession, type Player, type Script, type Snapshot } from '../lib/match';
@@ -93,6 +93,30 @@ export function MatchOverlay({ session, snap, ai, globe, clickRef, onImmersive, 
     buzz(good ? 'good' : 'bad');
   }, [mine]);
 
+  // Pressure: the moment a rival locks in an answer, say so (a knock and a buzz if I'm still thinking).
+  const [alerts, setAlerts] = useState<{ id: number; name: string; left: number }[]>([]);
+  const seen = useRef<{ qi: number; names: Set<string> }>({ qi: -1, names: new Set() });
+  const got = s.answers[s.qi] ?? {};
+  const rivals = s.players.filter((p) => p.name !== s.me && p.status === 'joined');
+  const rivalsIn = rivals.filter((p) => got[p.name]).length;
+  const allIn = s.phase === 'question' && !mine && rivals.length > 0 && rivalsIn === rivals.length;
+  useEffect(() => {
+    if (seen.current.qi !== s.qi) { seen.current = { qi: s.qi, names: new Set(Object.keys(got)) }; setAlerts([]); return; }
+    if (s.phase !== 'question') return;
+    const fresh = Object.keys(got).filter((n) => n !== s.me && !seen.current.names.has(n));
+    if (!fresh.length) return;
+    fresh.forEach((n) => seen.current.names.add(n));
+    if (!got[s.me]) { music.sfx('rival'); buzz('rival'); }
+    const left = rivals.length - rivals.filter((p) => got[p.name]).length;
+    setAlerts((xs) => [...xs, ...fresh.map((name, k) => ({ id: Date.now() + k, name, left }))].slice(-3));
+  }, [s.qi, s.phase, got]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!alerts.length) return;
+    const t = window.setTimeout(() => setAlerts((xs) => xs.slice(1)), 2600);
+    return () => window.clearTimeout(t);
+  }, [alerts]);
+  useEffect(() => { if (allIn) music.intensity(2); }, [allIn]);
+
   // Esc leaves (twice while playing — no accidental exits).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !(e.target as HTMLElement)?.closest?.('input')) leave(); };
@@ -109,7 +133,23 @@ export function MatchOverlay({ session, snap, ai, globe, clickRef, onImmersive, 
         <Stage s={s} script={s.script} session={session} ai={ai} globe={globe} clickRef={clickRef} onImmersive={onImmersive} onLeave={leave} />
       )}
       <AnimatePresence>{s.phase === 'countdown' && <Countdown key="cd" s={s} />}</AnimatePresence>
-      {playing && <Hud s={s} confirmLeave={confirmLeave} onLeave={leave} />}
+      {playing && <Hud s={s} confirmLeave={confirmLeave} onLeave={leave} pressure={allIn} />}
+      {s.phase === 'question' && (
+        <div className={`mt-alerts ${s.game === 'street' ? 'top' : ''}`} role="status" aria-live="polite">
+          <AnimatePresence>
+            {allIn ? (
+              <motion.div key="allin" className="mt-alert all" initial={{ y: 14, opacity: 0, scale: 0.9 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ type: 'spring', stiffness: 420, damping: 22 }}>
+                <Zap size={15} /> {rivals.length === 1 ? `${rivals[0].name} has answered` : 'Everyone else has answered'} — your move!
+              </motion.div>
+            ) : alerts.map((a) => (
+              <motion.div key={a.id} layout className={`mt-alert ${mine ? 'calm' : ''}`} initial={{ y: 14, opacity: 0, scale: 0.9 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: -8, opacity: 0 }} transition={{ type: 'spring', stiffness: 420, damping: 24 }}>
+                <span className="pp-avatar member">{a.name[0]?.toUpperCase()}</span>
+                <span><b>{a.name}</b> locked in{!mine && a.left > 0 ? ` · ${a.left} still thinking` : ''}</span>{!mine && <Zap size={13} />}
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+      )}
       <AnimatePresence>
         {!connected && s.phase !== 'done' && s.phase !== 'aborted' && (
           <motion.div className="mt-conn" role="status" initial={{ y: -16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -16, opacity: 0 }}>
@@ -202,7 +242,7 @@ function Countdown({ s }: { s: Snapshot }) {
 }
 
 // ── Scoreboard ──
-function Hud({ s, confirmLeave, onLeave }: { s: Snapshot; confirmLeave: boolean; onLeave: () => void }) {
+function Hud({ s, confirmLeave, onLeave, pressure }: { s: Snapshot; confirmLeave: boolean; onLeave: () => void; pressure: boolean }) {
   const now = useNow(s.phase === 'question', 200);
   const total = s.script?.qs.length ?? GAMES[s.game].n;
   const ms = GAMES[s.game].ms;
@@ -214,7 +254,7 @@ function Hud({ s, confirmLeave, onLeave }: { s: Snapshot; confirmLeave: boolean;
   const ranked = [...s.players].filter((p) => p.status === 'joined' || p.status === 'left').sort((a, b) => shown(b) - shown(a));
   return (
     <motion.div className={`mt-hud ${s.game === 'street' ? 'top' : ''}`} initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0 }} transition={{ type: 'spring', stiffness: 320, damping: 30 }}>
-      <div className={`mt-clock ${left < 5000 && s.phase === 'question' ? 'hurry' : ''}`} title="Time left">
+      <div className={`mt-clock ${(left < 5000 || pressure) && s.phase === 'question' ? 'hurry' : ''}`} title="Time left">
         <svg viewBox="0 0 36 36" aria-hidden><circle cx="18" cy="18" r={R} className="bg" /><circle cx="18" cy="18" r={R} className="fg" strokeDasharray={C} strokeDashoffset={C * (1 - left / ms)} /></svg>
         <span>{s.phase === 'question' ? Math.ceil(left / 1000) : s.phase === 'reveal' ? '✓' : '·'}</span>
       </div>
@@ -223,11 +263,11 @@ function Hud({ s, confirmLeave, onLeave }: { s: Snapshot; confirmLeave: boolean;
         {ranked.map((p, i) => {
           const a = got[p.name];
           return (
-            <motion.li key={p.name} layout transition={{ type: 'spring', stiffness: 400, damping: 34 }} className={`${p.name === s.me ? 'me' : ''} ${p.status === 'left' ? 'gone' : ''}`}>
+            <motion.li key={p.name} layout transition={{ type: 'spring', stiffness: 400, damping: 34 }} className={`${p.name === s.me ? 'me' : ''} ${p.status === 'left' ? 'gone' : ''} ${a && s.phase === 'question' && p.name !== s.me ? 'locked' : ''}`}>
               <span className="pp-avatar member">{i === 0 && shown(p) > 0 ? <Crown size={12} /> : p.name[0]?.toUpperCase()}</span>
               <span className="mt-name">{p.name === s.me ? 'You' : p.name}</span>
               <b className="mt-score">{shown(p).toLocaleString('en-US')}</b>
-              <span className={`mt-ans ${a ? (s.phase === 'reveal' ? (a.ok ? 'ok' : 'no') : 'in') : s.phase === 'question' && p.status === 'joined' ? 'wait' : ''}`}>
+              <span key={a && s.phase === 'question' ? 'in' : 'x'} className={`mt-ans ${a ? (s.phase === 'reveal' ? (a.ok ? 'ok' : 'no') : 'in') : s.phase === 'question' && p.status === 'joined' ? 'wait' : ''}`}>
                 {a ? (s.phase === 'reveal' ? (a.pts ? `+${a.pts}` : '0') : <Check size={11} strokeWidth={3} />) : null}
               </span>
             </motion.li>

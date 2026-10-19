@@ -2920,3 +2920,21 @@ svg.vy-flag { color: #2dd4bf; }
 .t5-done .t5-verdict, .cap-done .t5-verdict { flex: 1 0 calc(100% - 80px); }
 .t5-done .share-sm, .cap-done .share-sm { margin-left: 0; height: 40px; padding: 0 16px; }
 .t5-done .share-sm ~ .primary, .cap-done .share-sm ~ .primary { flex: 1 1 auto; justify-content: center; height: 40px; }
+
+/* Duels: a rival just locked in an answer (pressure!) */
+.mt-alerts { position: fixed; z-index: 33; left: calc(var(--li) + (100vw - var(--li) - var(--ri)) / 2); translate: -50% 0; bottom: calc(84px + var(--sb)); display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; width: max-content; max-width: calc(100vw - 24px); }
+.mt-alerts.top { top: calc(122px + var(--st)); bottom: auto; flex-direction: column-reverse; }
+.mt-alert { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 6px; border-radius: 999px; font-size: 13.5px; color: #1a1205; background: linear-gradient(135deg, #fde68a, #fbbf24); box-shadow: 0 10px 26px -10px rgba(251, 191, 36, 0.9); white-space: nowrap; }
+.mt-alert .pp-avatar { width: 24px; height: 24px; font-size: 11px; color: #fff; background: #1e1b4b; }
+.mt-alert svg { flex: none; }
+.mt-alert.calm { color: var(--text); background: rgba(15, 23, 42, 0.92); box-shadow: inset 0 0 0 1px var(--line); font-size: 12.5px; }
+.mt-alert.all { padding: 8px 16px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #f97316, #dc2626); box-shadow: 0 12px 30px -10px rgba(239, 68, 68, 0.9); animation: mt-urge 1s ease-in-out infinite; }
+@keyframes mt-urge { 50% { transform: scale(1.05); } }
+.mt-board li.locked { box-shadow: inset 0 0 0 1.5px var(--green), 0 0 14px -4px var(--green); }
+.mt-ans.in { animation: mt-pop 0.45s cubic-bezier(0.3, 1.6, 0.5, 1); }
+@keyframes mt-pop { 0% { transform: scale(0.2); } 100% { transform: scale(1); } }
+@media (max-width: 600px) {
+  .mt-alerts { left: 50%; bottom: calc(74px + var(--sb)); }
+  .mt-alerts.top { top: calc(116px + var(--st)); }
+}
+@media (prefers-reduced-motion: reduce) { .mt-alert.all, .mt-ans.in { animation: none; } }

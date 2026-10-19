@@ -131,9 +131,13 @@ class Engine {
   }
 
   /** A short chime: up for right, down for wrong. */
-  sfx(kind: 'good' | 'bad') {
+  sfx(kind: 'good' | 'bad' | 'rival') {
     void this.ctx.resume();
     const t = this.ctx.currentTime + 0.01;
+    if (kind === 'rival') { // a rival locked in: two quick, urgent knocks
+      [84, 84].forEach((n, i) => this.voice(hz(n), t + i * 0.11, 0.07, 'square', 0.07, this.ctx.destination));
+      return;
+    }
     const notes = kind === 'good' ? [76, 81] : [64, 60];
     notes.forEach((n, i) => this.voice(hz(n), t + i * 0.09, 0.32, 'triangle', 0.19, this.ctx.destination));
   }
@@ -318,7 +322,7 @@ export const music = {
     if (unlocked && !musicMuted()) engine?.start();
   },
   intensity(n: number) { if (engine && engine.intensity !== n) engine.setIntensity(n); },
-  sfx(kind: 'good' | 'bad') { if (!musicMuted()) get()?.sfx(kind); },
+  sfx(kind: 'good' | 'bad' | 'rival') { if (!musicMuted()) get()?.sfx(kind); },
   stop() { engine?.stop(); },
   setMuted(off: boolean) {
     try { localStorage.setItem(KEY, off ? 'off' : 'on'); } catch { /* ignore */ }
