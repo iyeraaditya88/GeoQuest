@@ -571,3 +571,17 @@ describe('sharing', () => {
     expect(wordleShare(null, [['g', 'y', 'b', 'b', 'g']], true, 1)).toBe('GeoQuest Wordle bonus 1/6 💡1\n🟩🟨⬛⬛🟩');
   });
 });
+
+describe('music scheduler', () => {
+  it('skips notes it woke up too late for, instead of playing them all at once', async () => {
+    const { catchUp } = await import('../src/lib/music');
+    // On time: nothing changes.
+    expect(catchUp(10, 5.0, 4.9, 0.17)).toEqual({ step: 10, nextTime: 5.0 });
+    // Woke 1 s late (the phone was busy): jump ahead on the beat grid, no pile-up of old notes.
+    const r = catchUp(10, 5.0, 6.0, 0.25);
+    expect(r.step).toBe(14);
+    expect(r.nextTime).toBeCloseTo(6.0);
+    expect(r.nextTime).toBeGreaterThanOrEqual(6.0);
+  });
+});
+

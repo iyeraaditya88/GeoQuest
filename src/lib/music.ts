@@ -25,6 +25,21 @@ const PROGRESSIONS = [
 ];
 const PENTATONIC = [72, 74, 76, 79, 81, 84];
 const hz = (midi: number) => 440 * Math.pow(2, (midi - 69) / 12);
+/** How far ahead notes are scheduled, and how often the scheduler wakes. Generous, so a busy
+ *  phone (the 3D globe drawing, a game screen opening) never starves the music. */
+const LOOKAHEAD = 0.45, WAKE_MS = 60;
+/**
+ * The scheduler woke up late (the phone was busy, or the page was in the background): skip the
+ * notes whose time has passed instead of playing them all at once — that pile-up was the "burst"
+ * heard on Android. Returns the next step and its time, on the beat grid.
+ */
+export function catchUp(step: number, nextTime: number, now: number, stepLen: number) {
+  if (nextTime >= now) return { step, nextTime };
+  const missed = Math.ceil((now - nextTime) / stepLen);
+  return { step: step + missed, nextTime: nextTime + missed * stepLen };
+}
+/** iPhone and iPad (incl. iPads that report as a Mac): the only devices needing the silent-loop workaround. */
+const IOS = typeof navigator !== 'undefined' && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 
 class Engine {
   private ctx: AudioContext;
@@ -44,7 +59,9 @@ class Engine {
 
   constructor() {
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    this.ctx = new Ctx();
+    // 'playback': a larger audio buffer. The default (lowest latency) leaves Android phones, with
+    // the globe drawing at the same time, running out of audio mid-buffer — heard as crackling.
+    try { this.ctx = new Ctx({ latencyHint: 'playback' }); } catch { this.ctx = new Ctx(); }
     // Tell the music button when sound actually starts or stops (e.g. "waiting for a tap").
     this.ctx.addEventListener?.('statechange', () => notify());
     this.master = this.ctx.createGain();
@@ -87,7 +104,7 @@ class Engine {
     this.playing = true;
     if (this.timer) return;
     this.nextTime = this.ctx.currentTime + 0.05;
-    this.timer = window.setInterval(() => this.schedule(), 25);
+    this.timer = window.setInterval(() => this.schedule(), WAKE_MS);
   }
 
   stop(fade = 1.2) {
@@ -150,7 +167,9 @@ class Engine {
   }
 
   private schedule() {
-    while (this.nextTime < this.ctx.currentTime + 0.12) {
+    const now = this.ctx.currentTime;
+    ({ step: this.step, nextTime: this.nextTime } = catchUp(this.step, this.nextTime, now + 0.02, this.stepLen()));
+    while (this.nextTime < now + LOOKAHEAD) {
       if (this.mode === 'explore') this.playExplore(this.step, this.nextTime);
       else this.playMatch(this.step, this.nextTime);
       this.nextTime += this.stepLen();
@@ -282,6 +301,7 @@ function silentWav() {
 const hasAudioSession = () => typeof navigator !== 'undefined' && 'audioSession' in navigator;
 function notify() { emit(); }
 function mediaPlayback(on: boolean) {
+  if (!IOS) return; // Android and desktop play Web Audio fine on their own (a second audio stream only adds glitches)
   try { const s = (navigator as unknown as { audioSession?: { type: string } }).audioSession; if (s && on) s.type = 'playback'; } catch { /* unsupported */ }
   try {
     if (!on) { silentEl?.pause(); return; }
@@ -307,7 +327,7 @@ export const music = {
   unlock() {
     unlocked = true;
     if (musicMuted()) { emit(); return; }
-    if (engine?.running && engine.playing && silentEl && !silentEl.paused) return; // already playing
+    if (engine?.running && engine.playing && (!IOS || (silentEl && !silentEl.paused))) return; // already playing
     mediaPlayback(true);
     get()?.start();
     emit();
