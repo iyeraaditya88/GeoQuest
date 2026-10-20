@@ -155,6 +155,12 @@ const TIER_KINDS: Record<Leg['tier'], ClueKind[]> = {
 /** Fallbacks if a country lacks a tier's clues (keeps every leg solvable). */
 const FALLBACK: ClueKind[] = ['neighbours', 'currency', 'language', 'capital'];
 
+/** Would this clue give the answer away? Its name, or its stem ("Canadian Rockies", "Mexican pesos"). */
+export const namesIt = (text: string, c: Country) => {
+  const t = text.toLowerCase();
+  const stem = c.name.toLowerCase().slice(0, Math.min(5, c.name.length));
+  return t.includes(c.name.toLowerCase()) || t.includes(stem);
+};
 /** Does this set of clues point to `target` alone among all countries? */
 const pinsDown = (clues: Clue[], target: Country) => !POOL.some((o) => o.cca3 !== target.cca3 && clues.every((c) => BUILDERS[c.kind].fits(c, o)));
 
@@ -167,7 +173,7 @@ function cluesFor(target: Country, tier: Leg['tier'], others: Country[], rnd: ()
   const all = Object.keys(BUILDERS) as ClueKind[];
   const order = [...shuffle(TIER_KINDS[tier], rnd), ...FALLBACK, ...shuffle(all, rnd)].filter((k, i, xs) => xs.indexOf(k) === i && !not.includes(k));
   const out: Clue[] = [];
-  const make = (k: ClueKind) => { const c = BUILDERS[k].make(target); return c && !c.text.includes(target.name) ? c : null; };
+  const make = (k: ClueKind) => { const c = BUILDERS[k].make(target); return c && !namesIt(c.text, target) ? c : null; };
   // 1. Clues that rule out every other option.
   for (const k of order) {
     if (out.length >= want) break;
@@ -191,16 +197,16 @@ function cluesFor(target: Country, tier: Leg['tier'], others: Country[], rnd: ()
   return out;
 }
 
-/** Wrong answers for the board: from far away on easy legs, close by on hard ones. */
+/** Wrong answers for the board: always from the same part of the world (nearer still on hard legs). */
 function optionsFor(target: Country, tier: Leg['tier'], rnd: () => number, n: number): Country[] {
   const pool = shuffle(POOL.filter((c) => c.cca3 !== target.cca3), rnd);
-  const ok = (c: Country) => tier === 1 ? continentOf(c) !== continentOf(target) && famous(c)
-    : tier === 2 ? c.subregion !== target.subregion && famous(c)
-      : tier === 3 ? continentOf(c) === continentOf(target)
-        : c.subregion === target.subregion || continentOf(c) === continentOf(target);
+  // Decoys from the same part of the world, so a clue takes real knowing ("Warsaw" among Poland,
+  // Czechia and Hungary — not among Poland, Peru and Japan). Harder legs go nearer still.
+  const sameCont = (c: Country) => continentOf(c) === continentOf(target);
+  const sameSub = (c: Country) => c.subregion === target.subregion;
+  const tiers: ((c: Country) => boolean)[] = tier <= 2 ? [(c) => sameCont(c) && famous(c), sameCont] : [sameSub, sameCont];
   const picked: Country[] = [];
-  for (const c of pool) { if (picked.length >= n) break; if (ok(c)) picked.push(c); }
-  for (const c of pool) { if (picked.length >= n) break; if (!picked.includes(c)) picked.push(c); }
+  for (const pred of [...tiers, () => true]) for (const c of pool) { if (picked.length >= n) break; if (pred(c) && !picked.includes(c)) picked.push(c); }
   return picked;
 }
 

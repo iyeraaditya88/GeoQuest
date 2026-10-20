@@ -447,7 +447,7 @@ describe('wrong-guess hints', () => {
 
 describe('solve the mystery', () => {
   it('builds solvable cases: distinct stops, honest unambiguous clues, a fair line-up', async () => {
-    const { makeCase, dailyCase, LEVELS } = await import('../src/lib/mystery');
+    const { makeCase, dailyCase, LEVELS, namesIt } = await import('../src/lib/mystery');
     const { BY_CCA3, COUNTRIES } = await import('../src/lib/data');
     const { CURATED } = await import('../src/data/curated');
     for (let i = 0; i < 400; i++) {
@@ -463,7 +463,7 @@ describe('solve the mystery', () => {
         expect(!!leg.options).toBe(leg.tier <= 3); // tiers 4–5: find it on the globe
         const clues = leg.witnesses.filter((w) => w.clue).map((w) => w.clue!);
         expect(clues.length).toBeGreaterThanOrEqual(2);
-        for (const cl of clues) expect(cl.text).not.toContain(target.name); // never gives the answer away
+        for (const cl of clues) expect(namesIt(cl.text, target)).toBe(false); // never gives the answer away (not even "Canadian Rockies")
         if (leg.options) {
           expect(new Set(leg.options).size).toBe(leg.options.length);
           expect(leg.options).toContain(leg.to);
@@ -515,23 +515,34 @@ describe('solve the mystery', () => {
     expect(caseShare(null, kase, { solved: true, hoursLeft: 9, deadEnds: 0, wrongSuspect: false })).toMatch(/^🕵️ GeoQuest mystery — solved/);
     expect(caseShare(12, dailyCase('2026-10-18', 1), { solved: false, hoursLeft: 0, deadEnds: 0, wrongSuspect: false })).toMatch(/^🕵️ GeoQuest Case #12 \(Rookie\) — the thief got away/);
   });
-  it('career: promotion takes steady good work; a rough patch steps you down gently', async () => {
-    const { addMerit, newCareer, careerFromStats, cleanCareer, newerCareer, levelOf } = await import('../src/lib/mysteryCareer');
-    const clean = { solved: true, deadEnds: 0, wrongSuspect: false }, messy = { solved: true, deadEnds: 2, wrongSuspect: true }, miss = { solved: false, deadEnds: 3, wrongSuspect: false };
+  it('career: the next case follows how easily the last one was cracked', async () => {
+    const { addMerit, rateCase, newCareer, careerFromStats, cleanCareer, newerCareer, levelOf } = await import('../src/lib/mysteryCareer');
+    const fast = { solved: true, hoursLeft: 40, deadEnds: 0, wrongSuspect: false };   // 40 of 72 left, clean
+    const ok = { solved: true, hoursLeft: 30, deadEnds: 1, wrongSuspect: false };     // 30 of 72, one dead end
+    const scraped = { solved: true, hoursLeft: 6, deadEnds: 2, wrongSuspect: true };
+    const miss = { solved: false, hoursLeft: 0, deadEnds: 3, wrongSuspect: false };
+    expect(rateCase(fast, 72)).toEqual({ score: 100, grade: 'brilliant' });
+    expect(rateCase(ok, 72).grade).toBe('solid');
+    expect(rateCase(scraped, 72)).toEqual({ score: 0, grade: 'close' });
+    expect(rateCase(miss, 72).grade).toBe('escaped');
     let c = newCareer();
     expect(levelOf(c.level).name).toBe('Rookie');
-    // One clean case isn't enough: a Rookie needs 3 merit.
-    let r = addMerit(c, clean, 1); expect(r.change).toBe(null); expect(r.career).toMatchObject({ level: 1, merit: 2 });
-    r = addMerit(r.career, messy, 2); expect(r.change).toBe('up'); expect(r.career).toMatchObject({ level: 2, merit: 0, cases: 2, at: 2 });
+    // Brilliant: straight up a rank.
+    let r = addMerit(c, fast, 72, 1); expect(r.change).toBe('up'); expect(r.career).toMatchObject({ level: 2, merit: 0, cases: 1, at: 1 });
+    // Solid: one step; two solid cases at a rank and you're up. A close call holds.
     c = r.career;
-    // Misses cost merit (never below 0); three in a row steps down a rank, never below Rookie.
-    r = addMerit(c, miss); r = addMerit(r.career, miss); expect(r.career).toMatchObject({ level: 2, misses: 2 });
-    r = addMerit(r.career, clean); expect(r.career.misses).toBe(0);
-    r = addMerit(r.career, miss); r = addMerit(r.career, miss); r = addMerit(r.career, miss);
-    expect(r.change).toBe('down'); expect(r.career.level).toBe(1);
-    r = addMerit(addMerit(addMerit(r.career, miss).career, miss).career, miss); expect(r.career.level).toBe(1);
+    r = addMerit(c, ok, 72); expect(r.change).toBe(null); expect(r.career).toMatchObject({ level: 2, merit: 1 });
+    r = addMerit(r.career, scraped, 72); expect(r.career).toMatchObject({ level: 2, merit: 1 });
+    r = addMerit(r.career, ok, 72); expect(r.change).toBe('up'); expect(r.career.level).toBe(3);
+    // Escaping twice in a row steps down a rank (never below Rookie); a solve in between resets it.
+    r = addMerit(r.career, miss, 96); expect(r.career).toMatchObject({ level: 3, misses: 1 });
+    r = addMerit(r.career, scraped, 96); expect(r.career.misses).toBe(0);
+    r = addMerit(addMerit(r.career, miss, 96).career, miss, 96); expect(r.change).toBe('down'); expect(r.career.level).toBe(2);
+    expect(addMerit(addMerit(newCareer(), miss, 72).career, miss, 72).career.level).toBe(1);
     // Top rank stays put.
-    expect(addMerit({ ...newCareer(), level: 5, merit: 40 }, clean).career.level).toBe(5);
+    expect(addMerit({ ...newCareer(), level: 5 }, fast, 100).career.level).toBe(5);
+    // Every rank asks more than capitals: even a Rookie gets a tier-3 (rivers, peaks) leg.
+    expect(Math.max(...levelOf(1).tiers)).toBeGreaterThanOrEqual(3);
     // Older players start where their solved cases put them; storage is checked.
     expect(careerFromStats(0).level).toBe(1); expect(careerFromStats(1).level).toBe(2); expect(careerFromStats(9).level).toBe(3);
     expect(cleanCareer({ level: 9, merit: -3, misses: 'x', cases: 2.4, at: 5 })).toEqual({ level: 5, merit: 0, misses: 0, cases: 2, at: 5 });

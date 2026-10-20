@@ -6,8 +6,8 @@ import confetti from 'canvas-confetti';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import { addDays, localDate, dailyNumber } from '../lib/daily';
 import {
-  COST, addCase, addMerit, meritFor, careerFromStats, caseShare, cleanCareer, dailyCase, emptyMysteryStats, flightHours, levelOf, makeCase, newCareer, newerCareer, takeaway, traitLabel,
-  type Career, type CareerChange, type Case, type CaseResult, type MysteryStats, type Witness,
+  COST, addCase, addMerit, careerFromStats, caseShare, cleanCareer, dailyCase, emptyMysteryStats, flightHours, levelOf, makeCase, newCareer, newerCareer, takeaway, traitLabel,
+  type Career, type CareerChange, type Grade, type Case, type CaseResult, type MysteryStats, type Witness,
 } from '../lib/mystery';
 import { TAUNTS, TRAITS, type Suspect, type TraitKind } from '../data/mysteryCast';
 import { wikiPhoto } from '../lib/wiki';
@@ -39,11 +39,13 @@ interface State {
   accused: string[];             // wrong suspects named
   result: CaseResult | null;
   level?: number;                // the rank this case was played at (older saves: Senior Detective)
+  v?: number;                    // case-engine version the save was made with (see ENGINE)
   change?: CareerChange;         // promoted or stepped down by this case
+  rating?: { score: number; grade: Grade }; // how easily it was cracked (sets the next case's level)
 }
 const fresh = (level: number): State => {
   const n = levelOf(level).tiers.length;
-  return { phase: 'brief', at: 0, used: 0, heard: Array.from({ length: n }, () => []), wrong: Array.from({ length: n }, () => []), bought: Array(n).fill(false), accused: [], result: null, level };
+  return { v: ENGINE, phase: 'brief', at: 0, used: 0, heard: Array.from({ length: n }, () => []), wrong: Array.from({ length: n }, () => []), bought: Array(n).fill(false), accused: [], result: null, level };
 };
 /** After a flight: at the next stop (or the hideout's line-up). */
 const landedState = (s: State, legs: number): State => ({ ...s, at: s.at + 1, phase: s.at + 1 >= legs ? 'lineup' : 'stop' });
@@ -52,6 +54,8 @@ const flightSeconds = (hours: number) => Math.min(3.6, 1.7 + (hours - 2) * 0.25)
 /** The camera's move to the departure city before the jet sets off (GlobeView's sail). */
 const TAKEOFF = 1100;
 interface Flight { from: string; to: string; hours: number; ms: number; at: number }
+/** Bump when case generation changes: a save from mid-case on an older engine starts over cleanly. */
+const ENGINE = 2;
 const KEY = (date: string) => `gq-mystery-${date}`;
 const STATS = 'gq-mystery-stats';
 const CAREER = 'gq-mystery-career';
@@ -200,7 +204,7 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
   const [stats, setStats] = useState<MysteryStats>(() => ({ ...emptyMysteryStats(), ...(load(STATS) ?? {}) }));
   const [career, setCareer] = useState<Career>(() => loadCareer(stats));
   // A save from mid-flight (the app was closed in the air) lands you at the next stop.
-  const [st, setSt] = useState<State>(() => { const s = load(KEY(date)) as State | null; return s ? (s.phase === 'flying' ? landedState(s, levelOf(s.level ?? 3).tiers.length) : s) : fresh(career.level); });
+  const [st, setSt] = useState<State>(() => { const s = load(KEY(date)) as State | null; if (!s || (s.v !== ENGINE && s.phase !== 'over')) return fresh(career.level); return s.phase === 'flying' ? landedState(s, levelOf(s.level ?? 3).tiers.length) : s; });
   const caseLevel = st.level ?? 3;
   const kase: Case = useMemo(() => (mode === 'daily' ? dailyCase(date, caseLevel) : makeCase(seed, caseLevel)), [mode, seed, date, caseLevel]);
   const legsN = kase.legs.length;
@@ -245,11 +249,11 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
     const nst = addCase(stats, mode === 'daily' ? date : null, solved, mode === 'daily' ? addDays(date, -1) : null);
     setStats(nst); save(STATS, nst);
     // The career: merit for this case; promotion (or a step down) when it's earned.
-    const { career: nc, change } = addMerit(career, result);
+    const { career: nc, change, score, grade } = addMerit(career, result, kase.clock);
     setCareer(nc); save(CAREER, nc); pushCareer(nc);
     if (change) track('mystery_rank', { to: nc.level, dir: change });
     onRoute(kase.route);
-    return { ...s, phase: 'over', result, change };
+    return { ...s, phase: 'over', result, change, rating: { score, grade } };
   }, [stats, career, mode, date, kase, onRoute]);
   const spend = (s: State, h: number): State => { const n = { ...s, used: s.used + h }; return kase.clock - n.used <= 0 ? finish(n, false) : n; };
   useEffect(() => { if (st.phase === 'over') onRoute(kase.route); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -392,9 +396,8 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
                     return (
                       <motion.button key={id} role="listitem" className={`mx-row ${dead ? 'dead' : ''}`} onClick={() => choose(id)} disabled={dead}
                         animate={dead ? { x: [0, -6, 6, -3, 3, 0] } : {}} transition={{ duration: 0.35 }}>
-                        <img src={flagUrl(c.cca2, 80)} alt="" />
-                        <Flap text={(c.capital[0] ?? c.name).toUpperCase()} delay={i * 120} />
-                        <small>{c.name}</small>
+                        <Flap text={c.name.toUpperCase()} delay={i * 120} />
+                        <small>{c.subregion || c.region}</small>
                         <b>{dead ? 'NO TRACE' : `${flightHours(here, id)} H`}</b>
                       </motion.button>
                     );
@@ -469,7 +472,7 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
               <b>{st.result.solved ? `${kase.culprit.name}, “${kase.culprit.alias}”` : 'A Magpie got away'}</b>
               <p>{st.result.solved ? `${kase.item[0].toUpperCase()}${kase.item.slice(1)} is safe — with ${st.result.hoursLeft} hours to spare.` : `${kase.item[0].toUpperCase()}${kase.item.slice(1)} is still missing. The trail taught us plenty, though.`}</p>
             </div>
-            <CareerNews change={st.change ?? null} career={career} gained={meritFor(st.result)} />
+            <CareerNews change={st.change ?? null} career={career} rating={st.rating ?? null} />
             <div className="mx-actions">
               <button className="ghost-cta" onClick={() => setTrail(true)} aria-label="See the trail on the globe"><Globe2 size={15} /> Trail</button>
               <button className="ghost-cta" onClick={practice}><RotateCcw size={15} /> New case</button>
@@ -494,7 +497,7 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
       {createPortal(
         <AnimatePresence>
           {resultOpen && st.result && (
-            <Report key="report" kase={kase} result={st.result} mode={mode} no={dailyNumber(date)} career={career}
+            <Report key="report" kase={kase} result={st.result} rating={st.rating} mode={mode} no={dailyNumber(date)} career={career}
               shareMsg={shareMsg} onPractice={practice} onClose={() => setResultOpen(false)} onTrail={() => { setResultOpen(false); setTrail(true); }} />
           )}
         </AnimatePresence>,
@@ -630,18 +633,18 @@ function Quote({ w, tail }: { w: Witness; tail: string }) {
 }
 
 /** Your rank, and how close the next one is (merit pips). */
-function RankStrip({ career, gained }: { career: Career; gained?: number }) {
+function RankStrip({ career }: { career: Career }) {
   const lvl = levelOf(career.level);
   const next = career.level < 5 ? levelOf(career.level + 1) : null;
   return (
     <div className="mx-rank">
       <span className="mx-rank-badge" aria-hidden><Award size={18} /><b>{career.level}</b></span>
       <span className="mx-rank-text">
-        <b>{lvl.name}{gained !== undefined && <em className={gained > 0 ? 'up' : 'down'}>{gained > 0 ? `+${gained}` : gained} merit</em>}</b>
+        <b>{lvl.name}</b>
         <small>{lvl.blurb}</small>
       </span>
       {next ? (
-        <span className="mx-pips" title={`${career.merit} of ${lvl.need} merit to ${next.name}`} aria-label={`${career.merit} of ${lvl.need} merit to ${next.name}`}>
+        <span className="mx-pips" title={`${career.merit} of ${lvl.need} solid cases to ${next.name} (or one brilliant one)`} aria-label={`${career.merit} of ${lvl.need} solid cases to ${next.name}`}>
           <span>{Array.from({ length: lvl.need }, (_, i) => <i key={i} className={i < career.merit ? 'on' : ''} />)}</span>
           <small>to {next.name}</small>
         </span>
@@ -650,20 +653,37 @@ function RankStrip({ career, gained }: { career: Career; gained?: number }) {
   );
 }
 /** After a case: a promotion, a step down, or progress toward the next rank. */
-function CareerNews({ change, career, gained }: { change: CareerChange; career: Career; gained: number }) {
+const GRADE: Record<Grade, { label: string; line: string }> = {
+  brilliant: { label: 'Brilliant', line: 'Cracked it fast and clean.' },
+  solid: { label: 'Solid work', line: 'Good detective work.' },
+  close: { label: 'Close call', line: 'Got there — with the clock running low.' },
+  escaped: { label: 'Escaped', line: 'The Magpie got away this time.' },
+};
+/** After a case: how easily it was cracked, and what that means for the next one. */
+function CareerNews({ change, career, rating }: { change: CareerChange; career: Career; rating: { score: number; grade: Grade } | null }) {
   const lvl = levelOf(career.level);
-  if (change === 'up') return (
-    <motion.div className="mx-promo" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 1.5, type: 'spring', stiffness: 300, damping: 16 }}>
-      <span className="mx-medal" aria-hidden><Award size={26} /></span>
-      <span><em>Promoted!</em><b>You’re now a {lvl.name}</b><small>Harder cases from here: {lvl.blurb}.</small></span>
+  const next = career.level < 5 ? levelOf(career.level + 1) : null;
+  const g = rating ? GRADE[rating.grade] : null;
+  const verdict = change === 'up' ? `Next case: ${lvl.blurb}.`
+    : change === 'down' ? `Next case: ${lvl.name} — a little easier, to get your eye in.`
+      : !next ? 'Next case: another Master Detective case.'
+        : rating?.grade === 'solid' ? `One more solid case and you’re a ${next.name}.`
+          : rating?.grade === 'escaped' ? (career.misses >= 1 && career.level > 1 ? `Next case: ${lvl.name} again — another escape and it gets easier.` : `Next case: ${lvl.name} again.`)
+            : `Next case: ${lvl.name} again — solve it faster to move up.`;
+  return (
+    <motion.div className={`mx-rate ${change ?? ''} ${rating?.grade ?? ''}`} initial={{ opacity: 0, y: 12, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ delay: 1.4, type: 'spring', stiffness: 300, damping: 20 }}>
+      {rating && (
+        <span className="mx-rate-dial" style={{ ['--p' as string]: `${rating.score}%` }} aria-label={`Case rating ${rating.score} out of 100`}>
+          <b>{rating.score}</b>
+        </span>
+      )}
+      <span className="mx-rate-text">
+        <em>{change === 'up' ? <><Award size={12} /> Promoted</> : g?.label}</em>
+        <b>{change === 'up' ? `You’re now a ${lvl.name}` : g?.line}</b>
+        <small>{verdict}</small>
+      </span>
     </motion.div>
   );
-  if (change === 'down') return (
-    <motion.div className="mx-promo down" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.4 }}>
-      <span><em>A few easier cases</em><b>Back to {lvl.name} for now</b><small>Solve a couple and you’ll climb right back up.</small></span>
-    </motion.div>
-  );
-  return <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.4 }}><RankStrip career={career} gained={gained} /></motion.div>;
 }
 
 function Briefing({ kase, career, onStart }: { kase: Case; career: Career; onStart: () => void }) {
@@ -702,8 +722,8 @@ function Briefing({ kase, career, onStart }: { kase: Case; career: Career; onSta
   );
 }
 
-function Report({ kase, result, mode, no, career, shareMsg, onPractice, onClose, onTrail }: {
-  kase: Case; result: CaseResult; mode: Mode; no: number; career: Career; shareMsg: () => string; onPractice: () => void; onClose: () => void; onTrail: () => void;
+function Report({ kase, result, rating, mode, no, career, shareMsg, onPractice, onClose, onTrail }: {
+  kase: Case; result: CaseResult; rating?: { score: number; grade: Grade }; mode: Mode; no: number; career: Career; shareMsg: () => string; onPractice: () => void; onClose: () => void; onTrail: () => void;
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
@@ -712,7 +732,7 @@ function Report({ kase, result, mode, no, career, shareMsg, onPractice, onClose,
   }, [onClose]);
   const learned = useMemo(() => takeaway(kase), [kase]);
   const hide = BY_CCA3.get(kase.route[kase.route.length - 1])!;
-  const rank = levelOf(career.level), next = career.level < 5 ? levelOf(career.level + 1) : null;
+  const rank = levelOf(career.level);
   return (
     <motion.div className="people-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
       <motion.section className="people mx-report" role="dialog" aria-modal="true" aria-label="Case report" onClick={(e) => e.stopPropagation()}
@@ -727,7 +747,8 @@ function Report({ kase, result, mode, no, career, shareMsg, onPractice, onClose,
           <div className="mx-score">
             <span><b>{result.hoursLeft}</b> hours to spare</span>
             <span><b>{result.deadEnds}</b> dead end{result.deadEnds === 1 ? '' : 's'}</span>
-            <span><b>{rank.name}</b>{next ? ` · ${Math.max(0, rank.need - career.merit)} merit to ${next.name}` : ''}</span>
+            {rating && <span><b>{rating.score}</b>/100 case rating</span>}
+            <span>Next case: <b>{rank.name}</b></span>
           </div>
         </div>
 
