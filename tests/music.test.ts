@@ -28,7 +28,11 @@ for (const m of ['createGain', 'createBiquadFilter', 'createDynamicsCompressor',
   (FakeContext.prototype as unknown as Record<string, () => unknown>)[m] = node;
 
 let plays = 0;
+const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
+const ANDROID = 'Mozilla/5.0 (Linux; Android 15; SM-S931B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36';
+const asDevice = (ua: string) => Object.defineProperty(navigator, 'userAgent', { value: ua, configurable: true });
 beforeAll(() => {
+  asDevice(IPHONE); // the silent-loop workaround is for iPhones only
   Object.assign(window, { AudioContext: FakeContext });
   // The silent <audio> loop: "starts playing" a moment later, like on an iPhone.
   vi.spyOn(window.HTMLMediaElement.prototype, 'play').mockImplementation(function (this: HTMLMediaElement) {
@@ -66,5 +70,18 @@ describe('background music', () => {
     expect(music.status()).toBe('on');
     delete (navigator as unknown as { audioSession?: unknown }).audioSession;
     music.setMuted(true);
+  });
+
+  it('Android: plays Web Audio on its own — no silent <audio> loop alongside it', async () => {
+    vi.resetModules();
+    asDevice(ANDROID);
+    const playsBefore = plays;
+    const { music } = await import('../src/lib/music');
+    music.setMuted(false);
+    expect(music.running()).toBe(true);
+    for (let i = 0; i < 3; i++) music.unlock();
+    expect(plays).toBe(playsBefore);
+    music.setMuted(true);
+    asDevice(IPHONE);
   });
 });
