@@ -202,10 +202,10 @@ html.custom-cursor.cur-drag .globe-wrap, html.custom-cursor.cur-drag .globe-wrap
 .map-labels { position: fixed; inset: 0; pointer-events: none; z-index: 2; overflow: hidden; contain: strict; }
 .map-labels.quiz { display: none; }
 .ml {
-  position: absolute; left: 0; top: 0; white-space: nowrap; opacity: 0; will-change: transform, opacity;
+  position: absolute; left: 0; top: 0; white-space: nowrap; opacity: 0;
   transition: opacity 0.14s linear;
 }
-.ml.on { opacity: 1; transition: opacity 0.35s var(--ease); }
+.ml.on { opacity: 1; transition: opacity 0.35s var(--ease); will-change: transform; }
 .ml-country {
   font-family: var(--display); font-weight: 600; text-transform: uppercase; letter-spacing: 0.14em; color: #3b2f2a;
   text-shadow: 0 0 2px #fff8ee, 0 0 4px rgba(255, 248, 238, 0.9), 0 0 8px rgba(255, 248, 238, 0.6);

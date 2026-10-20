@@ -35,6 +35,7 @@ interface Label {
   w0?: number; // ranges: unspaced text width
   spacing?: number; // ranges: current letter-spacing (px)
   inSel?: boolean; // inside the selected (raised) country
+  drop?: number;   // timer: take the hidden element off the page (see hideLabel)
   angle?: number;
   group?: string; // alternatives for one feature: only the first that fits is shown
   feature?: { kind: 'river' | 'range' | 'peak' | 'lake' | 'strait' | 'trench'; name: string }; // clickable physical feature
@@ -192,6 +193,19 @@ function maxCityRank(alt: number) {
   return 6;
 }
 
+/**
+ * Hide a label, then take its element off the page once it has faded. Every label on the page is
+ * its own GPU layer, so keeping hidden ones around (one per place the camera has passed) slowly
+ * weighs a phone down; making one again when it's needed is cheap.
+ */
+function hideLabel(l: Label) {
+  if (!l.el) return;
+  l.on = false;
+  l.el.classList.remove('on');
+  if (l.drop) window.clearTimeout(l.drop);
+  l.drop = window.setTimeout(() => { l.drop = undefined; if (!l.on && l.el) { l.el.remove(); l.el = undefined; } }, 700);
+}
+
 export function createLabelLayer(layer: HTMLDivElement, getGlobe: () => GlobeMethods | undefined, onFeature?: (f: { kind: 'river' | 'range' | 'peak' | 'lake'; name: string }) => void) {
   // River / range / peak / lake names are clickable (the layer itself ignores the pointer).
   const onClick = (e: MouseEvent) => {
@@ -252,7 +266,7 @@ export function createLabelLayer(layer: HTMLDivElement, getGlobe: () => GlobeMet
   }
 
   function hideAll() {
-    for (const l of labels) if (l.on && l.el) { l.on = false; l.el.classList.remove('on'); }
+    for (const l of labels) if (l.on && l.el) hideLabel(l);
   }
 
   function frame() {
@@ -432,10 +446,10 @@ export function createLabelLayer(layer: HTMLDivElement, getGlobe: () => GlobeMet
           : l.kind !== 'city'
           ? `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%)${l.angle ? ` rotate(${l.angle.toFixed(1)}deg)` : ''}`
           : l.left ? `translate3d(${x}px, ${y}px, 0) translate(calc(4px - 100%), -50%)` : `translate3d(${x}px, ${y}px, 0) translate(-4px, -50%)`;
+        if (l.drop) { window.clearTimeout(l.drop); l.drop = undefined; }
         if (!l.on) { l.on = true; l.el.classList.add('on'); }
       } else if (l.on && l.el) {
-        l.on = false;
-        l.el.classList.remove('on');
+        hideLabel(l);
       }
     }
   }
@@ -468,7 +482,7 @@ export function createLabelLayer(layer: HTMLDivElement, getGlobe: () => GlobeMet
       if (d && !nature.length) { nature = buildNature(d); markSelected(selectedId); rebuild(); }
       natureOn = on && nature.length > 0;
       lastKey = '';
-      if (!natureOn) for (const l of nature) if (l.on && l.el) { l.on = false; l.el.classList.remove('on'); }
+      if (!natureOn) for (const l of nature) if (l.on && l.el) hideLabel(l);
     },
     /** Mark the selected feature's label (or none). */
     setPicked(f: { kind: string; name: string } | null) {

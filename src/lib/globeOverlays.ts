@@ -184,6 +184,7 @@ export function createZoomAdminLayer(scene: THREE.Scene, R: number, camera: THRE
   let color = 'rgba(255,255,255,0.3)';
   let raf = 0, lastCheck = 0, lastKey = '';
   const START = 1.25, FULL = 0.8; // camera altitude: start fading in → fully shown
+  const KEEP = 16;                  // province sets kept loaded (on screen at once: up to 12)
 
   const build = async (id: string) => {
     if (meshes.has(id) || loading.has(id)) return;
@@ -196,8 +197,8 @@ export function createZoomAdminLayer(scene: THREE.Scene, R: number, camera: THRE
     mesh.name = `zoom-admin:${id}`;
     scene.add(mesh);
     meshes.set(id, mesh);
-    if (meshes.size > 40) { // keep memory bounded: drop the oldest hidden ones
-      for (const [k, m] of meshes) if (!wanted.has(k) && meshes.size > 30) { scene.remove(m); m.geometry.dispose(); (m.material as THREE.Material).dispose(); meshes.delete(k); }
+    if (meshes.size > KEEP + 4) { // keep memory bounded (phones!): drop the oldest ones out of view
+      for (const [k, m] of meshes) if (!wanted.has(k) && meshes.size > KEEP) { scene.remove(m); m.geometry.dispose(); (m.material as THREE.Material).dispose(); meshes.delete(k); }
     }
   };
 
