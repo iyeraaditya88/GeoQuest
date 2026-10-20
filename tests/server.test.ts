@@ -213,7 +213,7 @@ describe('live play', () => {
   it('scopes realtime tokens to the player and their tickets', async () => {
     const r = await call('POST', '/api/realtime/token', { cookie: bob, body: { tickets: ['junk'] } });
     expect(r.body.clientId).toBe('bob');
-    expect(JSON.parse(String(r.body.capability))).toEqual({ 'inbox:bob': ['subscribe'], lobby: ['presence', 'subscribe'] });
+    expect(JSON.parse(String(r.body.capability))).toEqual({ 'inbox:bob': ['history', 'subscribe'], lobby: ['presence', 'subscribe'] }); // history: replay a challenge sent while away
   });
 
   it('validates challenges', async () => {
@@ -301,6 +301,18 @@ describe('daily challenge', () => {
     expect((await call('POST', '/api/daily', { cookie: bob, body: { date: today, points: [3, 3, 3, 3, 3] } })).status).toBe(409); // one go a day
     const g = await call('GET', `/api/daily?date=${today}`, { cookie: bob });
     expect(g.body.mine).toEqual([3, 2, 3, 0, 1]);
+  });
+  it('serves the board from a one-minute cache, but you always see your own result', async () => {
+    const { board, withRow } = await import('../server/daily');
+    const first = await board(today);
+    // Someone's result lands on another server (not through this one's cache)…
+    const other = { user: 'zed', date: today, points: [1, 1, 1, 1, 1], at: Date.now() };
+    expect(await board(today)).toBe(first); // …this server still serves its cached board for now (one read a minute)
+    expect(withRow(first, other).map((r) => r.name)).toContain('zed'); // zed always sees themselves
+    expect(withRow(first, other).at(-1)).toEqual({ name: 'zed', points: [1, 1, 1, 1, 1], total: 5 }); // in score order
+    expect(withRow(first, null)).toBe(first);
+    // A minute on, the board is read again.
+    expect(await board(today, Date.now() + 61_000)).not.toBe(first);
   });
   it('refuses odd days and impossible scores', async () => {
     expect((await call('POST', '/api/daily', { cookie: owner, body: { date: '2020-01-01', points: [3, 3, 3, 3, 3] } })).status).toBe(400);

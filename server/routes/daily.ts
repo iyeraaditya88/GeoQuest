@@ -53,7 +53,7 @@ export function registerDaily(app: express.Express) {
       // Guests play too, but don't see who else played (names are for signed-in friends).
       if (!user) { res.json({ date, mine: null, streak: { count: 0, best: 0 }, board: [], guest: true }); return; }
       const [mine, streak, board] = await Promise.all([daily.getResult(user, date), daily.getStreak(user), daily.board(date)]);
-      res.json({ date, mine: mine?.points ?? null, streak: daily.currentStreak(streak, date), board });
+      res.json({ date, mine: mine?.points ?? null, streak: daily.currentStreak(streak, date), board: daily.withRow(board, mine) });
     } catch (err) { fail(res, 500, err); }
   });
 
@@ -61,8 +61,8 @@ export function registerDaily(app: express.Express) {
     const { date, points } = (req.body ?? {}) as { date?: unknown; points?: unknown };
     if (!daily.playableDate(date)) { fail(res, 400, 'Not a valid day.'); return; }
     try {
-      const { streak } = await daily.saveResult(me(req)!, date, points);
-      res.json({ ok: true, streak: daily.currentStreak(streak, date), board: await daily.board(date) });
+      const { result, streak } = await daily.saveResult(me(req)!, date, points);
+      res.json({ ok: true, streak: daily.currentStreak(streak, date), board: daily.withRow(await daily.board(date), result) });
     } catch (err) { const m = (err as Error).message; fail(res, /already/i.test(m) ? 409 : /finished/i.test(m) ? 400 : 500, err); }
   });
 

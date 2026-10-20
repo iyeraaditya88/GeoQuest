@@ -23,7 +23,8 @@ export interface LiveChannel {
 export interface Live {
   me: string;
   mode: 'ably' | 'local';
-  channel(name: string): LiveChannel;
+  /** `rewind`: on attaching, replay the channel's messages from this long ago (e.g. '30s'). */
+  channel(name: string, opts?: { rewind?: string }): LiveChannel;
   /** Allow this connection onto a match channel (hosted: refreshes the token). */
   addTicket(ticket: string): Promise<void>;
   /** Connection state changes ('connected' | 'disconnected' | …). */
@@ -93,8 +94,8 @@ async function connectAbly(me: string): Promise<Live> {
   return {
     me,
     mode: 'ably',
-    channel(name) {
-      const ch = rt.channels.get(name);
+    channel(name, opts) {
+      const ch = rt.channels.get(name, opts?.rewind ? { params: { rewind: opts.rewind } } : undefined);
       // A channel that failed (e.g. a token hiccup) is re-attached rather than left dead.
       const reattach = () => { if (!closed) window.setTimeout(() => { if (ch.state === 'failed' || ch.state === 'detached') void ch.attach().catch(() => null); }, 2000); };
       ch.on('failed', reattach);

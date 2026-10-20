@@ -45,6 +45,10 @@ interface Props {
 }
 
 const noop = () => () => {};
+/** Let the live connection go after this long in the background, or this long untouched on screen. */
+const HIDDEN_MS = 60_000, IDLE_MS = 10 * 60_000;
+/** How long a challenge can be answered (match.ts's INVITE_MS; that module loads on demand). */
+const INVITE_WINDOW = 30_000;
 
 export function LivePlay({ mode, me, ai, friendsReq, inviteReq, globe, clickRef, onState, owner = false, fab = false }: Props) {
   const [live, setLive] = useState<Live | null>(null);
@@ -61,9 +65,39 @@ export function LivePlay({ mode, me, ai, friendsReq, inviteReq, globe, clickRef,
   const snap = useSyncExternalStore(session?.subscribe ?? noop, () => session?.get() ?? null);
   const inMatch = !!snap && snap.phase !== 'done' && snap.phase !== 'aborted';
 
-  // Connect, join the lobby, listen to my inbox.
+  // Away: the app has been in the background for a minute, or untouched for 10. Then the live
+  // connection is let go (a phone left on, a forgotten tab, would otherwise hold one of a limited
+  // number of connections) — and comes straight back the moment you return. Never mid-match, nor
+  // with the Duel panels or a challenge open.
+  const [away, setAway] = useState(false);
+  const busy = inMatch || friendsOpen || inviteOpen || invites.length > 0;
   useEffect(() => {
     if (!mode || !me) return;
+    let hiddenT = 0, idleT = 0;
+    const idle = () => { window.clearTimeout(idleT); idleT = window.setTimeout(() => setAway(true), IDLE_MS); };
+    const active = () => { if (document.hidden) return; setAway(false); idle(); };
+    const onVis = () => {
+      window.clearTimeout(hiddenT);
+      if (document.hidden) hiddenT = window.setTimeout(() => setAway(true), HIDDEN_MS);
+      else active();
+    };
+    const evs = ['pointerdown', 'keydown', 'wheel', 'touchstart'] as const;
+    for (const e of evs) window.addEventListener(e, active, { passive: true });
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('pageshow', active);
+    idle();
+    return () => {
+      window.clearTimeout(hiddenT); window.clearTimeout(idleT);
+      for (const e of evs) window.removeEventListener(e, active);
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('pageshow', active);
+    };
+  }, [mode, me]);
+  const offline = away && !busy;
+
+  // Connect, join the lobby, listen to my inbox (while here).
+  useEffect(() => {
+    if (!mode || !me || offline) return;
     let dead = false;
     let conn: Live | null = null;
     const offs: (() => void)[] = [];
@@ -75,9 +109,11 @@ export function LivePlay({ mode, me, ai, friendsReq, inviteReq, globe, clickRef,
       const lobby = l.channel('lobby');
       void lobby.enter({ s: 'idle' }).catch(() => null);
       offs.push(lobby.members((ms) => setOnline(new Map(ms.filter((m) => m.name !== me).map((m) => [m.name, (m.data ?? {}) as { s?: string }])))));
-      offs.push(l.channel(`inbox:${me}`).subscribe((name, data) => {
+      // Rewind: a challenge sent while I was away (it's only good for 30 s) still arrives.
+      offs.push(l.channel(`inbox:${me}`, { rewind: '30s' }).subscribe((name, data) => {
         if (name !== 'invite') return;
         const inv = data as Invite;
+        if (Date.now() - inv.at > INVITE_WINDOW) return; // too old to answer
         if (sessionRef.current && !['done', 'aborted'].includes(sessionRef.current.get().phase)) {
           void loadMatch().then((m) => m.declineInvite(l, inv, true)); // busy in another match
           return;
@@ -91,7 +127,7 @@ export function LivePlay({ mode, me, ai, friendsReq, inviteReq, globe, clickRef,
     });
     void start();
     return () => { dead = true; window.clearTimeout(retry); for (const off of offs) off(); conn?.close(); setLive(null); setOnline(new Map()); };
-  }, [mode, me]);
+  }, [mode, me, offline]);
 
   // Connection health, shown during a match ("Reconnecting…").
   const [conn, setConn] = useState('connected');

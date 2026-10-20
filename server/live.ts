@@ -36,7 +36,9 @@ export async function readTicket(token: unknown, user: string) {
 
 /** A signed Ably token request for `user`, including the match channels their tickets allow. */
 export async function tokenRequest(user: string, tickets: unknown) {
-  const capability: Record<string, string[]> = { lobby: ['presence', 'subscribe'], [`inbox:${user}`]: ['subscribe'] };
+  // (history on your own inbox: on reconnecting, the last few seconds replay — a challenge sent while
+  // the app was away still arrives)
+  const capability: Record<string, string[]> = { lobby: ['presence', 'subscribe'], [`inbox:${user}`]: ['subscribe', 'history'] };
   for (const tok of Array.isArray(tickets) ? tickets.slice(-8) : []) {
     const t = await readTicket(tok, user);
     if (t) capability[`match:${t.m}`] = ['publish', 'subscribe', 'presence'];

@@ -57,6 +57,7 @@ export async function saveResult(user: string, date: string, points: unknown): P
     d.results[`${date}/${user}`] = result;
     d.streaks[user] = nextStreak(d.streaks[user] ?? { last: null, count: 0, best: 0 }, date);
     await writeLocal(d);
+    remember(result);
     return { result, streak: d.streaks[user] };
   }
   try {
@@ -65,20 +66,54 @@ export async function saveResult(user: string, date: string, points: unknown): P
     if (/exist/i.test((err as Error).message)) throw new Error(ALREADY);
     throw err;
   }
+  remember(result);
   const streak = nextStreak(await getStreak(user), date);
   await writeBlob(streakPath(user), JSON.stringify(streak));
   return { result, streak };
 }
 
-/** Everyone's results for a day, best first. */
-export async function board(date: string): Promise<{ name: string; points: number[]; total: number }[]> {
+export type BoardRow = { name: string; points: number[]; total: number };
+const byScore = (a: BoardRow, b: BoardRow) => b.total - a.total || a.name.localeCompare(b.name);
+const rowOf = (r: DailyResult): BoardRow => ({ name: r.user, points: r.points, total: total(r.points) });
+
+/**
+ * Today's board is read by every player who finishes (and again by friends checking in), and
+ * reading it means one storage read per result. So each server keeps it for a minute (and
+ * concurrent requests share one read); a fresh result is added to it straight away.
+ */
+const BOARD_TTL = 60_000;
+const boards = new Map<string, { at: number; rows: Promise<BoardRow[]> }>();
+
+/** Everyone's results for a day, best first (cached for a minute). */
+export async function board(date: string, now = Date.now()): Promise<BoardRow[]> {
+  const hit = boards.get(date);
+  if (hit && now - hit.at < BOARD_TTL) return hit.rows;
+  const rows = readBoard(date);
+  boards.set(date, { at: now, rows });
+  for (const k of boards.keys()) if (k !== date && boards.size > 3) boards.delete(k); // only the last few days
+  rows.catch(() => boards.delete(date)); // a failed read isn't kept
+  return rows;
+}
+/** A player's own row on the board, whatever the cache holds (you always see yourself). */
+export function withRow(rows: BoardRow[], r: DailyResult | null): BoardRow[] {
+  if (!r || rows.some((x) => x.name === r.user)) return rows;
+  return [...rows, rowOf(r)].sort(byScore);
+}
+/** A result just saved: into this server's cached board right away. */
+function remember(r: DailyResult) {
+  const hit = boards.get(r.date);
+  if (hit) hit.rows = hit.rows.then((rows) => withRow(rows, r)).catch(() => [rowOf(r)]);
+}
+export const clearBoardCache = () => boards.clear();
+
+async function readBoard(date: string): Promise<BoardRow[]> {
   let results: DailyResult[];
   if (!blobEnabled()) results = Object.values((await readLocal()).results).filter((r) => r.date === date);
   else {
     const paths = await listBlobPaths(`daily/${date}/`);
     results = (await Promise.all(paths.slice(0, 200).map((p) => readBlobDoc(p).then((d) => (d ? (JSON.parse(d.text) as DailyResult) : null)).catch(() => null)))).filter((r): r is DailyResult => !!r);
   }
-  return results.map((r) => ({ name: r.user, points: r.points, total: total(r.points) })).sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
+  return results.map(rowOf).sort(byScore);
 }
 
 /** Has this player done the challenge for that date? (for skipping the morning nudge) */
