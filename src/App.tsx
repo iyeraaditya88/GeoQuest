@@ -96,6 +96,7 @@ import { panelWidth } from './lib/layout';
 import { MusicButton } from './components/MusicButton';
 import { music } from './lib/music';
 import type { MysteryStage } from './components/MysteryGame';
+import { geoDistance } from 'd3-geo';
 import { isShareGame, type ShareGame } from './lib/share';
 
 function loadBest() { try { return Number(localStorage.getItem('gq-best') ?? 0); } catch { return 0; } }
@@ -748,21 +749,30 @@ export default function App() {
   startPlayRef.current = startPlay;
   const exitPlay = () => { setPlay(null); setHighlighted([]); setFeedback(null); };
   // Solve the Mystery on the globe: flight arcs, where you are, globe taps on the hard legs, the trail.
-  const [mxArc, setMxArc] = useState<{ startLat: number; startLng: number; endLat: number; endLng: number }[]>([]);
   const [mxRoute, setMxRoute] = useState<string[] | null>(null);
   const [mxPicking, setMxPicking] = useState(false);
   const [mxStage, setMxStage] = useState<MysteryStage>('mini');
   const mysteryPick = useRef<((cca3: string) => void) | null>(null);
   const playRef = useRef(play);
   playRef.current = play;
-  const mxFly = useCallback((from: string, to: string) => {
+  // A flight: the jet takes off from `from` and flies the great circle to `to`, camera following;
+  // `landed` runs when it touches down (straight away if the globe isn't there to show it).
+  const mxSail = useRef<(() => void) | null>(null);
+  const [mxFlight, setMxFlight] = useState<[number, number][] | null>(null);
+  const mxFly = useCallback((from: string, to: string, seconds: number, landed: () => void) => {
     const a = BY_CCA3.get(from), b = BY_CCA3.get(to);
-    if (!a || !b) return;
-    setMxArc([{ startLat: a.latlng[0], startLng: a.latlng[1], endLat: b.latlng[0], endLng: b.latlng[1] }]);
-    const mid = { lat: (a.latlng[0] + b.latlng[0]) / 2, lng: a.latlng[1] + (((((b.latlng[1] - a.latlng[1]) % 360) + 540) % 360) - 180) / 2 };
-    globe.current?.frame(mid.lat, mid.lng, 2.2);
-    window.setTimeout(() => { setMxArc([]); cam.flyTo(to); }, 1500);
+    mxSail.current?.();
+    if (!a || !b || !globe.current) { window.setTimeout(landed, 1200); return; }
+    const km = geoDistance([a.latlng[1], a.latlng[0]], [b.latlng[1], b.latlng[0]]) * 6371;
+    setMxFlight([a.latlng, b.latlng]);
+    mxSail.current = globe.current.sail({
+      points: [a.latlng, b.latlng], stopAt: [0, 1], from: 0, seconds, pauseMs: 0,
+      altitude: Math.min(2.4, Math.max(1.05, 0.8 + km / 7000)), color: '#fbbf24', vehicle: 'plane',
+      onStop: () => {},
+      onDone: () => { mxSail.current = null; setMxFlight(null); cam.flyTo(to); landed(); },
+    });
   }, [cam]);
+  useEffect(() => { if (play !== 'mystery') { mxSail.current?.(); mxSail.current = null; setMxFlight(null); } }, [play]);
   const mxAt = useRef<string | null>(null);
   const mxFocus = useCallback((c: string | null) => { mxAt.current = c; setHighlighted(c ? [c] : []); if (c) cam.flyTo(c); }, [cam]);
   const mxSetPick = useCallback((fn: ((cca3: string) => void) | null) => {
@@ -771,7 +781,8 @@ export default function App() {
     const at = fn && mxAt.current ? BY_CCA3.get(mxAt.current) : null;
     if (at) window.setTimeout(() => globe.current?.frame(at.latlng[0], at.latlng[1], 2.3), 120);
   }, []);
-  const mxPaths = useMemo<GlobePath[]>(() => (mxRoute ? [{ id: 'mystery', points: mxRoute.map((c) => BY_CCA3.get(c)!.latlng), color: '#fbbf24', mode: 'active' }] : []), [mxRoute]);
+  const mxPaths = useMemo<GlobePath[]>(() => (mxRoute ? [{ id: 'mystery', points: mxRoute.map((c) => BY_CCA3.get(c)!.latlng), color: '#fbbf24', mode: 'active' }]
+    : mxFlight ? [{ id: 'mystery-flight', points: mxFlight, color: '#fbbf24', mode: 'active' }] : []), [mxRoute, mxFlight]);
   // Hover names stay hidden while you're meant to find a country (quizzes, the mystery's hard legs).
   useEffect(() => { cursor.set({ hideLabel: !!quiz || mxPicking || play === 'mystery' }); }, [quiz, mxPicking, play]);
   /** A game's answer: light it up and fly there. */
@@ -1182,14 +1193,13 @@ export default function App() {
         autoRotate={autoRotate}
         feedback={feedback}
         quiz={!!quiz || liveState.quiz || mxPicking}
-        liftUp={(dockOpen && !quiz) || ((!!voy || !!eras || !!emp || play === 'mystery') && vp.w <= 900) || (!!quiz && vp.w <= 600 && vp.h > vp.w)}
+        liftUp={(dockOpen && !quiz) || ((!!voy || !!eras || !!emp || (play === 'mystery' && mxStage !== 'banner')) && vp.w <= 900) || (!!quiz && vp.w <= 600 && vp.h > vp.w)}
         dropDown={(!!play && play !== 'mystery') || placesOpen || (!!anti && anti.stage !== 'dive') || (!!quiz && !(vp.w <= 600 && vp.h > vp.w))}
         pickMode={(!!anti && anti.stage !== 'dive') || placesOpen}
         onPick={(lat, lng) => (placesOpen ? setPlacesPick({ lat, lng, n: Date.now() }) : pickAntipode(lat, lng))}
         pins={globePins}
         onPin={(id) => (id.startsWith('stop:') ? stopVoyage(Number(id.slice(5))) : id.startsWith('era:') ? pickEra(id.slice(4)) : id === 'heart' || id.startsWith('hub:') ? placeEra(id) : id.startsWith('emp:') ? pickEmpire(id.slice(4)) : id === 'capital' || id.startsWith('place:') ? placeEmpire(id) : openPlace(id))}
         paths={voy ? voyPaths : eras ? eraPaths : mxPaths}
-        arcs={mxArc}
         tint={empTint}
         onPathPick={voy && !voy.id ? (id) => pickVoyage(id, 'globe') : undefined}
         onPathHover={voy && !voy.id ? hoverVoyage : undefined}

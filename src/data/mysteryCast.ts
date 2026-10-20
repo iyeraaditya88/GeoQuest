@@ -54,3 +54,17 @@ export const WITNESS: Record<string, { role: string; icon: string }> = {
   hobby: { role: 'Bookseller', icon: '📚' },
   ride: { role: 'Station guard', icon: '🚉' },
 };
+
+/** Messages the Magpie leaves behind (intercepted at each stop). Our own lines. */
+export const TAUNTS = [
+  'Too slow, Detective. The trail is already cold.',
+  'Lovely city. Shame you won’t be staying long.',
+  'You’ll never guess where I’m going next. Or will you?',
+  'I left you a little puzzle. Try not to get lost.',
+  'Collecting treasures is easy. Catching me is not.',
+  'Still following? How flattering.',
+  'Check the clock, Detective. Tick, tock.',
+  'One step ahead — as always.',
+  'My feathers are faster than your feet.',
+  'A Magpie never looks back. You should, though.',
+];

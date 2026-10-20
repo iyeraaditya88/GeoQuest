@@ -30,6 +30,8 @@ export interface SailOptions {
   pauseMs: number;             // time at each stop
   altitude: number;            // camera height while following
   color: string;
+  /** what travels: a ship (voyages) or a plane (the mystery's flights, which climb and descend) */
+  vehicle?: 'ship' | 'plane';
   onStop: (i: number) => void;
   onDone: () => void;
 }
@@ -392,9 +394,16 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
       };
       // The ship: drawn over the globe, turned to its heading, bobbing gently.
       const ship = document.createElement('div');
-      ship.className = 'sail-ship';
+      const plane = o.vehicle === 'plane';
+      ship.className = plane ? 'sail-ship plane' : 'sail-ship';
       ship.style.setProperty('--c', o.color);
-      ship.innerHTML = `<div class="ss-turn"><div class="ss-bob"><svg viewBox="0 0 48 56" aria-hidden="true">
+      ship.innerHTML = plane ? `<div class="ss-turn"><div class="sp-body"><svg viewBox="0 0 48 56" aria-hidden="true">
+        <path class="sp-trail" d="M24 44 L24 56"/>
+        <path class="sp-wing" d="M24 16 L45 31 L45 35 L24 28 L3 35 L3 31 Z"/>
+        <path class="sp-wing" d="M24 40 L33 46 L33 48 L24 45 L15 48 L15 46 Z"/>
+        <path class="sp-hull" d="M24 3 C 27 3, 28 8, 28 14 L28 40 C 28 44, 26 47, 24 47 C 22 47, 20 44, 20 40 L20 14 C 20 8, 21 3, 24 3 Z"/>
+        <circle class="sp-glass" cx="24" cy="9" r="2"/>
+      </svg></div></div>` : `<div class="ss-turn"><div class="ss-bob"><svg viewBox="0 0 48 56" aria-hidden="true">
         <path class="ss-wake" d="M20 42 C 17 48, 13 52, 9 55 M28 42 C 31 48, 35 52, 39 55"/>
         <path class="ss-hull" d="M24 4 C 32 13, 33 29, 29 44 L19 44 C 15 29, 16 13, 24 4 Z"/>
         <path class="ss-deck" d="M24 10 C 28 17, 29 28, 27 40 L21 40 C 19 28, 20 17, 24 10 Z"/>
@@ -416,6 +425,7 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
         const [la2, lo2] = where(Math.min(total, d + 0.004));
         const a = g.getScreenCoords(la, lo, 0.01), b = g.getScreenCoords(la2, lo2, 0.01);
         ship.style.transform = `translate(${a.x}px, ${a.y}px)`;
+        if (plane) ship.style.setProperty('--s', String(0.75 + 0.55 * Math.sin(Math.PI * Math.min(1, d / total)))); // climb, cruise, descend
         if (Math.hypot(b.x - a.x, b.y - a.y) > 0.5) ship.style.setProperty('--h', `${Math.atan2(b.x - a.x, a.y - b.y)}rad`);
         return [la, lo] as const;
       };

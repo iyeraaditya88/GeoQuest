@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowLeft, ArrowRight, Award, Check, HatGlasses, Clock, Globe2, Lightbulb, NotebookPen, Plane, RotateCcw, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Award, Check, HatGlasses, Clock, Globe2, Lightbulb, NotebookPen, Plane, Radio, RotateCcw, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import { addDays, localDate, dailyNumber } from '../lib/daily';
@@ -9,7 +9,7 @@ import {
   COST, addCase, addMerit, meritFor, careerFromStats, caseShare, cleanCareer, dailyCase, emptyMysteryStats, flightHours, levelOf, makeCase, newCareer, newerCareer, takeaway, traitLabel,
   type Career, type CareerChange, type Case, type CaseResult, type MysteryStats, type Witness,
 } from '../lib/mystery';
-import { TRAITS, type Suspect, type TraitKind } from '../data/mysteryCast';
+import { TAUNTS, TRAITS, type Suspect, type TraitKind } from '../data/mysteryCast';
 import { wikiPhoto } from '../lib/wiki';
 import { track } from '../lib/analytics';
 import { api } from '../lib/api';
@@ -20,7 +20,7 @@ import { canUseAccount, getAuth } from '../lib/session';
 /** How much of the screen the game wants: all of it, a slim sheet over the globe, or just a banner. */
 export type MysteryStage = 'full' | 'mini' | 'banner';
 interface Props {
-  onFly: (from: string, to: string) => void;              // arc + camera to the next stop
+  onFly: (from: string, to: string, seconds: number, landed: () => void) => void; // the jet flies there; `landed` on touchdown
   onFocus: (cca3: string | null) => void;                 // light up where you are
   setGlobePick: (fn: ((cca3: string) => void) | null) => void; // globe taps come here (hard legs)
   onRoute: (route: string[] | null) => void;              // the whole trail, at the end
@@ -45,6 +45,13 @@ const fresh = (level: number): State => {
   const n = levelOf(level).tiers.length;
   return { phase: 'brief', at: 0, used: 0, heard: Array.from({ length: n }, () => []), wrong: Array.from({ length: n }, () => []), bought: Array(n).fill(false), accused: [], result: null, level };
 };
+/** After a flight: at the next stop (or the hideout's line-up). */
+const landedState = (s: State, legs: number): State => ({ ...s, at: s.at + 1, phase: s.at + 1 >= legs ? 'lineup' : 'stop' });
+/** How long a flight takes on screen: longer hops fly a little longer. */
+const flightSeconds = (hours: number) => Math.min(3.6, 1.7 + (hours - 2) * 0.25);
+/** The camera's move to the departure city before the jet sets off (GlobeView's sail). */
+const TAKEOFF = 1100;
+interface Flight { from: string; to: string; hours: number; ms: number; at: number }
 const KEY = (date: string) => `gq-mystery-${date}`;
 const STATS = 'gq-mystery-stats';
 const CAREER = 'gq-mystery-career';
@@ -192,7 +199,8 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
   const [seed, setSeed] = useState(`mystery-${date}`);
   const [stats, setStats] = useState<MysteryStats>(() => ({ ...emptyMysteryStats(), ...(load(STATS) ?? {}) }));
   const [career, setCareer] = useState<Career>(() => loadCareer(stats));
-  const [st, setSt] = useState<State>(() => load(KEY(date)) ?? fresh(career.level));
+  // A save from mid-flight (the app was closed in the air) lands you at the next stop.
+  const [st, setSt] = useState<State>(() => { const s = load(KEY(date)) as State | null; return s ? (s.phase === 'flying' ? landedState(s, levelOf(s.level ?? 3).tiers.length) : s) : fresh(career.level); });
   const caseLevel = st.level ?? 3;
   const kase: Case = useMemo(() => (mode === 'daily' ? dailyCase(date, caseLevel) : makeCase(seed, caseLevel)), [mode, seed, date, caseLevel]);
   const legsN = kase.legs.length;
@@ -215,6 +223,8 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
   const [resultOpen, setResultOpen] = useState(false);
   const [talk, setTalk] = useState<number | null>(null); // the witness whose bubble is open
   const [trail, setTrail] = useState(false);              // case over: looking at the trail on the globe
+  const [flight, setFlight] = useState<Flight | null>(null);
+  const [scanning, setScanning] = useState<string | null>(null); // the suspect being checked
 
   const left = Math.max(0, kase.clock - st.used);
   const here = kase.route[st.at];
@@ -256,10 +266,15 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
     if (cca3 === leg.to) {
       track('mystery_leg', { t: leg.tier, ok: 1 });
       const from = kase.route[st.at];
-      onFly(from, cca3);
-      const n = spend({ ...st, phase: 'flying' }, flightHours(from, cca3));
+      const hours = flightHours(from, cca3);
+      const n = spend({ ...st, phase: 'flying' }, hours);
       commit(n);
-      if (n.phase === 'flying') { const landed: State = { ...n, at: n.at + 1, phase: n.at + 1 >= legsN ? 'lineup' : 'stop' }; window.setTimeout(() => commit(landed), 2600); }
+      if (n.phase === 'flying') {
+        const landed: State = landedState(n, legsN);
+        const secs = flightSeconds(hours);
+        setFlight({ from, to: cca3, hours, ms: secs * 1000, at: Date.now() });
+        onFly(from, cca3, reduced() ? 0.6 : secs, () => commit(landed));
+      }
     } else {
       if (st.wrong[st.at].includes(cca3)) return;
       track('mystery_leg', { t: leg.tier, ok: 0 });
@@ -273,6 +288,13 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
     if (st.phase !== 'lineup') return;
     if (id === kase.culprit.id) commit(finish(st, true));
     else if (!st.accused.includes(id)) { flash(`Wrong suspect — they have an alibi. −${COST.wrongSuspect} h`); commit(spend({ ...st, accused: [...st.accused, id] }, COST.wrongSuspect)); }
+  };
+  /** Name a suspect: a quick fingerprint scan first, then the verdict. */
+  const check = (id: string) => {
+    if (scanning || st.phase !== 'lineup') return;
+    if (reduced()) { accuse(id); return; }
+    setScanning(id);
+    window.setTimeout(() => { setScanning(null); accuse(id); }, 950);
   };
   const practice = () => {
     track('game', { g: 'mystery', m: 'practice' });
@@ -301,13 +323,14 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
         </header>
       )}
 
+      {stage !== 'banner' && (st.phase === 'stop' || st.phase === 'travel' || st.phase === 'lineup') && <Tracker stops={legsN + 1} at={st.at} cornered={st.phase === 'lineup'} />}
       <AnimatePresence mode="wait" initial={false}>
         {/* ── Briefing ── */}
         {st.phase === 'brief' && <Briefing key="brief" kase={kase} career={career} onStart={() => commit({ ...st, phase: 'stop' })} />}
 
         {/* ── A stop: the scene, the witnesses, their words ── */}
         {st.phase === 'stop' && leg && (
-          <Scene key={`stop-${st.at}`} cca3={here} label={st.at === 0 ? 'The crime scene' : 'You arrive in'}>
+          <Scene key={`stop-${st.at}`} cca3={here} label={st.at === 0 ? 'The crime scene' : 'You arrive in'} scan>
             {st.at > 0 && prevWhy.length > 0 && <Director mood="cheer" text={`Good call! ${prevWhy[0]}`} />}
             {st.at === 0 && <Director text={`Start here, ${levelOf(caseLevel).name}. Talk to the witnesses — each costs ${COST.interview} hours. One may describe the thief.`} />}
             <div className="mx-stage">
@@ -315,7 +338,10 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
                 {talk !== null && leg.witnesses[talk] ? (
                   <Quote key={`q-${talk}`} w={leg.witnesses[talk]} tail={`${((talk + 0.5) / leg.witnesses.length) * 100}%`} />
                 ) : (
-                  <motion.p key="hint" className="mx-stage-hint" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>Tap a witness to hear what they saw.</motion.p>
+                  <motion.div key="hint" className="mx-stage-idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                    {st.at > 0 && st.heard[st.at].length === 0 && <Intercept text={TAUNTS[(hashOf(kase.seed) + st.at) % TAUNTS.length]} />}
+                    <p className="mx-stage-hint">Tap a witness to hear what they saw.</p>
+                  </motion.div>
                 )}
               </AnimatePresence>
             </div>
@@ -382,13 +408,9 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
           </motion.div>
         )}
 
-        {/* ── Flying: just a banner; the globe shows the flight ── */}
+        {/* ── Flying: a boarding pass on top; the jet flies on the globe below ── */}
         {st.phase === 'flying' && (
-          <motion.div key="flying" className="mx-flying" initial={{ y: -40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -40, opacity: 0 }}>
-            <img src={flagUrl(BY_CCA3.get(here)!.cca2, 80)} alt="" />
-            <span className="mx-path"><motion.i initial={{ left: '0%' }} animate={{ left: '100%' }} transition={{ duration: 2.4, ease: 'easeInOut' }}><Plane size={16} /></motion.i></span>
-            <img src={flagUrl(BY_CCA3.get(kase.route[Math.min(st.at + 1, legsN)])!.cca2, 80)} alt="" />
-          </motion.div>
+          <BoardingPass key="flying" from={flight?.from ?? here} to={flight?.to ?? kase.route[Math.min(st.at + 1, legsN)]} hours={flight?.hours ?? 0} ms={flight?.ms ?? 2000} wait={flight ? Math.max(0, TAKEOFF - (Date.now() - flight.at)) : 0} code={`${kase.seed}-${st.at}`} />
         )}
 
         {/* ── The hideout: name the thief ── */}
@@ -405,13 +427,14 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
               {kase.lineup.map((s, i) => {
                 const wrong = st.accused.includes(s.id);
                 return (
-                  <motion.button key={s.id} className={`mx-suspect ${wrong ? 'wrong' : ''}`} onClick={() => accuse(s.id)} disabled={wrong}
+                  <motion.button key={s.id} className={`mx-suspect ${wrong ? 'wrong' : ''} ${scanning === s.id ? 'scanning' : ''}`} onClick={() => check(s.id)} disabled={wrong || !!scanning}
                     initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 + i * 0.08 }} whileTap={{ scale: 0.96 }}>
                     <Silhouette s={s} size={48} />
                     <b>{s.name}</b>
                     <span className="mx-tags"><i title={TRAITS.look[s.look]}>{LOOK_ICON[s.look]}</i><i title={TRAITS.hobby[s.hobby]}>{HOBBY_ICON[s.hobby]}</i><i title={TRAITS.ride[s.ride]}>{RIDE_ICON[s.ride]}</i></span>
                     <small>{TRAITS.look[s.look].replace(/^a (long |bright )?/, '')} · {TRAITS.hobby[s.hobby]} · {TRAITS.ride[s.ride].replace(/^(a vintage |the )/, '')}</small>
                     {wrong && <span className="mx-stamp bad">ALIBI</span>}
+                    {scanning === s.id && <span className="mx-scan" aria-hidden><i /><b><Decode text="MATCHING…" speed={20} /></b></span>}
                   </motion.button>
                 );
               })}
@@ -435,9 +458,13 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
         {st.phase === 'over' && st.result && !trail && (
           <Scene key="over" cca3={kase.route[kase.route.length - 1]} label={st.result.solved ? 'Case closed' : 'The trail went cold'} dim>
             <div className={`mx-verdict ${st.result.solved ? 'won' : ''}`}>
-              <motion.div className="mx-unmask" initial={{ rotateY: 0 }} animate={{ rotateY: st.result.solved ? 360 : 0 }} transition={{ delay: 0.3, duration: 0.9 }}>
-                <Silhouette s={kase.culprit} size={120} shadow={!st.result.solved} />
-              </motion.div>
+              <span className="mx-verdict-tag"><Decode text={st.result.solved ? 'TARGET ACQUIRED' : 'SIGNAL LOST'} delay={150} /></span>
+              <div className="mx-unmask-wrap">
+                <motion.div className="mx-unmask" initial={{ rotateY: 0 }} animate={st.result.solved ? { rotateY: 360 } : { x: [0, 0, 60], opacity: [1, 1, 0.25] }} transition={{ delay: 0.5, duration: st.result.solved ? 0.9 : 1.4 }}>
+                  <Silhouette s={kase.culprit} size={120} shadow={!st.result.solved} />
+                </motion.div>
+                {st.result.solved && <motion.span className="mx-lock" aria-hidden initial={{ scale: 1.8, rotate: -45, opacity: 0 }} animate={{ scale: 1, rotate: 0, opacity: 1 }} transition={{ duration: 0.55, ease: [0.2, 0.9, 0.3, 1] }}><i /><i /><i /><i /></motion.span>}
+              </div>
               <motion.span className="mx-stamp" initial={{ scale: 2.4, opacity: 0, rotate: -20 }} animate={{ scale: 1, opacity: 1, rotate: -10 }} transition={{ delay: 1, type: 'spring', stiffness: 380, damping: 14 }}>{st.result.solved ? 'CAUGHT' : 'ESCAPED'}</motion.span>
               <b>{st.result.solved ? `${kase.culprit.name}, “${kase.culprit.alias}”` : 'A Magpie got away'}</b>
               <p>{st.result.solved ? `${kase.item[0].toUpperCase()}${kase.item.slice(1)} is safe — with ${st.result.hoursLeft} hours to spare.` : `${kase.item[0].toUpperCase()}${kase.item.slice(1)} is still missing. The trail taught us plenty, though.`}</p>
@@ -477,8 +504,102 @@ export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, on
   );
 }
 
+// ── Spy kit ──────────────────────────────────────────
+/** Text that decrypts itself: scrambled glyphs settle left to right. */
+function Decode({ text, delay = 0, speed = 28 }: { text: string; delay?: number; speed?: number }) {
+  const [shown, setShown] = useState(() => (reduced() ? text : text.replace(/\S/g, '·')));
+  useEffect(() => {
+    if (reduced()) { setShown(text); return; }
+    const G = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#%&@$';
+    let tick = 0, t = 0;
+    const start = window.setTimeout(() => {
+      t = window.setInterval(() => {
+        tick++;
+        const settled = Math.floor(tick * 1.4);
+        setShown([...text].map((ch, i) => (i < settled || ch === ' ' ? ch : G[Math.floor(Math.random() * G.length)])).join(''));
+        if (settled >= text.length) window.clearInterval(t);
+      }, speed);
+    }, delay);
+    return () => { window.clearTimeout(start); window.clearInterval(t); };
+  }, [text, delay, speed]);
+  return <span className="mx-decode" aria-label={text}>{shown}</span>;
+}
+
+/** The chase at a glance: every stop, where you are, and the Magpie one step ahead (cornered at the end). */
+function Tracker({ stops, at, cornered }: { stops: number; at: number; cornered: boolean }) {
+  return (
+    <div className="mx-tracker" aria-label={cornered ? 'You’ve cornered the Magpie' : `Stop ${at + 1} of ${stops} — the Magpie is one step ahead`}>
+      <span className="mx-tr-rail">
+      <span className="mx-tr-line" aria-hidden><i style={{ width: `${(at / (stops - 1)) * 100}%` }} /></span>
+      {Array.from({ length: stops }, (_, i) => (
+        <span key={i} className={`mx-tr-stop ${i < at ? 'done' : i === at ? 'here' : ''}`} style={{ left: `${(i / (stops - 1)) * 100}%` }}>
+          {i === at && <motion.b layoutId="mx-agent" className="mx-tr-agent" transition={{ type: 'spring', stiffness: 300, damping: 26 }}><HatGlasses size={11} /></motion.b>}
+          {!cornered && i === at + 1 && <motion.b layoutId="mx-bird" className="mx-tr-bird" transition={{ type: 'spring', stiffness: 300, damping: 26 }}>?</motion.b>}
+        </span>
+      ))}
+      </span>
+      <em>{cornered ? 'Cornered!' : at + 1 === stops - 1 ? 'Hideout next' : 'Magpie 1 stop ahead'}</em>
+    </div>
+  );
+}
+
+/** A message from the Magpie, picked up on the radio. */
+function Intercept({ text }: { text: string }) {
+  return (
+    <motion.div className="mx-intercept" initial={{ opacity: 0, y: 10, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} transition={{ delay: 0.5, type: 'spring', stiffness: 300, damping: 24 }}>
+      <span className="mx-ic-head"><Radio size={12} /> Intercepted transmission <i className="mx-ic-live" aria-hidden /></span>
+      <q><Decode text={text} delay={900} speed={22} /></q>
+      <small>— M.</small>
+    </motion.div>
+  );
+}
+
+/** On arrival: a targeting reticle sweeps the city, coordinates decrypt, then it clears. */
+function Reticle({ cca3 }: { cca3: string }) {
+  const c = BY_CCA3.get(cca3)!;
+  const [la, lo] = c.latlng;
+  const coord = `${Math.abs(la).toFixed(2)}°${la >= 0 ? 'N' : 'S'}  ${Math.abs(lo).toFixed(2)}°${lo >= 0 ? 'E' : 'W'}`;
+  if (reduced()) return null;
+  return (
+    <motion.div className="mx-reticle" aria-hidden initial={{ opacity: 1 }} animate={{ opacity: 0 }} transition={{ delay: 1.9, duration: 0.5 }}>
+      <motion.span className="mx-rt-box" initial={{ scale: 2.2, rotate: 45, opacity: 0 }} animate={{ scale: 1, rotate: 0, opacity: 1 }} transition={{ duration: 0.7, ease: [0.2, 0.9, 0.3, 1] }}><i /><i /><i /><i /></motion.span>
+      <span className="mx-rt-sweep" />
+      <span className="mx-rt-read"><Decode text={coord} delay={200} /><b><Decode text="LOCATION CONFIRMED" delay={700} /></b></span>
+    </motion.div>
+  );
+}
+
+/** Airport-style code for a city: "Santiago" → SAN. */
+const cityCode = (cca3: string) => (BY_CCA3.get(cca3)?.capital[0] ?? cca3).normalize('NFD').replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase();
+const hashOf = (t: string) => [...t].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+
+/** The flight, as a boarding pass: codes, a flight number, a live status, and the plane crossing. */
+function BoardingPass({ from, to, hours, ms, wait, code }: { from: string; to: string; hours: number; ms: number; wait: number; code: string }) {
+  const [status, setStatus] = useState('Boarding');
+  useEffect(() => {
+    const ts = [window.setTimeout(() => setStatus('Taking off'), wait), window.setTimeout(() => setStatus('In flight'), wait + ms * 0.25), window.setTimeout(() => setStatus('Landing'), wait + ms * 0.8)];
+    return () => ts.forEach((t) => window.clearTimeout(t));
+  }, [ms, wait]);
+  const a = BY_CCA3.get(from)!, b = BY_CCA3.get(to)!;
+  const no = `MQ ${100 + (hashOf(code) % 900)}`;
+  return (
+    <motion.div className="mx-pass" style={{ ['--ms' as string]: `${ms}ms`, ['--wait' as string]: `${wait}ms` }} initial={{ y: -50, opacity: 0, rotateX: 40 }} animate={{ y: 0, opacity: 1, rotateX: 0 }} exit={{ y: -40, opacity: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 24 }}>
+      <div className="mx-pass-top">
+        <span><Plane size={12} /> Flight {no}</span>
+        <AnimatePresence mode="wait"><motion.b key={status} initial={{ y: 6, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -6, opacity: 0 }}>{status}</motion.b></AnimatePresence>
+      </div>
+      <div className="mx-pass-route">
+        <span className="mx-pass-city"><b>{cityCode(from)}</b><small><img src={flagUrl(a.cca2, 80)} alt="" />{a.capital[0]}</small></span>
+        <span className="mx-pass-track" aria-hidden><i className="mx-pass-fill" /><Plane size={16} className="mx-pass-plane" /></span>
+        <span className="mx-pass-city to"><b>{cityCode(to)}</b><small><img src={flagUrl(b.cca2, 80)} alt="" />{b.capital[0]}</small></span>
+      </div>
+      <div className="mx-pass-foot"><span>Seat 7A · Window</span><span className="mx-pass-cost">−{hours} h on the case clock</span></div>
+    </motion.div>
+  );
+}
+
 /** A full-bleed scene: the city behind, its name and local time on top. */
-function Scene({ cca3, label, dim, children }: { cca3: string; label: string; dim?: boolean; children: React.ReactNode }) {
+function Scene({ cca3, label, dim, scan, children }: { cca3: string; label: string; dim?: boolean; scan?: boolean; children: React.ReactNode }) {
   const c = BY_CCA3.get(cca3)!;
   const photo = useCityPhoto(cca3);
   return (
@@ -486,9 +607,10 @@ function Scene({ cca3, label, dim, children }: { cca3: string; label: string; di
       <motion.div className="mx-backdrop" style={photo ? { backgroundImage: `url("${photo}")` } : undefined} initial={{ scale: 1.08 }} animate={{ scale: 1 }} transition={{ duration: 6, ease: 'easeOut' }} />
       <div className="mx-place">
         <span>{label}</span>
-        <b><img src={flagUrl(c.cca2, 80)} alt="" /> {c.capital[0]}, {c.name}</b>
+        <b><img src={flagUrl(c.cca2, 80)} alt="" /> <Decode text={`${c.capital[0]}, ${c.name}`} delay={250} /></b>
         <em><Clock size={11} /> {localTime(cca3)}</em>
       </div>
+      {scan && <Reticle cca3={cca3} />}
       {children}
     </motion.div>
   );
@@ -559,6 +681,7 @@ function Briefing({ kase, career, onStart }: { kase: Case; career: Career; onSta
           <b>Director Finch</b>
           <em>The Atlas Bureau</em>
         </motion.span>
+        <span className="mx-radar" aria-hidden><i /></span>
         <motion.div className="mx-wanted" initial={{ rotate: 8, y: -30, opacity: 0 }} animate={{ rotate: 3, y: 0, opacity: 1 }} transition={{ delay: 0.35, type: 'spring', stiffness: 260, damping: 16 }}>
           <span>WANTED</span>
           <Silhouette s={kase.culprit} size={64} shadow />
@@ -566,7 +689,9 @@ function Briefing({ kase, career, onStart }: { kase: Case; career: Career; onSta
         </motion.div>
       </div>
       <div className="mx-brief-bubble">
-        <b>The theft of {kase.item}</b>
+        <motion.span className="mx-secret" aria-hidden initial={{ scale: 2.6, opacity: 0, rotate: -24 }} animate={{ scale: 1, opacity: 1, rotate: -8 }} transition={{ delay: 0.6, type: 'spring', stiffness: 420, damping: 15 }}>TOP SECRET</motion.span>
+        <span className="mx-file">Case file · {lvl.name}</span>
+        <b><Decode text={`The theft of ${kase.item}`} delay={300} /></b>
         <p>{shown}{!done && <span className="mx-caret" aria-hidden />}</p>
       </div>
       <RankStrip career={career} />
