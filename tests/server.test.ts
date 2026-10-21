@@ -32,6 +32,7 @@ Object.assign(process.env, {
   GQ_PREFS_FILE: join(dir, 'prefs.json'),
   GQ_ANALYTICS_FILE: join(dir, 'analytics.json'),
   GQ_DAILY_FILE: join(dir, 'daily.json'),
+  GQ_WORDLE_FILE: join(dir, 'wordle.json'),
   GQ_PLACES_FILE: join(dir, 'places.json'),
   GQ_PUSH_FILE: join(dir, 'push.json'),
   GQ_FEEDBACK_FILE: join(dir, 'feedback.json'),
@@ -291,6 +292,34 @@ describe('activity analytics', () => {
   });
 });
 
+describe('geo wordle daily', () => {
+  const today = new Date().toISOString().slice(0, 10);
+  it('records a finished game once and shows today\'s board — marks only', async () => {
+    const r = await call('POST', '/api/wordle', { cookie: bob, body: { date: today, rows: ['xyxxg', 'gyxgg', 'ggggg'], hints: 1 } });
+    expect(r.status).toBe(200);
+    expect(r.body.board).toMatchObject([{ name: 'bob', rows: ['xyxxg', 'gyxgg', 'ggggg'], hints: 1, won: true, tries: 3 }]);
+    expect((await call('POST', '/api/wordle', { cookie: bob, body: { date: today, rows: ['ggggg'], hints: 0 } })).status).toBe(409); // one go a day
+    // A better game ranks first; you always see your own row.
+    expect((await call('POST', '/api/wordle', { cookie: owner, body: { date: today, rows: ['xxgxx', 'ggggg'], hints: 0 } })).status).toBe(200);
+    const g = await call('GET', `/api/wordle?date=${today}`, { cookie: bob });
+    expect((g.body.board as { name: string }[]).map((x) => x.name).slice(0, 2)).toEqual(['owner', 'bob']);
+    expect(g.body.mine.rows).toEqual(['xyxxg', 'gyxgg', 'ggggg']);
+    expect(JSON.stringify(g.body)).not.toMatch(/"guess"|letters/); // nothing but marks
+  });
+  it('refuses unfinished or impossible games, and odd days', async () => {
+    const post = (rows: unknown, hints: unknown, date = today) => call('POST', '/api/wordle', { cookie: owner, body: { date, rows, hints } });
+    expect((await post(['xxxxx'], 0)).status).toBe(400); // not a finished game
+    const { validWordle } = await import('../src/lib/wordleResult');
+    expect(validWordle(['xxxxx'], 0)).toBe(false); // not finished
+    expect(validWordle(['ggggg', 'xxxxx'], 0)).toBe(false); // a guess after solving
+    expect(validWordle(['xxxx', 'ggggg'], 0)).toBe(false); // lengths differ
+    expect(validWordle(['xxxxx', 'xxxxx', 'xxxxx', 'xxxxx'], 2)).toBe(true); // out of tries (2 spent on hints)
+    expect(validWordle(['ggggg'], 3)).toBe(false); // too many hints
+    expect(validWordle(['GGGGG'], 0)).toBe(false); // letters aren't marks
+    expect((await post(['ggggg'], 0, '2020-01-01')).status).toBe(400);
+  });
+});
+
 describe('daily challenge', () => {
   const today = new Date().toISOString().slice(0, 10);
   it('records a result once, with the streak and today\'s board', async () => {
@@ -451,6 +480,8 @@ describe('delete my account', () => {
     const pin = { id: 'leave00001', lat: 10, lng: 20, name: 'Home', kind: 'home', at: 1 };
     expect((await call('PUT', '/api/places', { cookie: me, body: { places: [pin] } })).status).toBe(200);
     await call('PUT', '/api/favorites', { cookie: me, body: { favorites: ['bob'] } });
+    const today = new Date().toISOString().slice(0, 10);
+    expect((await call('POST', '/api/wordle', { cookie: me, body: { date: today, rows: ['xxgxx', 'ggggg'], hints: 0 } })).status).toBe(200);
 
     expect((await call('POST', '/api/me/delete', { cookie: me, body: { password: 'wrong-password' } })).status).toBe(401);
     expect((await call('POST', '/api/me/delete', { body: { password: 'leaver-pass-123' } })).status).toBe(401); // signed out: nobody to delete
@@ -464,6 +495,8 @@ describe('delete my account', () => {
     const { getFavorites } = await import('../server/prefs');
     expect(await getPlaces('leaver')).toEqual([]);
     expect(await getFavorites('leaver')).toEqual([]);
+    const { getResult } = await import('../server/wordle');
+    expect(await getResult('leaver', today)).toBeNull(); // Geo Wordle results go too
   });
   it('won\'t delete the owner account', async () => {
     expect((await call('POST', '/api/me/delete', { cookie: owner, body: { password: OWNER_PW } })).status).toBe(400);

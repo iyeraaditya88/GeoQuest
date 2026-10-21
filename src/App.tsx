@@ -549,6 +549,7 @@ export default function App() {
     const linkGame = url.searchParams.get('game') ?? (url.searchParams.has('wordle') ? 'wordle' : url.searchParams.has('mystery') ? 'mystery' : null);
     if (isShareGame(linkGame)) linkWanted.current = { ...linkWanted.current, game: linkGame };
     if (['country', 'play', 'wordle', 'mystery', 'game'].some((k) => url.searchParams.has(k))) {
+      if (url.searchParams.has('wordle')) { url.searchParams.delete('r'); url.searchParams.delete('h'); } // a shared result's squares (for the link preview)
       for (const k of ['country', 'play', 'wordle', 'mystery', 'game']) url.searchParams.delete(k);
       history.replaceState(null, '', url.pathname + url.search + url.hash);
     }

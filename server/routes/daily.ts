@@ -3,10 +3,12 @@ import { timingSafeEqual } from 'node:crypto';
 import type express from 'express';
 import * as accounts from '../users.js';
 import * as daily from '../daily.js';
+import * as wordle from '../wordle.js';
 import * as push from '../push.js';
 import { HOSTED, fail, rateLimit } from '../http.js';
 import { addDays, dailyNumber, localDate } from '../../src/lib/daily.js';
-import { dailyCard, parsePoints } from '../og.js';
+import { dailyCard, parsePoints, wordleCard } from '../og.js';
+import { decodeWordle } from '../../src/lib/wordleResult.js';
 
 const me = (req: express.Request) => (HOSTED ? req.user ?? null : accounts.normName(req.headers['x-gq-as']) || 'you');
 
@@ -20,6 +22,19 @@ export function registerCron(app: express.Express) {
     if (!Number.isInteger(no) || no < 1 || no > dailyNumber(localDate(Date.now(), 'UTC')) + 1 || !points) { fail(res, 400, 'Not a valid result.'); return; }
     try {
       const png = await dailyCard(no, points);
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      res.end(png);
+    } catch (err) { fail(res, 500, err); }
+  });
+
+  // …and for a shared Geo Wordle (the grid of colours only).
+  app.get('/api/og/wordle', rateLimit(120, 60_000), async (req, res) => {
+    const no = Number(req.query.n);
+    const game = decodeWordle(req.query.r, req.query.h);
+    if (!Number.isInteger(no) || no < 1 || no > dailyNumber(localDate(Date.now(), 'UTC')) + 1 || !game) { fail(res, 400, 'Not a valid result.'); return; }
+    try {
+      const png = await wordleCard(no, game.rows, game.hints);
       res.setHeader('Content-Type', 'image/png');
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
       res.end(png);
@@ -63,6 +78,26 @@ export function registerDaily(app: express.Express) {
     try {
       const { result, streak } = await daily.saveResult(me(req)!, date, points);
       res.json({ ok: true, streak: daily.currentStreak(streak, date), board: daily.withRow(await daily.board(date), result) });
+    } catch (err) { const m = (err as Error).message; fail(res, /already/i.test(m) ? 409 : /finished/i.test(m) ? 400 : 500, err); }
+  });
+
+  // ── Geo Wordle's daily: your result, and today's board (marks only — never the country) ──
+  app.get('/api/wordle', async (req, res) => {
+    const date = String(req.query.date ?? '');
+    if (!daily.playableDate(date)) { fail(res, 400, 'Not a valid day.'); return; }
+    try {
+      const user = me(req);
+      if (!user) { res.json({ date, mine: null, board: [], guest: true }); return; }
+      const [mine, board] = await Promise.all([wordle.getResult(user, date), wordle.board(date)]);
+      res.json({ date, mine, board: wordle.withRow(board, mine) });
+    } catch (err) { fail(res, 500, err); }
+  });
+  app.post('/api/wordle', rateLimit(20, 10 * 60_000), async (req, res) => {
+    const { date, rows, hints } = (req.body ?? {}) as { date?: unknown; rows?: unknown; hints?: unknown };
+    if (!daily.playableDate(date)) { fail(res, 400, 'Not a valid day.'); return; }
+    try {
+      const result = await wordle.saveResult(me(req)!, date, rows, hints);
+      res.json({ ok: true, mine: result, board: wordle.withRow(await wordle.board(date), result) });
     } catch (err) { const m = (err as Error).message; fail(res, /already/i.test(m) ? 409 : /finished/i.test(m) ? 400 : 500, err); }
   });
 

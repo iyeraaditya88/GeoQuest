@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { createElement as h, type ReactNode } from 'react';
 import { DAILY_N, MAX_POINTS, total } from '../src/lib/daily.js';
+import { wordleScore } from '../src/lib/wordleResult.js';
 
 const require = createRequire(import.meta.url);
 let fonts: Promise<{ name: string; data: Buffer; weight: 500 | 700; style: 'normal' }[]> | null = null;
@@ -47,6 +48,31 @@ export async function dailyCard(no: number, points: number[]) {
       div({ fontSize: 96, fontWeight: 500, color: '#7b88a8', marginLeft: 10 }, `/${MAX}`)),
     div({ gap: 22, marginTop: 34 }, ...points.map((p, i) => h('div', { key: i, style: { width: 92, height: 92, borderRadius: 20, backgroundColor: COLOR[p] } }))),
     div({ fontSize: 36, fontWeight: 500, color: '#c7d2ea', marginTop: 44 }, 'Can you beat it? Find today’s 5 countries'),
+  );
+  const svg = await satori(tree, { width: 1200, height: 630, fonts: await loadFonts() });
+  return Buffer.from(new Resvg(svg, { fitTo: { mode: 'width', value: 1200 } }).render().asPng());
+}
+
+const MARK: Record<string, string> = { g: '#34d399', y: '#facc15', x: '#3b4660' };
+/** 1200×630 PNG for a shared Geo Wordle: "Geo Wordle #42", "4/6" and the coloured grid (no letters). */
+export async function wordleCard(no: number, rows: string[], hints: number) {
+  const [{ default: satori }, { Resvg }] = await Promise.all([import('satori'), import('@resvg/resvg-js')]);
+  const logo = await loadIcon();
+  const cols = rows[0].length;
+  const cell = Math.min(56, Math.floor(560 / cols), Math.floor(330 / rows.length) - 8);
+  const tree = div(
+    { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', gap: 70, fontFamily: 'Space Grotesk', color: '#e8eefc',
+      backgroundImage: 'radial-gradient(circle at 50% 0%, #1b2f5e 0%, #0a1226 55%, #050913 100%)' },
+    div({ position: 'absolute', top: 44, left: 56, alignItems: 'center', gap: 18 },
+      h('img', { src: logo, width: 64, height: 64, style: { borderRadius: 16 } }),
+      div({ fontSize: 34, fontWeight: 700, letterSpacing: -0.5 }, 'GeoQuest')),
+    div({ position: 'absolute', top: 54, right: 60, fontSize: 28, fontWeight: 500, color: '#94a3c4' }, 'playgeoquest.app'),
+    div({ flexDirection: 'column', alignItems: 'flex-start', marginTop: 40 },
+      div({ fontSize: 44, fontWeight: 500, color: '#bef264' }, `Geo Wordle #${no}`),
+      div({ fontSize: 170, fontWeight: 700, lineHeight: 1, color: '#a3e635', letterSpacing: -5, marginTop: 6 }, wordleScore(rows)),
+      div({ fontSize: 32, fontWeight: 500, color: '#c7d2ea', marginTop: 18 }, hints ? `with ${hints} hint${hints > 1 ? 's' : ''} · Can you beat it?` : 'Can you beat it?')),
+    div({ flexDirection: 'column', gap: 8, marginTop: 40 },
+      ...rows.map((r, i) => div({ key: i, gap: 8 }, ...[...r].map((m, j) => h('div', { key: j, style: { width: cell, height: cell, borderRadius: 8, backgroundColor: MARK[m] ?? MARK.x } }))))),
   );
   const svg = await satori(tree, { width: 1200, height: 630, fonts: await loadFonts() });
   return Buffer.from(new Resvg(svg, { fitTo: { mode: 'width', value: 1200 } }).render().asPng());

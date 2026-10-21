@@ -6,6 +6,7 @@ import { next, rewrite } from '@vercel/functions';
 import { dailyNumber, localDate } from './src/lib/daily.js';
 import { isCountryPath } from './src/lib/countryPages.js';
 import { GAME_PITCH, isShareGame } from './src/lib/shareGames.js';
+import { decodeWordle, wordleScore } from './src/lib/wordleResult.js';
 
 export const config = { runtime: 'nodejs' };
 
@@ -48,6 +49,26 @@ export function dailyPreview(html: string, url?: URL) {
   return out;
 }
 
+/** A shared Geo Wordle (/?wordle=42&r=gyxxg.ggggg): its score in the title, its grid in the picture. */
+export function wordlePreview(html: string, url?: URL) {
+  const no = Number(url?.searchParams.get('wordle'));
+  const game = decodeWordle(url?.searchParams.get('r'), url?.searchParams.get('h'));
+  const ok = !!url && !!game && Number.isInteger(no) && no >= 1 && no <= dailyNumber(localDate(Date.now(), 'UTC')) + 1;
+  const title = ok ? `Geo Wordle #${no} — ${wordleScore(game.rows)}. Can you beat it?` : `${GAME_PITCH.wordle.name} on GeoQuest — can you beat me?`;
+  const desc = 'Guess today’s country in six tries — every guess a real country. Free, on a 3D globe, no sign-up needed.';
+  let out = html
+    .replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`)
+    .replace(/(<meta (?:property|name)="(?:og|twitter):title" content=")[^"]*"/g, `$1${title}"`)
+    .replace(/(<meta (?:property|name)="(?:og|twitter):description" content=")[^"]*"/g, `$1${desc}"`);
+  if (ok) {
+    const img = `https://${url.host}/api/og/wordle?n=${no}&r=${encodeURIComponent(game.rows.join('.'))}${game.hints ? `&h=${game.hints}` : ''}`;
+    out = out
+      .replace(/(<meta (?:property|name)="(?:og|twitter):image" content=")[^"]*"/g, `$1${img}"`)
+      .replace(/(<meta property="og:image:alt" content=")[^"]*"/, `$1Geo Wordle #${no}: ${wordleScore(game.rows)}"`);
+  }
+  return out;
+}
+
 /** The home page's preview tags, retitled for a shared game link (/?game=wordle). */
 export function gamePreview(html: string, url?: URL) {
   const g = url?.searchParams.get('game');
@@ -71,7 +92,7 @@ export default async function middleware(request: Request) {
   if (PAGES.has(url.pathname)) return rewrite(new URL('/login.html' + url.search, url));
   if (INFO_PAGES.has(url.pathname)) return rewrite(new URL(`${url.pathname}.html`, url));
   if (isCountryPath(url.pathname)) return rewrite(new URL(`${url.pathname}.html`, url)); // /country/india → the built page
-  const shared = url.searchParams.has('daily') ? dailyPreview : url.searchParams.has('game') ? gamePreview : null;
+  const shared = url.searchParams.has('daily') ? dailyPreview : url.searchParams.has('wordle') ? wordlePreview : url.searchParams.has('game') ? gamePreview : null;
   if (url.pathname === '/' && shared && PREVIEW_BOTS.test(request.headers.get('user-agent') ?? '')) {
     try {
       const page = await fetch(new URL('/index.html', url));

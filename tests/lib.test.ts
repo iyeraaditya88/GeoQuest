@@ -176,6 +176,18 @@ describe('shared Daily link preview', () => {
     expect(out.match(/GeoQuest Daily — can you find today’s 5 countries\?/g)).toHaveLength(3);
     expect(out).toContain('og:description" content="A new set of 5 countries every day');
   });
+  it('shows a shared Geo Wordle\'s score and grid (and ignores made-up ones)', async () => {
+    const { wordlePreview } = await import('../middleware');
+    const html = '<title>GeoQuest</title><meta property="og:title" content="GeoQuest" /><meta property="og:image" content="old.jpg" />';
+    const out = wordlePreview(html, new URL('https://playgeoquest.app/?wordle=3&r=xyxxg.ggggg&h=1&ref=share'));
+    expect(out).toContain('<title>Geo Wordle #3 — 2/6. Can you beat it?</title>');
+    expect(out).toContain('https://playgeoquest.app/api/og/wordle?n=3&r=xyxxg.ggggg&h=1');
+    const fake = wordlePreview(html, new URL('https://playgeoquest.app/?wordle=3&r=ABCDE'));
+    expect(fake).toContain('can you beat me?'); expect(fake).toContain('old.jpg');
+    const { encodeWordle, decodeWordle, wordleScore } = await import('../src/lib/wordleResult');
+    expect(decodeWordle(encodeWordle(['xxgxx', 'ggggg']), '0')).toEqual({ rows: ['xxgxx', 'ggggg'], hints: 0 });
+    expect(wordleScore(['xxxxx', 'xxxxx', 'xxxxx', 'xxxxx', 'xxxxx', 'xxxxx'])).toBe('X/6');
+  });
   it('retitles a shared game link (?game=…), and ignores unknown games', async () => {
     const { gamePreview } = await import('../middleware');
     const html = '<title>GeoQuest</title><meta property="og:title" content="GeoQuest" /><meta property="og:description" content="x" />';

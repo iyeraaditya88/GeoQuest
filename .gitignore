@@ -31,6 +31,7 @@ dist-ssr
 .prefs.local.json
 .analytics.local.json
 .daily.local.json
+.wordle.local.json
 .push.local.json
 .vapid.local.json
 .places.local.json

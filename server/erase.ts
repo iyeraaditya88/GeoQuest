@@ -1,5 +1,6 @@
 // "Delete my account": everything kept about a player, gone — their places, favourites, last-seen,
-// reminder devices, Daily results and streak, and their visits in Activity. Their name stays only
+// reminder devices, Daily and Geo Wordle results and streak, game progress (the mystery rank), and
+// their visits in Activity. Their name stays only
 // in other players' match history, and feedback they sent stays with the owner (the privacy page
 // says so).
 import { readFile } from 'node:fs/promises';
@@ -14,10 +15,10 @@ async function editLocal<T>(file: string, fn: (all: T) => void) {
 
 export async function eraseUserData(user: string) {
   if (blobEnabled()) {
-    const fixed = [`places/${user}.json`, `prefs/${user}.json`, `seen/${user}.json`, `streak/${user}.json`, `push/${user}.json`];
-    const [daily, visits] = await Promise.all([listBlobPaths('daily/'), listBlobPaths('analytics/')]);
+    const fixed = [`places/${user}.json`, `prefs/${user}.json`, `seen/${user}.json`, `streak/${user}.json`, `push/${user}.json`, `progress/${user}.json`];
+    const [daily, wordle, visits] = await Promise.all([listBlobPaths('daily/'), listBlobPaths('wordle/'), listBlobPaths('analytics/')]);
     const theirs = [
-      ...daily.filter((p) => p.endsWith(`/${user}.json`)), // daily/<date>/<user>.json
+      ...[...daily, ...wordle].filter((p) => p.endsWith(`/${user}.json`)), // daily|wordle/<date>/<user>.json
       ...visits.filter((p) => p.split('/')[2] === user), // analytics/<day>/<user>/<sid>.json
     ];
     try { await deleteBlobs([...fixed, ...theirs]); }
@@ -31,6 +32,9 @@ export async function eraseUserData(user: string) {
   await editLocal<{ results?: Record<string, unknown>; streaks?: Record<string, unknown> }>(env.GQ_DAILY_FILE ?? '.daily.local.json', (d) => {
     for (const k of Object.keys(d.results ?? {})) if (k.endsWith(`/${user}`)) delete d.results![k];
     delete d.streaks?.[user];
+  });
+  await editLocal<{ results?: Record<string, unknown> }>(env.GQ_WORDLE_FILE ?? '.wordle.local.json', (d) => {
+    for (const k of Object.keys(d.results ?? {})) if (k.endsWith(`/${user}`)) delete d.results![k];
   });
   await editLocal<Record<string, { user?: string }>>(env.GQ_ANALYTICS_FILE ?? '.analytics.local.json', (all) => {
     for (const [sid, s] of Object.entries(all)) if (s.user === user) delete all[sid];

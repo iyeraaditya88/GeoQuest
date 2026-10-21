@@ -2,6 +2,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { motion } from 'motion/react';
 import { Binoculars, Brain, CalendarDays, Check, Gamepad2, Grid3x3, HatGlasses, Landmark, ListOrdered, Shapes, Swords, X } from 'lucide-react';
 import { track } from '../lib/analytics';
+import { localDate } from '../lib/daily';
 import { inviteText, isShareGame } from '../lib/share';
 import { ShareButton } from './ShareButton';
 
@@ -26,13 +27,25 @@ export function GamesSheet({ daily, duel, onPick, onClose }: Props) {
   }, [onClose]);
 
   const pick = (g: GameKey) => { track('launch', { g, v: 'sheet' }); onPick(g); };
+  // Today's Geo Wordle: played (and how it went) or still waiting — like the Daily.
+  const wordle = (() => {
+    try {
+      const done = localStorage.getItem(`gq-wordle-done-${localDate()}`);
+      const streak = Number(JSON.parse(localStorage.getItem('gq-wordle-stats') ?? '{}').streak) || 0;
+      return { done, streak };
+    } catch { return { done: null, streak: 0 }; }
+  })();
   const games: { key: GameKey; icon: typeof Gamepad2; name: string; line: string; tone: string; badge?: ReactNode }[] = [
     {
       key: 'daily', icon: CalendarDays, name: 'Daily challenge', tone: 'gold',
       line: daily.done ? `Done today${daily.streak > 1 ? ` · 🔥 ${daily.streak}` : ''} · see result` : `5 new countries today${daily.streak > 1 ? ` · 🔥 ${daily.streak}` : ''}`,
       badge: daily.done ? <span className="gs-done" aria-label="Done today"><Check size={12} /></span> : <span className="gs-new">New</span>,
     },
-    { key: 'wordle', icon: Grid3x3, name: 'Geo Wordle', line: 'Wordle, but it’s a country', tone: 'lime' },
+    {
+      key: 'wordle', icon: Grid3x3, name: 'Geo Wordle', tone: 'lime',
+      line: wordle.done ? `Today: ${wordle.done}${wordle.streak > 1 ? ` · 🔥 ${wordle.streak}` : ''} · see the board` : `Today’s country is waiting${wordle.streak > 1 ? ` · 🔥 ${wordle.streak}` : ''}`,
+      badge: wordle.done ? <span className="gs-done" aria-label="Done today"><Check size={12} /></span> : <span className="gs-new">New</span>,
+    },
     { key: 'quiz', icon: Gamepad2, name: 'Map quiz', line: 'Find countries, flags or clues', tone: 'blue' },
     { key: 'top5', icon: ListOrdered, name: 'Name the Top 5', line: 'Rivers, peaks, populations…', tone: 'teal' },
     { key: 'trivia', icon: Brain, name: 'Geo Trivia', line: 'Gets harder as you get better', tone: 'violet' },

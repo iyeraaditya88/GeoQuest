@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'motion/react';
-import { BarChart3, Delete, Globe2, Grid3x3, Lightbulb, RotateCcw, X } from 'lucide-react';
+import { BarChart3, Delete, Globe2, Grid3x3, Lightbulb, RotateCcw, Trophy, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import { addDays, localDate } from '../lib/daily';
@@ -11,6 +11,9 @@ import {
 } from '../lib/wordle';
 import { track } from '../lib/analytics';
 import { resultText } from '../lib/share';
+import { api } from '../lib/api';
+import { getAuth, isGuest, needSignIn } from '../lib/session';
+import { encodeWordle, wordleScore, type WordleRow } from '../lib/wordleResult';
 import { ShareButton } from './ShareButton';
 
 interface Props {
@@ -103,12 +106,37 @@ export function GeoWordle({ onReveal, onExit, onShowCountry, onGuess }: Props) {
     return () => window.clearTimeout(t);
   }, [done, answer, len]);
 
+  // Today's board (the Daily, signed in): your result goes up once, then everyone's — marks only.
+  const [board, setBoard] = useState<{ rows: WordleRow[]; guest: boolean } | null>(null);
+  const dailyDone = mode === 'daily' && done;
+  useEffect(() => {
+    if (!dailyDone) return;
+    if (isGuest(getAuth())) { setBoard({ rows: [], guest: true }); return; }
+    let live = true;
+    const SENT = `gq-wordle-sent-${date}`;
+    const sent = (() => { try { return !!localStorage.getItem(SENT); } catch { return false; } })();
+    const get = () => api(`/api/wordle?date=${date}`);
+    const req = sent ? get() : api('/api/wordle', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date, rows: rows.map((r) => r.marks.join('')), hints }) })
+      .then((r) => (r.status === 409 ? get() : r)); // already recorded (another device): show what's there
+    void req.then(async (r) => {
+      const d = await r.json().catch(() => null);
+      if (!r.ok || !d || !live) return;
+      try { localStorage.setItem(SENT, '1'); } catch { /* private mode */ }
+      setBoard({ rows: d.board ?? [], guest: !!d.guest });
+    }).catch(() => null);
+    return () => { live = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dailyDone]);
+
   const record = (next: string[], h: number, right: boolean) => {
     persist(next, h);
     if (!right && TRIES - next.length - h > 0) return;
     track('score', { g: 'wordle', s: right ? next.length : 0, of: TRIES, h });
     if (right) window.setTimeout(() => confetti({ particleCount: 120, spread: 80, origin: { y: 0.3 }, colors: ['#34d399', '#facc15', '#fde68a'], disableForReducedMotion: true }), len * 90 + 300);
-    if (mode === 'daily') { const st = addResult(loadStats(), date, right ? next.length : null, addDays(date, -1)); saveStats(st); setStats(st); }
+    if (mode === 'daily') {
+      const st = addResult(loadStats(), date, right ? next.length : null, addDays(date, -1)); saveStats(st); setStats(st);
+      try { localStorage.setItem(`gq-wordle-done-${date}`, `${right ? next.length : 'X'}/${TRIES}`); } catch { /* private mode */ } // for the Play list
+    }
   };
 
   const submit = useCallback(() => {
@@ -159,7 +187,9 @@ export function GeoWordle({ onReveal, onExit, onShowCountry, onGuess }: Props) {
     persist([], 0, a, 'bonus');
   };
   /** The result to share: coloured squares only — no letters, no country. */
-  const shareMsg = () => resultText('wordle', wordleShare(mode === 'daily' ? wordleNumber(date) : null, rows.map((r) => r.marks), won, hints));
+  const shareMsg = () => resultText('wordle', wordleShare(mode === 'daily' ? wordleNumber(date) : null, rows.map((r) => r.marks), won, hints),
+    // The Daily's link carries the squares, so the preview shows them (and opens today's Wordle).
+    mode === 'daily' ? `${location.origin}/?wordle=${wordleNumber(date)}&r=${encodeWordle(rows.map((r) => r.marks.join('')))}${hints ? `&h=${hints}` : ''}&ref=share` : undefined);
   const closeResult = useCallback(() => setResultOpen(false), []);
 
   // The grid: guesses, the row being typed, empty rows — and the tries spent on hints, from the bottom.
@@ -270,7 +300,7 @@ export function GeoWordle({ onReveal, onExit, onShowCountry, onGuess }: Props) {
         <AnimatePresence>
           {resultOpen && done && (
             <WordleResult key="result" mode={mode} no={wordleNumber(date)} won={won} tries={rows.length} hints={hints} rows={rows} target={target.cca3}
-              stats={stats} shareMsg={shareMsg} onBonus={bonus} onClose={closeResult} onShow={() => onShowCountry(target.cca3)} />
+              stats={stats} board={board} me={getAuth().user ?? 'you'} shareMsg={shareMsg} onBonus={bonus} onClose={closeResult} onShow={() => onShowCountry(target.cca3)} />
           )}
         </AnimatePresence>,
         document.body,
@@ -280,8 +310,8 @@ export function GeoWordle({ onReveal, onExit, onShowCountry, onGuess }: Props) {
 }
 
 /** The result: the answer, your rows, and (for the Daily) your stats and guess distribution. */
-function WordleResult({ mode, no, won, tries, hints, rows, target, stats, shareMsg, onBonus, onClose, onShow }: {
-  mode: Mode; no: number; won: boolean; tries: number; hints: number; rows: Row[]; target: string; stats: WordleStats; shareMsg: () => string;
+function WordleResult({ mode, no, won, tries, hints, rows, target, stats, board, me, shareMsg, onBonus, onClose, onShow }: {
+  mode: Mode; no: number; won: boolean; tries: number; hints: number; rows: Row[]; target: string; stats: WordleStats; board: { rows: WordleRow[]; guest: boolean } | null; me: string; shareMsg: () => string;
   onBonus: () => void; onClose: () => void; onShow: () => void;
 }) {
   const c = BY_CCA3.get(target)!;
@@ -337,6 +367,22 @@ function WordleResult({ mode, no, won, tries, hints, rows, target, stats, shareM
                 </li>
               ))}
             </ol>
+            <div className="fr-label"><Trophy size={12} /> Today’s board</div>
+            {!board ? <p className="ac-note">Loading today’s board…</p>
+              : board.guest ? (
+                <p className="ac-note gwr-signin">See how your friends did with today’s country. <button onClick={() => needSignIn('daily')}>Sign in</button></p>
+              ) : board.rows.length > 1 || (board.rows.length === 1 && board.rows[0].name !== me) ? (
+                <ol className="dy-board gwr-board">
+                  {board.rows.slice(0, 15).map((r, i) => (
+                    <li key={r.name} className={r.name === me ? 'me' : ''}>
+                      <span className="dy-rank">{i + 1}</span>
+                      <b>{r.name === me ? 'You' : r.name}</b>
+                      <span className="dy-sq" aria-hidden>{r.rows.map((m, k) => <i key={k} className={/^g+$/.test(m) ? 'g' : m.includes('g') ? 'y' : 'x'} />)}</span>
+                      <span className="dy-total">{wordleScore(r.rows)}{r.hints ? ` 💡${r.hints}` : ''}</span>
+                    </li>
+                  ))}
+                </ol>
+              ) : <p className="ac-note">You’re the first today — your friends show up here as they play. Share your squares to challenge them.</p>}
           </>
         )}
 
