@@ -203,6 +203,10 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
     } | null,
     interacting: false,
     idle: 0,
+    /** The map (without labels) drawn once with a margin round the screen: while you drag or
+     *  pinch, frames just move this picture (see drawFlat) instead of redrawing every shape. */
+    base: null as null | { canvas: HTMLCanvasElement; k: number; x: number; y: number; M: number; bd: number; W: number; H: number },
+    baseT: 0,
   });
 
   const morph = useRef(morphProjection());
@@ -293,17 +297,87 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
   }
 
   // Fast path for the interactive atlas: cached paths under a canvas transform.
+  /**
+   * One frame. Still: the whole map, crisp. Moving (a drag or pinch): the cached picture of the
+   * map, moved and scaled to match, with the labels drawn fresh on top — redrawing ~250 detailed
+   * country shapes, borders and rivers every frame is what made dragging stutter on phones.
+   */
   function drawFlat() {
     const s = st.current, c = canvas.current, C = s.cache;
     if (!c || !C) return false;
     const ctx = c.getContext('2d')!;
-    const { k, x, y } = s.transform;
+    let natAnimating = false;
+    if (s.interacting && blitBase(ctx)) { /* the picture stands in for the map */ }
+    else {
+      natAnimating = drawMap(ctx, s.W, s.H, s.dpr, s.transform, !s.interacting);
+      if (!s.interacting) queueBase();
+    }
     ctx.setTransform(s.dpr, 0, 0, s.dpr, 0, 0);
-    ctx.clearRect(0, 0, s.W, s.H);
-    ctx.setTransform(s.dpr * k, 0, 0, s.dpr * k, s.dpr * x, s.dpr * y);
+    const labelsAnimating = live.current.quiz ? false : drawLabelsFast(ctx, C);
+    return labelsAnimating || natAnimating;
+  }
+
+  /** Draw the cached map picture moved/scaled to the current view; false if it doesn't cover it. */
+  function blitBase(ctx: CanvasRenderingContext2D) {
+    const s = st.current, B = s.base;
+    const { k, x, y } = s.transform;
+    if (!B || B.W !== s.W || B.H !== s.H) { renderBase(); return blitBase2(ctx); }
+    const r = k / B.k;
+    // Too blurry (zoomed well past it) or too small: draw the real thing, and re-take the picture.
+    if (r > 1.8 || r < 0.55) { renderBase(); return blitBase2(ctx); }
+    // Where the picture's edges land on screen: it must cover the whole screen.
+    const left = x - r * (B.x + B.M), top = y - r * (B.y + B.M);
+    const right = left + r * (s.W + 2 * B.M), bottom = top + r * (s.H + 2 * B.M);
+    if (left > 0 || top > 0 || right < s.W || bottom < s.H) { renderBase(); return blitBase2(ctx); }
+    const f = (s.dpr * r) / B.bd;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.setTransform(f, 0, 0, f, s.dpr * left, s.dpr * top);
+    ctx.drawImage(B.canvas, 0, 0);
+    return true;
+  }
+  /** After re-taking the picture at the current view (always covers it). */
+  function blitBase2(ctx: CanvasRenderingContext2D) {
+    const s = st.current, B = s.base;
+    if (!B) return false;
+    const f = s.dpr / B.bd;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.setTransform(f, 0, 0, f, -s.dpr * B.M, -s.dpr * B.M);
+    ctx.drawImage(B.canvas, 0, 0);
+    return true;
+  }
+  /** Take the picture: the map at the current view, a third of a screen of margin all round. */
+  function renderBase() {
+    const s = st.current;
+    if (!s.cache) return;
+    const M = Math.round(Math.max(s.W, s.H) / 3);
+    const bd = Math.min(s.dpr, 2); // a little softer than the screen on 3× phones, only while moving
+    const B = s.base && s.base.W === s.W && s.base.H === s.H ? s.base : { canvas: document.createElement('canvas'), k: 1, x: 0, y: 0, M, bd, W: s.W, H: s.H };
+    const w = Math.round((s.W + 2 * M) * bd), h = Math.round((s.H + 2 * M) * bd);
+    if (B.canvas.width !== w || B.canvas.height !== h) { B.canvas.width = w; B.canvas.height = h; }
+    const { k, x, y } = s.transform;
+    drawMap(B.canvas.getContext('2d')!, s.W + 2 * M, s.H + 2 * M, bd, { k, x: x + M, y: y + M }, true);
+    Object.assign(B, { k, x, y, M, bd });
+    s.base = B;
+  }
+  /** After a still frame: re-take the picture in a quiet moment, so the next drag starts with it. */
+  function queueBase() {
+    const s = st.current;
+    window.clearTimeout(s.baseT);
+    s.baseT = window.setTimeout(() => { if (!st.current.interacting) renderBase(); }, 220);
+  }
+
+  /** The map itself (no labels), drawn for a view of W×H at transform t. */
+  function drawMap(ctx: CanvasRenderingContext2D, W: number, H: number, dpr: number, t: { k: number; x: number; y: number }, shadow: boolean) {
+    const s = st.current, C = s.cache!;
+    const { k, x, y } = t;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    ctx.setTransform(dpr * k, 0, 0, dpr * k, dpr * x, dpr * y);
 
     ctx.save();
-    if (!s.interacting) { ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = 50; ctx.shadowOffsetY = 18; }
+    if (shadow) { ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = 50; ctx.shadowOffsetY = 18; }
     ctx.fillStyle = C.ocean;
     ctx.fill(C.sphere);
     ctx.restore();
@@ -311,7 +385,7 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
     ctx.strokeStyle = 'rgba(255,255,255,0.38)'; ctx.lineWidth = 0.6 / k; ctx.stroke(C.graticule);
 
     // Only fill countries that are on screen.
-    const vx0 = -x / k, vy0 = -y / k, vx1 = (s.W - x) / k, vy1 = (s.H - y) / k;
+    const vx0 = -x / k, vy0 = -y / k, vx1 = (W - x) / k, vy1 = (H - y) / k;
     for (const [id, p2, b] of C.countries) {
       if (b[2] < vx0 || b[0] > vx1 || b[3] < vy0 || b[1] > vy1) continue;
       ctx.fillStyle = colorFor(id);
@@ -420,10 +494,7 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
       }
     }
     ctx.strokeStyle = 'rgba(30,58,95,0.55)'; ctx.lineWidth = 1.2 / k; ctx.stroke(C.sphere);
-
-    ctx.setTransform(s.dpr, 0, 0, s.dpr, 0, 0);
-    const labelsAnimating = live.current.quiz ? false : drawLabelsFast(ctx, C);
-    return labelsAnimating || natAnimating;
+    return natAnimating;
   }
 
   /** Project rivers, lakes and the physical labels once at zoom 1 (like the countries). */
@@ -1028,6 +1099,7 @@ export const FlatAtlas = forwardRef<AtlasHandle, Props>(function FlatAtlas(props
       })
       .on('end', () => cursor.set({ dragging: false }));
     s.zoomB = zb;
+    if (import.meta.env.DEV) (window as unknown as { __atlas: unknown }).__atlas = { st: s, zoom: zb, sel: select(c), drawFlat };
     sel.call(zb).on('dblclick.zoom', null);
 
     // Smooth wheel / pinch zoom toward the pointer: ease the scale every frame
