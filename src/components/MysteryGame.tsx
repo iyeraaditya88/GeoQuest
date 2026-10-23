@@ -13,6 +13,7 @@ import { TAUNTS, TRAITS, type Suspect, type TraitKind } from '../data/mysteryCas
 import { wikiPhoto } from '../lib/wiki';
 import { track } from '../lib/analytics';
 import { api } from '../lib/api';
+import { DEMO } from '../lib/demo';
 import { resultText } from '../lib/share';
 import { ShareButton } from './ShareButton';
 import { canUseAccount, getAuth } from '../lib/session';
@@ -199,12 +200,15 @@ function Director({ text, mood = 'brief' }: { text: string; mood?: 'brief' | 'ch
 /** Solve the Mystery: chase a Magpie across the world, clue by clue. */
 export function MysteryGame({ onFly, onFocus, setGlobePick, onRoute, onStage, onExit }: Props) {
   const date = localDate();
-  const [mode, setMode] = useState<Mode>('daily');
-  const [seed, setSeed] = useState(`mystery-${date}`);
+  // Demo mode (marketing recordings) can ask for a particular practice case: ?demo=1&case=<seed>.
+  const [demoCase] = useState(() => (DEMO ? new URLSearchParams(location.search).get('case') : null));
+  const [mode, setMode] = useState<Mode>(demoCase ? 'practice' : 'daily');
+  const [seed, setSeed] = useState(demoCase ?? `mystery-${date}`);
   const [stats, setStats] = useState<MysteryStats>(() => ({ ...emptyMysteryStats(), ...(load(STATS) ?? {}) }));
   const [career, setCareer] = useState<Career>(() => loadCareer(stats));
   // A save from mid-flight (the app was closed in the air) lands you at the next stop.
-  const [st, setSt] = useState<State>(() => { const s = load(KEY(date)) as State | null; if (!s || (s.v !== ENGINE && s.phase !== 'over')) return fresh(career.level); return s.phase === 'flying' ? landedState(s, levelOf(s.level ?? 3).tiers.length) : s; });
+  const [st, setSt] = useState<State>(() => { if (demoCase) return fresh(1);
+    const s = load(KEY(date)) as State | null; if (!s || (s.v !== ENGINE && s.phase !== 'over')) return fresh(career.level); return s.phase === 'flying' ? landedState(s, levelOf(s.level ?? 3).tiers.length) : s; });
   const caseLevel = st.level ?? 3;
   const kase: Case = useMemo(() => (mode === 'daily' ? dailyCase(date, caseLevel) : makeCase(seed, caseLevel)), [mode, seed, date, caseLevel]);
   const legsN = kase.legs.length;

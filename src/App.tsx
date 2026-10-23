@@ -98,6 +98,7 @@ import { music } from './lib/music';
 import type { MysteryStage } from './components/MysteryGame';
 import { geoDistance } from 'd3-geo';
 import { isShareGame, type ShareGame } from './lib/share';
+import { DEMO } from './lib/demo';
 
 function loadBest() { try { return Number(localStorage.getItem('gq-best') ?? 0); } catch { return 0; } }
 function saveBest(n: number) { try { localStorage.setItem('gq-best', String(n)); } catch { /* ignore */ } }
@@ -299,8 +300,10 @@ export default function App() {
   }, [cam]);
   const selectRef = useRef(select);
   selectRef.current = select;
+  // Demo mode (marketing recordings): let the recorder open a country mid-shot.
+  useEffect(() => { if (DEMO) (window as unknown as { __demo: unknown }).__demo = { select: (c: string) => selectRef.current(c) }; }, []);
   // Arrived from a country page (?country=IND / ?play=1): act once the globe is ready.
-  const linkWanted = useRef<{ country?: string; play?: boolean; game?: ShareGame } | null>(null);
+  const linkWanted = useRef<{ country?: string; play?: boolean; game?: ShareGame; explore?: { kind: 'voyages' | 'eras' | 'empires'; id: string | null } } | null>(null);
 
   // ── Rivers, ranges, peaks & lakes: click one to open its panel ──
   const [feature, setFeature] = useState<FeatureInfo | null>(null);
@@ -520,6 +523,7 @@ export default function App() {
   };
 
   const launchRef = useRef(launch);
+  const exploreRef = useRef({ startVoyages: async () => {}, startEras: async () => {}, startEmpires: async () => {}, pickVoyage: (_: string) => {}, pickEra: (_: string) => {}, pickEmpire: (_: string) => {} });
   launchRef.current = launch;
 
   // ── Feedback ──────────────────────────────────────────
@@ -548,6 +552,10 @@ export default function App() {
     // Shared game links: ?game=trivia (and the older ?wordle=1, ?mystery=1).
     const linkGame = url.searchParams.get('game') ?? (url.searchParams.has('wordle') ? 'wordle' : url.searchParams.has('mystery') ? 'mystery' : null);
     if (isShareGame(linkGame)) linkWanted.current = { ...linkWanted.current, game: linkGame };
+    // Explore views: ?explore=empires&id=roman (also eras, voyages) — shared links and marketing recordings.
+    const ex = url.searchParams.get('explore');
+    if (ex === 'voyages' || ex === 'eras' || ex === 'empires') linkWanted.current = { ...linkWanted.current, explore: { kind: ex, id: url.searchParams.get('id') } };
+    if (ex) { url.searchParams.delete('explore'); url.searchParams.delete('id'); history.replaceState(null, '', url.pathname + url.search + url.hash); }
     if (['country', 'play', 'wordle', 'mystery', 'game'].some((k) => url.searchParams.has(k))) {
       if (url.searchParams.has('wordle')) { url.searchParams.delete('r'); url.searchParams.delete('h'); } // a shared result's squares (for the link preview)
       for (const k of ['country', 'play', 'wordle', 'mystery', 'game']) url.searchParams.delete(k);
@@ -574,6 +582,12 @@ export default function App() {
       if (w?.country) selectRef.current(w.country);
       if (w?.play) setGamesOpen(true);
       if (w?.game) { track('launch', { g: w.game, v: 'link' }); launchRef.current(w.game); }
+      if (w?.explore) {
+        const x = exploreRef.current, { kind, id } = w.explore;
+        void (kind === 'voyages' ? x.startVoyages() : kind === 'eras' ? x.startEras() : x.startEmpires()).then(() => {
+          if (id) window.setTimeout(() => (kind === 'voyages' ? x.pickVoyage(id) : kind === 'eras' ? x.pickEra(id) : x.pickEmpire(id)), 700);
+        });
+      }
     }, 500);
   }, [ready]);
 
@@ -1043,6 +1057,7 @@ export default function App() {
     if (at) globe.current?.frame(at[0], at[1], Math.min(v.altitude, 1.3));
     else globe.current?.frame(v.lat, v.lng, narrow() ? Math.min(3.4, v.altitude * 1.25) : v.altitude);
   };
+  exploreRef.current = { startVoyages, startEras, startEmpires, pickVoyage: (id) => pickVoyage(id), pickEra, pickEmpire };
   const erasOpen = useRef(false);
   erasOpen.current = !!eras;
   const hoverEra = useCallback((id: string | null) => setEras((x) => (x && x.hover !== id ? { ...x, hover: id } : x)), []);

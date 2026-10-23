@@ -3055,3 +3055,6 @@ svg.vy-flag { color: #2dd4bf; }
 .mx-rate.up .mx-rate-text em { color: #78350f; }
 .mx-rate-text b { font: 700 15px var(--display); }
 .mx-rate-text small { font-size: 12px; line-height: 1.35; opacity: 0.85; }
+
+/* Demo mode (?demo=1, marketing recordings): just the globe and the game, nothing else on screen */
+.demo :is(.fb-fab, .fb-nudge, .app-legal, .signin-fab, .signed-out, .music-fab, .fo-fab, .sb-burger, .update-ready, .live-notice) { display: none !important; }

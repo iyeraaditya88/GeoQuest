@@ -8,6 +8,7 @@
 //
 // Browsers only allow sound after the user has interacted with the page, so the app calls
 // `music.unlock()` on the first tap/click/key. Muting is remembered per browser.
+import { DEMO } from './demo';
 
 const KEY = 'gq-music';
 export const musicMuted = () => { try { return localStorage.getItem(KEY) === 'off'; } catch { return false; } };
@@ -325,6 +326,7 @@ export const music = {
    * until `running()`.
    */
   unlock() {
+    if (DEMO) return; // recordings: no music
     unlocked = true;
     if (musicMuted()) { emit(); return; }
     if (engine?.running && engine.playing && (!IOS || (silentEl && !silentEl.paused))) return; // already playing

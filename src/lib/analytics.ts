@@ -1,6 +1,7 @@
 // Usage analytics (seen only by the owner, in Activity). One record per visit: when, how long the
 // app was actually in use, the device, and a short list of what happened — sent as a summary
 // every few minutes and when the tab is hidden, never per click.
+import { DEMO } from './demo';
 import { api } from './api';
 import { isBotAgent } from './bots';
 
@@ -92,7 +93,7 @@ export function track(name: string, data?: Data) {
 
 /** Start measuring this visit (once). */
 export function startAnalytics() {
-  if (started || BOT || typeof window === 'undefined') return;
+  if (started || BOT || DEMO || typeof window === 'undefined') return;
   started = true;
   window.setInterval(() => {
     accrue();

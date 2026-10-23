@@ -37,3 +37,7 @@ dist-ssr
 .places.local.json
 .feedback.local.json
 .alerts.local.json
+
+# Marketing output (generated)
+marketing/packs/
+marketing/reports/

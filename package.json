@@ -11,7 +11,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc -b --noEmit && tsc --ignoreConfig --noEmit --module nodenext --moduleResolution nodenext --target es2022 --skipLibCheck --resolveJsonModule --types node server/app.ts api/index.ts middleware.ts",
-    "check": "npm run typecheck && npm run lint && npm test"
+    "check": "npm run typecheck && npm run lint && npm test",
+    "marketing:pack": "tsx scripts/marketing/pack.mts",
+    "marketing:record": "tsx scripts/marketing/record.mts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
@@ -69,6 +71,7 @@
     "concurrently": "^10.0.5",
     "jsdom": "^26.1.0",
     "oxlint": "^1.81.0",
+    "playwright": "^1.64.1",
     "tsx": "^4.23.15",
     "typescript": "~6.0.2",
     "vite": "^8.3.0",

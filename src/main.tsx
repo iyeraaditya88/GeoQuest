@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import './lib/demo' // first: demo mode (marketing recordings) sets its class before anything draws
 import './styles.css'
 import App from './App.tsx'
 import { reloadForUpdate } from './lib/chunks'

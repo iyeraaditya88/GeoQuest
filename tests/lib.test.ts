@@ -597,3 +597,30 @@ describe('music scheduler', () => {
   });
 });
 
+
+describe('marketing captions', () => {
+  it('refuses banned names, today\'s answers, overlong text and untagged links', async () => {
+    const { checkCaption, bannedFrom, limitsFrom, sceneFor, tagged } = await import('../src/lib/marketingRules');
+    const rules = { banned: ['carmen sandiego', 'carmen', 'insane'], secrets: ['Angola', 'Luanda'], limit: 120, ref: 'tiktok-20261023' };
+    expect(checkCaption('Can you track the thief across the world? #geography', rules)).toEqual([]);
+    expect(checkCaption('Inspired by Carmen Sandiego!', rules)).toContain('banned: "carmen sandiego"');
+    expect(checkCaption('Today it was angola — did you get it?', rules)).toContain('gives away today\'s answer: "Angola"');
+    expect(checkCaption('Luandan food is great', rules)).toEqual([]); // whole words only
+    expect(checkCaption('x'.repeat(121), rules)[0]).toMatch(/too long/);
+    expect(checkCaption('Play: https://playgeoquest.app/?game=wordle', rules)[0]).toMatch(/without \?ref=tiktok-20261023/);
+    expect(checkCaption(`Play: ${tagged('tiktok-20261023', '/', 'game=wordle')}`, rules)).toEqual([]);
+    expect(bannedFrom('# Voice\nbanned: Carmen, ACME , insane\n')).toEqual(['carmen', 'acme', 'insane']);
+    expect(limitsFrom('caption limits: tiktok 300, reels 300, shorts 100')).toEqual({ tiktok: 300, reels: 300, shorts: 100 });
+    const cal = '| Day | Scene |\n|---|---|\n| Monday | mystery | x |\n| Friday | fact | y |';
+    expect(sceneFor(cal, new Date('2026-10-23T12:00:00Z'))).toBe('fact'); // a Friday
+    expect(sceneFor(cal, new Date('2026-10-21T12:00:00Z'))).toBe(null);
+  });
+  it('the real voice and channel files parse', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { bannedFrom, limitsFrom, sceneFor } = await import('../src/lib/marketingRules');
+    expect(bannedFrom(readFileSync('marketing/voice.md', 'utf8'))).toContain('carmen sandiego');
+    expect(limitsFrom(readFileSync('marketing/channels/shorts.md', 'utf8')).shorts).toBe(100);
+    const cal = readFileSync('marketing/calendar.md', 'utf8');
+    for (let d = 19; d <= 25; d++) expect(['mystery', 'wordle-yesterday', 'fact', 'empires', 'eras', 'voyages']).toContain(sceneFor(cal, new Date(`2026-10-${d}T12:00:00Z`)));
+  });
+});
