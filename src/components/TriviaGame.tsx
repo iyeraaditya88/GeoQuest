@@ -5,11 +5,13 @@ import confetti from 'canvas-confetti';
 import { LEVELS, POINTS, ROUND, UP_AFTER, loadBest, nextQuestion, saveBest, type TriviaQ } from '../lib/trivia';
 import { track } from '../lib/analytics';
 import { resultText, triviaShare } from '../lib/share';
+import { COLLAPSE_MS, revealMs, roundOver } from '../lib/answerReveal';
 import { ShareButton } from './ShareButton';
+import { RevealNext } from './RevealNext';
 
 interface Props {
-  /** Show the answer on the globe (when it's a country or a known city). */
-  onReveal: (answer: string) => void;
+  /** Show the answer on the globe (when it's a country or a known city); true if it did. */
+  onReveal: (answer: string) => boolean;
   onExit: () => void;
 }
 
@@ -37,13 +39,19 @@ export function TriviaGame({ onReveal, onExit }: Props) {
   const [picked, setPicked] = useState<string | null>(null);
   const [shift, setShift] = useState<'up' | 'down' | null>(null); // level-change toast
   const [best, setBest] = useState(loadBest);
-  const timer = useRef(0);
-  const finished = r.i >= ROUND || !r.q;
+  const [hold, setHold] = useState(0); // how long this answer stays up
+  const [collapsed, setCollapsed] = useState(false); // phones: the options have made way for the map
+  const timer = useRef(0), collapseT = useRef(0);
+  const finished = roundOver(r.i, ROUND, picked, !!r.q);
   const q = r.q;
 
   const advance = useCallback(() => {
+    if (!timer.current) return; // already moved on (the timer and a tap can't both count)
     window.clearTimeout(timer.current);
+    window.clearTimeout(collapseT.current);
+    timer.current = 0;
     setPicked(null);
+    setCollapsed(false);
     setR((cur) => {
       if (cur.i >= ROUND) return cur;
       const nq = nextQuestion(cur.level, cur.asked);
@@ -56,7 +64,7 @@ export function TriviaGame({ onReveal, onExit }: Props) {
     if (picked || finished || !q) return;
     setPicked(opt);
     const right = opt === q.answer;
-    onReveal(q.answer);
+    const onMap = onReveal(q.answer);
     // Adaptive difficulty: UP_AFTER right in a row → harder; a miss → easier.
     let { level, run } = r;
     let moved: 'up' | 'down' | null = null;
@@ -75,7 +83,10 @@ export function TriviaGame({ onReveal, onExit }: Props) {
       streak: right ? r.streak + 1 : 0,
       peak: Math.max(r.peak, level),
     });
-    timer.current = window.setTimeout(advance, right ? 1300 : 2300);
+    const ms = revealMs(right, onMap);
+    setHold(ms);
+    if (onMap) collapseT.current = window.setTimeout(() => setCollapsed(true), COLLAPSE_MS);
+    timer.current = window.setTimeout(advance, ms);
   }, [picked, finished, q, r, onReveal, advance]);
 
   // Level-change toast fades on its own.
@@ -85,7 +96,7 @@ export function TriviaGame({ onReveal, onExit }: Props) {
     return () => window.clearTimeout(t);
   }, [shift]);
 
-  useEffect(() => () => window.clearTimeout(timer.current), []);
+  useEffect(() => () => { window.clearTimeout(timer.current); window.clearTimeout(collapseT.current); }, []);
 
   // End of round: best score + a little celebration.
   useEffect(() => {
@@ -96,7 +107,7 @@ export function TriviaGame({ onReveal, onExit }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finished]);
 
-  const restart = () => { window.clearTimeout(timer.current); setPicked(null); setShift(null); setR(fresh(Math.max(0, r.level - 1))); };
+  const restart = () => { window.clearTimeout(timer.current); window.clearTimeout(collapseT.current); timer.current = 0; setCollapsed(false); setPicked(null); setShift(null); setR(fresh(Math.max(0, r.level - 1))); };
 
 
   const lv = LEVELS[r.level];
@@ -139,6 +150,7 @@ export function TriviaGame({ onReveal, onExit }: Props) {
               <span className={`tv-diff l${LEVELS.indexOf(q.difficulty)}`}>{q.difficulty} · {POINTS[LEVELS.indexOf(q.difficulty)]} pts</span>
               <h3>{q.question}</h3>
             </div>
+            <div className={`reveal-fold ${collapsed ? 'collapsed' : ''}`}>
             <div className="cap-options">
               {q.options.map((o) => {
                 const state = !picked ? '' : o === q.answer ? 'right' : o === picked ? 'wrong' : 'dim';
@@ -150,16 +162,17 @@ export function TriviaGame({ onReveal, onExit }: Props) {
                 );
               })}
             </div>
+            </div>
             <div className="gc-foot">
               <AnimatePresence>
                 {picked && (
                   <motion.span className={`gc-feedback ${picked === q.answer ? 'good' : 'bad'}`} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}>
-                    {picked === q.answer ? '✓ Correct!' : <>✗ It’s <b>{q.answer}</b></>}
+                    {picked === q.answer ? <>✓ Correct! It’s <b>{q.answer}</b></> : <>✗ You said {picked}. It’s <b>{q.answer}</b></>}
                   </motion.span>
                 )}
               </AnimatePresence>
               <span className="gc-spacer" />
-              {picked && <button className="tv-next" onClick={advance}>Next</button>}
+              {picked && <RevealNext key={q.id} label={r.i >= ROUND ? 'See score' : 'Next'} ms={hold} onClick={advance} />}
               <span className="gc-score">{r.score.toLocaleString('en-US')} pts</span>
             </div>
           </motion.div>

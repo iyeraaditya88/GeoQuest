@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Flame, Landmark, RotateCcw, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -6,7 +6,9 @@ import { flagUrl, type Country } from '../lib/data';
 import { makeRound, type Level } from '../lib/capitals';
 import { track } from '../lib/analytics';
 import { capitalsShare, resultText } from '../lib/share';
+import { COLLAPSE_MS, revealMs } from '../lib/answerReveal';
 import { ShareButton } from './ShareButton';
+import { RevealNext } from './RevealNext';
 
 interface Props {
   onReveal: (cca3: string) => void;
@@ -21,10 +23,20 @@ export function CapitalsGame({ onReveal, onExit }: Props) {
   const [picked, setPicked] = useState<string | null>(null);
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
+  const [hold, setHold] = useState(0); // how long this answer stays up
+  const [collapsed, setCollapsed] = useState(false); // phones: the options have made way for the map
+  const timer = useRef(0), collapseT = useRef(0);
   const finished = i >= round.length;
   const q = round[Math.min(i, round.length - 1)];
 
-  const restart = (lvl: Level = level) => { setLevel(lvl); setSeed((s) => s + 1); setI(0); setPicked(null); setScore(0); setStreak(0); };
+  const stopTimers = () => { window.clearTimeout(timer.current); window.clearTimeout(collapseT.current); timer.current = 0; };
+  useEffect(() => stopTimers, []);
+  const advance = useCallback(() => {
+    if (!timer.current) return; // already moved on (the timer and a tap can't both count)
+    stopTimers();
+    setCollapsed(false); setPicked(null); setI((n) => n + 1);
+  }, []);
+  const restart = (lvl: Level = level) => { stopTimers(); setCollapsed(false); setLevel(lvl); setSeed((s) => s + 1); setI(0); setPicked(null); setScore(0); setStreak(0); };
 
   const choose = useCallback((c: Country) => {
     if (picked || finished) return;
@@ -32,9 +44,15 @@ export function CapitalsGame({ onReveal, onExit }: Props) {
     const right = c.cca3 === q.country.cca3;
     if (right) { setScore((s) => s + 1); setStreak((s) => s + 1); } else setStreak(0);
     onReveal(q.country.cca3); // fly the globe to the answer — learn where it is
-    window.setTimeout(() => { setPicked(null); setI((n) => n + 1); }, right ? 1100 : 1900);
-  }, [picked, finished, q, onReveal]);
+    const ms = revealMs(right, true);
+    setHold(ms);
+    collapseT.current = window.setTimeout(() => setCollapsed(true), COLLAPSE_MS);
+    timer.current = window.setTimeout(advance, ms);
+  }, [picked, finished, q, onReveal, advance]);
 
+
+  const pickedOption = picked ? q.options.find((o) => o.cca3 === picked) : undefined;
+  const pickedLabel = pickedOption ? (q.kind === 'capital' ? pickedOption.capital[0] : pickedOption.name) : '';
 
   useEffect(() => { if (finished) track('score', { g: 'capitals', s: score, of: round.length }); }, [finished, score, round.length]);
   useEffect(() => {
@@ -84,6 +102,7 @@ export function CapitalsGame({ onReveal, onExit }: Props) {
                 </>
               )}
             </div>
+            <div className={`reveal-fold ${collapsed ? 'collapsed' : ''}`}>
             <div className="cap-options">
               {q.options.map((o) => {
                 const state = !picked ? '' : o.cca3 === q.country.cca3 ? 'right' : o.cca3 === picked ? 'wrong' : 'dim';
@@ -96,16 +115,18 @@ export function CapitalsGame({ onReveal, onExit }: Props) {
                 );
               })}
             </div>
+            </div>
             <div className="gc-foot">
               <AnimatePresence>
                 {picked && (
                   <motion.span className={`gc-feedback ${picked === q.country.cca3 ? 'good' : 'bad'}`} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}>
-                    {picked === q.country.cca3 ? '✓ Correct' : '✗ Not quite'} — {q.country.capital[0]} is the capital of {q.country.name}
+                    {picked === q.country.cca3 ? '✓ Correct' : `✗ You said ${pickedLabel}`} — {q.country.capital[0]} is the capital of {q.country.name}
                     {q.country.capital.length > 1 && ` (also ${q.country.capital.slice(1).join(', ')})`}
                   </motion.span>
                 )}
               </AnimatePresence>
               <span className="gc-spacer" />
+              {picked && <RevealNext key={i} label={i + 1 >= round.length ? 'See score' : 'Next'} ms={hold} onClick={advance} />}
               <span className="gc-score">{score} correct</span>
             </div>
           </motion.div>

@@ -805,9 +805,12 @@ export default function App() {
   // Trivia answers that are places light up on the map.
   const revealTrivia = useCallback((answer: string) => {
     const at = placeFor(answer);
-    if (!at) return;
-    if ('cca3' in at) { setHighlighted([at.cca3]); cam.flyTo(at.cca3); }
-    else if (viewRef.current === 'globe') { setHighlighted([]); globe.current?.frame(at.lat, at.lng, at.alt); }
+    if (!at) return false;
+    if ('cca3' in at) { setHighlighted([at.cca3]); cam.flyTo(at.cca3); return true; }
+    if (viewRef.current !== 'globe') return false; // the atlas only flies to countries
+    setHighlighted([]);
+    globe.current?.frame(at.lat, at.lng, at.alt);
+    return true;
   }, [cam]);
 
   // ── Live matches: what a match may do to the map, and clearing the stage when one starts ──

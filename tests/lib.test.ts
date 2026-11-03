@@ -624,3 +624,20 @@ describe('marketing captions', () => {
     for (let d = 19; d <= 25; d++) expect(['mystery', 'wordle-yesterday', 'fact', 'empires', 'eras', 'voyages']).toContain(sceneFor(cal, new Date(`2026-10-${d}T12:00:00Z`)));
   });
 });
+
+describe('answer reveal', () => {
+  it('holds answers on the map long enough for the flight, and others just long enough to read', async () => {
+    const { revealMs } = await import('../src/lib/answerReveal');
+    expect(revealMs(true, true)).toBe(4000);
+    expect(revealMs(false, true)).toBe(4000);
+    expect(revealMs(true, false)).toBe(1300);
+    expect(revealMs(false, false)).toBe(2300);
+  });
+  it('shows the last answer before the score', async () => {
+    const { roundOver } = await import('../src/lib/answerReveal');
+    expect(roundOver(9, 10, null, true)).toBe(false); // still playing
+    expect(roundOver(10, 10, 'Quito', true)).toBe(false); // the last answer is showing
+    expect(roundOver(10, 10, null, true)).toBe(true); // seen: on to the score
+    expect(roundOver(4, 10, null, false)).toBe(true); // out of questions
+  });
+});
