@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ChevronLeft, ChevronRight, Delete, Lightbulb, Puzzle, Sparkles, Star, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Delete, Grid3x3, Lightbulb, Puzzle, Sparkles, Star, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { flagUrl } from '../lib/data';
 import { cellsOf, countOf, hintLetters, makePuzzle, wordPoints, type Puzzle as Grid, type Word } from '../lib/crossword';
@@ -37,6 +37,7 @@ const GAME = 'gq-xw-game2'; // (2: the clues were re-sorted by difficulty, so ol
 const CAREER = 'gq-xw-career';
 const RECENT = 'gq-xw-recent';
 const KEYS = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM-'];
+const TAIL_MS = 1500;
 const CHEER = ['', '', 'Nice!', 'On a roll!', 'On fire!', 'Unstoppable!'];
 const load = (k: string) => { try { return JSON.parse(localStorage.getItem(k) ?? 'null'); } catch { return null; } };
 const save = (k: string, v: unknown) => { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } };
@@ -93,6 +94,7 @@ export function GeoCrossword({ onReveal, onExit }: Props) {
   const [result, setResult] = useState<Result | null>(null);
   const [showResult, setShowResult] = useState(false); // the finished grid gets its moment first
   const [finale, setFinale] = useState(false);
+  const [review, setReview] = useState(false); // looking back over the finished crossword from the result
   const [intro, setIntro] = useState(() => loadCareer().solved === 0 && !load(GAME));
   const [banner, setBanner] = useState(true);
   const [entering, setEntering] = useState(true); // the grid's opening pop, only as it appears
@@ -100,8 +102,10 @@ export function GeoCrossword({ onReveal, onExit }: Props) {
   const hold = useRef(false); // a wrong word is shaking: wait for it to clear
   const timers = useRef<number[]>([]);
   const finished = useRef(false);
+  const holdTimer = useRef(0);
+  const tail = useRef<{ letters: string; at: number } | null>(null); // the end of a word just solved, if it's still being typed
   const later = (fn: () => void, ms: number) => { timers.current.push(window.setTimeout(fn, ms)); };
-  useEffect(() => { save('gq-xw-game', null); }, []);
+  useEffect(() => { save('gq-xw-game', null); return () => window.clearTimeout(holdTimer.current); }, []);
   useEffect(() => () => { timers.current.forEach(window.clearTimeout); void audio?.close().catch(() => null); audio = null; }, []);
 
   const apply = useCallback((next: Game) => { gRef.current = next; setG(next); save(GAME, next); }, []);
@@ -167,7 +171,7 @@ export function GeoCrossword({ onReveal, onExit }: Props) {
         confetti({ particleCount: 140, spread: 85, origin: { y: 0.35 }, colors: ['#34d399', '#facc15', '#38bdf8', '#fde68a'], disableForReducedMotion: true });
       } else notes([523, 659], 0.1);
     }, sweepAt);
-    later(() => setShowResult(true), sweepAt + (now.puzzle.rows + now.puzzle.cols) * 50 + 2400);
+    holdTimer.current = window.setTimeout(() => setShowResult(true), sweepAt + (now.puzzle.rows + now.puzzle.cols) * 50 + 2400);
   }, [allDone]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // On to a word crossing the one just solved, the fullest first: it already has a letter to go on.
@@ -235,6 +239,13 @@ export function GeoCrossword({ onReveal, onExit }: Props) {
     if (hold.current || result || intro || trade) return;
     const now = gRef.current;
     if (now.solved.length >= now.puzzle.words.length) return;
+    // The last letters of a word just solved were already in the grid, and the player is still typing them.
+    const t = tail.current;
+    tail.current = null;
+    if (t && ch === t.letters[0] && Date.now() - t.at < TAIL_MS) {
+      if (t.letters.length > 1) tail.current = { letters: t.letters.slice(1), at: Date.now() };
+      return;
+    }
     const w = now.puzzle.words.find((x) => x.id === sel.id) ?? now.puzzle.words[0];
     const cells = cellsOf(w);
     const fixed = fixedCells(now);
@@ -255,19 +266,28 @@ export function GeoCrossword({ onReveal, onExit }: Props) {
       return;
     }
 
+    const onward = (n: number, fill: Record<string, string>) => {
+      if (n + 1 < cells.length) return n + 1;
+      const gap = cells.findIndex((c) => !fill[key(c.r, c.c)]);
+      return gap < 0 ? n : gap;
+    };
     let i = Math.min(sel.i, cells.length - 1);
+    // On a letter that's already there. Typing it moves past, for anyone typing the whole word; any
+    // other letter goes in the next open square, for anyone typing only the gaps.
+    if (isFixed(i) && now.fill[key(cells[i].r, cells[i].c)] === ch) { setSel({ id: w.id, i: onward(i, now.fill) }); return; }
     while (i < cells.length && isFixed(i)) i++;
-    if (i >= cells.length) { i = cells.findIndex((_, n) => !isFixed(n)); if (i < 0) return; } // (only fixed letters ahead)
+    if (i >= cells.length) { // (only fixed letters ahead)
+      i = cells.findIndex((c, n) => !isFixed(n) && !now.fill[key(c.r, c.c)]);
+      if (i < 0) i = cells.findIndex((_, n) => !isFixed(n));
+      if (i < 0) return;
+    }
     const k = key(cells[i].r, cells[i].c);
     const next = settle({ ...now, fill: { ...now.fill, [k]: ch } }, [k], w);
     apply(next);
-    if (next.solved.includes(w.id)) setSel(nextOpen(w, next));
-    else {
-      let j = i + 1;
-      const fixedNow = fixedCells(next);
-      while (j < cells.length && fixedNow.has(key(cells[j].r, cells[j].c))) j++;
-      setSel({ id: w.id, i: j < cells.length ? j : i });
-    }
+    if (next.solved.includes(w.id)) {
+      tail.current = { letters: w.answer.slice(i + 1), at: Date.now() };
+      setSel(nextOpen(w, next));
+    } else setSel({ id: w.id, i: onward(i, next.fill) });
   };
 
   /** A hint: a letter or two of the selected word, right for certain. The player still has to get the rest. */
@@ -296,11 +316,14 @@ export function GeoCrossword({ onReveal, onExit }: Props) {
     if (price === 'trade') setTrade(true); else giveHint(false);
   };
 
+  const openResult = () => { window.clearTimeout(holdTimer.current); setReview(false); setShowResult(true); };
+  const seeCrossword = () => { setShowResult(false); setReview(true); };
+
   const pick = (r: number, c: number) => {
-    if (hold.current) return;
+    if (hold.current || (allDone && !review)) return;
     const k = key(r, c), e = atCell.get(k);
     if (!e) return;
-    const open = e.words.filter((w) => !g.solved.includes(w.id));
+    const open = review ? e.words : e.words.filter((w) => !g.solved.includes(w.id)); // (looking back, any word's clue can be read)
     if (!open.length) return;
     const same = open.find((w) => w.id === word.id);
     // Tapping the cursor's own cell turns to the crossing word; otherwise keep the direction you're in.
@@ -328,7 +351,8 @@ export function GeoCrossword({ onReveal, onExit }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey || (e.target as HTMLElement)?.closest?.('input, textarea')) return;
-      if (result && !showResult) { if (['Enter', ' ', 'Escape'].includes(e.key)) { e.preventDefault(); setShowResult(true); } return; }
+      if (result && showResult) { if (e.key === 'Escape') seeCrossword(); return; }
+      if (result) { if (['Enter', ' ', 'Escape'].includes(e.key)) { e.preventDefault(); openResult(); } return; }
       if (e.key === 'Escape') {
         if (trade) { e.stopPropagation(); setTrade(false); } else if (intro) setIntro(false); else if (!result) onExit();
         return;
@@ -368,6 +392,8 @@ export function GeoCrossword({ onReveal, onExit }: Props) {
     setResult(null);
     setShowResult(false);
     setFinale(false);
+    setReview(false);
+    tail.current = null;
     setBanner(true);
     setWave({});
   };
@@ -377,7 +403,7 @@ export function GeoCrossword({ onReveal, onExit }: Props) {
   const across = words.filter((w) => w.dir === 'across'), down = words.filter((w) => w.dir === 'down');
   const clueRow = (w: Word) => (
     <li key={w.id}>
-      <button className={`xw-clue ${w.id === word.id ? 'on' : ''} ${g.solved.includes(w.id) ? 'done' : ''}`} disabled={g.solved.includes(w.id)} onClick={() => setSel({ id: w.id, i: firstEmpty(w, g) })}>
+      <button className={`xw-clue ${w.id === word.id ? 'on' : ''} ${g.solved.includes(w.id) ? 'done' : ''}`} disabled={g.solved.includes(w.id) && !review} onClick={() => setSel({ id: w.id, i: firstEmpty(w, g) })}>
         <b>{w.no}</b>
         <span>{w.flag && <img src={flagUrl(w.flag, 80)} alt="" />}{w.clue} <em>{countOf(w)}{whereHint(w, g)}</em></span>
       </button>
@@ -385,7 +411,7 @@ export function GeoCrossword({ onReveal, onExit }: Props) {
   );
 
   return (
-    <motion.section className={`xw ${touch ? 'touch' : ''} ${allDone ? 'complete' : ''}`} role="dialog" aria-label="Geo Crossword" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }} transition={{ duration: 0.22 }}>
+    <motion.section className={`xw ${touch ? 'touch' : ''} ${allDone ? 'complete' : ''} ${review ? 'review' : ''}`} role="dialog" aria-label="Geo Crossword" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }} transition={{ duration: 0.22 }}>
       <header className="xw-head">
         <button className="icon-btn" onClick={onExit} aria-label="Exit Geo Crossword (your crossword is saved)"><X size={18} /></button>
         <div className="xw-level">
@@ -404,7 +430,7 @@ export function GeoCrossword({ onReveal, onExit }: Props) {
 
       <div className="xw-body">
         <div className="xw-play">
-          <div className="xw-stage" onClick={result && !showResult ? () => setShowResult(true) : undefined}>
+          <div className="xw-stage" onClick={result && !showResult && !review ? openResult : undefined}>
             <div className={`xw-grid ${entering ? 'enter' : ''} ${finale ? 'finale' : ''}`} style={cellsStyle}>
               {Array.from({ length: g.puzzle.rows * g.puzzle.cols }, (_, n) => {
                 const r = Math.floor(n / g.puzzle.cols), c = n % g.puzzle.cols, k = key(r, c), e = atCell.get(k);
@@ -431,8 +457,16 @@ export function GeoCrossword({ onReveal, onExit }: Props) {
           </div>
 
           <div className="xw-now" aria-live="polite">
-            {allDone ? (
-              <button className="xw-now-text xw-complete" onClick={() => setShowResult(true)}>
+            {review ? (
+              <>
+                <div className="xw-now-text">
+                  <em>{word.no} {word.dir === 'across' ? 'Across' : 'Down'} · {countOf(word)}</em>
+                  <span>{word.flag && <img src={flagUrl(word.flag, 80)} alt="" />}{word.clue}</span>
+                </div>
+                <button className="primary xw-continue" onClick={openResult}>Continue</button>
+              </>
+            ) : allDone ? (
+              <button className="xw-now-text xw-complete" onClick={openResult}>
                 <em>Crossword complete</em>
                 <span><Sparkles size={16} /> All {words.length} words solved. Tap to continue</span>
               </button>
@@ -495,7 +529,7 @@ export function GeoCrossword({ onReveal, onExit }: Props) {
             </motion.div>
           </motion.div>
         )}
-        {result && showResult && <ResultCard key="result" r={result} shareMsg={shareMsg} onNext={playNext} onExit={onExit} />}
+        {result && showResult && <ResultCard key="result" r={result} shareMsg={shareMsg} onNext={playNext} onSee={seeCrossword} onExit={onExit} />}
       </AnimatePresence>
     </motion.section>
   );
@@ -511,21 +545,25 @@ function firstOpen(g: Game): { id: string; i: number } {
   const w = g.puzzle.words.find((x) => !g.solved.includes(x.id)) ?? g.puzzle.words[0];
   return { id: w.id, i: firstEmpty(w, g) };
 }
+/** Where to start typing in a word: its first gap, or the letters already in place just before that gap. */
 function firstEmpty(w: Word, g: Game) {
-  const i = cellsOf(w).findIndex((c) => !g.fill[key(c.r, c.c)]);
-  return i < 0 ? 0 : i;
+  const cells = cellsOf(w), fixed = fixedCells(g);
+  let i = cells.findIndex((c) => !g.fill[key(c.r, c.c)]);
+  if (i < 0) return 0;
+  while (i > 0 && fixed.has(key(cells[i - 1].r, cells[i - 1].c))) i--;
+  return i;
 }
 
 /** Solved: a level-up (and maybe a new rank), or a reminder of what was traded. */
-function ResultCard({ r, shareMsg, onNext, onExit }: { r: Result; shareMsg: () => string; onNext: () => void; onExit: () => void }) {
+function ResultCard({ r, shareMsg, onNext, onSee, onExit }: { r: Result; shareMsg: () => string; onNext: () => void; onSee: () => void; onExit: () => void }) {
   const up = r.after > r.before;
   const newRank = up && rankOf(r.after) !== rankOf(r.before);
   const was = levelSpec(r.before), now = levelSpec(r.after);
   const coming = nextRank(r.after);
   const tougher = Math.max(...now.tiers) > Math.max(...was.tiers);
   return (
-    <motion.div className="xw-over" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-      <motion.div className="xw-card result" role="dialog" aria-label="Crossword solved" initial={{ y: 26, scale: 0.92 }} animate={{ y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 22 }}>
+    <motion.div className="xw-over" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onSee}>
+      <motion.div className="xw-card result" role="dialog" aria-label="Crossword solved" initial={{ y: 26, scale: 0.92 }} animate={{ y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 22 }} onClick={(e) => e.stopPropagation()}>
         <div className="xw-stars" aria-label={`${r.stars} of 3 stars`}>
           {[1, 2, 3].map((s) => (
             <motion.span key={s} className={s <= r.stars ? 'on' : ''} initial={{ scale: 0, rotate: -40 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 380, damping: 14, delay: 0.12 + s * 0.14 }}>
@@ -549,9 +587,10 @@ function ResultCard({ r, shareMsg, onNext, onExit }: { r: Result; shareMsg: () =
         <div className="xw-actions">
           <button className="primary xw-go" onClick={onNext}>{up ? `Play Level ${r.after}` : 'New crossword'}</button>
           <div className="xw-actions-row">
+            <button className="ghost-cta" onClick={onSee}><Grid3x3 size={16} /> See crossword</button>
             <ShareButton game="crossword" text={shareMsg} label="Share" className="ghost-cta" />
-            <button className="ghost-cta" onClick={onExit}>Back to globe</button>
           </div>
+          <button className="xw-leave" onClick={onExit}>Back to globe</button>
         </div>
       </motion.div>
     </motion.div>

@@ -3126,7 +3126,7 @@ svg.vy-flag { color: #2dd4bf; }
 .xw-cell.hinted small { color: #4c1d95; }
 .xw-cell.hinted { color: #2e1065; background: #c4b5fd; }
 .xw-cell.solved.word { box-shadow: none; }
-.xw-cell.hinted.cursor { box-shadow: 0 0 0 2px #f59e0b; z-index: 1; }
+.xw-cell.solved.cursor, .xw-cell.hinted.cursor { box-shadow: 0 0 0 3px #f59e0b, 0 0 14px rgba(251, 191, 36, 0.6); z-index: 1; }
 .xw-grid .xw-cell.wave { animation: xw-wave 0.5s var(--ease) both; animation-delay: calc(var(--w) * 45ms); z-index: 2; }
 .xw-grid .xw-cell.wrong { color: #fff; background: #ef4444; animation: xw-shake 0.42s ease both; }
 .xw-grid.finale .xw-cell { animation: xw-finale 0.65s var(--ease) both; animation-delay: calc(var(--in) * 50ms); z-index: 2; }
@@ -3146,6 +3146,12 @@ svg.vy-flag { color: #2dd4bf; }
 .xw-now-text.xw-complete { align-items: center; text-align: center; background: rgba(52, 211, 153, 0.14); box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.45); }
 .xw-now-text.xw-complete em { color: #6ee7b7; }
 .xw-complete svg { flex: none; color: var(--gold-soft); }
+.xw.review { --keys: 0px; }
+.xw.review .xw-keys { display: none; }
+.xw.review .xw-cell.word { box-shadow: 0 0 0 2px #fde68a; z-index: 1; }
+.xw.review .xw-clue.done { opacity: 1; text-decoration: none; }
+.xw-now .xw-continue { flex: none; width: auto; align-self: center; margin-left: 4px; padding: 11px 16px; }
+.xw-leave { justify-self: center; padding: 8px 14px; font-size: 13.5px; color: var(--muted); }
 .xw-step { flex: none; width: 40px; display: grid; place-items: center; border-radius: 12px; color: var(--muted); background: rgba(255, 255, 255, 0.05); }
 .xw-now-text { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 3px 10px; border-radius: 12px; text-align: left; background: rgba(125, 211, 252, 0.1); box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.25); overflow: hidden; }
 .xw-now-text em { font: 700 10.5px var(--display); font-style: normal; letter-spacing: 0.03em; color: #7dd3fc; }
