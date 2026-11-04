@@ -1,12 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { Bug, Check, Inbox, Lightbulb, Loader2, Mail, MessageCircle, Monitor, RotateCcw, RotateCw, Smartphone, Sparkles, Tablet, X } from 'lucide-react';
+import { Bug, Check, Inbox, Lightbulb, Loader2, Mail, MessageCircle, Monitor, Reply, RotateCcw, RotateCw, Send, Smartphone, Sparkles, Tablet, X } from 'lucide-react';
 import { api } from '../lib/api';
 
 type Kind = 'idea' | 'bug' | 'feature' | 'other';
 interface Item {
   id: string; at: number; kind: Kind; text: string; contact?: string; user: string; where: string;
   device: string; os: string; browser: string; pwa: boolean; place?: { city?: string; region?: string; country?: string }; status: 'new' | 'done';
+  /** A guest who can be answered in the app (in the browser they wrote from) */
+  hasBox?: boolean;
+  replies?: { text: string; at: number; via: 'app' | 'email' }[];
 }
 const KIND: Record<Kind, { label: string; icon: typeof Bug }> = {
   idea: { label: 'Improvement', icon: Lightbulb }, bug: { label: 'Bug', icon: Bug },
@@ -16,13 +19,71 @@ const flag = (cc?: string) => (cc && /^[A-Z]{2}$/.test(cc) ? String.fromCodePoin
 const when = (t: number) => new Date(t).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
 const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 
-/** Owner-only: what players have told us — newest first; mark each one done. */
+const MAILTO_MAX = 1800; // past this, some mail apps cut the link short
+
+/** Write back to one player, by whichever way can reach them. */
+function ReplyBox({ it, onSent, onDraft }: { it: Item; onSent: (reply: NonNullable<Item['replies']>[number], note: string) => void; onDraft: (id: string, has: boolean) => void }) {
+  const email = it.contact && isEmail(it.contact) ? it.contact : null;
+  const inApp = it.user !== 'guest' || !!it.hasBox;
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const edit = (v: string) => { setText(v); onDraft(it.id, !!v.trim()); };
+
+  if (!inApp && !email) return <p className="fb-noway">No way to reply: this guest wrote before replies existed and left no email.</p>;
+  if (!open) return <button className="fb-reply-go" onClick={() => setOpen(true)}><Reply size={14} /> Reply</button>;
+
+  const send = async () => {
+    const body = text.trim();
+    if (!body) return;
+    setError(null);
+    let note = '';
+    if (!inApp) { // Hand it to their mail app now, while this is still the tap.
+      let link = `mailto:${email}?subject=${encodeURIComponent('Your GeoQuest feedback')}`;
+      const full = `${link}&body=${encodeURIComponent(body)}`;
+      if (full.length <= MAILTO_MAX) link = full;
+      else { void navigator.clipboard?.writeText(body).catch(() => null); note = 'Too long for an email link: your reply is copied, paste it in.'; }
+      location.href = link;
+    }
+    setBusy(true);
+    try {
+      const r = await api(`/api/feedback/${it.id}/reply`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: body, via: inApp ? 'app' : 'email' }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error ?? 'Couldn’t send that — try again.');
+      if (inApp) note = it.user === 'guest' ? 'Sent. They’ll see it next time they open GeoQuest in that browser.'
+        : d.notified ? 'Sent, and they’ve had a notification.' : 'Sent. They’ll see it next time they open GeoQuest.';
+      onDraft(it.id, false);
+      setText(''); setOpen(false);
+      onSent(d.reply, note || 'Opened in your email app. Remember to press send there.');
+    } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="fb-reply-box">
+      <textarea className="fb-text" autoFocus value={text} onChange={(e) => edit(e.target.value)} rows={3} maxLength={2000} placeholder={inApp ? `Reply to ${it.user === 'guest' ? 'this guest' : it.user}…` : `Reply to ${email}…`} aria-label="Your reply" />
+      {error && <p className="fb-error">{error}</p>}
+      <div className="fb-reply-acts">
+        <button className="fb-mark" onClick={() => { edit(''); setOpen(false); setError(null); }}>Cancel</button>
+        <button className="fb-reply-go fb-send" onClick={() => void send()} disabled={busy || !text.trim()}>{busy ? <Loader2 size={14} className="spin" /> : inApp ? <Send size={14} /> : <Mail size={14} />} {inApp ? 'Send reply' : 'Reply by email'}</button>
+      </div>
+    </div>
+  );
+}
+
+/** Owner-only: what players have told us — newest first; answer each one, or mark it done. */
 export function FeedbackInbox({ onClose }: { onClose: () => void }) {
   const [items, setItems] = useState<Item[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [show, setShow] = useState<'new' | 'all'>('new');
   const [kind, setKind] = useState<Kind | null>(null);
+  // Just answered: stays in view (with how it went) rather than vanishing from "New" mid-read.
+  const [sentNote, setSentNote] = useState<Record<string, string>>({});
+  // A half-written reply: Esc or a stray tap outside shouldn't throw it away.
+  const drafts = useRef(new Set<string>());
+  const onDraft = (id: string, has: boolean) => { if (has) drafts.current.add(id); else drafts.current.delete(id); };
+  const close = () => { if (!drafts.current.size) onClose(); };
 
   const load = () => {
     setLoading(true); setError(null);
@@ -34,7 +95,7 @@ export function FeedbackInbox({ onClose }: { onClose: () => void }) {
   };
   useEffect(() => {
     load();
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !drafts.current.size) onClose(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
@@ -47,10 +108,10 @@ export function FeedbackInbox({ onClose }: { onClose: () => void }) {
   };
 
   const fresh = items?.filter((x) => x.status === 'new').length ?? 0;
-  const list = (items ?? []).filter((x) => (show === 'all' || x.status === 'new') && (!kind || x.kind === kind));
+  const list = (items ?? []).filter((x) => (show === 'all' || x.status === 'new' || sentNote[x.id]) && (!kind || x.kind === kind));
 
   return (
-    <motion.div className="people-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
+    <motion.div className="people-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={close}>
       <motion.section className="people activity fb-inbox" role="dialog" aria-label="Feedback" onClick={(e) => e.stopPropagation()}
         initial={{ y: 16, scale: 0.98, opacity: 0 }} animate={{ y: 0, scale: 1, opacity: 1 }} exit={{ y: 10, opacity: 0 }} transition={{ type: 'spring', stiffness: 320, damping: 30 }}>
         <header className="gc-head">
@@ -92,6 +153,13 @@ export function FeedbackInbox({ onClose }: { onClose: () => void }) {
                   </button>
                 </div>
                 <p className="fb-body">{it.text}</p>
+                {it.replies?.map((r) => (
+                  <div key={r.at} className="fb-answer">
+                    <span>{r.via === 'email' ? 'Opened in email' : 'You replied'} · {when(r.at)}</span>
+                    <p>{r.text}</p>
+                  </div>
+                ))}
+                {sentNote[it.id] && <p className="fb-sent"><Check size={13} /> {sentNote[it.id]}</p>}
                 <div className="fb-meta">
                   <b>{it.user}</b>
                   {it.contact && (isEmail(it.contact) ? <a href={`mailto:${it.contact}?subject=${encodeURIComponent('Your GeoQuest feedback')}`}><Mail size={12} /> {it.contact}</a> : <span>{it.contact}</span>)}
@@ -99,6 +167,10 @@ export function FeedbackInbox({ onClose }: { onClose: () => void }) {
                   <span><Dev size={12} /> {it.os} · {it.browser}{it.pwa ? ' · app' : ''}</span>
                   {it.place && <span>{flag(it.place.country)} {[it.place.city, it.place.country].filter(Boolean).join(', ')}</span>}
                 </div>
+                <ReplyBox it={it} onDraft={onDraft} onSent={(reply, note) => {
+                  setSentNote((n) => ({ ...n, [it.id]: note }));
+                  setItems((xs) => xs?.map((x) => (x.id === it.id ? { ...x, status: 'done', replies: [...(x.replies ?? []), reply] } : x)) ?? null);
+                }} />
               </li>
             );
           })}

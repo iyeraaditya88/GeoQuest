@@ -95,12 +95,12 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const url = new URL((event.notification.data && event.notification.data.url) || '/?daily=1', self.location.origin);
   event.waitUntil((async () => {
-    // Reuse an open GeoQuest (and tell it what to open: the Daily, or the feedback inbox); otherwise open one.
+    // Reuse an open GeoQuest (and tell it what to open: the Daily, the feedback inbox, or a reply); otherwise open one.
     const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const w of wins) {
       if (new URL(w.url).origin !== self.location.origin) continue;
       await w.focus();
-      w.postMessage({ type: url.searchParams.has('inbox') ? 'open-inbox' : url.searchParams.has('activity') ? 'open-activity' : 'open-daily' });
+      w.postMessage({ type: url.searchParams.has('inbox') ? 'open-inbox' : url.searchParams.has('activity') ? 'open-activity' : url.searchParams.has('replies') ? 'open-replies' : 'open-daily' });
       return;
     }
     await self.clients.openWindow(url.href);

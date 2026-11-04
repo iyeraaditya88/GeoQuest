@@ -36,6 +36,7 @@ Object.assign(process.env, {
   GQ_PLACES_FILE: join(dir, 'places.json'),
   GQ_PUSH_FILE: join(dir, 'push.json'),
   GQ_FEEDBACK_FILE: join(dir, 'feedback.json'),
+  GQ_REPLIES_FILE: join(dir, 'replies.json'),
   GQ_ALERTS_FILE: join(dir, 'alerts.json'),
   GQ_VAPID_FILE: join(dir, 'vapid.json'),
   CRON_SECRET: 'test-cron-secret-0123456789abcdef',
@@ -48,7 +49,7 @@ let server: Server;
 let port = 0;
 
 interface Res { status: number; headers: Record<string, string | string[] | undefined>; body: Record<string, unknown> }
-function call(method: string, path: string, opts: { body?: unknown; cookie?: string; host?: string; origin?: string; auth?: string } = {}): Promise<Res> {
+function call(method: string, path: string, opts: { body?: unknown; cookie?: string; host?: string; origin?: string; auth?: string; headers?: Record<string, string> } = {}): Promise<Res> {
   return new Promise((resolve, reject) => {
     const data = opts.body === undefined ? undefined : JSON.stringify(opts.body);
     const req = httpRequest({
@@ -59,6 +60,7 @@ function call(method: string, path: string, opts: { body?: unknown; cookie?: str
         ...(opts.cookie ? { cookie: opts.cookie } : {}),
         ...(opts.origin ? { origin: opts.origin } : {}),
         ...(opts.auth ? { authorization: opts.auth } : {}),
+        ...opts.headers,
       },
     }, (res) => {
       let raw = '';
@@ -439,6 +441,60 @@ describe('feedback', () => {
   });
 });
 
+describe('replying to feedback', () => {
+  const KEY = 'ab'.repeat(16);
+  const all = async () => (await call('GET', '/api/feedback', { cookie: owner })).body.feedback as Record<string, unknown>[];
+  const send = async (text: string, opts: { cookie?: string; body?: Record<string, unknown> } = {}) => {
+    expect((await call('POST', '/api/feedback', { cookie: opts.cookie, body: { kind: 'idea', text, ...opts.body } })).status).toBe(200);
+    return (await all()).find((f) => f.text === text)!;
+  };
+  const reply = (id: unknown, body: unknown, cookie = owner) => call('POST', `/api/feedback/${id}/reply`, { cookie, body });
+  const mine = async (opts: { cookie?: string; key?: string }) => (await call('GET', '/api/feedback/replies', { cookie: opts.cookie, headers: opts.key ? { 'x-gq-reply-key': opts.key } : {} })).body.replies as Record<string, unknown>[];
+
+  it('reaches a signed-in player, with a notification, and only them', async () => {
+    const f = await send('Please add a rivers mode', { cookie: bob });
+    expect((await reply(f.id, { text: 'Hi' }, bob)).status).toBe(403);
+    expect((await call('POST', `/api/feedback/${f.id}/reply`, { body: { text: 'Hi' } })).status).toBe(401);
+    expect((await reply(f.id, { text: '   ' })).status).toBe(400);
+    expect((await reply('nope', { text: 'Hi' })).status).toBe(404);
+
+    pushes.sent.length = 0;
+    const r = await reply(f.id, { text: 'Rivers are on the way!' });
+    expect(r.status).toBe(200);
+    expect(r.body.notified).toBe(1);
+    expect(pushes.sent).toEqual(['https://fcm.googleapis.com/fcm/send/bob-phone']);
+    expect(await mine({ cookie: bob })).toEqual([expect.objectContaining({ message: 'Please add a rivers mode', reply: 'Rivers are on the way!' })]);
+    expect(await mine({ cookie: owner })).toEqual([]);
+    expect(await mine({})).toEqual([]); // a guest with no key
+    const after = (await all()).find((x) => x.id === f.id)!;
+    expect(after.status).toBe('done');
+    expect(after.replies).toEqual([expect.objectContaining({ text: 'Rivers are on the way!', via: 'app' })]);
+  });
+
+  it('reaches a guest through the key in their browser, which never leaves the server in any form', async () => {
+    const f = await send('Love the music', { body: { replyKey: KEY, browser: 'Safari' } });
+    expect(f.hasBox).toBe(true);
+    expect(f.browser).toBe('Safari'); // what they wrote from, still there for the owner
+    expect(f.box).toBeUndefined();
+    expect((await reply(f.id, { text: 'Thank you!' })).body.notified).toBe(0);
+    expect(await mine({ key: KEY })).toEqual([expect.objectContaining({ reply: 'Thank you!' })]);
+    expect(await mine({ key: 'cd'.repeat(16) })).toEqual([]); // someone else's browser
+    expect(await mine({ key: 'not-a-key' })).toEqual([]);
+  });
+
+  it('answers an older guest message by email only, and says so when there is no way back', async () => {
+    const noWay = await send('Old message, no email');
+    expect(noWay.hasBox).toBe(false);
+    expect((await reply(noWay.id, { text: 'Hello' })).status).toBe(409);
+    expect((await reply(noWay.id, { text: 'Hello', via: 'email' })).status).toBe(400);
+    const emailed = await send('Old message with email', { body: { contact: 'c@d.co' } });
+    const r = await reply(emailed.id, { text: 'Hello', via: 'email' });
+    expect(r.status).toBe(200);
+    expect(r.body.reply.via).toBe('email');
+    expect((await all()).find((x) => x.id === emailed.id)?.replies).toHaveLength(1);
+  });
+});
+
 describe('owner notifications', () => {
   const visit = (active: number, first = true) => call('POST', '/api/analytics', { body: { sid: `v${Math.random().toString(36).slice(2, 10)}`, start: Date.now() - 60_000, active, events: [], device: 'phone', os: 'iOS', browser: 'Safari', first } });
   it('pings the owner when a guest stays a little while — not for a bounce, and not when switched off', async () => {
@@ -483,6 +539,11 @@ describe('delete my account', () => {
     const today = new Date().toISOString().slice(0, 10);
     expect((await call('POST', '/api/wordle', { cookie: me, body: { date: today, rows: ['xxgxx', 'ggggg'], hints: 0 } })).status).toBe(200);
 
+    expect((await call('POST', '/api/feedback', { cookie: me, body: { kind: 'idea', text: 'A note before leaving' } })).status).toBe(200);
+    const note = ((await call('GET', '/api/feedback', { cookie: owner })).body.feedback as { id: string; text: string }[]).find((f) => f.text === 'A note before leaving')!;
+    expect((await call('POST', `/api/feedback/${note.id}/reply`, { cookie: owner, body: { text: 'Thanks for writing' } })).status).toBe(200);
+    expect((await call('GET', '/api/feedback/replies', { cookie: me })).body.replies).toHaveLength(1);
+
     expect((await call('POST', '/api/me/delete', { cookie: me, body: { password: 'wrong-password' } })).status).toBe(401);
     expect((await call('POST', '/api/me/delete', { body: { password: 'leaver-pass-123' } })).status).toBe(401); // signed out: nobody to delete
     const del = await call('POST', '/api/me/delete', { cookie: me, body: { password: 'leaver-pass-123' } });
@@ -495,6 +556,8 @@ describe('delete my account', () => {
     const { getFavorites } = await import('../server/prefs');
     expect(await getPlaces('leaver')).toEqual([]);
     expect(await getFavorites('leaver')).toEqual([]);
+    expect(await (await import('../server/feedback')).readMail('u/leaver')).toEqual([]); // replies gone too
+    expect((await call('POST', `/api/feedback/${note.id}/reply`, { cookie: owner, body: { text: 'Still there?' } })).status).toBe(410); // never to whoever takes the name next
     const { getResult } = await import('../server/wordle');
     expect(await getResult('leaver', today)).toBeNull(); // Geo Wordle results go too
   });

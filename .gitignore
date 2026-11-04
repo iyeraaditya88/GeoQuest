@@ -35,6 +35,7 @@ dist-ssr
 .push.local.json
 .vapid.local.json
 .places.local.json
+.replies.local.json
 .feedback.local.json
 .alerts.local.json
 

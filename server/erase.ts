@@ -1,6 +1,6 @@
 // "Delete my account": everything kept about a player, gone — their places, favourites, last-seen,
 // reminder devices, Daily and Geo Wordle results and streak, game progress (the mystery rank), and
-// their visits in Activity. Their name stays only
+// their visits in Activity, and the replies to their feedback. Their name stays only
 // in other players' match history, and feedback they sent stays with the owner (the privacy page
 // says so).
 import { readFile } from 'node:fs/promises';
@@ -15,7 +15,7 @@ async function editLocal<T>(file: string, fn: (all: T) => void) {
 
 export async function eraseUserData(user: string) {
   if (blobEnabled()) {
-    const fixed = [`places/${user}.json`, `prefs/${user}.json`, `seen/${user}.json`, `streak/${user}.json`, `push/${user}.json`, `progress/${user}.json`];
+    const fixed = [`places/${user}.json`, `prefs/${user}.json`, `seen/${user}.json`, `streak/${user}.json`, `push/${user}.json`, `progress/${user}.json`, `replies/u/${user}.json`];
     const [daily, wordle, visits] = await Promise.all([listBlobPaths('daily/'), listBlobPaths('wordle/'), listBlobPaths('analytics/')]);
     const theirs = [
       ...[...daily, ...wordle].filter((p) => p.endsWith(`/${user}.json`)), // daily|wordle/<date>/<user>.json
@@ -29,6 +29,7 @@ export async function eraseUserData(user: string) {
   await editLocal<Record<string, unknown>>(env.GQ_PLACES_FILE ?? '.places.local.json', (all) => { delete all[user]; });
   await editLocal<Record<string, unknown>>(env.GQ_PREFS_FILE ?? '.prefs.local.json', (all) => { delete all[user]; });
   await editLocal<Record<string, unknown>>(env.GQ_PUSH_FILE ?? '.push.local.json', (all) => { delete all[user]; });
+  await editLocal<Record<string, unknown>>(env.GQ_REPLIES_FILE ?? '.replies.local.json', (all) => { delete all[`u/${user}`]; });
   await editLocal<{ results?: Record<string, unknown>; streaks?: Record<string, unknown> }>(env.GQ_DAILY_FILE ?? '.daily.local.json', (d) => {
     for (const k of Object.keys(d.results ?? {})) if (k.endsWith(`/${user}`)) delete d.results![k];
     delete d.streaks?.[user];

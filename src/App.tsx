@@ -56,12 +56,14 @@ import { CountryPanel } from './components/CountryPanel';
 import { PeoplePanel } from './components/PeoplePanel';
 const loadActivity = () => fresh(import('./components/ActivityPanel'));
 const loadInbox = () => fresh(import('./components/FeedbackInbox'));
+const loadReplies = () => fresh(import('./components/FeedbackReplies'));
 const ActivityPanel = lazy(() => loadActivity().then((m) => ({ default: m.ActivityPanel })));
 const FeedbackInbox = lazy(() => loadInbox().then((m) => ({ default: m.FeedbackInbox })));
+const FeedbackReplies = lazy(() => loadReplies().then((m) => ({ default: m.FeedbackReplies })));
 import { FeedbackSheet } from './components/FeedbackSheet';
 import { AccountSheet } from './components/AccountSheet';
 import { GamesSheet, type GameKey } from './components/GamesSheet';
-import { countVisit, feedbackAsked, markFeedbackAsked, type FeedbackKind } from './lib/feedback';
+import { countVisit, feedbackAsked, fetchReplies, markFeedbackAsked, markRepliesSeen, replyKey, repliesSeen, type FeedbackKind, type FeedbackReply } from './lib/feedback';
 import { FeaturePanel } from './components/FeaturePanel';
 import { featureInfo, type FeatureInfo, type FeatureRef } from './lib/features';
 import { AntipodeCard, type AntipodeStage } from './components/AntipodeCard';
@@ -221,6 +223,11 @@ export default function App() {
   const [inboxOpen, setInboxOpen] = useState(false);
   const [inboxWanted, setInboxWanted] = useState(() => new URLSearchParams(location.search).has('inbox'));
   const [activityWanted, setActivityWanted] = useState(() => new URLSearchParams(location.search).has('activity'));
+  // Replies to the player's own feedback.
+  const [replies, setReplies] = useState<FeedbackReply[]>([]);
+  const [repliesOpen, setRepliesOpen] = useState(false);
+  const [repliesRead, setRepliesRead] = useState(repliesSeen);
+  const repliesWanted = useRef(new URLSearchParams(location.search).has('replies'));
   // Live head-to-head (see LivePlay): hosted over Ably, locally between tabs.
   const [liveMode, setLiveMode] = useState<'ably' | 'local' | null>(null);
   const [liveState, setLiveState] = useState<LiveState>({ active: false, quiz: false, immersive: false, online: 0, ready: false });
@@ -561,15 +568,16 @@ export default function App() {
       for (const k of ['country', 'play', 'wordle', 'mystery', 'game']) url.searchParams.delete(k);
       history.replaceState(null, '', url.pathname + url.search + url.hash);
     }
-    if (url.searchParams.has('feedback') || url.searchParams.has('inbox') || url.searchParams.has('activity')) {
+    if (['feedback', 'inbox', 'activity', 'replies'].some((k) => url.searchParams.has(k))) {
       if (url.searchParams.has('feedback')) window.setTimeout(() => setFbForm({ where: 'Link' }), 900);
-      url.searchParams.delete('feedback'); url.searchParams.delete('inbox'); url.searchParams.delete('activity');
+      for (const k of ['feedback', 'inbox', 'activity', 'replies']) url.searchParams.delete(k);
       history.replaceState(null, '', url.pathname + url.search + url.hash);
     }
     const onMsg = (e: MessageEvent) => {
       const type = (e.data as { type?: string })?.type;
       if (type === 'open-inbox') setInboxWanted(true);
       if (type === 'open-activity') setActivityWanted(true);
+      if (type === 'open-replies') { repliesWanted.current = true; window.dispatchEvent(new Event('gq:replies')); }
     };
     navigator.serviceWorker?.addEventListener('message', onMsg);
     return () => { window.removeEventListener('gq:feedback', on); navigator.serviceWorker?.removeEventListener('message', onMsg); };
@@ -600,6 +608,28 @@ export default function App() {
     return () => window.clearTimeout(t);
   }, []);
   const dismissNudge = () => { setNudgeReady(false); markFeedbackAsked(); };
+
+  // Any replies? Asked a moment after opening, and when coming back to an app left open (phones keep
+  // it alive for days). A guest who never wrote has nothing to ask about, so costs nothing.
+  useEffect(() => {
+    if (!auth.known || DEMO) return;
+    let last = 0;
+    const check = () => {
+      const wanted = repliesWanted.current;
+      if (!wanted && !auth.user && auth.hosted && !replyKey()) return;
+      if (!wanted && Date.now() - last < 30 * 60_000) return;
+      last = Date.now();
+      repliesWanted.current = false;
+      void fetchReplies().then((r) => { setReplies(r); if (wanted) { setFbForm(null); setRepliesOpen(true); } }).catch(() => { if (wanted) setRepliesOpen(true); });
+    };
+    const onShow = () => { if (document.visibilityState === 'visible') check(); };
+    const t = window.setTimeout(check, repliesWanted.current ? 0 : 2500);
+    document.addEventListener('visibilitychange', onShow);
+    window.addEventListener('gq:replies', check);
+    return () => { window.clearTimeout(t); document.removeEventListener('visibilitychange', onShow); window.removeEventListener('gq:replies', check); };
+  }, [auth.known, auth.user, auth.hosted]);
+  const replyUnread = replies.some((r) => r.at > repliesRead);
+  const readReplies = () => { const at = replies[0]?.at ?? 0; if (at) { markRepliesSeen(at); setRepliesRead(at); } };
 
   // The inbox opens once we know this is the owner.
   useEffect(() => {
@@ -1169,7 +1199,7 @@ export default function App() {
 
   // Newer version live: reload onto it the next time you switch away (so you never see it), or
   // straight away if you're back on the globe with nothing open. Never mid-game or mid-typing.
-  const idle = !quiz && !geo && !play && !anti && !voy && !eras && !emp && !liveState.active && !fbForm && !dockOpen && !placesOpen && !dailyCard && !signIn && !accountOpen && !inboxOpen && !activityOpen && !gamesOpen;
+  const idle = !quiz && !geo && !play && !anti && !voy && !eras && !emp && !liveState.active && !fbForm && !dockOpen && !placesOpen && !dailyCard && !signIn && !accountOpen && !inboxOpen && !repliesOpen && !activityOpen && !gamesOpen;
   useEffect(() => {
     if (!updateReady || !idle) return;
     if (document.visibilityState === 'hidden') { reloadForUpdate(); return; }
@@ -1197,6 +1227,8 @@ export default function App() {
   const showHint = chrome && !selected && !quiz && !dockOpen && !geo && !play && !anti && !voy && !eras && !emp && !liveState.active && (!spun || placesOpen || (view === 'globe' && style === 'daynight'));
   // The quiet footer (feedback + about/legal links): only on the bare globe, never over a game or panel.
   const footer = chrome && idle && !selected && !feature && !accountOpen && !(mobile && drawerOpen);
+  // Where a small nudge can appear without getting in the way of anything.
+  const nudgeSpot = chrome && !fbForm && !quiz && !geo && !play && !anti && !voy && !eras && !emp && !liveState.active && !dailyCard && !selected && !feature && !dockOpen && !placesOpen && !(mobile && drawerOpen) && !signIn;
 
   return (
     <div
@@ -1333,9 +1365,10 @@ export default function App() {
         {accountOpen && user && <AccountSheet key="account" user={user} owner={role === 'owner'} onSignOut={signOut} onClose={() => setAccountOpen(false)} />}
       </AnimatePresence>
       <AnimatePresence>
-        {fbForm && <FeedbackSheet key="feedback" kind={fbForm.kind} where={fbForm.where} user={user} onClose={() => setFbForm(null)} />}
+        {fbForm && <FeedbackSheet key="feedback" kind={fbForm.kind} where={fbForm.where} user={user} replies={replies.length} onReplies={() => { setFbForm(null); readReplies(); setRepliesOpen(true); }} onClose={() => setFbForm(null)} />}
       </AnimatePresence>
       {inboxOpen && <Suspense fallback={null}><ErrorBoundary name="Feedback" onClose={() => setInboxOpen(false)}><FeedbackInbox onClose={() => setInboxOpen(false)} /></ErrorBoundary></Suspense>}
+      {repliesOpen && <Suspense fallback={null}><ErrorBoundary name="Replies" onClose={() => setRepliesOpen(false)}><FeedbackReplies replies={replies} onWriteBack={() => { setRepliesOpen(false); setFbForm({ kind: 'other', where: 'Reply' }); }} onClose={() => { readReplies(); setRepliesOpen(false); }} /></ErrorBoundary></Suspense>}
       {activityOpen && <Suspense fallback={null}><ErrorBoundary name="Activity" onClose={() => setActivityOpen(false)}><ActivityPanel open={activityOpen} onClose={() => setActivityOpen(false)} /></ErrorBoundary></Suspense>}
 
 
@@ -1485,7 +1518,14 @@ export default function App() {
             <LogIn size={17} /><span>Sign in</span>
           </motion.button>
         )}
-        {nudgeReady && chrome && !fbForm && !quiz && !geo && !play && !anti && !voy && !eras && !emp && !liveState.active && !dailyCard && !selected && !feature && !dockOpen && !placesOpen && !(mobile && drawerOpen) && !signIn && (
+        {replyUnread && !repliesOpen && !DEMO && nudgeSpot && (
+          <motion.div key="fb-reply" className="fb-nudge low" role="status" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.6 } }} exit={{ opacity: 0, y: -10 }}>
+            <span>GeoQuest replied<em className="fbn-more"> to your feedback</em></span>
+            <button className="fbn-go" onClick={() => { readReplies(); setRepliesOpen(true); }}>Read</button>
+            <button className="fbn-x" onClick={readReplies} aria-label="Dismiss"><X size={15} /></button>
+          </motion.div>
+        )}
+        {nudgeReady && !replyUnread && nudgeSpot && (
           <motion.div key="fb-nudge" className="fb-nudge" role="status" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.6 } }} exit={{ opacity: 0, y: -10 }}>
             <span>Enjoying GeoQuest?<em className="fbn-more"> Help shape it</em></span>
             <button className="fbn-go" onClick={() => { dismissNudge(); openFeedbackHere(); }}>Send feedback</button>

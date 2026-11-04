@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { Bug, Check, Lightbulb, Loader2, MessageCircle, Send, Sparkles, X } from 'lucide-react';
+import { Bug, Check, ChevronRight, Lightbulb, Loader2, MessageCircle, Send, Sparkles, X } from 'lucide-react';
 import { api } from '../lib/api';
 import { device, track } from '../lib/analytics';
-import { markFeedbackAsked, type FeedbackKind } from '../lib/feedback';
+import { markFeedbackAsked, replyKey, type FeedbackKind } from '../lib/feedback';
 
 const KINDS: { id: FeedbackKind; label: string; icon: typeof Bug; hint: string }[] = [
   { id: 'idea', label: 'Improvement', icon: Lightbulb, hint: 'What could be better? Anything that felt confusing or clunky…' },
@@ -18,11 +18,14 @@ interface Props {
   where: string;
   /** Signed in as… (guests can leave a way to reach them) */
   user: string | null;
+  /** Replies they've had, and how to read them */
+  replies?: number;
+  onReplies?: () => void;
   onClose: () => void;
 }
 
 /** Send feedback: pick what kind, write a few words, optionally how to reach you. */
-export function FeedbackSheet({ kind: start, where, user, onClose }: Props) {
+export function FeedbackSheet({ kind: start, where, user, replies = 0, onReplies, onClose }: Props) {
   const [kind, setKind] = useState<FeedbackKind>(start ?? 'idea');
   const [text, setText] = useState('');
   const [contact, setContact] = useState('');
@@ -45,7 +48,7 @@ export function FeedbackSheet({ kind: start, where, user, onClose }: Props) {
     try {
       const r = await api('/api/feedback', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kind, text, contact, where, website: honey.current?.value ?? '', ...device() }),
+        body: JSON.stringify({ kind, text, contact, where, website: honey.current?.value ?? '', ...(user ? {} : { replyKey: replyKey(true) }), ...device() }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setError(d.error ?? 'Couldn’t send that — try again in a moment.'); return; }
@@ -66,13 +69,14 @@ export function FeedbackSheet({ kind: start, where, user, onClose }: Props) {
           <div className="fb-done">
             <span className="fb-tick"><Check size={26} /></span>
             <h2 id="fb-title">Thank you!</h2>
-            <p className="si-sub">{contact.trim() ? 'We read every message — and we’ll get back to you if we need to.' : 'We read every message. It really helps make GeoQuest better.'}</p>
+            <p className="si-sub">{user ? 'We read every message. If we reply, you’ll see it right here in GeoQuest.' : 'We read every message. If we reply, you’ll see it next time you open GeoQuest on this device.'}</p>
             <button className="primary si-go" onClick={onClose}>Back to the globe</button>
           </div>
         ) : (
           <>
             <h2 id="fb-title">Send feedback</h2>
             <p className="si-sub">Ideas, bugs, wishes — tell us anything.</p>
+            {replies > 0 && onReplies && <button className="fb-see" onClick={onReplies}><MessageCircle size={15} /> <span>{replies === 1 ? '1 reply from GeoQuest' : `${replies} replies from GeoQuest`}</span><ChevronRight size={15} /></button>}
             <div className="fb-kinds" role="radiogroup" aria-label="What kind of feedback">
               {KINDS.map(({ id, label, icon: Icon }) => (
                 <button key={id} role="radio" aria-checked={kind === id} className={kind === id ? 'on' : ''} onClick={() => setKind(id)}><Icon size={15} /> {label}</button>
