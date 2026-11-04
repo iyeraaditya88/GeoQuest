@@ -441,6 +441,19 @@ describe('feedback', () => {
   });
 });
 
+describe('crossword progress', () => {
+  it('follows the player, never moves backwards, and keeps the other games’ progress', async () => {
+    const c = (level: number, seen = true) => ({ level, solved: level - 1, points: 100, seen, at: 5 });
+    await call('PUT', '/api/progress/mystery', { cookie: bob, body: { level: 3, merit: 0, misses: 0, cases: 4, at: 9 } });
+    expect((await call('PUT', '/api/progress/crossword', { body: c(9) })).status).toBe(401); // guests keep it on the device
+    expect((await call('PUT', '/api/progress/crossword', { cookie: bob, body: c(9) })).body.crossword.level).toBe(9);
+    expect((await call('PUT', '/api/progress/crossword', { cookie: bob, body: c(4, false) })).body.crossword).toEqual(expect.objectContaining({ level: 9, seen: true }));
+    const got = (await call('GET', '/api/progress', { cookie: bob })).body;
+    expect(got.crossword.level).toBe(9);
+    expect(got.mystery.level).toBe(3);
+  });
+});
+
 describe('replying to feedback', () => {
   const KEY = 'ab'.repeat(16);
   const all = async () => (await call('GET', '/api/feedback', { cookie: owner })).body.feedback as Record<string, unknown>[];

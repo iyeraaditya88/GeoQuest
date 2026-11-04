@@ -29,6 +29,9 @@ const fmt = (n: number) => n.toLocaleString('en-US');
 /** "🏆 GeoQuest Top 5 — Longest rivers in Africa: 4/5" + a square per slot. */
 export const top5Share = (title: string, found: boolean[]) =>
   `🏆 GeoQuest Top 5 — ${title}: ${found.filter(Boolean).length}/${found.length}\n${found.map((f) => (f ? '🟩' : '⬛')).join('')}`;
+/** The level reached and the stars: no clues, no answers. */
+export const crosswordShare = (level: number, stars: number, hints: number, leveledUp: boolean) =>
+  `✏️ GeoQuest Crossword — ${leveledUp ? `cleared Level ${level}` : `solved Level ${level}`} ${'⭐'.repeat(stars)}${hints ? ` · 💡 ${hints}` : ''}`;
 export const triviaShare = (score: number, correct: number, of: number, peak: string) =>
   `🧠 GeoQuest Trivia — ${fmt(score)} pts · ${correct}/${of} correct · reached ${peak}`;
 export const capitalsShare = (score: number, of: number) =>

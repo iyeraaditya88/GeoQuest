@@ -20,6 +20,7 @@ const loadCapitals = () => fresh(import('./components/CapitalsGame'));
 const loadShapes = () => fresh(import('./components/ShapeGame'));
 const loadMystery = () => fresh(import('./components/MysteryGame'));
 const loadWordle = () => fresh(import('./components/GeoWordle'));
+const loadCrossword = () => fresh(import('./components/GeoCrossword'));
 const loadTrivia = () => fresh(import('./components/TriviaGame'));
 const TriviaGame = lazy(() => loadTrivia().then((m) => ({ default: m.TriviaGame })));
 const Top5Game = lazy(() => loadTop5().then((m) => ({ default: m.Top5Game })));
@@ -27,6 +28,7 @@ const CapitalsGame = lazy(() => loadCapitals().then((m) => ({ default: m.Capital
 const ShapeGame = lazy(() => loadShapes().then((m) => ({ default: m.ShapeGame })));
 const MysteryGame = lazy(() => loadMystery().then((m) => ({ default: m.MysteryGame })));
 const GeoWordle = lazy(() => loadWordle().then((m) => ({ default: m.GeoWordle })));
+const GeoCrossword = lazy(() => loadCrossword().then((m) => ({ default: m.GeoCrossword })));
 
 // Shown for the moment a game's code is still downloading, so a click never looks ignored.
 function GameCardSkeleton() {
@@ -86,6 +88,7 @@ import { DAILY_N, dailyNumber, dailyPicks, localDate, pointsFor, themeOf } from 
 import { DailyResult, type DailyBoardRow } from './components/DailyResult';
 import { Reminders } from './components/Reminders';
 import { SignInSheet } from './components/SignInSheet';
+import { useCrosswordNew } from './lib/crosswordNew';
 import { getAuth, isGuest, needSignIn, setAuth, useAuth, type SignInReason } from './lib/session';
 import { PlacesPanel } from './components/PlacesPanel';
 import { kindOf, usePlaces } from './lib/places';
@@ -264,6 +267,7 @@ export default function App() {
   // Guests: "Sign in to …" when they reach for something that needs an account.
   const auth = useAuth();
   const guest = isGuest(auth);
+  const crosswordNew = useCrosswordNew(auth.known) && !DEMO;
   const [signIn, setSignIn] = useState<SignInReason | null>(null);
   useEffect(() => {
     const on = (e: Event) => setSignIn((e as CustomEvent<SignInReason>).detail ?? 'general');
@@ -285,7 +289,7 @@ export default function App() {
   const [placesFocus, setPlacesFocus] = useState<{ id: string; n: number } | null>(null);
   const [placesDraft, setPlacesDraft] = useState<{ lat: number; lng: number } | null>(null); // a new pin being named
   const { places: myPlaces } = usePlaces();
-  const [play, setPlay] = useState<null | 'top5' | 'capitals' | 'trivia' | 'shapes' | 'wordle' | 'mystery'>(null);
+  const [play, setPlay] = useState<null | 'top5' | 'capitals' | 'trivia' | 'shapes' | 'wordle' | 'crossword' | 'mystery'>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const timer = useRef<number | undefined>(undefined);
 
@@ -536,7 +540,7 @@ export default function App() {
   // ── Feedback ──────────────────────────────────────────
   /** Where in the app they are right now (sent with feedback, so a bug report has context). */
   const whereNow = () => quiz ? (quiz.daily ? `Daily #${quiz.daily.no}` : `Map quiz (${quiz.mode})`)
-    : geo ? 'Street View' : play === 'top5' ? 'Name the Top 5' : play === 'capitals' ? 'Capitals' : play === 'trivia' ? 'Geo Trivia' : play === 'shapes' ? 'Guess the Country' : play === 'wordle' ? 'Geo Wordle' : play === 'mystery' ? 'Solve the Mystery'
+    : geo ? 'Street View' : play === 'top5' ? 'Name the Top 5' : play === 'capitals' ? 'Capitals' : play === 'trivia' ? 'Geo Trivia' : play === 'shapes' ? 'Guess the Country' : play === 'wordle' ? 'Geo Wordle' : play === 'crossword' ? 'Geo Crossword' : play === 'mystery' ? 'Solve the Mystery'
     : anti ? 'Antipode finder' : liveRef.current.active ? 'Live duel' : dailyCard ? 'Daily result' : placesOpen ? 'My places'
     : country ? `Country: ${country.name}` : feature ? `Map: ${feature.name}` : view === 'flat' ? 'Atlas' : 'Globe';
   const whereRef = useRef(whereNow);
@@ -778,7 +782,7 @@ export default function App() {
   const restartGeo = () => { seen.current = []; void loadRound(1, []); };
 
   // ── Word games (Top 5, Capitals) ───────────────────────
-  const startPlay = (g: 'top5' | 'capitals' | 'trivia' | 'shapes' | 'wordle' | 'mystery') => {
+  const startPlay = (g: 'top5' | 'capitals' | 'trivia' | 'shapes' | 'wordle' | 'crossword' | 'mystery') => {
     track('game', { g });
     if (geoRef.current) exitGeo();
     if (antiRef.current) exitAntipode();
@@ -1213,7 +1217,7 @@ export default function App() {
   // deploy has replaced. (Street View is big — it stays on demand.)
   useEffect(() => {
     if (!ready) return;
-    preload([loadTop5, loadCapitals, loadTrivia, loadShapes, loadWordle, loadMystery, ...(role === 'owner' || liveMode === 'local' ? [loadActivity, loadInbox] : [])]);
+    preload([loadTop5, loadCapitals, loadTrivia, loadShapes, loadWordle, loadCrossword, loadMystery, ...(role === 'owner' || liveMode === 'local' ? [loadActivity, loadInbox] : [])]);
   }, [ready, role, liveMode]);
 
   // Rivers and mountains step aside during a quiz (Map quiz, the Daily, a live quiz): the borders are what matter then.
@@ -1338,6 +1342,8 @@ export default function App() {
         onCapitals={() => (play === 'capitals' ? exitPlay() : startPlay('capitals'))}
         onShapes={() => (play === 'shapes' ? exitPlay() : startPlay('shapes'))}
         onWordle={() => (play === 'wordle' ? exitPlay() : startPlay('wordle'))}
+        onCrossword={() => (play === 'crossword' ? exitPlay() : startPlay('crossword'))}
+        crosswordNew={crosswordNew}
         onMystery={() => (play === 'mystery' ? exitPlay() : startPlay('mystery'))}
         onTrivia={() => (play === 'trivia' ? exitPlay() : startPlay('trivia'))}
         onFriends={liveMode && liveMe ? () => setFriendsReq((n) => n + 1) : guest ? () => needSignIn('friends') : undefined}
@@ -1408,6 +1414,7 @@ export default function App() {
       <AnimatePresence>
         {play === 'top5' && <ErrorBoundary key="top5" name="Name the Top 5" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><Top5Game ai={ai} onHighlight={(ids) => (ids.length ? highlight(ids) : setHighlighted([]))} onExit={exitPlay} /></Suspense></ErrorBoundary>}
         {play === 'trivia' && <ErrorBoundary key="trivia" name="Geo Trivia" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><TriviaGame onReveal={revealTrivia} onExit={exitPlay} /></Suspense></ErrorBoundary>}
+        {play === 'crossword' && <ErrorBoundary key="crossword" name="Geo Crossword" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><GeoCrossword onReveal={revealOnGlobe} onExit={exitPlay} /></Suspense></ErrorBoundary>}
         {play === 'wordle' && <ErrorBoundary key="wordle" name="Geo Wordle" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><GeoWordle onReveal={revealOnGlobe} onExit={exitPlay} onShowCountry={(c) => { exitPlay(); select(c); setHighlighted([c]); }}
           onGuess={(c) => { setFeedback({ cca3: c, kind: 'bad' }); cam.flyTo(c); }} /></Suspense></ErrorBoundary>}
         {play === 'mystery' && <ErrorBoundary key="mystery" name="Solve the Mystery" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><MysteryGame onFly={mxFly} onFocus={mxFocus} setGlobePick={mxSetPick} onRoute={setMxRoute} onStage={setMxStage} onExit={exitPlay} /></Suspense></ErrorBoundary>}

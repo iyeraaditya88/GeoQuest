@@ -1,12 +1,14 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { motion } from 'motion/react';
-import { Binoculars, Brain, CalendarDays, Check, Gamepad2, Grid3x3, HatGlasses, Landmark, ListOrdered, Shapes, Swords, X } from 'lucide-react';
+import { Binoculars, Brain, CalendarDays, Check, Gamepad2, Grid3x3, HatGlasses, Landmark, ListOrdered, Puzzle, Shapes, Swords, X } from 'lucide-react';
 import { track } from '../lib/analytics';
+import { useCrosswordNew } from '../lib/crosswordNew';
+import { getAuth } from '../lib/session';
 import { localDate } from '../lib/daily';
 import { inviteText, isShareGame } from '../lib/share';
 import { ShareButton } from './ShareButton';
 
-export type GameKey = 'daily' | 'quiz' | 'street' | 'wordle' | 'mystery' | 'shapes' | 'capitals' | 'trivia' | 'top5' | 'duel';
+export type GameKey = 'daily' | 'quiz' | 'street' | 'wordle' | 'crossword' | 'mystery' | 'shapes' | 'capitals' | 'trivia' | 'top5' | 'duel';
 
 interface Props {
   daily: { done: boolean; streak: number };
@@ -19,6 +21,7 @@ interface Props {
 /** Every game, one tap away: what the Play button opens. */
 export function GamesSheet({ daily, duel, onPick, onClose }: Props) {
   const startY = useRef<number | null>(null);
+  const crosswordNew = useCrosswordNew(getAuth().known);
   useEffect(() => { track('open', { w: 'games' }); }, []);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -46,6 +49,7 @@ export function GamesSheet({ daily, duel, onPick, onClose }: Props) {
       line: wordle.done ? `Today: ${wordle.done}${wordle.streak > 1 ? ` · 🔥 ${wordle.streak}` : ''} · see the board` : `Today’s country is waiting${wordle.streak > 1 ? ` · 🔥 ${wordle.streak}` : ''}`,
       badge: wordle.done ? <span className="gs-done" aria-label="Done today"><Check size={12} /></span> : <span className="gs-new">New</span>,
     },
+    { key: 'crossword', icon: Puzzle, name: 'Geo Crossword', line: 'Levels that never stop climbing', tone: 'cyan', badge: crosswordNew ? <span className="gs-new blink">New</span> : undefined },
     { key: 'quiz', icon: Gamepad2, name: 'Map quiz', line: 'Find countries, flags or clues', tone: 'blue' },
     { key: 'top5', icon: ListOrdered, name: 'Name the Top 5', line: 'Rivers, peaks, populations…', tone: 'teal' },
     { key: 'trivia', icon: Brain, name: 'Geo Trivia', line: 'Gets harder as you get better', tone: 'violet' },

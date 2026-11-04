@@ -6,6 +6,7 @@ import * as prefs from '../prefs.js';
 import { historyFor, saveMatch, type MatchRecord } from '../matches.js';
 import { HOSTED, fail, rateLimit } from '../http.js';
 import { cleanCareer } from '../../src/lib/mysteryCareer.js';
+import { cleanXwCareer, mergeXwCareer } from '../../src/lib/crosswordLevels.js';
 
 /** A game's options (level, region…): a small plain object, or none — they travel inside signed links. */
 const smallOpts = (o: unknown): Record<string, unknown> =>
@@ -33,12 +34,23 @@ export function registerLive(app: express.Express) {
     try { await prefs.setFavorites(me(req), favorites); res.json({ favorites }); } catch (err) { fail(res, 500, err); }
   });
 
-  // Game progress (per player): currently just the mystery career.
+  // Game progress (per player): the mystery career and the crossword level.
   app.get('/api/progress', async (req, res) => { res.json(await prefs.getProgress(me(req))); });
   app.put('/api/progress/mystery', rateLimit(60, 10 * 60_000), async (req, res) => {
     const career = cleanCareer(req.body);
     if (!career) { fail(res, 400, 'Bad progress.'); return; }
     try { await prefs.setProgress(me(req), 'mystery', career); res.json({ mystery: career }); } catch (err) { fail(res, 500, err); }
+  });
+
+  app.put('/api/progress/crossword', rateLimit(60, 10 * 60_000), async (req, res) => {
+    const career = cleanXwCareer(req.body);
+    if (!career) { fail(res, 400, 'Bad progress.'); return; }
+    try {
+      // Whichever is further along wins, so an out-of-date device can't lower a level.
+      const best = mergeXwCareer(career, cleanXwCareer((await prefs.getProgress(me(req))).crossword))!;
+      await prefs.setProgress(me(req), 'crossword', best);
+      res.json({ crossword: best });
+    } catch (err) { fail(res, 500, err); }
   });
 
   // Open invite links: pick a game, share the link; anyone signed in who opens it joins your lobby.

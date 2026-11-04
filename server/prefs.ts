@@ -36,7 +36,9 @@ export async function getProgress(user: string): Promise<Record<string, unknown>
   return (await readBlob<Record<string, unknown>>(`progress/${user}.json`)) ?? {};
 }
 export async function setProgress(user: string, key: string, value: unknown) {
-  const all = { ...(await getProgress(user)), [key]: value };
+  // (Read strictly here: a failed read must not wipe the other games' progress.)
+  const doc = blobEnabled() ? await readBlobDoc(`progress/${user}.json`) : null;
+  const all = { ...(blobEnabled() ? (doc ? JSON.parse(doc.text) as Record<string, unknown> : {}) : await getProgress(user)), [key]: value };
   if (!blobEnabled()) {
     const local = await readLocal();
     local[user] = { ...local[user], progress: all };

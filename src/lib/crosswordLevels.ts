@@ -1,0 +1,66 @@
+// Geo Crossword: levels, ranks and the hint trade. Kept free of country data, so the server can
+// check a career it's asked to store.
+//
+// Levels never stop counting. Each one asks for more words, a bigger grid and harder clues until
+// the grid is as big as a phone can show comfortably; from there the number and rank keep climbing.
+
+export const MAX_GRID = 13;
+export const MAX_WORDS = 18;
+
+export interface LevelSpec { level: number; words: number; size: number; tiers: number[] }
+
+/** What a level asks for. `tiers` are the clue difficulties (1 well known … 5 expert) it draws on. */
+export function levelSpec(level: number): LevelSpec {
+  const n = Math.max(1, Math.floor(level) || 1);
+  const words = Math.min(MAX_WORDS, 4 + Math.floor(n / 2));
+  const size = Math.min(MAX_GRID, 7 + Math.floor(n / 3));
+  const tiers = n <= 2 ? [1, 2] : n <= 5 ? [1, 2, 3] : n <= 9 ? [2, 3] : n <= 14 ? [2, 3, 4] : n <= 20 ? [3, 4] : n <= 30 ? [3, 4, 5] : [4, 5];
+  return { level: n, words, size, tiers };
+}
+
+const RANKS: [from: number, name: string][] = [
+  [1, 'Scout'], [3, 'Explorer'], [6, 'Navigator'], [10, 'Pathfinder'], [15, 'Cartographer'],
+  [21, 'Geographer'], [28, 'Globetrotter'], [36, 'Atlas Master'], [45, 'World Legend'],
+];
+export function rankOf(level: number) {
+  let name = RANKS[0][1];
+  for (const [from, r] of RANKS) if (level >= from) name = r;
+  return name;
+}
+/** The next rank up and the level it starts at (null at the top). */
+export function nextRank(level: number) {
+  const r = RANKS.find(([from]) => from > level);
+  return r ? { level: r[0], name: r[1] } : null;
+}
+
+// ── The hint trade: one free per crossword; after that, hints cost this crossword's level-up ──
+export type HintPrice = 'free' | 'trade' | 'paid';
+/** What the next hint costs. `paid`: the level-up is already traded, so more hints cost nothing further. */
+export const hintPrice = (hintsUsed: number, traded: boolean): HintPrice => (traded ? 'paid' : hintsUsed < 1 ? 'free' : 'trade');
+
+/** ★★★ no hints and at most one wrong word; ★★ solved keeping the level-up; ★ the level-up was traded. */
+export function starsFor(hintsUsed: number, misses: number, traded: boolean) {
+  return traded ? 1 : hintsUsed === 0 && misses <= 1 ? 3 : 2;
+}
+
+// ── Career ──
+export interface XwCareer { level: number; solved: number; points: number; seen: boolean; at: number }
+export const newXwCareer = (): XwCareer => ({ level: 1, solved: 0, points: 0, seen: false, at: 0 });
+
+/** Add a solved crossword: up a level, unless the level-up was traded for a hint. */
+export function addSolved(c: XwCareer, traded: boolean, points: number, now = Date.now()): XwCareer {
+  return { ...c, level: traded ? c.level : c.level + 1, solved: c.solved + 1, points: c.points + points, at: now };
+}
+/** A career read from storage or the server; anything malformed reads as none. */
+export function cleanXwCareer(x: unknown): XwCareer | null {
+  if (!x || typeof x !== 'object') return null;
+  const o = x as Record<string, unknown>;
+  const num = (v: unknown, lo: number, hi: number) => (typeof v === 'number' && Number.isFinite(v) ? Math.min(hi, Math.max(lo, Math.round(v))) : lo);
+  return { level: num(o.level, 1, 1e5), solved: num(o.solved, 0, 1e6), points: num(o.points, 0, 1e10), seen: o.seen === true, at: num(o.at, 0, 1e14) };
+}
+/** Two copies (this device, the account): the further along wins, and seen once is seen for good. */
+export function mergeXwCareer(a: XwCareer | null, b: XwCareer | null): XwCareer | null {
+  if (!a || !b) return a ?? b;
+  const best = b.level > a.level || (b.level === a.level && b.solved > a.solved) ? b : a;
+  return { ...best, seen: a.seen || b.seen };
+}

@@ -1,5 +1,5 @@
 // "Delete my account": everything kept about a player, gone — their places, favourites, last-seen,
-// reminder devices, Daily and Geo Wordle results and streak, game progress (the mystery rank), and
+// reminder devices, Daily and Geo Wordle results and streak, game progress (the mystery rank, the crossword level), and
 // their visits in Activity, and the replies to their feedback. Their name stays only
 // in other players' match history, and feedback they sent stays with the owner (the privacy page
 // says so).
