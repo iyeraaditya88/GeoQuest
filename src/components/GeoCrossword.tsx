@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, Delete, Lightbulb, Puzzle, Sparkles, Star, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { flagUrl } from '../lib/data';
-import { cellsOf, countOf, makePuzzle, wordPoints, type Puzzle as Grid, type Word } from '../lib/crossword';
+import { cellsOf, countOf, hintLetters, makePuzzle, wordPoints, type Puzzle as Grid, type Word } from '../lib/crossword';
 import { addSolved, cleanXwCareer, hintPrice, levelSpec, mergeXwCareer, newXwCareer, nextRank, rankOf, starsFor, type XwCareer } from '../lib/crosswordLevels';
 import { markCrosswordSeen } from '../lib/crosswordNew';
 import { musicMuted } from '../lib/music';
@@ -23,7 +23,8 @@ interface Game {
   puzzle: Grid;
   fill: Record<string, string>;
   solved: string[];
-  hinted: string[];
+  hinted: string[]; // words a hint has been used on
+  given: string[]; // cells a hint filled in: right for certain, so they can't be changed
   hints: number;
   traded: boolean;
   misses: number;
@@ -32,7 +33,7 @@ interface Game {
 }
 interface Result { before: number; after: number; traded: boolean; stars: number; earned: number; career: XwCareer }
 
-const GAME = 'gq-xw-game';
+const GAME = 'gq-xw-game2'; // (2: the clues were re-sorted by difficulty, so older saved crosswords are dropped)
 const CAREER = 'gq-xw-career';
 const RECENT = 'gq-xw-recent';
 const KEYS = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM-'];
@@ -46,12 +47,19 @@ const loadCareer = () => cleanXwCareer(load(CAREER)) ?? newXwCareer();
 function newGame(level: number): Game {
   const recent = Array.isArray(load(RECENT)) ? (load(RECENT) as string[]) : [];
   const puzzle = makePuzzle(level, Date.now(), recent);
-  return { puzzle, fill: {}, solved: [], hinted: [], hints: 0, traded: false, misses: 0, points: 0, combo: 0 };
+  return { puzzle, fill: {}, solved: [], hinted: [], given: [], hints: 0, traded: false, misses: 0, points: 0, combo: 0 };
 }
 function loadGame(level: number): Game {
   const g = load(GAME) as Game | null;
-  if (g?.puzzle?.words?.length && g.fill && Array.isArray(g.solved) && g.puzzle.level === level) return g;
+  if (g?.puzzle?.words?.length && g.fill && Array.isArray(g.solved) && g.puzzle.level === level && g.solved.length < g.puzzle.words.length) return g;
   return newGame(level);
+}
+
+/** Cells that can't change: every solved word's, and any letter a hint gave. */
+function fixedCells(g: Game) {
+  const s = new Set(g.given);
+  for (const id of g.solved) { const w = g.puzzle.words.find((x) => x.id === id); if (w) cellsOf(w).forEach((c) => s.add(key(c.r, c.c))); }
+  return s;
 }
 
 // A few short notes for a solved word and a level-up (off when the music is muted).
@@ -83,6 +91,8 @@ export function GeoCrossword({ onReveal, onExit }: Props) {
   const [note, setNote] = useState<string | null>(null);
   const [trade, setTrade] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
+  const [showResult, setShowResult] = useState(false); // the finished grid gets its moment first
+  const [finale, setFinale] = useState(false);
   const [intro, setIntro] = useState(() => loadCareer().solved === 0 && !load(GAME));
   const [banner, setBanner] = useState(true);
   const [entering, setEntering] = useState(true); // the grid's opening pop, only as it appears
@@ -91,6 +101,7 @@ export function GeoCrossword({ onReveal, onExit }: Props) {
   const timers = useRef<number[]>([]);
   const finished = useRef(false);
   const later = (fn: () => void, ms: number) => { timers.current.push(window.setTimeout(fn, ms)); };
+  useEffect(() => { save('gq-xw-game', null); }, []);
   useEffect(() => () => { timers.current.forEach(window.clearTimeout); void audio?.close().catch(() => null); audio = null; }, []);
 
   const apply = useCallback((next: Game) => { gRef.current = next; setG(next); save(GAME, next); }, []);
@@ -125,48 +136,48 @@ export function GeoCrossword({ onReveal, onExit }: Props) {
     });
     return m;
   }, [words]);
-  const locked = useMemo(() => {
-    const s = new Set<string>();
-    for (const id of g.solved) { const w = byId.get(id); if (w) cellsOf(w).forEach((c) => s.add(key(c.r, c.c))); }
-    return s;
-  }, [g.solved, byId]);
-  const hintedCells = useMemo(() => {
-    const s = new Set<string>();
-    for (const id of g.hinted) { const w = byId.get(id); if (w) cellsOf(w).forEach((c) => s.add(key(c.r, c.c))); }
-    return s;
-  }, [g.hinted, byId]);
+  const locked = useMemo(() => fixedCells(g), [g]);
+  const given = useMemo(() => new Set(g.given), [g.given]);
   const word = byId.get(sel.id) ?? words[0];
   const wordCells = useMemo(() => new Set(cellsOf(word).map((c) => key(c.r, c.c))), [word]);
   const cursor = cellsOf(word)[Math.min(sel.i, word.answer.length - 1)];
   const price = hintPrice(g.hints, g.traded);
   const allDone = g.solved.length >= words.length;
 
-  // The last word's wave plays out, then the result.
+  // Solved. The result is saved at once, so leaving now loses nothing, but the dialog waits: the last
+  // word's wave plays out, a sweep of light crosses the finished grid, and it stays on show for a moment.
   useEffect(() => {
     if (!allDone || finished.current) return;
     finished.current = true;
-    const t = window.setTimeout(() => {
-      const now = gRef.current;
-      const stars = starsFor(now.hints, now.misses, now.traded);
-      const earned = now.points + stars * 25;
-      const before = loadCareer();
-      const after = addSolved({ ...before, seen: true }, now.traded, earned);
-      save(CAREER, after); pushCareer(after);
-      const recent = Array.isArray(load(RECENT)) ? (load(RECENT) as string[]) : [];
-      save(RECENT, [...now.puzzle.words.map((w) => w.answer), ...recent].slice(0, 120));
-      save(GAME, null);
-      track('crossword', { lv: now.puzzle.level, s: stars, h: now.hints, t: now.traded ? 1 : 0 });
-      setResult({ before: now.puzzle.level, after: after.level, traded: now.traded, stars, earned, career: after });
+    const now = gRef.current;
+    const stars = starsFor(now.hints, now.misses, now.traded);
+    const earned = now.points + stars * 25;
+    const after = addSolved({ ...loadCareer(), seen: true }, now.traded, earned);
+    save(CAREER, after); pushCareer(after);
+    const recent = Array.isArray(load(RECENT)) ? (load(RECENT) as string[]) : [];
+    save(RECENT, [...now.puzzle.words.map((w) => w.answer), ...recent].slice(0, 120));
+    save(GAME, null);
+    track('crossword', { lv: now.puzzle.level, s: stars, h: now.hints, t: now.traded ? 1 : 0 });
+    setResult({ before: now.puzzle.level, after: after.level, traded: now.traded, stars, earned, career: after });
+    const sweepAt = waveMs(wave);
+    later(() => {
+      setFinale(true);
       if (!now.traded) {
         notes([523, 659, 784, 1047], 0.1, 0.08); buzz([20, 40, 30]);
         confetti({ particleCount: 140, spread: 85, origin: { y: 0.35 }, colors: ['#34d399', '#facc15', '#38bdf8', '#fde68a'], disableForReducedMotion: true });
       } else notes([523, 659], 0.1);
-    }, 800);
-    return () => { window.clearTimeout(t); finished.current = false; };
-  }, [allDone]);
+    }, sweepAt);
+    later(() => setShowResult(true), sweepAt + (now.puzzle.rows + now.puzzle.cols) * 50 + 2400);
+  }, [allDone]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // On to a word crossing the one just solved, the fullest first: it already has a letter to go on.
   const nextOpen = useCallback((after: Word, g2: Game): { id: string; i: number } => {
     const list = g2.puzzle.words, from = list.findIndex((w) => w.id === after.id);
+    const open = list.filter((w) => !g2.solved.includes(w.id));
+    const here = new Set(cellsOf(after).map((c) => key(c.r, c.c)));
+    const filled = (w: Word) => cellsOf(w).filter((c) => g2.fill[key(c.r, c.c)]).length;
+    const crossing = open.filter((w) => cellsOf(w).some((c) => here.has(key(c.r, c.c)))).sort((x, y) => filled(y) - filled(x))[0];
+    if (crossing) return { id: crossing.id, i: firstEmpty(crossing, g2) };
     for (let d = 1; d <= list.length; d++) {
       const w = list[(from + d) % list.length];
       if (!g2.solved.includes(w.id)) return { id: w.id, i: firstEmpty(w, g2) };
@@ -174,27 +185,66 @@ export function GeoCrossword({ onReveal, onExit }: Props) {
     return { id: after.id, i: 0 };
   }, []);
 
-  const solveWave = (solvedNow: Word[]) => {
-    const w: Record<string, number> = {};
-    for (const s of solvedNow) cellsOf(s).forEach((c, i) => { w[key(c.r, c.c)] = i; });
-    setWave(w);
-    later(() => setWave({}), 750);
+  const playWave = (cells: Record<string, number>) => {
+    setWave(cells);
+    later(() => setWave({}), waveMs(cells));
   };
 
-  const press = useCallback((ch: string) => {
+  /** Check every word these cells have just finished: right ones lock with a wave, a wrong one shakes and clears. */
+  const settle = (base: Game, changed: string[], on: Word): Game => {
+    const open = base.puzzle.words.filter((x) => !base.solved.includes(x.id) && cellsOf(x).some((c) => changed.includes(key(c.r, c.c))));
+    const full = open.filter((x) => cellsOf(x).every((c) => base.fill[key(c.r, c.c)]));
+    const right = full.filter((x) => cellsOf(x).every((c, n) => base.fill[key(c.r, c.c)] === x.answer[n]));
+    const bad = full.filter((x) => !right.includes(x));
+    let next = base;
+    if (right.length) {
+      let combo = base.combo, points = base.points;
+      for (const x of right) { combo++; points += wordPoints(x, combo); }
+      next = { ...next, solved: [...base.solved, ...right.map((x) => x.id)], combo, points };
+      const w: Record<string, number> = {};
+      for (const x of right) cellsOf(x).forEach((c, i) => { w[key(c.r, c.c)] = i; });
+      playWave(w);
+      notes(combo >= 3 ? [659, 784, 988] : [659, 784]); buzz(15);
+      const first = right[0];
+      setCheer({ n: Date.now(), text: `${CHEER[Math.min(combo, CHEER.length - 1)] ? `${CHEER[Math.min(combo, CHEER.length - 1)]} ` : ''}+${wordPoints(first, combo)}` });
+      later(() => setCheer(null), 1200);
+      if (first.cca3 && window.innerWidth > 900) onReveal(first.cca3);
+    }
+    if (bad.length) {
+      next = { ...next, misses: base.misses + 1, combo: 0 };
+      const shaking = bad.flatMap((x) => cellsOf(x).map((c) => key(c.r, c.c)));
+      setWrong(shaking);
+      hold.current = true;
+      buzz([30, 30, 30]);
+      later(() => {
+        const cur = gRef.current, clean = { ...cur.fill };
+        const stay = fixedCells(cur);
+        for (const s of shaking) if (!stay.has(s)) delete clean[s];
+        const after = { ...cur, fill: clean };
+        apply(after);
+        setWrong([]);
+        hold.current = false;
+        const stillOn = cur.puzzle.words.find((x) => x.id === on.id)!;
+        if (cur.solved.includes(stillOn.id)) setSel(nextOpen(stillOn, after)); else setSel({ id: stillOn.id, i: firstEmpty(stillOn, after) });
+      }, 520);
+    }
+    return next;
+  };
+
+  const press = (ch: string) => {
     if (hold.current || result || intro || trade) return;
     const now = gRef.current;
     if (now.solved.length >= now.puzzle.words.length) return;
     const w = now.puzzle.words.find((x) => x.id === sel.id) ?? now.puzzle.words[0];
     const cells = cellsOf(w);
-    const isLocked = (k: string) => now.solved.some((id) => { const s = now.puzzle.words.find((x) => x.id === id)!; return cellsOf(s).some((c) => key(c.r, c.c) === k); });
+    const fixed = fixedCells(now);
+    const isFixed = (n: number) => fixed.has(key(cells[n].r, cells[n].c));
 
     if (ch === 'BACK') {
       let i = Math.min(sel.i, cells.length - 1);
-      const here = key(cells[i].r, cells[i].c);
-      if (!now.fill[here] || isLocked(here)) { // nothing here: step back and clear there
+      if (!now.fill[key(cells[i].r, cells[i].c)] || isFixed(i)) { // nothing here: step back and clear there
         let j = i - 1;
-        while (j >= 0 && isLocked(key(cells[j].r, cells[j].c))) j--;
+        while (j >= 0 && isFixed(j)) j--;
         if (j < 0) return;
         i = j;
       }
@@ -206,80 +256,44 @@ export function GeoCrossword({ onReveal, onExit }: Props) {
     }
 
     let i = Math.min(sel.i, cells.length - 1);
-    while (i < cells.length && isLocked(key(cells[i].r, cells[i].c))) i++;
-    if (i >= cells.length) return;
+    while (i < cells.length && isFixed(i)) i++;
+    if (i >= cells.length) { i = cells.findIndex((_, n) => !isFixed(n)); if (i < 0) return; } // (only fixed letters ahead)
     const k = key(cells[i].r, cells[i].c);
-    const fill = { ...now.fill, [k]: ch };
-    const through = now.puzzle.words.filter((x) => !now.solved.includes(x.id) && cellsOf(x).some((c) => key(c.r, c.c) === k));
-    const full = through.filter((x) => cellsOf(x).every((c) => fill[key(c.r, c.c)]));
-    const right = full.filter((x) => cellsOf(x).every((c, n) => fill[key(c.r, c.c)] === x.answer[n]));
-    const bad = full.filter((x) => !right.includes(x));
-
-    let next: Game = { ...now, fill };
-    if (right.length) {
-      let combo = now.combo, points = now.points;
-      for (const x of right) { combo++; points += wordPoints(x, combo); }
-      next = { ...next, solved: [...now.solved, ...right.map((x) => x.id)], combo, points };
-      solveWave(right);
-      notes(combo >= 3 ? [659, 784, 988] : [659, 784]); buzz(15);
-      const first = right[0];
-      setCheer({ n: Date.now(), text: `${CHEER[Math.min(combo, CHEER.length - 1)] ? `${CHEER[Math.min(combo, CHEER.length - 1)]} ` : ''}+${wordPoints(first, combo)}` });
-      later(() => setCheer(null), 1200);
-      if (first.cca3 && window.innerWidth > 900) onReveal(first.cca3);
-    }
-    if (bad.length) {
-      next = { ...next, misses: now.misses + 1, combo: 0 };
-      const shaking = bad.flatMap((x) => cellsOf(x).map((c) => key(c.r, c.c)));
-      setWrong(shaking);
-      hold.current = true;
-      buzz([30, 30, 30]);
-      later(() => {
-        const cur = gRef.current, clean = { ...cur.fill };
-        const stay = new Set(cur.solved.flatMap((id) => cellsOf(cur.puzzle.words.find((x) => x.id === id)!).map((c) => key(c.r, c.c))));
-        for (const s of shaking) if (!stay.has(s)) delete clean[s];
-        const after = { ...cur, fill: clean };
-        apply(after);
-        setWrong([]);
-        hold.current = false;
-        const stillOn = cur.puzzle.words.find((x) => x.id === w.id)!;
-        if (cur.solved.includes(stillOn.id)) setSel(nextOpen(stillOn, after)); else setSel({ id: stillOn.id, i: firstEmpty(stillOn, after) });
-      }, 520);
-    }
+    const next = settle({ ...now, fill: { ...now.fill, [k]: ch } }, [k], w);
     apply(next);
     if (next.solved.includes(w.id)) setSel(nextOpen(w, next));
     else {
       let j = i + 1;
-      const nowLocked = (kk: string) => next.solved.some((id) => cellsOf(next.puzzle.words.find((x) => x.id === id)!).some((c) => key(c.r, c.c) === kk));
-      while (j < cells.length && nowLocked(key(cells[j].r, cells[j].c))) j++;
+      const fixedNow = fixedCells(next);
+      while (j < cells.length && fixedNow.has(key(cells[j].r, cells[j].c))) j++;
       setSel({ id: w.id, i: j < cells.length ? j : i });
     }
-  }, [apply, intro, nextOpen, onReveal, result, sel, trade]);
+  };
 
-  /** Reveal the selected word. */
-  const reveal = useCallback((tradeIt: boolean) => {
+  /** A hint: a letter or two of the selected word, right for certain. The player still has to get the rest. */
+  const giveHint = (tradeIt: boolean) => {
     const now = gRef.current;
     const w = now.puzzle.words.find((x) => x.id === sel.id);
     if (!w || now.solved.includes(w.id)) return;
-    const fill = { ...now.fill };
-    cellsOf(w).forEach((c, i) => { fill[key(c.r, c.c)] = w.answer[i]; });
-    // Another word may be finished by the revealed letters: count it, but it scores nothing either.
-    const also = now.puzzle.words.filter((x) => x.id !== w.id && !now.solved.includes(x.id) && cellsOf(x).every((c, i) => fill[key(c.r, c.c)] === x.answer[i]));
-    const next: Game = {
+    const cells = cellsOf(w), fill = { ...now.fill };
+    const picks = hintLetters(w.answer, (i) => fill[key(cells[i].r, cells[i].c)] === w.answer[i]);
+    const added = picks.map((i) => key(cells[i].r, cells[i].c));
+    picks.forEach((i) => { fill[key(cells[i].r, cells[i].c)] = w.answer[i]; });
+    playWave(Object.fromEntries(added.map((k, n) => [k, n])));
+    const next = settle({
       ...now, fill, hints: now.hints + 1, traded: now.traded || tradeIt, combo: 0,
-      solved: [...now.solved, w.id, ...also.map((x) => x.id)], hinted: [...now.hinted, w.id],
-    };
+      hinted: now.hinted.includes(w.id) ? now.hinted : [...now.hinted, w.id], given: [...now.given, ...added],
+    }, added, w);
     apply(next);
-    solveWave([w, ...also]);
-    setSel(nextOpen(w, next));
+    if (next.solved.includes(w.id)) setSel(nextOpen(w, next)); else setSel({ id: w.id, i: firstEmpty(w, next) });
     notes([587, 880]); buzz(15);
     track('crossword_hint', { lv: now.puzzle.level, t: tradeIt ? 1 : 0 });
-    if (w.cca3 && window.innerWidth > 900) onReveal(w.cca3);
     setNote(tradeIt ? `Level-up traded: you’ll stay on Level ${now.puzzle.level}, and any more hints are free.` : now.hints === 0 && !now.traded ? 'That was your free hint. The next one costs this level-up.' : null);
-    later(() => setNote(null), 3600);
-  }, [apply, nextOpen, onReveal, sel.id]);
+    later(() => setNote(null), 2600);
+  };
   const takeHint = () => {
     if (allDone || hold.current) return;
-    if (price === 'trade') setTrade(true); else reveal(false);
+    if (price === 'trade') setTrade(true); else giveHint(false);
   };
 
   const pick = (r: number, c: number) => {
@@ -314,6 +328,7 @@ export function GeoCrossword({ onReveal, onExit }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey || (e.target as HTMLElement)?.closest?.('input, textarea')) return;
+      if (result && !showResult) { if (['Enter', ' ', 'Escape'].includes(e.key)) { e.preventDefault(); setShowResult(true); } return; }
       if (e.key === 'Escape') {
         if (trade) { e.stopPropagation(); setTrade(false); } else if (intro) setIntro(false); else if (!result) onExit();
         return;
@@ -351,6 +366,8 @@ export function GeoCrossword({ onReveal, onExit }: Props) {
     apply(fresh);
     setSel(firstOpen(fresh));
     setResult(null);
+    setShowResult(false);
+    setFinale(false);
     setBanner(true);
     setWave({});
   };
@@ -362,13 +379,13 @@ export function GeoCrossword({ onReveal, onExit }: Props) {
     <li key={w.id}>
       <button className={`xw-clue ${w.id === word.id ? 'on' : ''} ${g.solved.includes(w.id) ? 'done' : ''}`} disabled={g.solved.includes(w.id)} onClick={() => setSel({ id: w.id, i: firstEmpty(w, g) })}>
         <b>{w.no}</b>
-        <span>{w.flag && <img src={flagUrl(w.flag, 80)} alt="" />}{w.clue} <em>{countOf(w)}</em></span>
+        <span>{w.flag && <img src={flagUrl(w.flag, 80)} alt="" />}{w.clue} <em>{countOf(w)}{whereHint(w, g)}</em></span>
       </button>
     </li>
   );
 
   return (
-    <motion.section className={`xw ${touch ? 'touch' : ''}`} role="dialog" aria-label="Geo Crossword" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }} transition={{ duration: 0.22 }}>
+    <motion.section className={`xw ${touch ? 'touch' : ''} ${allDone ? 'complete' : ''}`} role="dialog" aria-label="Geo Crossword" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }} transition={{ duration: 0.22 }}>
       <header className="xw-head">
         <button className="icon-btn" onClick={onExit} aria-label="Exit Geo Crossword (your crossword is saved)"><X size={18} /></button>
         <div className="xw-level">
@@ -387,12 +404,12 @@ export function GeoCrossword({ onReveal, onExit }: Props) {
 
       <div className="xw-body">
         <div className="xw-play">
-          <div className="xw-stage">
-            <div className={`xw-grid ${entering ? 'enter' : ''}`} style={cellsStyle}>
+          <div className="xw-stage" onClick={result && !showResult ? () => setShowResult(true) : undefined}>
+            <div className={`xw-grid ${entering ? 'enter' : ''} ${finale ? 'finale' : ''}`} style={cellsStyle}>
               {Array.from({ length: g.puzzle.rows * g.puzzle.cols }, (_, n) => {
                 const r = Math.floor(n / g.puzzle.cols), c = n % g.puzzle.cols, k = key(r, c), e = atCell.get(k);
                 if (!e) return <i key={k} className="xw-gap" />;
-                const cls = ['xw-cell', locked.has(k) ? (hintedCells.has(k) ? 'hinted' : 'solved') : '', wordCells.has(k) ? 'word' : '', cursor.r === r && cursor.c === c && !allDone ? 'cursor' : '', wrong.includes(k) ? 'wrong' : '', k in wave ? 'wave' : ''].filter(Boolean).join(' ');
+                const cls = ['xw-cell', given.has(k) ? 'hinted' : locked.has(k) ? 'solved' : '', wordCells.has(k) ? 'word' : '', cursor.r === r && cursor.c === c && !allDone ? 'cursor' : '', wrong.includes(k) ? 'wrong' : '', k in wave ? 'wave' : ''].filter(Boolean).join(' ');
                 return (
                   <button key={k} className={cls} style={{ '--w': wave[k] ?? 0, '--in': r + c } as CSSProperties} onClick={() => pick(r, c)}
                     aria-label={`${e.no ? `${e.no}, ` : ''}row ${r + 1}, column ${c + 1}${g.fill[k] ? `, ${g.fill[k]}` : ', empty'}`}>
@@ -409,17 +426,26 @@ export function GeoCrossword({ onReveal, onExit }: Props) {
                   <b>Level {g.puzzle.level}</b><span>{words.length} words · {rankOf(g.puzzle.level)}</span>
                 </motion.div>
               )}
-              {note && <motion.div key="note" className="xw-note" role="status" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}>{note}</motion.div>}
+              {note && !allDone && <motion.div key="note" className="xw-note" role="status" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}>{note}</motion.div>}
             </AnimatePresence>
           </div>
 
           <div className="xw-now" aria-live="polite">
-            <button className="xw-step" onClick={() => step(-1)} aria-label="Previous clue"><ChevronLeft size={20} /></button>
-            <button className="xw-now-text" onClick={() => pick(cursor.r, cursor.c)} aria-label={`${word.no} ${word.dir}: ${word.clue}. Tap to switch direction`}>
-              <em>{word.no} {word.dir === 'across' ? 'Across' : 'Down'} · {countOf(word)}</em>
-              <span>{word.flag && <img src={flagUrl(word.flag, 80)} alt="" />}{word.clue}</span>
-            </button>
-            <button className="xw-step" onClick={() => step(1)} aria-label="Next clue"><ChevronRight size={20} /></button>
+            {allDone ? (
+              <button className="xw-now-text xw-complete" onClick={() => setShowResult(true)}>
+                <em>Crossword complete</em>
+                <span><Sparkles size={16} /> All {words.length} words solved. Tap to continue</span>
+              </button>
+            ) : (
+              <>
+                <button className="xw-step" onClick={() => step(-1)} aria-label="Previous clue"><ChevronLeft size={20} /></button>
+                <button className="xw-now-text" onClick={() => pick(cursor.r, cursor.c)} aria-label={`${word.no} ${word.dir}: ${word.clue}. Tap to switch direction`}>
+                  <em>{word.no} {word.dir === 'across' ? 'Across' : 'Down'} · {countOf(word)}{whereHint(word, g)}</em>
+                  <span>{word.flag && <img src={flagUrl(word.flag, 80)} alt="" />}{word.clue}</span>
+                </button>
+                <button className="xw-step" onClick={() => step(1)} aria-label="Next clue"><ChevronRight size={20} /></button>
+              </>
+            )}
           </div>
 
           {touch && (
@@ -449,7 +475,7 @@ export function GeoCrossword({ onReveal, onExit }: Props) {
               <h2>Geo Crossword</h2>
               <ul className="xw-rules">
                 <li><Sparkles size={15} /> Solve it and you level up. Every level gets bigger and harder, with no top level.</li>
-                <li><Lightbulb size={15} /> One free hint per crossword reveals the word you’re on.</li>
+                <li><Lightbulb size={15} /> Stuck? One free hint per crossword gives you a letter or two of the word you’re on.</li>
                 <li><Star size={15} /> A second hint trades your level-up: you stay on your level and get a new crossword.</li>
               </ul>
               <button className="primary xw-go" onClick={() => { setIntro(false); setBanner(true); }}>Start Level {g.puzzle.level}</button>
@@ -464,16 +490,21 @@ export function GeoCrossword({ onReveal, onExit }: Props) {
               <p>You’ve used your free hint. Take another and you’ll <b>stay on Level {g.puzzle.level}</b> after this crossword, with a new one at the same level. Any more hints on this crossword are then free.</p>
               <div className="xw-actions">
                 <button className="primary xw-go" onClick={() => setTrade(false)}>Keep trying</button>
-                <button className="ghost-cta xw-go" onClick={() => { setTrade(false); reveal(true); }}>Trade it for a hint</button>
+                <button className="ghost-cta xw-go" onClick={() => { setTrade(false); giveHint(true); }}>Trade it for a hint</button>
               </div>
             </motion.div>
           </motion.div>
         )}
-        {result && <ResultCard key="result" r={result} shareMsg={shareMsg} onNext={playNext} onExit={onExit} />}
+        {result && showResult && <ResultCard key="result" r={result} shareMsg={shareMsg} onNext={playNext} onExit={onExit} />}
       </AnimatePresence>
     </motion.section>
   );
 }
+
+/** How long a wave of these cells takes to finish, the last cell's delay included. */
+const waveMs = (cells: Record<string, number>) => 560 + Math.max(0, ...Object.values(cells)) * 45;
+/** A hint on a flag or country clue also says which continent it's on. */
+const whereHint = (w: Word, g: Game) => (w.where && g.hinted.includes(w.id) ? ` · In ${w.where}` : '');
 
 /** The first word to work on, and where in it. */
 function firstOpen(g: Game): { id: string; i: number } {

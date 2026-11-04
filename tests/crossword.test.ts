@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CLUE_BOOK } from '../src/data/crosswordWords';
-import { cellsOf, clueGivesAway, cluePool, makePuzzle } from '../src/lib/crossword';
+import { cellsOf, clueGivesAway, cluePool, hintLetters, makePuzzle } from '../src/lib/crossword';
 import { addSolved, cleanXwCareer, hintPrice, levelSpec, mergeXwCareer, newXwCareer, rankOf, starsFor } from '../src/lib/crosswordLevels';
 
 describe('geo crossword: the grids', () => {
@@ -53,6 +53,26 @@ describe('geo crossword: the grids', () => {
     expect(cluePool().every((e) => /^[A-Z]{3,13}$/.test(e.answer) && e.lens.reduce((s, n) => s + n, 0) === e.answer.length)).toBe(true);
   });
 
+  it('asks questions that suit the level', () => {
+    // Levels 1–3 are all easy clues; at no level does a clue come from outside its mix.
+    for (const level of [1, 2, 3]) for (let seed = 1; seed <= 30; seed++) expect(makePuzzle(level, seed * 31).words.every((w) => w.tier === 1)).toBe(true);
+    for (const level of [5, 9, 13, 18, 24, 31, 39, 60]) {
+      const spec = levelSpec(level);
+      for (let seed = 1; seed <= 10; seed++) {
+        const words = makePuzzle(level, seed * 37).words;
+        expect(words.every((w) => spec.mix[w.tier] > 0)).toBe(true);
+        // Held to the mix: no difficulty more than a word or two over its share.
+        for (const t of spec.tiers) expect(words.filter((w) => w.tier === t).length).toBeLessThanOrEqual(Math.ceil(spec.words * spec.mix[t]) + 2);
+      }
+    }
+    // Fame, not population: Level 1 knows Paris and Canada's flag, and never Dhaka or Ethiopia's flag.
+    const easy = cluePool().filter((e) => e.tier === 1);
+    expect(easy.some((e) => e.answer === 'PARIS')).toBe(true);
+    expect(easy.some((e) => e.answer === 'CANADA' && e.flag)).toBe(true);
+    expect(easy.some((e) => e.answer === 'DHAKA' || (e.answer === 'ETHIOPIA' && e.flag))).toBe(false);
+    expect(cluePool().find((e) => e.answer === 'LONDON')?.clue).toBe('Capital of the United Kingdom');
+  });
+
   it('is new each time, and steers away from recent answers', () => {
     const a = makePuzzle(6, 1), b = makePuzzle(6, 2);
     expect(a.words.map((w) => w.answer).sort()).not.toEqual(b.words.map((w) => w.answer).sort());
@@ -62,6 +82,17 @@ describe('geo crossword: the grids', () => {
 });
 
 describe('geo crossword: levels and the hint trade', () => {
+  it('a hint gives a letter or two, not the answer', () => {
+    const none = () => false;
+    expect(hintLetters('NILE', none)).toEqual([0]);
+    expect(hintLetters('ICELAND', none)).toHaveLength(2);
+    expect(hintLetters('SOUTHAMERICA', none)).toHaveLength(3);
+    for (const a of ['YEN', 'ASIA', 'AFRICA', 'EVEREST', 'MISSISSIPPI', 'LIECHTENSTEIN']) expect(hintLetters(a, none).length).toBeLessThan(a.length);
+    // Skips letters already right; only hands over the last one when nothing else is left to find.
+    expect(hintLetters('NILE', (i) => i === 0)).toEqual([1]);
+    expect(hintLetters('NILE', (i) => i !== 3)).toEqual([3]);
+    expect(hintLetters('NILE', () => true)).toEqual([]);
+  });
   it('keeps getting harder, and the level number never stops', () => {
     const specs = [1, 4, 10, 20, 40].map(levelSpec);
     for (let i = 1; i < specs.length; i++) {

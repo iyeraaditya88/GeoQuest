@@ -1,10 +1,10 @@
 // Geo Crossword: the clue pool and the grid builder. A fresh crossword every time: words are laid
 // one at a time, each crossing what's there, and the tidiest of many attempts is kept.
-import { CLUE_BOOK } from '../data/crosswordWords';
+import { CAPITAL_TIERS, CLUE_BOOK, FLAG_TIERS } from '../data/crosswordWords';
 import { COUNTRIES, MAPPABLE } from './data';
 import { levelSpec } from './crosswordLevels';
 
-export interface Entry { answer: string; clue: string; tier: number; kind: string; lens: number[]; flag?: string; cca3?: string }
+export interface Entry { answer: string; clue: string; tier: number; kind: string; lens: number[]; flag?: string; cca3?: string; where?: string }
 export type Dir = 'across' | 'down';
 export interface Word extends Entry { id: string; no: number; dir: Dir; r: number; c: number }
 export interface Puzzle { level: number; rows: number; cols: number; words: Word[] }
@@ -12,10 +12,15 @@ export interface Puzzle { level: number; rows: number; cols: number; words: Word
 const letters = (s: string) => s.normalize('NFD').toUpperCase().replace(/[^A-Z]/g, '');
 const lensOf = (s: string) => s.split(/[\s-]+/).map(letters).filter(Boolean).map((w) => w.length);
 /** Would this clue give the answer away? (Looks through the words, ignoring accents.) */
-export const clueGivesAway = (clue: string, answer: string) => letters(clue).includes(letters(answer));
+export const clueGivesAway = (clue: string, answer: string) => plain(clue).includes(plain(answer));
+const seen = new Map<string, string>(); // (asked thousands of times per grid, of a few hundred strings)
+function plain(s: string) { let p = seen.get(s); if (p === undefined) { p = letters(s); seen.set(s, p); } return p; }
+
+const NAMED_WITH_THE = /^(United |Netherlands|Philippines|Bahamas|Maldives|Gambia|Seychelles|Solomon|Marshall|Central African|Dominican Republic|DR Congo|Republic of)/;
+const tierIn = (lists: Record<number, string>, cca3: string) => [1, 2, 3].find((t) => lists[t].split(' ').includes(cca3));
 
 let POOL: Entry[] | null = null;
-/** Every clue there is. Country clues come from the data: well-known countries are the easier ones. */
+/** Every clue there is. Country clues come from the data, at the difficulty the lists above give them. */
 export function cluePool(): Entry[] {
   if (POOL) return POOL;
   const out: Entry[] = [];
@@ -30,11 +35,13 @@ export function cluePool(): Entry[] {
   for (const c of COUNTRIES) {
     const cap = c.capital[0];
     if (!c.independent || !MAPPABLE.has(c.cca3) || !cap) continue;
-    const fame = c.population >= 6e7 ? 1 : c.population >= 2e7 ? 2 : c.population >= 5e6 ? 3 : c.population >= 1e6 ? 4 : 5;
+    const capTier = tierIn(CAPITAL_TIERS, c.cca3) ?? (c.population >= 1e7 ? 4 : 5);
+    const flagTier = tierIn(FLAG_TIERS, c.cca3) ?? (c.population >= 2e7 ? 4 : 5);
+    const where = c.region !== 'Americas' ? c.region : c.subregion === 'South America' ? 'South America' : 'North America';
     const extra = { cca3: c.cca3 };
-    add(cap, `Capital of ${c.name}`, Math.min(5, fame + 1), 'capital', extra);
-    add(c.name, `Country whose capital is ${cap}`, Math.min(5, fame + 1), 'country', extra);
-    add(c.name, 'Whose flag is this?', fame, 'flag', { ...extra, flag: c.cca2 });
+    add(cap, `Capital of ${NAMED_WITH_THE.test(c.name) ? 'the ' : ''}${c.name}`, capTier, 'capital', extra);
+    add(c.name, `Country whose capital is ${cap}`, capTier, 'country', { ...extra, where });
+    add(c.name, 'Whose flag is this?', flagTier, 'flag', { ...extra, flag: c.cca2, where });
   }
   POOL = out;
   return out;
@@ -58,12 +65,13 @@ function crossings(cells: Map<string, string>, taken: Set<string>, a: string, r:
   return n;
 }
 
-function attempt(pool: Entry[], target: number, size: number, rand: () => number) {
+function attempt(pool: Entry[], target: number, size: number, mix: Record<number, number>, rand: () => number) {
   const cells = new Map<string, string>();
   const taken = new Set<string>();
   const placed: Placed[] = [];
   const used = new Set<string>();
   const kinds: Record<string, number> = {};
+  const inTier: Record<number, number> = {}; // how many of each difficulty, to hold to the level's mix
   const maxKind = Math.max(2, Math.ceil(target * 0.3)); // a mix, not a list of capitals
   let minR = 0, maxR = 0, minC = 0, maxC = 0;
   const put = (e: Entry, r: number, c: number, dir: Dir) => {
@@ -72,6 +80,7 @@ function attempt(pool: Entry[], target: number, size: number, rand: () => number
     placed.push({ e, r, c, dir });
     used.add(e.answer);
     if (e.kind !== 'book') kinds[e.kind] = (kinds[e.kind] ?? 0) + 1;
+    inTier[e.tier] = (inTier[e.tier] ?? 0) + 1;
     minR = Math.min(minR, r); maxR = Math.max(maxR, r + dr * (e.answer.length - 1));
     minC = Math.min(minC, c); maxC = Math.max(maxC, c + dc * (e.answer.length - 1));
   };
@@ -84,11 +93,7 @@ function attempt(pool: Entry[], target: number, size: number, rand: () => number
   put(first, 0, 0, 'across');
 
   let tries = 0;
-  for (const e of pool) {
-    if (placed.length >= target) break;
-    if (tries > 900) break;
-    if (clash(e) || e.answer === first.answer) continue;
-    tries++;
+  const place = (e: Entry) => {
     let best: { r: number; c: number; dir: Dir; score: number } | null = null;
     const a = e.answer;
     for (let i = 0; i < a.length; i++) {
@@ -109,9 +114,20 @@ function attempt(pool: Entry[], target: number, size: number, rand: () => number
       }
     }
     if (best) put(e, best.r, best.c, best.dir);
+  };
+  // First to the level's mix of difficulties (twice: each word placed opens up new crossings); then,
+  // if the grid is still short, anything the level allows.
+  for (const strict of [true, true, false]) {
+    for (const e of pool) {
+      if (placed.length >= target || tries > 400) break;
+      if (clash(e) || (strict && (inTier[e.tier] ?? 0) >= Math.ceil(target * mix[e.tier]))) continue;
+      tries++;
+      place(e);
+    }
   }
   const cross = placed.reduce((s, p) => s + p.e.answer.length, 0) - cells.size;
-  return { placed, count: placed.length, cross, h: maxR - minR + 1, w: maxC - minC + 1, minR, minC };
+  const offMix = Object.entries(inTier).reduce((n, [t, have]) => n + Math.max(0, have - Math.ceil(target * mix[Number(t)])), 0);
+  return { placed, count: placed.length, offMix, cross, h: maxR - minR + 1, w: maxC - minC + 1, minR, minC };
 }
 
 /** Number the grid the usual way: left to right, top to bottom, one number per starting cell. */
@@ -130,20 +146,19 @@ export function makePuzzle(level: number, seed = Date.now(), recent: string[] = 
   const spec = levelSpec(level);
   const rand = rng(seed);
   const avoid = new Set(recent);
-  const tiers = new Set(spec.tiers);
-  const inTier = cluePool().filter((e) => tiers.has(e.tier) && e.answer.length <= spec.size);
-  // The hardest tier a level allows comes first more often, so difficulty really climbs.
-  const top = Math.max(...spec.tiers);
-  const shuffled = (fresh: boolean) => inTier
-    .map((e) => ({ e, k: rand() - (e.tier === top ? 0.2 : 0) + (fresh && avoid.has(e.answer) ? 2 : 0) }))
+  const inLevel = cluePool().filter((e) => spec.mix[e.tier] && e.answer.length <= spec.size);
+  const shuffled = (fresh: boolean) => inLevel
+    .map((e) => ({ e, k: rand() + (fresh && avoid.has(e.answer) ? 2 : 0) }))
     .sort((x, y) => x.k - y.k).map((x) => x.e);
   let best: NonNullable<ReturnType<typeof attempt>> | null = null;
   for (let i = 0; i < 40; i++) {
-    const a = attempt(shuffled(i < 30), spec.words, spec.size, rand);
+    const a = attempt(shuffled(i < 30), spec.words, spec.size, spec.mix, rand);
     if (!a) continue;
-    const better = !best || a.count > best.count || (a.count === best.count && a.cross - Math.abs(a.h - a.w) * 0.5 > best.cross - Math.abs(best.h - best.w) * 0.5);
+    // Full first, then closest to the level's mix, then the tidiest.
+    const tidy = (x: NonNullable<typeof best>) => x.cross - Math.abs(x.h - x.w) * 0.5;
+    const better = !best || a.count > best.count || (a.count === best.count && (a.offMix < best.offMix || (a.offMix === best.offMix && tidy(a) > tidy(best))));
     if (better) best = a;
-    if (best && best.count >= spec.words && i >= 8) break;
+    if (best && best.count >= spec.words && (i >= 13 || (best.offMix === 0 && i >= 5))) break; // (this runs on a phone: it has to be quick)
   }
   return finish(level, best!);
 }
@@ -151,6 +166,16 @@ export function makePuzzle(level: number, seed = Date.now(), recent: string[] = 
 /** The cells of a word, in order. */
 export const cellsOf = (w: Pick<Word, 'r' | 'c' | 'dir' | 'answer'>) =>
   Array.from(w.answer, (_, i) => (w.dir === 'across' ? { r: w.r, c: w.c + i } : { r: w.r + i, c: w.c }));
+/**
+ * Which letters of a word a hint gives: about one in five, spread out, for a nudge and not the answer.
+ * The whole word only ever falls when a single letter of it is left to find.
+ */
+export function hintLetters(answer: string, isRight: (i: number) => boolean): number[] {
+  const open = Array.from(answer, (_, i) => i).filter((i) => !isRight(i));
+  if (open.length <= 1) return open;
+  const give = Math.min(open.length - 1, answer.length >= 11 ? 3 : answer.length >= 7 ? 2 : 1);
+  return Array.from({ length: give }, (_, n) => open[Math.floor((n * open.length) / give)]);
+}
 /** "(3,5)" for a two-word answer, "(8)" for one. */
 export const countOf = (w: Pick<Word, 'lens'>) => `(${w.lens.join(',')})`;
 /** Points for a word: its letters, multiplied by the current run of words solved in a row. */

@@ -7,15 +7,22 @@
 export const MAX_GRID = 13;
 export const MAX_WORDS = 18;
 
-export interface LevelSpec { level: number; words: number; size: number; tiers: number[] }
+export interface LevelSpec { level: number; words: number; size: number; tiers: number[]; mix: Record<number, number> }
 
-/** What a level asks for. `tiers` are the clue difficulties (1 well known … 5 expert) it draws on. */
+// The share of a crossword at each clue difficulty, up to each level. Levels 1–3 are all easy clues,
+// so anyone can start, and each step shifts the balance towards the next difficulty up.
+const MIXES: [upTo: number, mix: Record<number, number>][] = [
+  [3, { 1: 1 }], [6, { 1: 0.7, 2: 0.3 }], [10, { 1: 0.35, 2: 0.65 }], [14, { 2: 0.7, 3: 0.3 }], [19, { 2: 0.3, 3: 0.7 }],
+  [25, { 3: 0.7, 4: 0.3 }], [32, { 3: 0.3, 4: 0.7 }], [40, { 4: 0.7, 5: 0.3 }], [Infinity, { 4: 0.4, 5: 0.6 }],
+];
+
+/** What a level asks for. `tiers` are the clue difficulties (1 anyone … 5 specialist) it draws on. */
 export function levelSpec(level: number): LevelSpec {
   const n = Math.max(1, Math.floor(level) || 1);
   const words = Math.min(MAX_WORDS, 4 + Math.floor(n / 2));
   const size = Math.min(MAX_GRID, 7 + Math.floor(n / 3));
-  const tiers = n <= 2 ? [1, 2] : n <= 5 ? [1, 2, 3] : n <= 9 ? [2, 3] : n <= 14 ? [2, 3, 4] : n <= 20 ? [3, 4] : n <= 30 ? [3, 4, 5] : [4, 5];
-  return { level: n, words, size, tiers };
+  const mix = MIXES.find(([upTo]) => n <= upTo)![1];
+  return { level: n, words, size, tiers: Object.keys(mix).map(Number), mix };
 }
 
 const RANKS: [from: number, name: string][] = [
