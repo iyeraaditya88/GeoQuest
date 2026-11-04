@@ -34,12 +34,12 @@ function ReplyBox({ it, onSent, onDraft }: { it: Item; onSent: (reply: NonNullab
   if (!inApp && !email) return <p className="fb-noway">No way to reply: this guest wrote before replies existed and left no email.</p>;
   if (!open) return <button className="fb-reply-go" onClick={() => setOpen(true)}><Reply size={14} /> Reply</button>;
 
-  const send = async () => {
+  const send = async (via: 'app' | 'email') => {
     const body = text.trim();
     if (!body) return;
     setError(null);
     let note = '';
-    if (!inApp) { // Hand it to their mail app now, while this is still the tap.
+    if (via === 'email') { // Hand it to their mail app now, while this is still the tap.
       let link = `mailto:${email}?subject=${encodeURIComponent('Your GeoQuest feedback')}`;
       const full = `${link}&body=${encodeURIComponent(body)}`;
       if (full.length <= MAILTO_MAX) link = full;
@@ -48,10 +48,10 @@ function ReplyBox({ it, onSent, onDraft }: { it: Item; onSent: (reply: NonNullab
     }
     setBusy(true);
     try {
-      const r = await api(`/api/feedback/${it.id}/reply`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: body, via: inApp ? 'app' : 'email' }) });
+      const r = await api(`/api/feedback/${it.id}/reply`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: body, via }) });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.error ?? 'Couldn’t send that — try again.');
-      if (inApp) note = it.user === 'guest' ? 'Sent. They’ll see it next time they open GeoQuest in that browser.'
+      if (via === 'app') note = it.user === 'guest' ? 'Sent. They’ll see it next time they open GeoQuest in that browser.'
         : d.notified ? 'Sent, and they’ve had a notification.' : 'Sent. They’ll see it next time they open GeoQuest.';
       onDraft(it.id, false);
       setText(''); setOpen(false);
@@ -62,10 +62,12 @@ function ReplyBox({ it, onSent, onDraft }: { it: Item; onSent: (reply: NonNullab
   return (
     <div className="fb-reply-box">
       <textarea className="fb-text" autoFocus value={text} onChange={(e) => edit(e.target.value)} rows={3} maxLength={2000} placeholder={inApp ? `Reply to ${it.user === 'guest' ? 'this guest' : it.user}…` : `Reply to ${email}…`} aria-label="Your reply" />
+      {!inApp && <p className="fb-noway">This can’t go in the app: this guest wrote before in-app replies, so we can’t tell which browser is theirs.</p>}
       {error && <p className="fb-error">{error}</p>}
       <div className="fb-reply-acts">
         <button className="fb-mark" onClick={() => { edit(''); setOpen(false); setError(null); }}>Cancel</button>
-        <button className="fb-reply-go fb-send" onClick={() => void send()} disabled={busy || !text.trim()}>{busy ? <Loader2 size={14} className="spin" /> : inApp ? <Send size={14} /> : <Mail size={14} />} {inApp ? 'Send reply' : 'Reply by email'}</button>
+        {inApp && email && <button className="fb-mark fb-by-email" onClick={() => void send('email')} disabled={busy || !text.trim()}><Mail size={14} /> Email</button>}
+        <button className="fb-reply-go fb-send" onClick={() => void send(inApp ? 'app' : 'email')} disabled={busy || !text.trim()}>{busy ? <Loader2 size={14} className="spin" /> : inApp ? <Send size={14} /> : <Mail size={14} />} {inApp ? 'Send in app' : 'Reply by email'}</button>
       </div>
     </div>
   );

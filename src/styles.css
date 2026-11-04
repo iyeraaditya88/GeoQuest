@@ -2098,6 +2098,7 @@ html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent
 .fb-reply-box .fb-text { min-height: 84px; }
 .fb-reply-acts { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
 .fb-item.new .fb-reply-acts .fb-mark { color: var(--muted); background: rgba(255, 255, 255, 0.05); }
+.fb-reply-box .fb-noway { margin: 0; }
 .fb-noway { margin: 10px 0 0; font-size: 12px; line-height: 1.45; color: var(--dim); }
 .fb-sent { display: flex; gap: 6px; margin: 0 0 8px; font-size: 12.5px; line-height: 1.4; color: #6ee7b7; }
 .fb-sent svg { flex-shrink: 0; margin-top: 2px; }
