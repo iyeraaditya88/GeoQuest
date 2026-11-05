@@ -38,9 +38,9 @@ const placeLabel = (p?: Place) => (p ? [p.city, p.country].filter(Boolean).join(
 interface Person { name: string; role: string; status: string; createdAt: number; lastLogin: number | null }
 
 const RANGES = [{ days: 1, label: 'Today' }, { days: 7, label: '7 days' }, { days: 30, label: '30 days' }] as const;
-const GAME_NAMES: Record<string, string> = { daily: 'Daily challenge', quiz: 'Map quiz', street: 'Street View', duel: 'Duel', capitals: 'Capitals', shapes: 'Guess the Country', wordle: 'Geo Wordle', crossword: 'Geo Crossword', mystery: 'Solve the Mystery', trivia: 'Geo Trivia', top5: 'Top 5', antipode: 'Antipode finder', voyages: 'Famous voyages', eras: 'Eras of civilization', empires: 'Empires of the world', places: 'My places' };
+const GAME_NAMES: Record<string, string> = { daily: 'Daily challenge', quiz: 'Map quiz', street: 'Street View', duel: 'Duel', capitals: 'Capitals', shapes: 'Guess the Country', wordle: 'Geo Wordle', crossword: 'Geo Crossword', mystery: 'Solve the Mystery', trivia: 'Geo Trivia', top5: 'Top 5', antipode: 'Antipode finder', voyages: 'Famous voyages', eras: 'Eras of civilization', empires: 'Empires of the world', battles: 'Battles and Wars', places: 'My places' };
 /** Things to explore (rather than games to play) — counted separately. */
-const EXPLORE = new Set(['voyages', 'eras', 'empires', 'antipode', 'places']);
+const EXPLORE = new Set(['voyages', 'eras', 'empires', 'battles', 'antipode', 'places']);
 const voyageName = (id: unknown) => BY_VOYAGE.get(String(id))?.voyager ?? String(id);
 const eraName = (id: unknown) => BY_ERA.get(String(id))?.name ?? String(id);
 const empireName = (id: unknown) => BY_EMPIRE.get(String(id))?.name ?? String(id);
@@ -70,6 +70,8 @@ function describe([, name, d = {}]: Event) {
     case 'era_place': return `${eraName(d.e)}: looked at ${d.p}`;
     case 'empire': return `Read about the ${empireName(d.e)}`;
     case 'empire_place': return `${empireName(d.e)}: looked at ${d.p}`;
+    case 'battle': return `Read about ${String(d.b).replace(/-/g, ' ')}`;
+    case 'war_play': return `Watched ${d.w === 'ww1' ? 'World War I' : 'World War II'}`;
     case 'wiki': return `Opened Wikipedia (${d.k === 'voyage' ? voyageName(d.id) : d.k === 'era' ? eraName(d.id) : d.k === 'empire' ? empireName(d.id) : d.id})`;
     case 'tab': return `Opened the GeoGuessr tips for ${country(d.c)}`;
     case 'setting': return d.k === 'style' ? `Switched the map to ${d.v}` : d.k === 'view' ? `Switched to the ${d.v === 'flat' ? 'flat atlas' : 'globe'}` : `Turned ${d.k === 'rivers' ? 'rivers & mountains' : d.k === 'autorotate' ? 'auto-rotate' : d.k} ${d.v}`;

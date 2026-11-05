@@ -48,6 +48,8 @@ interface Props {
   voyagesOn: boolean;
   erasOn: boolean;
   empiresOn: boolean;
+  battlesOn: boolean;
+  onBattles: () => void;
   onEmpires: () => void;
   onEras: () => void;
   onVoyages: () => void;
@@ -161,6 +163,7 @@ export function Sidebar(p: Props) {
             <Item icon={Ship} label="Famous voyages" sub="Columbus, Magellan, Cook & more" rail={rail} active={p.voyagesOn} onClick={act(p.onVoyages)} />
             <Item icon={Hourglass} label="Eras of civilization" sub="Stone Age to today" rail={rail} active={p.erasOn} onClick={act(p.onEras)} />
             <Item icon={Castle} label="Empires of the world" sub="Rome, the Ottomans, the Mughals & more" rail={rail} active={p.empiresOn} onClick={act(p.onEmpires)} />
+            <Item icon={Swords} label="Battles and Wars" sub="Plassey, Stalingrad, both world wars" rail={rail} active={p.battlesOn} onClick={act(p.onBattles)} />
           </Section>
 
           <Section title="Map" rail={rail}>

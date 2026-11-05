@@ -3220,3 +3220,126 @@ svg.vy-flag { color: #2dd4bf; }
 @keyframes gs-blink { 50% { opacity: 0.3; transform: scale(0.94); } }
 @media (prefers-reduced-motion: reduce) { .sb-new { animation: none; } }
 .t-cyan .gs-icon, .sb-ico.tile.t-cyan { color: #fff; background: linear-gradient(135deg, #22d3ee, #0e7490); }
+
+/* ── Battles and Wars ─────────────────────────────────── */
+.bw-badge { color: #fca5a5; background: rgba(248, 113, 113, 0.16); }
+.bw-features { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.bw-feature { position: relative; overflow: hidden; display: grid; justify-items: start; gap: 1px; padding: 11px 12px 14px; border-radius: 14px; text-align: left; color: #fff; transition: transform 0.15s, filter 0.15s; }
+.bw-feature:hover { transform: translateY(-1px); filter: brightness(1.12); }
+.bw-feature.ww1 { background: linear-gradient(140deg, #3b3a2b, #6b4a2a 90%); }
+.bw-feature.ww2 { background: linear-gradient(140deg, #1e2d4d, #5e2230 90%); }
+.bw-feature b { font: 700 15px var(--display); }
+.bw-feature em { font-style: normal; font-size: 11.5px; color: rgba(255, 255, 255, 0.72); font-variant-numeric: tabular-nums; }
+.bw-feature small { margin-top: 5px; font-size: 11.5px; font-weight: 600; color: var(--gold-soft); }
+.bw-feature-play { position: absolute; top: 10px; right: 10px; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; color: #1a1205; background: var(--gold); }
+.bw-feature-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, 0.14); }
+.bw-feature-bar i { display: block; height: 100%; width: 0; background: var(--gold); animation: bw-march 4.5s cubic-bezier(0.3, 0, 0.3, 1) infinite; }
+.bw-feature.ww2 .bw-feature-bar i { animation-delay: 0.7s; }
+@keyframes bw-march { 0% { width: 0; opacity: 1; } 80% { width: 100%; opacity: 1; } 100% { width: 100%; opacity: 0; } }
+.bw-eras { grid-template-columns: repeat(5, 1fr); }
+.bw-eras b { font-size: 11.5px; letter-spacing: -0.015em; white-space: nowrap; }
+.bw-eras span { font-size: 9.5px; letter-spacing: -0.02em; }
+.vy-row.bw-row { grid-template-columns: 40px 12px minmax(0, 1fr) 16px 16px; }
+.bw-crown { color: var(--gold); vertical-align: -2px; }
+.bw-detail { display: grid; gap: 12px; }
+.bw-title { color: var(--text); }
+.bw-line { margin: -6px 0 0; font-size: 14px; line-height: 1.4; color: var(--muted); }
+.bw-versus { display: grid; grid-template-columns: minmax(0, 1fr) 26px minmax(0, 1fr); align-items: center; gap: 4px; }
+.bw-vs { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; color: var(--dim); background: rgba(255, 255, 255, 0.06); }
+.bw-side { position: relative; align-self: stretch; display: grid; align-content: start; gap: 4px; padding: 10px; border-radius: 12px; min-width: 0; background: color-mix(in srgb, var(--s) 11%, transparent); box-shadow: inset 0 2px 0 var(--s); }
+.bw-side.won { background: color-mix(in srgb, var(--s) 20%, transparent); }
+.bw-side b { font: 700 13.5px/1.25 var(--display); color: var(--text); }
+.bw-won { position: absolute; top: 9px; right: 8px; color: var(--gold); }
+.bw-side.won b { padding-right: 16px; }
+.bw-side small { font-size: 11.5px; line-height: 1.35; color: var(--muted); }
+.bw-side em { font-style: normal; font-size: 11.5px; color: var(--text); font-variant-numeric: tabular-nums; }
+.bw-side .bw-lost { color: var(--muted); }
+.bw-bar { display: block; height: 6px; margin-top: 3px; border-radius: 3px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.bw-bar i { display: block; height: 100%; border-radius: 3px; }
+.bw-outcome { margin: -6px 0 0; text-align: center; font-size: 12px; font-weight: 600; color: var(--muted); }
+.bw-empire { display: flex; gap: 10px; padding: 11px 12px; border-radius: 12px; color: var(--gold); background: rgba(251, 191, 36, 0.1); box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.28); }
+.bw-empire svg { flex: none; margin-top: 2px; }
+.bw-empire span { display: grid; gap: 1px; font-size: 13.5px; line-height: 1.4; color: var(--text); }
+.bw-empire em { font-style: normal; font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); }
+.vy-tour.bw-replay { justify-content: center; color: var(--text); background: rgba(255, 255, 255, 0.07); }
+.bw-note { margin: 0; font-size: 11.5px; line-height: 1.45; color: var(--dim); }
+
+/* The world-war player */
+.bw-player { display: grid; gap: 12px; }
+.bw-stage { position: sticky; top: 0; z-index: 2; display: grid; gap: 10px; padding-bottom: 10px; background: rgb(15, 20, 36); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.07); }
+.bw-war-name { display: flex; align-items: baseline; gap: 8px; }
+.bw-war-name b { font: 700 13px var(--display); color: var(--gold-soft); }
+.bw-war-name span { font-size: 11.5px; color: var(--dim); font-variant-numeric: tabular-nums; }
+.bw-now { min-height: 136px; }
+.bw-date { display: block; font: 700 12px var(--display); font-style: normal; letter-spacing: 0.04em; color: var(--gold); font-variant-numeric: tabular-nums; }
+.bw-now h2 { margin: 2px 0 4px; font: 700 21px/1.15 var(--display); letter-spacing: -0.01em; color: var(--text); text-wrap: balance; }
+.bw-now p { margin: 0; font-size: 13.5px; line-height: 1.45; color: #cbd5e1; }
+.bw-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.bw-chips span { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px 3px 4px; border-radius: 999px; font-size: 11.5px; font-weight: 600; color: var(--text); background: color-mix(in srgb, var(--s) 24%, transparent); box-shadow: inset 0 0 0 1px var(--s); }
+.bw-chips img, .bw-roster img { width: 18px; height: 12px; object-fit: cover; border-radius: 2px; }
+.bw-scrub { position: relative; height: 44px; }
+.bw-track { position: absolute; left: 0; right: 0; top: 11px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.12); }
+.bw-fill { position: absolute; left: 0; top: 0; height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--gold-soft), var(--gold)); transition: width 0.55s cubic-bezier(0.22, 1, 0.36, 1); }
+.bw-tick { position: absolute; top: -2px; width: 2px; height: 8px; margin-left: -1px; border-radius: 1px; background: rgba(255, 255, 255, 0.3); }
+.bw-tick.past { background: #1a1205; opacity: 0.45; }
+.bw-thumb { position: absolute; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.45), 0 2px 6px rgba(0, 0, 0, 0.5); transition: left 0.55s cubic-bezier(0.22, 1, 0.36, 1), transform 0.15s; }
+.bw-scrub.drag .bw-fill, .bw-scrub.drag .bw-thumb { transition: none; }
+.bw-scrub.drag .bw-thumb { transform: scale(1.25); }
+.bw-scrub input { position: absolute; inset: 0 -8px; width: calc(100% + 16px); height: 28px; margin: 0; opacity: 0; cursor: grab; touch-action: none; }
+.bw-years { position: absolute; left: 0; right: 0; top: 24px; height: 16px; pointer-events: none; }
+.bw-years span { position: absolute; transform: translateX(-50%); font-size: 10.5px; color: var(--dim); font-variant-numeric: tabular-nums; }
+.bw-years span:first-child { transform: none; }
+.bw-controls { display: flex; align-items: center; gap: 6px; }
+.bw-controls .icon-btn:disabled { opacity: 0.3; cursor: default; }
+.bw-play { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; color: #1a1205; background: linear-gradient(135deg, var(--gold-soft), var(--gold)); transition: transform 0.15s; }
+.bw-play:hover { transform: scale(1.06); }
+.bw-speed { display: inline-flex; align-items: center; gap: 4px; height: 32px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--muted); background: rgba(255, 255, 255, 0.06); font-variant-numeric: tabular-nums; }
+.bw-speed.on { color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
+.bw-count { margin-left: auto; font-size: 12px; color: var(--dim); font-variant-numeric: tabular-nums; }
+.bw-legend { display: flex; flex-wrap: wrap; gap: 5px; }
+.bw-legend button { display: inline-flex; align-items: center; gap: 5px; min-height: 30px; padding: 0 9px; border-radius: 999px; font-size: 11.5px; color: var(--muted); background: rgba(255, 255, 255, 0.05); }
+.bw-legend button.on { color: var(--text); box-shadow: inset 0 0 0 1px var(--s); }
+.bw-legend i { width: 9px; height: 9px; border-radius: 50%; background: var(--s); }
+.bw-legend b { display: inline-block; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+.bw-roster { overflow: hidden; --c: #94a3b8; }
+.bw-roster p { margin: 0 0 6px; font-size: 11.5px; color: var(--dim); }
+.bw-end { display: grid; gap: 4px; padding: 14px; border-radius: 14px; background: rgba(248, 113, 113, 0.08); box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.22); --c: #f87171; }
+.bw-end em { display: inline-flex; align-items: center; gap: 5px; font-style: normal; font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #fca5a5; }
+.bw-end b { font: 700 22px var(--display); color: var(--text); }
+.bw-end small { font-size: 12.5px; line-height: 1.4; color: var(--muted); }
+.bw-end p { margin: 6px 0 0; font-size: 13.5px; line-height: 1.5; color: #cbd5e1; }
+.bw-events { list-style: none; margin: -4px 0 0; padding: 0; display: grid; }
+.bw-events button { width: 100%; display: flex; gap: 10px; align-items: center; min-height: 40px; padding: 6px 8px; border-radius: 10px; text-align: left; }
+.bw-events button:hover { background: rgba(255, 255, 255, 0.06); }
+.bw-events i { flex: none; width: 8px; height: 8px; border-radius: 50%; background: rgba(255, 255, 255, 0.18); }
+.bw-events .past i { background: var(--gold); opacity: 0.55; }
+.bw-events .on i { background: var(--gold); box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.3); }
+.bw-events span { display: grid; min-width: 0; }
+.bw-events em { font-style: normal; font-size: 11px; color: var(--dim); font-variant-numeric: tabular-nums; }
+.bw-events b { font-size: 13.5px; font-weight: 500; color: var(--muted); }
+.bw-events .on b { font-weight: 600; color: var(--text); }
+
+/* On the globe */
+.clash-pin { pointer-events: auto; transform: translate(-50%, -50%); }
+.clash-pin button { display: flex; align-items: center; cursor: pointer; }
+.clash-pin i { position: relative; display: grid; place-items: center; width: 10px; height: 10px; border-radius: 50%; font-style: normal; background: var(--c); box-shadow: 0 0 0 2px rgba(9, 14, 30, 0.85); transition: transform 0.15s; }
+.clash-pin:hover i { transform: scale(1.35); }
+.clash-pin span { position: absolute; left: 16px; white-space: nowrap; padding: 3px 8px; border-radius: 7px; font-size: 12px; font-weight: 600; color: #fff; background: rgba(9, 14, 30, 0.88); opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+.clash-pin:hover span, .clash-pin.on span { opacity: 1; }
+.clash-pin.on { z-index: 2; }
+.clash-pin.on i { width: 30px; height: 30px; color: #1a1205; background: var(--c); box-shadow: 0 0 0 2px rgba(9, 14, 30, 0.85), 0 0 22px var(--c); animation: bw-land 0.45s cubic-bezier(0.2, 1.6, 0.4, 1); }
+.clash-pin.on i::before, .clash-pin.on i::after { content: ''; position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 0 2px var(--c); opacity: 0; animation: er-ring 2.4s ease-out infinite; }
+.clash-pin.on i::after { animation-delay: 1.2s; }
+.clash-pin.on span { left: 38px; }
+@keyframes bw-land { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+@media (max-width: 900px) {
+  .bw-now { min-height: 118px; }
+  .bw-now h2 { font-size: 18px; }
+  .bw-now p { font-size: 13px; }
+  .bw-stage { position: static; background: none; box-shadow: none; padding-bottom: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bw-feature-bar i { animation: none; width: 100%; }
+  .clash-pin.on i, .clash-pin.on i::before, .clash-pin.on i::after { animation: none; }
+  .bw-fill, .bw-thumb { transition: none; }
+}

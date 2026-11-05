@@ -330,7 +330,7 @@ export const VOYAGE_ERAS = [
   { to: 1450, short: 'Early', range: 'to 1450', view: [30, -20], sub: 'By the stars, the swells and the sagas' },
   { to: 1600, short: 'Discovery', range: '1450–1600', view: [22, -20], sub: 'Europe sails for the spice trade — and finds the Americas' },
   { to: 1800, short: 'Oceans', range: '1600–1800', view: [15, -120], sub: 'Empires, science and the great Pacific' },
-  { to: Infinity, short: 'Ice', range: '1800 on', view: [-5, -65], sub: 'The poles, the Galápagos and a balsa raft' },
+  { to: Infinity, short: 'Modern', range: '1800 on', view: [25, -40], sub: 'Both poles, the Galápagos, the Titanic and a balsa raft' },
 ];
 export const eraOf = (year: number) => VOYAGE_ERAS.findIndex((e) => year < e.to);
 export const voyagesIn = (era: number) => VOYAGES.filter((v) => eraOf(v.year) === era);

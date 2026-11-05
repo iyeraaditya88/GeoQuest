@@ -21,7 +21,7 @@ import { escapeHtml } from '../lib/html';
 export type MapStyle = 'satellite' | 'political' | 'daynight';
 export type Feedback = { cca3: string; kind: 'good' | 'bad' | 'reveal' } | null;
 
-export interface GlobePath { id: string; points: [number, number][]; color: string; mode: 'active' | 'faint' | 'normal'; label?: string; sub?: string }
+export interface GlobePath { id: string; points: [number, number][]; color: string; mode: 'active' | 'faint' | 'normal' | 'arrow' | 'front'; arrow?: boolean; delay?: number; label?: string; sub?: string }
 export interface SailOptions {
   points: [number, number][];  // the route, [lat, lng]
   stopAt: number[];            // each stop's index in `points`
@@ -76,11 +76,14 @@ interface Props {
   pins?: ({ lat: number; lng: number; kind: 'guess' | 'answer' | 'from' | 'to' } | { lat: number; lng: number; kind: 'place'; id: string; emoji: string; name: string; tone: string }
     | { lat: number; lng: number; kind: 'stop'; id: string; n: number; name: string; tone: string; active: boolean; dead?: boolean }
     | { lat: number; lng: number; kind: 'hub' | 'heart'; id: string; name: string; tone: string; active: boolean; emoji?: string }
+    | { lat: number; lng: number; kind: 'clash'; id: string; name: string; tone: string; active: boolean }
     | { lat: number; lng: number; kind: 'tiny'; id: string; state?: 'good' | 'bad' | 'reveal' })[];
   /** Routes drawn on the globe (famous voyages): the active one bright and moving, the rest faint. */
   paths?: GlobePath[];
   /** Countries filled in one colour (an empire's extent). */
   tint?: { color: string; ids: string[] } | null;
+  /** Countries filled each in its own colour (a war's sides); changes spread across the map in a quick fade. */
+  paint?: Record<string, string> | null;
   /** Routes can be clicked (and hovered): which one. */
   onPathPick?: (id: string) => void;
   onPathHover?: (id: string | null) => void;
@@ -136,7 +139,7 @@ function angularDistance(a: { lat: number; lng: number }, b: { lat: number; lng:
 }
 
 export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
-  { selected, highlighted, style, autoRotate, feedback, quiz, liftUp, dropDown = false, hidden, nature = true, calm = false, leftInset = 0, pickMode = false, sideView = false, pins = [], arcs = [], paths = NO_PATHS, tint = null, onPathPick, onPathHover, onPick, onPin, onFeature, feature = null, onSelect, onInteract, onReady }, ref,
+  { selected, highlighted, style, autoRotate, feedback, quiz, liftUp, dropDown = false, hidden, nature = true, calm = false, leftInset = 0, pickMode = false, sideView = false, pins = [], paint = null, arcs = [], paths = NO_PATHS, tint = null, onPathPick, onPathHover, onPick, onPin, onFeature, feature = null, onSelect, onInteract, onReady }, ref,
 ) {
   const globe = useRef<GlobeMethods | undefined>(undefined);
   const labelLayer = useRef<HTMLDivElement>(null);
@@ -671,8 +674,11 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
 
   // Base fill and hover fill per country; hover is blended in/out over a few frames.
   const tintSet = useMemo(() => (tint ? new Set(tint.ids) : null), [tint]);
+  const paintNow = useRef(new Map<string, RGBA>()); // the war map's fills as they stand, mid-fade included
   const baseFill = useCallback((id: string | null): RGBA => {
     if (id && active.has(id)) return [0, 0, 0, 0]; // drawn lifted instead
+    const painted = id ? paintNow.current.get(id) : undefined;
+    if (painted) return painted;
     if (id && tint && tintSet?.has(id)) return rgba(alpha(tint.color, political ? 0.8 : 0.58));
     if (political) return rgba((id && POLITICAL_COLOR.get(id)) || '#e5e7eb');
     return rgba(selected && !quiz ? 'rgba(4,8,20,0.22)' : 'rgba(255,255,255,0.02)');
@@ -695,6 +701,50 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
   useEffect(() => {
     countryLayer.current?.paintAll((id) => blendRef.current(id, hoverFx.current?.strength(id) ?? 0));
   }, [layerReady, active, political, selected, quiz, tint]);
+  // The war map: each country that changes fades to its new colour with a brief flare, one after another.
+  useEffect(() => {
+    const layer = countryLayer.current;
+    if (!layer) return;
+    const plain = (): RGBA => (political ? rgba('#e5e7eb') : rgba('rgba(255,255,255,0.02)'));
+    const fill = (css: string) => rgba(alpha(css, political ? 0.82 : 0.6));
+    const target = paint ?? {};
+    const ids = [...new Set([...paintNow.current.keys(), ...Object.keys(target)])];
+    const moving = ids.filter((id) => {
+      const now = paintNow.current.get(id);
+      if (!target[id]) return !!now;
+      const want = fill(target[id]);
+      return !now || now.some((v, i) => Math.abs(v - want[i]) > 0.001);
+    });
+    if (!moving.length) return;
+    const repaint = (list: string[]) => layer.paint(list, (id) => blendRef.current(id, hoverFx.current?.strength(id) ?? 0));
+    const finish = (id: string) => { if (target[id]) paintNow.current.set(id, fill(target[id])); else paintNow.current.delete(id); };
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { moving.forEach(finish); repaint(moving); return; }
+    const from = new Map(moving.map((id) => [id, paintNow.current.get(id) ?? (political ? rgba((POLITICAL_COLOR.get(id)) || '#e5e7eb') : plain())]));
+    const FADE = 650, STEP = Math.min(18, 700 / moving.length);
+    const t0 = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      let running = false;
+      const touched: string[] = []; // (only those mid-fade: a big war map stays cheap on a phone)
+      moving.forEach((id, i) => {
+        const raw = (now - t0 - i * STEP) / FADE;
+        if (raw < 1) running = true;
+        if (raw <= 0 || !from.has(id)) return;
+        const t = Math.min(1, raw);
+        touched.push(id);
+        const a = from.get(id)!;
+        const b = target[id] ? fill(target[id]) : (political ? rgba((POLITICAL_COLOR.get(id)) || '#e5e7eb') : plain());
+        const e = t * t * (3 - 2 * t);
+        const flare = target[id] ? Math.sin(Math.PI * t) * 0.32 : 0; // a pulse of opacity as the colour arrives
+        paintNow.current.set(id, [a[0] + (b[0] - a[0]) * e, a[1] + (b[1] - a[1]) * e, a[2] + (b[2] - a[2]) * e, Math.min(1, a[3] + (b[3] - a[3]) * e + flare)]);
+        if (t === 1) { finish(id); from.delete(id); }
+      });
+      if (touched.length) repaint(touched);
+      if (running) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => { cancelAnimationFrame(raf); };
+  }, [paint, layerReady, political]);
   // Hover: fade the fill and a bright outline in/out.
   useEffect(() => {
     hoverFx.current?.set(hover, !!hover && !active.has(hover));
@@ -788,7 +838,7 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
 
   // The pins' drawing functions stay the same between renders: the globe library rebuilds every
   // pin when they change — which, on each hover (a re-render), made pins flicker and re-drop.
-  const htmlAltitude = useCallback((d: object) => { const k = (d as { kind: string }).kind; return k === 'capital' ? 0.045 : k === 'sun' ? 0.02 : k === 'place' ? 0.008 : k === 'stop' || k === 'hub' || k === 'heart' || k === 'tiny' ? 0.006 : 0.012; }, []);
+  const htmlAltitude = useCallback((d: object) => { const k = (d as { kind: string }).kind; return k === 'capital' ? 0.045 : k === 'sun' ? 0.02 : k === 'place' ? 0.008 : k === 'stop' || k === 'hub' || k === 'heart' || k === 'tiny' || k === 'clash' ? 0.006 : 0.012; }, []);
   // Routes (voyages, eras): our own layer — highlighting changes materials, never geometry.
   useEffect(() => { routeLayer.current?.set(paths); }, [paths, layerReady]);
   useEffect(() => () => routeLayer.current?.destroy(), []);
@@ -810,6 +860,12 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
       el.className = `${it.kind}-pin ${it.active ? 'on' : ''}`;
       el.style.setProperty('--c', it.tone ?? '#fbbf24');
       el.innerHTML = `<button type="button" aria-label="${escapeHtml(it.name ?? '')}"><i>${it.emoji ? `<b>${escapeHtml(it.emoji)}</b>` : ''}</i><span>${escapeHtml(it.name ?? '')}</span></button>`;
+      el.querySelector('button')!.addEventListener('click', (e) => { e.stopPropagation(); onPinRef.current?.(it.id ?? ''); });
+    } else if (it.kind === 'clash') {
+      // Battles and wars: a quiet dot, or crossed swords with shock rings on the one in the spotlight.
+      el.className = `clash-pin ${it.active ? 'on' : ''}`;
+      el.style.setProperty('--c', it.tone ?? '#fbbf24');
+      el.innerHTML = `<button type="button" aria-label="${escapeHtml(it.name ?? '')}"><i>${it.active ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2M14.5 6.5 18 3h3v3l-3.5 3.5M5 14l4 4M7 17l-3 3M3 19l2 2"/></svg>' : ''}</i><span>${escapeHtml(it.name ?? '')}</span></button>`;
       el.querySelector('button')!.addEventListener('click', (e) => { e.stopPropagation(); onPinRef.current?.(it.id ?? ''); });
     } else if (it.kind === 'stop') {
       // A voyage's stop: its number in the route colour; the name shows on the current one (and on hover).

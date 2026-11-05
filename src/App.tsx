@@ -22,6 +22,8 @@ const loadMystery = () => fresh(import('./components/MysteryGame'));
 const loadWordle = () => fresh(import('./components/GeoWordle'));
 const loadCrossword = () => fresh(import('./components/GeoCrossword'));
 const loadTrivia = () => fresh(import('./components/TriviaGame'));
+const loadBattles = () => fresh(import('./components/BattlesPanel'));
+const BattlesPanel = lazy(() => loadBattles().then((m) => ({ default: m.BattlesPanel })));
 const TriviaGame = lazy(() => loadTrivia().then((m) => ({ default: m.TriviaGame })));
 const Top5Game = lazy(() => loadTop5().then((m) => ({ default: m.Top5Game })));
 const CapitalsGame = lazy(() => loadCapitals().then((m) => ({ default: m.CapitalsGame })));
@@ -72,6 +74,7 @@ import { AntipodeCard, type AntipodeStage } from './components/AntipodeCard';
 import { VoyagesPanel } from './components/VoyagesPanel';
 import { ErasPanel } from './components/ErasPanel';
 import { EmpiresPanel } from './components/EmpiresPanel';
+import type { WarScene } from './components/BattlesPanel';
 import { EMPIRES, BY_EMPIRE, empireView } from './lib/empires';
 import { ERAS, BY_ERA, eraView } from './lib/eras';
 import { VOYAGES, BY_VOYAGE, VOYAGE_ERAS, eraOf, routePoints, routeView, voyageKm, voyagesIn } from './lib/voyages';
@@ -120,6 +123,7 @@ function dailyQuiz(date: string): QuizState {
 }
 const dailyTargets = (date: string) => dailyPicks(date, themeOf(date) === 'clue' ? CLUE_POOL : QUIZ_POOL).targets;
 
+const NO_ROUTES: GlobePath[] = [];
 const NO_PINS: never[] = [];
 
 function newRound(mode: QuizMode, prev?: QuizState): QuizState {
@@ -314,7 +318,7 @@ export default function App() {
   // Demo mode (marketing recordings): let the recorder open a country mid-shot.
   useEffect(() => { if (DEMO) (window as unknown as { __demo: unknown }).__demo = { select: (c: string) => selectRef.current(c) }; }, []);
   // Arrived from a country page (?country=IND / ?play=1): act once the globe is ready.
-  const linkWanted = useRef<{ country?: string; play?: boolean; game?: ShareGame; explore?: { kind: 'voyages' | 'eras' | 'empires'; id: string | null } } | null>(null);
+  const linkWanted = useRef<{ country?: string; play?: boolean; game?: ShareGame; explore?: { kind: 'voyages' | 'eras' | 'empires' | 'battles'; id: string | null } } | null>(null);
 
   // ── Rivers, ranges, peaks & lakes: click one to open its panel ──
   const [feature, setFeature] = useState<FeatureInfo | null>(null);
@@ -534,7 +538,7 @@ export default function App() {
   };
 
   const launchRef = useRef(launch);
-  const exploreRef = useRef({ startVoyages: async () => {}, startEras: async () => {}, startEmpires: async () => {}, pickVoyage: (_: string) => {}, pickEra: (_: string) => {}, pickEmpire: (_: string) => {} });
+  const exploreRef = useRef({ startVoyages: async () => {}, startEras: async () => {}, startEmpires: async () => {}, startBattles: async (_?: string | null) => {}, pickVoyage: (_: string) => {}, pickEra: (_: string) => {}, pickEmpire: (_: string) => {} });
   launchRef.current = launch;
 
   // ── Feedback ──────────────────────────────────────────
@@ -565,7 +569,7 @@ export default function App() {
     if (isShareGame(linkGame)) linkWanted.current = { ...linkWanted.current, game: linkGame };
     // Explore views: ?explore=empires&id=roman (also eras, voyages) — shared links and marketing recordings.
     const ex = url.searchParams.get('explore');
-    if (ex === 'voyages' || ex === 'eras' || ex === 'empires') linkWanted.current = { ...linkWanted.current, explore: { kind: ex, id: url.searchParams.get('id') } };
+    if (ex === 'voyages' || ex === 'eras' || ex === 'empires' || ex === 'battles') linkWanted.current = { ...linkWanted.current, explore: { kind: ex, id: url.searchParams.get('id') } };
     if (ex) { url.searchParams.delete('explore'); url.searchParams.delete('id'); history.replaceState(null, '', url.pathname + url.search + url.hash); }
     if (['country', 'play', 'wordle', 'mystery', 'game'].some((k) => url.searchParams.has(k))) {
       if (url.searchParams.has('wordle')) { url.searchParams.delete('r'); url.searchParams.delete('h'); } // a shared result's squares (for the link preview)
@@ -596,6 +600,7 @@ export default function App() {
       if (w?.game) { track('launch', { g: w.game, v: 'link' }); launchRef.current(w.game); }
       if (w?.explore) {
         const x = exploreRef.current, { kind, id } = w.explore;
+        if (kind === 'battles') { void x.startBattles(id); return; }
         void (kind === 'voyages' ? x.startVoyages() : kind === 'eras' ? x.startEras() : x.startEmpires()).then(() => {
           if (id) window.setTimeout(() => (kind === 'voyages' ? x.pickVoyage(id) : kind === 'eras' ? x.pickEra(id) : x.pickEmpire(id)), 700);
         });
@@ -918,6 +923,7 @@ export default function App() {
     setPlay(null);
     exitQuiz();
     if (antiRef.current) exitAntipode();
+    setBattles(null);
     setSelected(null);
     setHighlighted([]);
     setFeature(null);
@@ -1015,6 +1021,7 @@ export default function App() {
     if (antiRef.current) exitAntipode();
     setVoy(null);
     setEras(null);
+    setBattles(null);
     setSelected(null);
     setHighlighted([]);
     setFeature(null);
@@ -1061,6 +1068,36 @@ export default function App() {
     ];
   }, [emp]);
 
+  // ── Battles and wars ───────────────────────────────────
+  // (The panel and all its data load on demand; it tells the globe what to draw through `warScene`.)
+  const [battles, setBattles] = useState<{ link: string | null } | null>(null);
+  const [warScene, setWarScene] = useState<WarScene | null>(null);
+  useEffect(() => { if (quiz || geo || play || anti || liveState.active) setBattles(null); }, [quiz, geo, play, anti, liveState.active]);
+  useEffect(() => { if (!battles) setWarScene(null); }, [battles]);
+  const startBattles = async (link: string | null = null) => {
+    if (morphing.current) return;
+    track('game', { g: 'battles' });
+    if (geoRef.current) exitGeo();
+    if (viewRef.current === 'flat') await toggleFlat();
+    setPlay(null);
+    exitQuiz();
+    if (antiRef.current) exitAntipode();
+    setVoy(null);
+    setEras(null);
+    setEmp(null);
+    setSelected(null);
+    setHighlighted([]);
+    setFeature(null);
+    setDockOpen(false);
+    setAutoRotate(false);
+    setBattles({ link });
+  };
+  const closeBattles = () => { setBattles(null); cam.reset(); };
+  const frameWar = useCallback((lat: number, lng: number, altitude: number) => { globe.current?.frame(lat, lng, narrow() ? Math.min(3.4, altitude * 1.25) : altitude); }, []);
+  const warPin = useRef<(id: string) => void>(() => {});
+  const battlesOpen = useRef(false);
+  battlesOpen.current = !!battles;
+
   // ── Eras of civilization ───────────────────────────────
   const [eras, setEras] = useState<{ id: string | null; place: string | null; hover: string | null } | null>(null);
   useEffect(() => { if (quiz || geo || play || anti || liveState.active) setEras(null); }, [quiz, geo, play, anti, liveState.active]);
@@ -1075,6 +1112,7 @@ export default function App() {
     if (antiRef.current) exitAntipode();
     setVoy(null);
     setEmp(null);
+    setBattles(null);
     setSelected(null);
     setHighlighted([]);
     setFeature(null);
@@ -1102,7 +1140,7 @@ export default function App() {
     if (at) globe.current?.frame(at[0], at[1], Math.min(v.altitude, 1.3));
     else globe.current?.frame(v.lat, v.lng, narrow() ? Math.min(3.4, v.altitude * 1.25) : v.altitude);
   };
-  exploreRef.current = { startVoyages, startEras, startEmpires, pickVoyage: (id) => pickVoyage(id), pickEra, pickEmpire };
+  exploreRef.current = { startVoyages, startEras, startEmpires, startBattles, pickVoyage: (id) => pickVoyage(id), pickEra, pickEmpire };
   const erasOpen = useRef(false);
   erasOpen.current = !!eras;
   const hoverEra = useCallback((id: string | null) => setEras((x) => (x && x.hover !== id ? { ...x, hover: id } : x)), []);
@@ -1135,8 +1173,8 @@ export default function App() {
     state: feedback?.cca3 === c.cca3 ? feedback.kind : undefined,
   })) : NO_PINS), [findOnGlobe, feedback]);
   const globePins = useMemo(
-    () => (voy ? voyPins : eras ? eraPins : emp ? empPins : anti ? antiPins : findOnGlobe ? tinyPins : inGame ? NO_PINS : placesOpen && placesDraft ? [...placePins, { ...placesDraft, kind: 'guess' as const }] : placePins),
-    [voy, voyPins, eras, eraPins, emp, empPins, findOnGlobe, tinyPins, anti, antiPins, inGame, placesOpen, placesDraft, placePins],
+    () => (battles ? warScene?.pins ?? NO_PINS : voy ? voyPins : eras ? eraPins : emp ? empPins : anti ? antiPins : findOnGlobe ? tinyPins : inGame ? NO_PINS : placesOpen && placesDraft ? [...placePins, { ...placesDraft, kind: 'guess' as const }] : placePins),
+    [battles, warScene, voy, voyPins, eras, eraPins, emp, empPins, findOnGlobe, tinyPins, anti, antiPins, inGame, placesOpen, placesDraft, placePins],
   );
 
   const startAntipode = async () => {
@@ -1211,7 +1249,7 @@ export default function App() {
 
   // Newer version live: reload onto it the next time you switch away (so you never see it), or
   // straight away if you're back on the globe with nothing open. Never mid-game or mid-typing.
-  const idle = !quiz && !geo && !play && !anti && !voy && !eras && !emp && !liveState.active && !fbForm && !dockOpen && !placesOpen && !dailyCard && !signIn && !accountOpen && !inboxOpen && !repliesOpen && !activityOpen && !gamesOpen;
+  const idle = !quiz && !geo && !play && !anti && !voy && !eras && !emp && !battles && !liveState.active && !fbForm && !dockOpen && !placesOpen && !dailyCard && !signIn && !accountOpen && !inboxOpen && !repliesOpen && !activityOpen && !gamesOpen;
   useEffect(() => {
     if (!updateReady || !idle) return;
     if (document.visibilityState === 'hidden') { reloadForUpdate(); return; }
@@ -1225,22 +1263,22 @@ export default function App() {
   // deploy has replaced. (Street View is big — it stays on demand.)
   useEffect(() => {
     if (!ready) return;
-    preload([loadTop5, loadCapitals, loadTrivia, loadShapes, loadWordle, loadCrossword, loadMystery, ...(role === 'owner' || liveMode === 'local' ? [loadActivity, loadInbox] : [])]);
+    preload([loadTop5, loadCapitals, loadTrivia, loadShapes, loadWordle, loadCrossword, loadMystery, loadBattles, ...(role === 'owner' || liveMode === 'local' ? [loadActivity, loadInbox] : [])]);
   }, [ready, role, liveMode]);
 
   // Rivers and mountains step aside during a quiz (Map quiz, the Daily, a live quiz): the borders are what matter then.
-  const showNature = nature && !quiz && !liveState.quiz && !voy; // (voyages: the routes are the story)
+  const showNature = nature && !quiz && !liveState.quiz && !voy && !battles; // (voyages: the routes are the story)
 
   // Reserve the sidebar's space from the start, so nothing shifts when it slides in.
   const leftInset = mobile || geo ? 0 : sbCollapsed ? SIDEBAR_W.rail : SIDEBAR_W.open;
   const rightInset = (country || feature) && !quiz && !geo && !play && !liveState.active ? panelWidth(vp.w, vp.h) : 0;
 
   // The tip at the bottom: first-timers' "Drag to spin", or what a mode needs (dropping pins, day/night).
-  const showHint = chrome && !selected && !quiz && !dockOpen && !geo && !play && !anti && !voy && !eras && !emp && !liveState.active && (!spun || placesOpen || (view === 'globe' && style === 'daynight'));
+  const showHint = chrome && !selected && !quiz && !dockOpen && !geo && !play && !anti && !voy && !eras && !emp && !battles && !liveState.active && (!spun || placesOpen || (view === 'globe' && style === 'daynight'));
   // The quiet footer (feedback + about/legal links): only on the bare globe, never over a game or panel.
   const footer = chrome && idle && !selected && !feature && !accountOpen && !(mobile && drawerOpen);
   // Where a small nudge can appear without getting in the way of anything.
-  const nudgeSpot = chrome && !fbForm && !quiz && !geo && !play && !anti && !voy && !eras && !emp && !liveState.active && !dailyCard && !selected && !feature && !dockOpen && !placesOpen && !(mobile && drawerOpen) && !signIn;
+  const nudgeSpot = chrome && !fbForm && !quiz && !geo && !play && !anti && !voy && !eras && !emp && !battles && !liveState.active && !dailyCard && !selected && !feature && !dockOpen && !placesOpen && !(mobile && drawerOpen) && !signIn;
 
   return (
     <div
@@ -1256,22 +1294,23 @@ export default function App() {
         autoRotate={autoRotate}
         feedback={feedback}
         quiz={!!quiz || liveState.quiz || mxPicking}
-        liftUp={(dockOpen && !quiz) || ((!!voy || !!eras || !!emp || (play === 'mystery' && mxStage !== 'banner')) && vp.w <= 900) || (!!quiz && vp.w <= 600 && vp.h > vp.w)}
+        liftUp={(dockOpen && !quiz) || ((!!voy || !!eras || !!emp || !!battles || (play === 'mystery' && mxStage !== 'banner')) && vp.w <= 900) || (!!quiz && vp.w <= 600 && vp.h > vp.w)}
         dropDown={(!!play && play !== 'mystery') || placesOpen || (!!anti && anti.stage !== 'dive') || (!!quiz && !(vp.w <= 600 && vp.h > vp.w))}
         pickMode={(!!anti && anti.stage !== 'dive') || placesOpen}
         onPick={(lat, lng) => (placesOpen ? setPlacesPick({ lat, lng, n: Date.now() }) : pickAntipode(lat, lng))}
         pins={globePins}
-        onPin={(id) => (id.startsWith('stop:') ? stopVoyage(Number(id.slice(5))) : id.startsWith('era:') ? pickEra(id.slice(4)) : id === 'heart' || id.startsWith('hub:') ? placeEra(id) : id.startsWith('emp:') ? pickEmpire(id.slice(4)) : id === 'capital' || id.startsWith('place:') ? placeEmpire(id) : openPlace(id))}
-        paths={voy ? voyPaths : eras ? eraPaths : mxPaths}
+        onPin={(id) => (id.startsWith('bw:') ? warPin.current(id.slice(3)) : id.startsWith('stop:') ? stopVoyage(Number(id.slice(5))) : id.startsWith('era:') ? pickEra(id.slice(4)) : id === 'heart' || id.startsWith('hub:') ? placeEra(id) : id.startsWith('emp:') ? pickEmpire(id.slice(4)) : id === 'capital' || id.startsWith('place:') ? placeEmpire(id) : openPlace(id))}
+        paths={battles ? warScene?.paths ?? NO_ROUTES : voy ? voyPaths : eras ? eraPaths : mxPaths}
+        paint={battles ? warScene?.paint ?? null : null}
         tint={empTint}
         onPathPick={voy && !voy.id ? (id) => pickVoyage(id, 'globe') : undefined}
         onPathHover={voy && !voy.id ? hoverVoyage : undefined}
-        leftInset={leftInset + ((voy || eras || emp || play === 'mystery') && vp.w > 900 ? 416 : 0)}
+        leftInset={leftInset + ((voy || eras || emp || battles || play === 'mystery') && vp.w > 900 ? 416 : 0)}
         nature={showNature}
-        calm={!!voy}
+        calm={!!voy || !!battles}
         hidden={globeHidden || !!geo || liveState.immersive}
-        onSelect={(c, at) => { if (mysteryPick.current) { if (c) mysteryPick.current(c); return; } if (playRef.current === 'mystery') return; /* mid-case, taps only answer — no peeking at countries */ if (matchClick.current) { matchClick.current(c); return; } if (liveRef.current.active) return; if (anti || voyRef.current || erasOpen.current || empOpen.current) return; if (quiz) quizClick(c, at); else if (c) select(c); else { setSelected(null); setHighlighted([]); setFeature(null); } }}
-        onFeature={(f) => { if (!anti && !voy && !eras && !emp && !quiz && !liveRef.current.active) void openFeature(f); }}
+        onSelect={(c, at) => { if (mysteryPick.current) { if (c) mysteryPick.current(c); return; } if (playRef.current === 'mystery') return; /* mid-case, taps only answer — no peeking at countries */ if (matchClick.current) { matchClick.current(c); return; } if (liveRef.current.active) return; if (anti || voyRef.current || erasOpen.current || empOpen.current || battlesOpen.current) return; if (quiz) quizClick(c, at); else if (c) select(c); else { setSelected(null); setHighlighted([]); setFeature(null); } }}
+        onFeature={(f) => { if (!anti && !voy && !eras && !emp && !battles && !quiz && !liveRef.current.active) void openFeature(f); }}
         feature={feature}
         onInteract={onGlobeInteract}
         onReady={() => { track('ready', { ms: Math.round(performance.now()) }); setTimeout(() => setReady(true), 300); }}
@@ -1343,6 +1382,8 @@ export default function App() {
         voyagesOn={!!voy}
         erasOn={!!eras}
         empiresOn={!!emp}
+        battlesOn={!!battles}
+        onBattles={() => (battles ? closeBattles() : void startBattles())}
         onEmpires={() => (emp ? closeEmpires() : void startEmpires())}
         onEras={() => (eras ? closeEras() : void startEras())}
         onVoyages={() => (voy ? closeVoyages() : void startVoyages())}
@@ -1389,7 +1430,7 @@ export default function App() {
 
       {/* Today's Daily, always one tap away at the top — the front door for new players, and the daily habit. */}
       <AnimatePresence>
-        {chrome && !(mobile && drawerOpen) && !quiz && !geo && !play && !anti && !voy && !eras && !emp && !liveState.active && !dailyCard && (() => {
+        {chrome && !(mobile && drawerOpen) && !quiz && !geo && !play && !anti && !voy && !eras && !emp && !battles && !liveState.active && !dailyCard && (() => {
           const done = !!daily?.mine && daily.date === localDate();
           const streak = daily?.streak?.count ?? 0;
           return (
@@ -1470,6 +1511,15 @@ export default function App() {
         )}
       </AnimatePresence>
       <AnimatePresence>
+        {battles && (
+          <ErrorBoundary key="battles" name="Battles and Wars" onClose={closeBattles}>
+            <Suspense fallback={null}>
+              <BattlesPanel link={battles.link} onScene={setWarScene} onFrame={frameWar} pinRef={warPin} onClose={closeBattles} />
+            </Suspense>
+          </ErrorBoundary>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
         {eras && (
           <ErrorBoundary key="eras" name="Eras of civilization" onClose={closeEras}>
             <ErasPanel active={eras.id} place={eras.place} onPick={pickEra} onHover={hoverEra} onPlace={placeEra} onClose={closeEras} />
@@ -1505,7 +1555,7 @@ export default function App() {
         <FeaturePanel feature={quiz || geo || play || anti || liveState.active ? null : feature} onClose={() => setFeature(null)} onSelectCountry={select} onAsk={ask} />
         <CountryPanel country={quiz || geo || play || anti || liveState.active ? null : country} onClose={() => setSelected(null)} onSelect={select} onAsk={ask} />
       </ErrorBoundary>
-      {chrome && !quiz && !geo && !play && !anti && !voy && !eras && !emp && !liveState.active && <ErrorBoundary name="Ask the Atlas" onClose={() => setDockOpen(false)}><AskDock open={dockOpen} setOpen={setDockOpen} country={country} request={askReq} keyRequest={keyReq} onAiChange={setAi} onHosted={setHosted} onHighlight={highlight} onSelect={select}
+      {chrome && !quiz && !geo && !play && !anti && !voy && !eras && !emp && !battles && !liveState.active && <ErrorBoundary name="Ask the Atlas" onClose={() => setDockOpen(false)}><AskDock open={dockOpen} setOpen={setDockOpen} country={country} request={askReq} keyRequest={keyReq} onAiChange={setAi} onHosted={setHosted} onHighlight={highlight} onSelect={select}
         leading={<motion.button className={`play-fab ${playSeen ? '' : 'beckon'}`} onClick={openGames} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} aria-label="Play a game"><Gamepad2 size={18} /> Play</motion.button>} /></ErrorBoundary>}
       <ErrorBoundary name="Live play">
         <LivePlay mode={liveMode} me={liveMe} ai={ai} friendsReq={friendsReq} inviteReq={inviteReq} globe={matchGlobe} clickRef={matchClick} onState={setLiveState} owner={role === 'owner'} fab={chrome && !geo && !liveState.immersive} />
@@ -1528,7 +1578,7 @@ export default function App() {
       </AnimatePresence>
       {/* Guests: sign in, top right (where Friends is once you're signed in). */}
       <AnimatePresence>
-        {chrome && guest && !quiz && !geo && !play && !anti && !voy && !eras && !emp && !liveState.active && (
+        {chrome && guest && !quiz && !geo && !play && !anti && !voy && !eras && !emp && !battles && !liveState.active && (
           <motion.button key="signin-fab" className="signin-fab" onClick={() => needSignIn('general')} aria-label="Sign in"
             initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ delay: 0.5 }}>
             <LogIn size={17} /><span>Sign in</span>

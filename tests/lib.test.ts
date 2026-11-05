@@ -647,3 +647,60 @@ describe('answer reveal', () => {
     expect(roundOver(4, 10, null, false)).toBe(true); // out of questions
   });
 });
+
+describe('battles and wars', () => {
+  it('every battle is well-formed, in one era, with real countries and sensible places', async () => {
+    const { BATTLES, BATTLE_ERAS, battlesIn, battleAltitude } = await import('../src/lib/battles');
+    const { MAPPABLE } = await import('../src/lib/data');
+    expect(BATTLES.length).toBeGreaterThanOrEqual(90);
+    expect(new Set(BATTLES.map((b) => b.id)).size).toBe(BATTLES.length);
+    expect(BATTLE_ERAS.flatMap((_, i) => battlesIn(i)).map((b) => b.id)).toEqual(BATTLES.map((b) => b.id));
+    for (const b of BATTLES) {
+      expect(b.year, b.id).toBeGreaterThanOrEqual(1500);
+      expect(b.line.length, b.id).toBeGreaterThan(10);
+      expect(b.story.length, b.id).toBeGreaterThan(40);
+      expect(b.why.length, b.id).toBeGreaterThan(0);
+      expect(b.wiki, b.id).toMatch(/^[^ ]+$/);
+      expect(Math.abs(b.at[0])).toBeLessThanOrEqual(90);
+      expect(Math.abs(b.at[1])).toBeLessThanOrEqual(180);
+      for (const id of [...(b.lands?.a ?? []), ...(b.lands?.b ?? [])]) expect(MAPPABLE.has(id), `${b.id}: ${id}`).toBe(true);
+      for (const m of b.moves ?? []) for (const [la, lo] of [m.f, m.t]) { expect(Math.abs(la), b.id).toBeLessThanOrEqual(90); expect(Math.abs(lo), b.id).toBeLessThanOrEqual(180); }
+      const alt = battleAltitude(b);
+      expect(alt > 0 && alt <= 3, b.id).toBe(true);
+      if (b.won === 'open' && b.when.includes('today')) expect(b.asOf, b.id).toBeTruthy();
+    }
+    for (const i of BATTLE_ERAS.keys()) expect(battlesIn(i).length).toBeGreaterThanOrEqual(10);
+    for (const must of ['plassey', 'panipat-3', 'waterloo', 'stalingrad', 'lepanto', 'tsushima', 'dien-bien-phu']) expect(BATTLES.some((b) => b.id === must), must).toBe(true);
+  });
+  it('both world wars run in order over real countries, and end with the losers out', async () => {
+    const { WW1, WW2, warMapAt, eventAtMonth } = await import('../src/lib/worldWars');
+    const { MAPPABLE } = await import('../src/lib/data');
+    for (const war of [WW1, WW2]) {
+      expect(war.events.length).toBeGreaterThanOrEqual(18);
+      expect(war.events.map((e) => e.m)).toEqual([...war.events.map((e) => e.m)].sort((a, b) => a - b));
+      expect(war.events[war.events.length - 1].m).toBe(war.months);
+      for (const [i, e] of war.events.entries()) {
+        expect(e.text.length, e.title).toBeLessThan(220);
+        for (const ids of Object.values(e.to ?? {})) for (const id of ids ?? []) expect(MAPPABLE.has(id), `${e.title}: ${id}`).toBe(true);
+        for (const id of e.major ?? []) expect(MAPPABLE.has(id), `${e.title}: ${id}`).toBe(true);
+        expect(eventAtMonth(war, e.m)).toBe(i);
+      }
+    }
+    const end1 = warMapAt(WW1, WW1.events.length - 1), end2 = warMapAt(WW2, WW2.events.length - 1);
+    expect(warMapAt(WW1, 0).size).toBe(0); // Sarajevo: nobody's at war yet
+    expect(end1.get('DEU')).toBe('out');
+    expect(end1.get('FRA')).toBe('allies');
+    expect(end1.get('RUS')).toBe('out');
+    expect(end2.get('DEU')).toBe('out');
+    expect(end2.get('JPN')).toBe('out');
+    expect(end2.get('USA')).toBe('allies');
+    expect(end2.get('FRA')).toBe('allies');
+    // Nothing is still occupied by the Axis when the war ends.
+    expect([...end2.values()]).not.toContain('held');
+    // The USSR is neutral until Barbarossa, and on the Allied side from then on.
+    const barb = WW2.events.findIndex((e) => e.title === 'Operation Barbarossa');
+    expect(warMapAt(WW2, barb - 1).has('RUS')).toBe(false);
+    expect(warMapAt(WW2, barb).get('RUS')).toBe('allies');
+    expect(warMapAt(WW2, barb).get('UKR')).toBe('held');
+  });
+});
