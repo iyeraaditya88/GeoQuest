@@ -119,7 +119,7 @@ export function Sidebar(p: Props) {
           <div className="sb-brand">
             <span className="sb-mark"><img src="/icons/icon-192.png" alt="" width={40} height={40} /></span>
             <Fade show={!rail}>
-              <div className="sb-brand-text"><b>GeoQuest</b><span>Explore · Learn · Guess</span></div>
+              <div className="sb-brand-text"><b>GeoQuest</b><span>Explore. Learn. Stay curious</span></div>
             </Fade>
           </div>
           {p.mobile && (
