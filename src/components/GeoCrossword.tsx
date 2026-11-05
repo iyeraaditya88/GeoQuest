@@ -3,8 +3,8 @@ import { AnimatePresence, motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, Delete, Grid3x3, Lightbulb, Puzzle, Sparkles, Star, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { flagUrl } from '../lib/data';
-import { cellsOf, countOf, hintLetters, makePuzzle, wordPoints, type Puzzle as Grid, type Word } from '../lib/crossword';
-import { addSolved, cleanXwCareer, hintPrice, levelSpec, mergeXwCareer, newXwCareer, nextRank, rankOf, starsFor, type XwCareer } from '../lib/crosswordLevels';
+import { cellsOf, countOf, hintLetters, makePuzzle, usedKeys, wordPoints, type Puzzle as Grid, type Word } from '../lib/crossword';
+import { addSolved, addUsed, cleanXwCareer, hintPrice, levelSpec, mergeXwCareer, newXwCareer, nextRank, rankOf, starsFor, type XwCareer } from '../lib/crosswordLevels';
 import { markCrosswordSeen } from '../lib/crosswordNew';
 import { musicMuted } from '../lib/music';
 import { track } from '../lib/analytics';
@@ -35,7 +35,7 @@ interface Result { before: number; after: number; traded: boolean; stars: number
 
 const GAME = 'gq-xw-game2'; // (2: the clues were re-sorted by difficulty, so older saved crosswords are dropped)
 const CAREER = 'gq-xw-career';
-const RECENT = 'gq-xw-recent';
+const OLD_RECENT = 'gq-xw-recent'; // (the last 120 answers, before the career kept them all)
 const KEYS = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM-'];
 const TAIL_MS = 1500;
 const CHEER = ['', '', 'Nice!', 'On a roll!', 'On fire!', 'Unstoppable!'];
@@ -43,11 +43,16 @@ const load = (k: string) => { try { return JSON.parse(localStorage.getItem(k) ??
 const save = (k: string, v: unknown) => { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } };
 const key = (r: number, c: number) => `${r},${c}`;
 const pushCareer = (c: XwCareer) => { if (canUseAccount(getAuth())) void api('/api/progress/crossword', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(c) }).catch(() => null); };
-const loadCareer = () => cleanXwCareer(load(CAREER)) ?? newXwCareer();
+function loadCareer() {
+  const c = cleanXwCareer(load(CAREER)) ?? newXwCareer(), old = load(OLD_RECENT);
+  if (!Array.isArray(old)) return c;
+  const moved = cleanXwCareer({ ...c, used: [...c.used, ...old] })!;
+  save(CAREER, moved); save(OLD_RECENT, null);
+  return moved;
+}
 
 function newGame(level: number): Game {
-  const recent = Array.isArray(load(RECENT)) ? (load(RECENT) as string[]) : [];
-  const puzzle = makePuzzle(level, Date.now(), recent);
+  const puzzle = makePuzzle(level, Date.now(), loadCareer().used);
   return { puzzle, fill: {}, solved: [], hinted: [], given: [], hints: 0, traded: false, misses: 0, points: 0, combo: 0 };
 }
 function loadGame(level: number): Game {
@@ -123,7 +128,8 @@ export function GeoCrossword({ onReveal, onExit }: Props) {
       const best = mergeXwCareer(here, cleanXwCareer(d?.crossword)) ?? here;
       save(CAREER, best); pushCareer(best);
       const now = gRef.current;
-      if (best.level !== now.puzzle.level && !Object.keys(now.fill).length) { const fresh = newGame(best.level); apply(fresh); setSel(firstOpen(fresh)); }
+      const met = new Set(best.used);
+      if ((best.level !== now.puzzle.level || now.puzzle.words.some((w) => met.has(w.answer))) && !Object.keys(now.fill).length) { const fresh = newGame(best.level); apply(fresh); setSel(firstOpen(fresh)); }
     }).catch(() => pushCareer(here));
     return () => { live = false; };
   }, [apply]);
@@ -156,10 +162,8 @@ export function GeoCrossword({ onReveal, onExit }: Props) {
     const now = gRef.current;
     const stars = starsFor(now.hints, now.misses, now.traded);
     const earned = now.points + stars * 25;
-    const after = addSolved({ ...loadCareer(), seen: true }, now.traded, earned);
+    const after = addUsed(addSolved({ ...loadCareer(), seen: true }, now.traded, earned), usedKeys(now.puzzle.words));
     save(CAREER, after); pushCareer(after);
-    const recent = Array.isArray(load(RECENT)) ? (load(RECENT) as string[]) : [];
-    save(RECENT, [...now.puzzle.words.map((w) => w.answer), ...recent].slice(0, 120));
     save(GAME, null);
     track('crossword', { lv: now.puzzle.level, s: stars, h: now.hints, t: now.traded ? 1 : 0 });
     setResult({ before: now.puzzle.level, after: after.level, traded: now.traded, stars, earned, career: after });

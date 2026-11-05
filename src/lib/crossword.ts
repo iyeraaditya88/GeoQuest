@@ -1,10 +1,10 @@
 // Geo Crossword: the clue pool and the grid builder. A fresh crossword every time: words are laid
 // one at a time, each crossing what's there, and the tidiest of many attempts is kept.
-import { CAPITAL_TIERS, CLUE_BOOK, FLAG_TIERS } from '../data/crosswordWords';
+import { CAPITAL_CLUES, CAPITAL_TIERS, CLUE_BOOK, FLAG_TIERS } from '../data/crosswordWords';
 import { COUNTRIES, MAPPABLE } from './data';
 import { levelSpec } from './crosswordLevels';
 
-export interface Entry { answer: string; clue: string; tier: number; kind: string; lens: number[]; flag?: string; cca3?: string; where?: string }
+export interface Entry { answer: string; clue: string; tier: number; kind: string; lens: number[]; flag?: string; cca3?: string; where?: string; twin?: string }
 export type Dir = 'across' | 'down';
 export interface Word extends Entry { id: string; no: number; dir: Dir; r: number; c: number }
 export interface Puzzle { level: number; rows: number; cols: number; words: Word[] }
@@ -16,7 +16,6 @@ export const clueGivesAway = (clue: string, answer: string) => plain(clue).inclu
 const seen = new Map<string, string>(); // (asked thousands of times per grid, of a few hundred strings)
 function plain(s: string) { let p = seen.get(s); if (p === undefined) { p = letters(s); seen.set(s, p); } return p; }
 
-const NAMED_WITH_THE = /^(United |Netherlands|Philippines|Bahamas|Maldives|Gambia|Seychelles|Solomon|Marshall|Central African|Dominican Republic|DR Congo|Republic of)/;
 const tierIn = (lists: Record<number, string>, cca3: string) => [1, 2, 3].find((t) => lists[t].split(' ').includes(cca3));
 
 let POOL: Entry[] | null = null;
@@ -39,9 +38,10 @@ export function cluePool(): Entry[] {
     const flagTier = tierIn(FLAG_TIERS, c.cca3) ?? (c.population >= 2e7 ? 4 : 5);
     const where = c.region !== 'Americas' ? c.region : c.subregion === 'South America' ? 'South America' : 'North America';
     const extra = { cca3: c.cca3 };
-    add(cap, `Capital of ${NAMED_WITH_THE.test(c.name) ? 'the ' : ''}${c.name}`, capTier, 'capital', extra);
-    add(c.name, `Country whose capital is ${cap}`, capTier, 'country', { ...extra, where });
-    add(c.name, 'Whose flag is this?', flagTier, 'flag', { ...extra, flag: c.cca2, where });
+    // Twins: "Capital of France" and "Country whose capital is Paris" are the same question turned round.
+    add(cap, CAPITAL_CLUES[c.cca3] ?? `${c.demonym} seat of government`, capTier, 'capital', { ...extra, twin: letters(cap) });
+    add(c.name, `${cap.replace(/,.*/, '')}’s land`, capTier, 'country', { ...extra, where, twin: letters(cap) });
+    add(c.name, 'Land under this banner', flagTier, 'flag', { ...extra, flag: c.cca2, where });
   }
   POOL = out;
   return out;
@@ -65,14 +65,14 @@ function crossings(cells: Map<string, string>, taken: Set<string>, a: string, r:
   return n;
 }
 
-function attempt(pool: Entry[], target: number, size: number, mix: Record<number, number>, rand: () => number) {
+function attempt(pool: Entry[], target: number, size: number, mix: Record<number, number>, rand: () => number, roomy = false) {
   const cells = new Map<string, string>();
   const taken = new Set<string>();
   const placed: Placed[] = [];
   const used = new Set<string>();
   const kinds: Record<string, number> = {};
   const inTier: Record<number, number> = {}; // how many of each difficulty, to hold to the level's mix
-  const maxKind = Math.max(2, Math.ceil(target * 0.3)); // a mix, not a list of capitals
+  const maxKind = (kind: string) => Math.max(2, Math.ceil(target * (roomy ? 0.6 : kind === 'flag' ? 0.25 : 0.4))); // a mix, not a list of capitals
   let minR = 0, maxR = 0, minC = 0, maxC = 0;
   const put = (e: Entry, r: number, c: number, dir: Dir) => {
     const dr = dir === 'down' ? 1 : 0, dc = dir === 'across' ? 1 : 0;
@@ -85,7 +85,7 @@ function attempt(pool: Entry[], target: number, size: number, mix: Record<number
     minC = Math.min(minC, c); maxC = Math.max(maxC, c + dc * (e.answer.length - 1));
   };
   // A clue must never hand over another answer in this crossword, in either direction.
-  const clash = (e: Entry) => used.has(e.answer) || (e.kind !== 'book' && (kinds[e.kind] ?? 0) >= maxKind)
+  const clash = (e: Entry) => used.has(e.answer) || (e.kind !== 'book' && (kinds[e.kind] ?? 0) >= maxKind(e.kind))
     || placed.some((p) => clueGivesAway(p.e.clue, e.answer) || clueGivesAway(e.clue, p.e.answer));
 
   const first = pool.find((e) => e.answer.length <= size && e.answer.length >= Math.min(6, size - 1));
@@ -141,24 +141,39 @@ function finish(level: number, a: NonNullable<ReturnType<typeof attempt>>): Puzz
   return { level, rows: a.h, cols: a.w, words };
 }
 
-/** A new crossword for this level, steering clear of recently used answers. */
-export function makePuzzle(level: number, seed = Date.now(), recent: string[] = []): Puzzle {
+/** What to remember of these words: the answers, and which capital-and-country pairs have been asked. */
+export const usedKeys = (words: Pick<Word, 'answer' | 'twin'>[]) => words.flatMap((w) => (w.twin ? [w.answer, `~${w.twin}`] : [w.answer]));
+
+/**
+ * A new crossword for this level, with no answer the player has met before (`used`, newest first).
+ * If the level's clues run out: borrow unused ones from the next difficulties, and only after that let
+ * the answers met longest ago come back.
+ */
+export function makePuzzle(level: number, seed = Date.now(), used: string[] = []): Puzzle {
   const spec = levelSpec(level);
   const rand = rng(seed);
-  const avoid = new Set(recent);
-  const inLevel = cluePool().filter((e) => spec.mix[e.tier] && e.answer.length <= spec.size);
-  const shuffled = (fresh: boolean) => inLevel
-    .map((e) => ({ e, k: rand() + (fresh && avoid.has(e.answer) ? 2 : 0) }))
-    .sort((x, y) => x.k - y.k).map((x) => x.e);
+  const wider = { ...spec.mix };
+  for (const t of spec.tiers) for (const n of [t + 1, t - 1]) if (n >= 1 && n <= 5 && !wider[n]) wider[n] = 0.34;
+  const keep = (share: number) => new Set(used.slice(0, Math.ceil(used.length * share)));
+  const stages = [{ mix: spec.mix, seen: keep(1) }, { mix: spec.mix, seen: keep(1), roomy: true }, { mix: wider, seen: keep(1), roomy: true }, { mix: spec.mix, seen: keep(0.5) }, { mix: spec.mix, seen: keep(0.25) }, { mix: spec.mix, seen: keep(0) }];
+  const enough = Math.max(4, spec.words - 2); // a word or two short beats a word they've seen
   let best: NonNullable<ReturnType<typeof attempt>> | null = null;
-  for (let i = 0; i < 40; i++) {
-    const a = attempt(shuffled(i < 30), spec.words, spec.size, spec.mix, rand);
-    if (!a) continue;
-    // Full first, then closest to the level's mix, then the tidiest.
-    const tidy = (x: NonNullable<typeof best>) => x.cross - Math.abs(x.h - x.w) * 0.5;
-    const better = !best || a.count > best.count || (a.count === best.count && (a.offMix < best.offMix || (a.offMix === best.offMix && tidy(a) > tidy(best))));
-    if (better) best = a;
-    if (best && best.count >= spec.words && (i >= 13 || (best.offMix === 0 && i >= 5))) break; // (this runs on a phone: it has to be quick)
+  // Full first, then closest to the level's mix, then the tidiest.
+  const tidy = (x: NonNullable<typeof best>) => x.cross - Math.abs(x.h - x.w) * 0.5;
+  for (const { mix, seen, roomy } of stages) {
+    const pool = cluePool().filter((e) => mix[e.tier] && e.answer.length <= spec.size && !seen.has(e.answer) && !(e.twin && seen.has(`~${e.twin}`)));
+    if (new Set(pool.map((e) => e.answer)).size < enough) continue;
+    best = null;
+    for (let i = 0; i < 10; i++) {
+      const shuffled = pool.map((e) => ({ e, k: rand() })).sort((x, y) => x.k - y.k).map((x) => x.e);
+      const a = attempt(shuffled, spec.words, spec.size, mix, rand, roomy);
+      if (!a) continue;
+      const better = !best || a.count > best.count || (a.count === best.count && (a.offMix < best.offMix || (a.offMix === best.offMix && tidy(a) > tidy(best))));
+      if (better) best = a;
+      // (This runs on a phone: it has to be quick.)
+      if (best && i >= 5 && (best.count < enough || (best.count >= spec.words && best.offMix === 0))) break;
+    }
+    if (best && best.count >= enough) break;
   }
   return finish(level, best!);
 }

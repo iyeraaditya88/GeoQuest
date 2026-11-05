@@ -51,8 +51,14 @@ export function starsFor(hintsUsed: number, misses: number, traded: boolean) {
 }
 
 // ── Career ──
-export interface XwCareer { level: number; solved: number; points: number; seen: boolean; at: number }
-export const newXwCareer = (): XwCareer => ({ level: 1, solved: 0, points: 0, seen: false, at: 0 });
+// `used`: every answer this player has met, newest first, so no question comes round twice
+// ("~PARIS" marks a capital-and-country pair as asked, either way round).
+export interface XwCareer { level: number; solved: number; points: number; seen: boolean; at: number; used: string[] }
+export const newXwCareer = (): XwCareer => ({ level: 1, solved: 0, points: 0, seen: false, at: 0, used: [] });
+const MAX_USED = 2000; // (more than there are answers)
+const joinUsed = (a: string[], b: string[]) => [...new Set([...a, ...b])].slice(0, MAX_USED);
+/** Add answers just met: to the front, as the newest. */
+export const addUsed = (c: XwCareer, answers: string[]): XwCareer => ({ ...c, used: joinUsed(answers, c.used) });
 
 /** Add a solved crossword: up a level, unless the level-up was traded for a hint. */
 export function addSolved(c: XwCareer, traded: boolean, points: number, now = Date.now()): XwCareer {
@@ -63,11 +69,12 @@ export function cleanXwCareer(x: unknown): XwCareer | null {
   if (!x || typeof x !== 'object') return null;
   const o = x as Record<string, unknown>;
   const num = (v: unknown, lo: number, hi: number) => (typeof v === 'number' && Number.isFinite(v) ? Math.min(hi, Math.max(lo, Math.round(v))) : lo);
-  return { level: num(o.level, 1, 1e5), solved: num(o.solved, 0, 1e6), points: num(o.points, 0, 1e10), seen: o.seen === true, at: num(o.at, 0, 1e14) };
+  return { level: num(o.level, 1, 1e5), solved: num(o.solved, 0, 1e6), points: num(o.points, 0, 1e10), seen: o.seen === true, at: num(o.at, 0, 1e14),
+    used: Array.isArray(o.used) ? joinUsed(o.used.filter((a): a is string => typeof a === 'string' && /^~?[A-Z]{1,40}$/.test(a)), []) : [] };
 }
-/** Two copies (this device, the account): the further along wins, and seen once is seen for good. */
+/** Two copies (this device, the account): the further along wins; seen once is seen for good, and answers met on either count. */
 export function mergeXwCareer(a: XwCareer | null, b: XwCareer | null): XwCareer | null {
   if (!a || !b) return a ?? b;
   const best = b.level > a.level || (b.level === a.level && b.solved > a.solved) ? b : a;
-  return { ...best, seen: a.seen || b.seen };
+  return { ...best, seen: a.seen || b.seen, used: joinUsed(best.used, best === a ? b.used : a.used) };
 }

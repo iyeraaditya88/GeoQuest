@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { CLUE_BOOK } from '../src/data/crosswordWords';
-import { cellsOf, clueGivesAway, cluePool, hintLetters, makePuzzle } from '../src/lib/crossword';
-import { addSolved, cleanXwCareer, hintPrice, levelSpec, mergeXwCareer, newXwCareer, rankOf, starsFor } from '../src/lib/crosswordLevels';
+import { CAPITAL_CLUES, CLUE_BOOK } from '../src/data/crosswordWords';
+import { cellsOf, clueGivesAway, cluePool, hintLetters, makePuzzle, usedKeys } from '../src/lib/crossword';
+import { addSolved, addUsed, cleanXwCareer, hintPrice, levelSpec, mergeXwCareer, newXwCareer, rankOf, starsFor } from '../src/lib/crosswordLevels';
 
 describe('geo crossword: the grids', () => {
   const levels = [1, 2, 3, 5, 8, 12, 16, 20, 24, 30, 40, 100];
@@ -70,14 +70,54 @@ describe('geo crossword: the grids', () => {
     expect(easy.some((e) => e.answer === 'PARIS')).toBe(true);
     expect(easy.some((e) => e.answer === 'CANADA' && e.flag)).toBe(true);
     expect(easy.some((e) => e.answer === 'DHAKA' || (e.answer === 'ETHIOPIA' && e.flag))).toBe(false);
-    expect(cluePool().find((e) => e.answer === 'LONDON')?.clue).toBe('Capital of the United Kingdom');
   });
 
-  it('is new each time, and steers away from recent answers', () => {
-    const a = makePuzzle(6, 1), b = makePuzzle(6, 2);
-    expect(a.words.map((w) => w.answer).sort()).not.toEqual(b.words.map((w) => w.answer).sort());
-    const next = makePuzzle(6, 3, a.words.map((w) => w.answer));
-    expect(next.words.filter((w) => a.words.some((x) => x.answer === w.answer)).length).toBeLessThanOrEqual(1);
+  it('clues read like a crossword, not a quiz', () => {
+    for (const e of cluePool()) expect(e.clue, e.answer).not.toMatch(/^(capital of|currency of|country whose|whose flag|what |which )/i);
+    // Every capital in the game has its own written clue.
+    for (const e of cluePool().filter((x) => x.kind === 'capital')) expect(CAPITAL_CLUES[e.cca3!], e.answer).toBe(e.clue);
+    expect(cluePool().find((e) => e.answer === 'ITALY')?.clue).toBe('Boot on the map');
+  });
+
+  it('never repeats a question, however far a player gets', () => {
+    for (const run of [1, 2]) {
+      const used: string[] = [];
+      for (let level = 1; level <= 24; level++) { // (past here the clues start to run out: see makePuzzle)
+        const words = makePuzzle(level, run * 1000 + level * 13, used).words;
+        for (const w of words) {
+          expect(used, `level ${level}`).not.toContain(w.answer);
+          if (w.twin) expect(used, `${w.clue}, level ${level}`).not.toContain(`~${w.twin}`);
+        }
+        used.unshift(...usedKeys(words));
+      }
+    }
+  });
+
+  it('knows a question turned round is the same question, and a flag is not', () => {
+    const paris = cluePool().find((e) => e.answer === 'PARIS')!;
+    const fromCapital = usedKeys([paris]);
+    const pool = cluePool().filter((e) => e.answer === 'FRANCE' && e.twin);
+    expect(pool[0].twin).toBe('PARIS');
+    expect(fromCapital).toEqual(['PARIS', '~PARIS']);
+    // Met France by its flag: "Capital of France" is still a new question.
+    expect(usedKeys(cluePool().filter((e) => e.answer === 'FRANCE' && e.flag))).toEqual(['FRANCE']);
+  });
+
+  it('stays on the level’s difficulty while it has unused clues, and borrows before it repeats', () => {
+    const easy = [...new Set(cluePool().filter((e) => e.tier === 1).map((e) => e.answer))];
+    // Half of the easy clues met: still all easy, still all new.
+    const half = easy.slice(0, Math.floor(easy.length / 2));
+    const p = makePuzzle(1, 5, half);
+    expect(p.words.every((w) => w.tier === 1 && !half.includes(w.answer))).toBe(true);
+    // Every easy clue met: the next difficulty up, not a repeat.
+    const next = makePuzzle(1, 5, easy);
+    expect(next.words.every((w) => !easy.includes(w.answer))).toBe(true);
+    // Every clue there is met: answers come back rather than the game stopping, the oldest first.
+    const all = [...new Set(cluePool().map((e) => e.answer))];
+    const late = makePuzzle(30, 5, all);
+    expect(late.words.length).toBeGreaterThanOrEqual(levelSpec(30).words - 1);
+    const newest = new Set(all.slice(0, Math.ceil(all.length / 4)));
+    expect(late.words.some((w) => newest.has(w.answer))).toBe(false);
   });
 });
 
@@ -112,8 +152,8 @@ describe('geo crossword: levels and the hint trade', () => {
   });
   it('levels up unless the level-up was traded', () => {
     const c = newXwCareer();
-    expect(addSolved(c, false, 100, 5)).toEqual({ level: 2, solved: 1, points: 100, seen: false, at: 5 });
-    expect(addSolved(c, true, 100, 5)).toEqual({ level: 1, solved: 1, points: 100, seen: false, at: 5 });
+    expect(addSolved(c, false, 100, 5)).toEqual({ level: 2, solved: 1, points: 100, seen: false, at: 5, used: [] });
+    expect(addSolved(c, true, 100, 5)).toEqual({ level: 1, solved: 1, points: 100, seen: false, at: 5, used: [] });
     expect(starsFor(0, 1, false)).toBe(3);
     expect(starsFor(0, 2, false)).toBe(2);
     expect(starsFor(1, 0, false)).toBe(2);
@@ -121,9 +161,15 @@ describe('geo crossword: levels and the hint trade', () => {
   });
   it('reads careers safely, keeps the further one, and seen stays seen', () => {
     expect(cleanXwCareer('nope')).toBeNull();
-    expect(cleanXwCareer({ level: -4, solved: 'x', seen: 1 })).toEqual({ level: 1, solved: 0, points: 0, seen: false, at: 0 });
+    expect(cleanXwCareer({ level: -4, solved: 'x', seen: 1 })).toEqual({ level: 1, solved: 0, points: 0, seen: false, at: 0, used: [] });
     const a = { ...newXwCareer(), level: 7, seen: false }, b = { ...newXwCareer(), level: 3, seen: true };
     expect(mergeXwCareer(a, b)).toEqual({ ...a, seen: true });
     expect(mergeXwCareer(null, b)).toEqual(b);
+    // Answers met on either device count, newest first, and junk from storage is dropped.
+    const c1 = addUsed(addUsed(newXwCareer(), ['NILE']), ['ASIA', 'NILE']);
+    expect(c1.used).toEqual(['ASIA', 'NILE']);
+    expect(mergeXwCareer({ ...c1, level: 5 }, { ...newXwCareer(), level: 2, used: ['PERU', 'NILE'] })?.used).toEqual(['ASIA', 'NILE', 'PERU']);
+    expect(cleanXwCareer({ level: 2, used: ['NILE', 4, '<b>', 'NILE'] })?.used).toEqual(['NILE']);
+    expect(cleanXwCareer({ level: 2 })?.used).toEqual([]);
   });
 });
