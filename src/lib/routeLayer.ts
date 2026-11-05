@@ -80,7 +80,7 @@ export function createRouteLayer(scene: THREE.Scene, toXYZ: ToXYZ) {
     set(routes: Route[]) {
       const keep = new Set<string>();
       for (const r of routes) {
-        const key = `${r.color}|${r.points.length}|${r.points[0]}|${r.points[r.points.length - 1]}`;
+        const key = `${r.points.length}|${r.points[0]}|${r.points[r.points.length - 1]}`;
         let e = lines.get(r.id);
         if (e && e.key !== key) { release(e); lines.delete(r.id); e = undefined; }
         if (!e) {

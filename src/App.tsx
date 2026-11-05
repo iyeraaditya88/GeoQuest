@@ -74,7 +74,7 @@ import { ErasPanel } from './components/ErasPanel';
 import { EmpiresPanel } from './components/EmpiresPanel';
 import { EMPIRES, BY_EMPIRE, empireView } from './lib/empires';
 import { ERAS, BY_ERA, eraView } from './lib/eras';
-import { VOYAGES, BY_VOYAGE, routePoints, routeView, voyageKm } from './lib/voyages';
+import { VOYAGES, BY_VOYAGE, eraOf, routePoints, routeView, voyageKm, voyagesIn } from './lib/voyages';
 import type { GlobePath } from './components/GlobeView';
 import { antipodeOf, describePlace, type Place } from './lib/antipode';
 import { placeFor } from './lib/trivia';
@@ -907,7 +907,7 @@ export default function App() {
   useEffect(() => { if (quiz || geo || play || anti || liveState.active) setPlacesOpen(false); }, [quiz, geo, play, anti, liveState.active]);
 
   // ── Famous voyages ─────────────────────────────────────
-  const [voy, setVoy] = useState<{ id: string | null; stop: number | null; hover: string | null } | null>(null);
+  const [voy, setVoy] = useState<{ id: string | null; stop: number | null; hover: string | null; era: number } | null>(null); // hover: the route in the spotlight
   useEffect(() => { if (quiz || geo || play || anti || liveState.active) setVoy(null); }, [quiz, geo, play, anti, liveState.active]);
   useEffect(() => { if (!voy) { sailStop.current?.(); sailStop.current = null; setSailing(false); } }, [voy]);
   const startVoyages = async () => {
@@ -925,12 +925,13 @@ export default function App() {
     setAutoRotate(false);
     setEras(null);
     setEmp(null);
-    setVoy({ id: null, stop: null, hover: null });
-    globe.current?.frame(22, -20, overview()); // the Atlantic world, where most of them sailed
+    const first = voyagesIn(1)[0]; // the Age of Discovery, the one most people know
+    setVoy({ id: null, stop: null, hover: first.id, era: 1 });
+    const r = voyView(first);
+    globe.current?.frame(r.lat, r.lng, r.altitude);
   };
   // Phones: the sheet covers the lower half, so stand a little further back.
   const narrow = () => window.innerWidth <= 900;
-  const overview = () => (narrow() ? 3.1 : 2.3);
   const voyView = (v: Parameters<typeof routeView>[0]) => { const r = routeView(v); return narrow() ? { ...r, altitude: Math.min(3.4, r.altitude * 1.25) } : r; };
   // Sailing: a ship follows the route, the camera following it, pausing at each stop.
   const [sailing, setSailing] = useState(false);
@@ -958,9 +959,10 @@ export default function App() {
   const pickVoyage = useCallback((id: string | null, from?: string) => {
     if (id) track('voyage', from ? { v: id, from } : { v: id });
     stopSail();
-    setVoy((x) => (x ? { id, stop: null, hover: null } : x));
-    const v = id ? BY_VOYAGE.get(id) : null;
-    if (v) { const r = voyView(v); globe.current?.frame(r.lat, r.lng, r.altitude); } else globe.current?.frame(22, -20, overview());
+    window.clearTimeout(spotTimer.current);
+    const v = BY_VOYAGE.get(id ?? voyRef.current?.id ?? voyRef.current?.hover ?? '');
+    setVoy((x) => (x ? { id, stop: null, hover: v?.id ?? x.hover, era: v ? eraOf(v.year) : x.era } : x));
+    if (v) { const r = voyView(v); globe.current?.frame(r.lat, r.lng, r.altitude); }
   }, [stopSail]);
   const voyRef = useRef(voy);
   voyRef.current = voy;
@@ -974,12 +976,34 @@ export default function App() {
     if (i === null) globe.current?.frame(r.lat, r.lng, r.altitude);
     else globe.current?.frame(v.stops[i].at[0], v.stops[i].at[1], Math.min(r.altitude, 1.05));
   }, [stopSail]);
-  const hoverVoyage = useCallback((id: string | null) => setVoy((x) => (x && x.hover !== id ? { ...x, hover: id } : x)), []);
+  // The spotlight stays on the last route looked at. From the list, the globe turns to show it, after a
+  // moment so skimming down the rows doesn't swing it around; on the globe it's already in view.
+  const spotTimer = useRef(0);
+  const hoverVoyage = useCallback((id: string | null) => { if (id) setVoy((x) => (x && x.hover !== id ? { ...x, hover: id } : x)); }, []);
+  const spotVoyage = useCallback((id: string) => {
+    if (voyRef.current?.hover === id) return;
+    hoverVoyage(id);
+    window.clearTimeout(spotTimer.current);
+    spotTimer.current = window.setTimeout(() => {
+      const v = BY_VOYAGE.get(id);
+      if (!v || !voyRef.current || voyRef.current.id) return;
+      const r = voyView(v);
+      globe.current?.frame(r.lat, r.lng, r.altitude);
+    }, 350);
+  }, [hoverVoyage]);
+  const pickVoyageEra = useCallback((era: number) => {
+    window.clearTimeout(spotTimer.current);
+    const first = voyagesIn(era)[0];
+    track('voyage_era', { e: era });
+    setVoy((x) => (x ? { ...x, era, hover: first.id } : x));
+    const r = voyView(first);
+    globe.current?.frame(r.lat, r.lng, r.altitude);
+  }, []);
   const voyPaths = useMemo<GlobePath[]>(() => {
     if (!voy) return [];
     const focus = voy.id ?? voy.hover;
-    return VOYAGES.filter((v) => !voy.id || v.id === voy.id)
-      .map((v) => ({ id: v.id, label: v.voyager, sub: `${v.years} · click to open`, points: routePoints(v), color: v.color, mode: !focus ? 'normal' as const : v.id === focus ? 'active' as const : 'faint' as const }));
+    return (voy.id ? VOYAGES.filter((v) => v.id === voy.id) : voyagesIn(voy.era))
+      .map((v) => ({ id: v.id, label: v.voyager, sub: `${v.years} · click to open`, points: routePoints(v), color: v.id === focus ? v.color : '#cbd5e1', mode: v.id === focus ? 'active' as const : 'faint' as const }));
   }, [voy]);
   const voyPins = useMemo(() => {
     const v = voy?.id ? BY_VOYAGE.get(voy.id) : null;
@@ -1221,7 +1245,7 @@ export default function App() {
   }, [ready, role, liveMode]);
 
   // Rivers and mountains step aside during a quiz (Map quiz, the Daily, a live quiz): the borders are what matter then.
-  const showNature = nature && !quiz && !liveState.quiz;
+  const showNature = nature && !quiz && !liveState.quiz && !voy; // (voyages: the routes are the story)
 
   // Reserve the sidebar's space from the start, so nothing shifts when it slides in.
   const leftInset = mobile || geo ? 0 : sbCollapsed ? SIDEBAR_W.rail : SIDEBAR_W.open;
@@ -1260,6 +1284,7 @@ export default function App() {
         onPathHover={voy && !voy.id ? hoverVoyage : undefined}
         leftInset={leftInset + ((voy || eras || emp || play === 'mystery') && vp.w > 900 ? 416 : 0)}
         nature={showNature}
+        calm={!!voy}
         hidden={globeHidden || !!geo || liveState.immersive}
         onSelect={(c, at) => { if (mysteryPick.current) { if (c) mysteryPick.current(c); return; } if (playRef.current === 'mystery') return; /* mid-case, taps only answer — no peeking at countries */ if (matchClick.current) { matchClick.current(c); return; } if (liveRef.current.active) return; if (anti || voyRef.current || erasOpen.current || empOpen.current) return; if (quiz) quizClick(c, at); else if (c) select(c); else { setSelected(null); setHighlighted([]); setFeature(null); } }}
         onFeature={(f) => { if (!anti && !voy && !eras && !emp && !quiz && !liveRef.current.active) void openFeature(f); }}
@@ -1470,7 +1495,7 @@ export default function App() {
       <AnimatePresence>
         {voy && (
           <ErrorBoundary key="voyages" name="Famous voyages" onClose={closeVoyages}>
-            <VoyagesPanel active={voy.id} hover={voy.hover} stop={voy.stop} sailing={sailing} onSail={sail} onPick={pickVoyage} onHover={hoverVoyage} onStop={stopVoyage} onClose={closeVoyages} />
+            <VoyagesPanel active={voy.id} hover={voy.hover} stop={voy.stop} sailing={sailing} onSail={sail} era={voy.era} onEra={pickVoyageEra} onPick={pickVoyage} onHover={spotVoyage} onStop={stopVoyage} onClose={closeVoyages} />
           </ErrorBoundary>
         )}
       </AnimatePresence>

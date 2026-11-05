@@ -66,6 +66,8 @@ interface Props {
   hidden: boolean;
   /** rivers, lakes, mountain ranges & peaks */
   nature?: boolean;
+  /** Quieter country borders, when something else drawn on the globe is the point. */
+  calm?: boolean;
   /** width of the sidebar, so the globe centres in the free space */
   leftInset?: number;
   /** Street-view game: clicks drop a pin instead of selecting countries. */
@@ -134,7 +136,7 @@ function angularDistance(a: { lat: number; lng: number }, b: { lat: number; lng:
 }
 
 export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
-  { selected, highlighted, style, autoRotate, feedback, quiz, liftUp, dropDown = false, hidden, nature = true, leftInset = 0, pickMode = false, sideView = false, pins = [], arcs = [], paths = NO_PATHS, tint = null, onPathPick, onPathHover, onPick, onPin, onFeature, feature = null, onSelect, onInteract, onReady }, ref,
+  { selected, highlighted, style, autoRotate, feedback, quiz, liftUp, dropDown = false, hidden, nature = true, calm = false, leftInset = 0, pickMode = false, sideView = false, pins = [], arcs = [], paths = NO_PATHS, tint = null, onPathPick, onPathHover, onPick, onPin, onFeature, feature = null, onSelect, onInteract, onReady }, ref,
 ) {
   const globe = useRef<GlobeMethods | undefined>(undefined);
   const labelLayer = useRef<HTMLDivElement>(null);
@@ -703,10 +705,11 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
   useEffect(() => {
     // Games lean on borders (find the country!), so they get a touch more contrast.
     const game = quiz || pickMode;
-    if (political) countryLayer.current?.setBorder(game ? 'rgba(30,41,59,0.85)' : 'rgba(51,65,85,0.7)', 'rgba(255,255,255,0.35)');
+    if (calm) countryLayer.current?.setBorder(political ? 'rgba(51,65,85,0.35)' : 'rgba(255,247,228,0.14)', political ? 'rgba(255,255,255,0.08)' : 'rgba(3,7,18,0.06)');
+    else if (political) countryLayer.current?.setBorder(game ? 'rgba(30,41,59,0.85)' : 'rgba(51,65,85,0.7)', 'rgba(255,255,255,0.35)');
     else countryLayer.current?.setBorder(game ? 'rgba(255,247,228,0.85)' : 'rgba(255,247,228,0.6)', game ? 'rgba(3,7,18,0.5)' : 'rgba(3,7,18,0.38)');
     hoverFx.current?.setOutlineColor(political ? 'rgba(30,41,59,0.9)' : 'rgba(255,250,235,0.95)');
-  }, [political, layerReady, quiz, pickMode]);
+  }, [political, layerReady, quiz, pickMode, calm]);
 
   // States / provinces of the selected country, drawn on its raised surface.
   const adminColor = political ? 'rgba(120,53,15,0.55)' : 'rgba(255,248,230,0.72)';

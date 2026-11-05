@@ -2482,10 +2482,14 @@ button.sb-user:hover { background: rgba(255, 255, 255, 0.05); }
 }
 
 /* Voyages: eras, deaths, the sailing ship */
-.vy-era { display: grid; gap: 2px; padding: 16px 8px 6px 70px; }
-.vy-list > .vy-era:first-child { padding-top: 4px; }
-.vy-era b { font: 700 11px var(--display); letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); }
-.vy-era span { font-size: 12px; color: var(--dim); }
+.vy-eras { position: sticky; top: 0; z-index: 2; display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; padding: 3px; border-radius: 14px; background: rgb(22, 28, 46); }
+.vy-eras button { display: grid; justify-items: center; gap: 1px; min-height: 44px; padding: 5px 2px; border-radius: 11px; color: var(--muted); transition: background 0.15s, color 0.15s; }
+.vy-eras button:hover { color: var(--text); }
+.vy-eras b { font: 700 13px var(--display); }
+.vy-eras span { font-size: 10.5px; color: var(--dim); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.vy-eras button.on, .vy-eras button.on:hover { color: #1a1205; background: linear-gradient(135deg, var(--gold-soft), var(--gold)); }
+.vy-eras .on span { color: rgba(26, 18, 5, 0.72); }
+.vy-era { margin: 0; padding: 10px 6px 6px; font-size: 12.5px; line-height: 1.35; color: var(--dim); }
 .vy-dagger { margin-left: 6px; font-style: normal; font-weight: 700; color: #f87171; }
 .vy-legend { margin: 12px 0 0; text-align: center; font-size: 11.5px; color: var(--dim); }
 .vy-legend em { font-style: normal; font-weight: 700; color: #f87171; }

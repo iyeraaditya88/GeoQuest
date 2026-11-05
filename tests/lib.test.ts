@@ -369,6 +369,12 @@ describe('geo wordle', () => {
 });
 
 describe('famous voyages', () => {
+  it('every voyage falls in exactly one era, in timeline order', async () => {
+    const { VOYAGES, VOYAGE_ERAS, voyagesIn } = await import('../src/lib/voyages');
+    const inEras = VOYAGE_ERAS.flatMap((_, i) => voyagesIn(i));
+    expect(inEras.map((v) => v.id)).toEqual(VOYAGES.map((v) => v.id));
+    for (const i of VOYAGE_ERAS.keys()) expect(voyagesIn(i).length).toBeGreaterThan(0);
+  });
   it('has well-formed voyages: valid stops, routes and colours, oldest first', async () => {
     const { VOYAGES, routePoints, voyageKm, routeView } = await import('../src/lib/voyages');
     expect(new Set(VOYAGES.map((v) => v.id)).size).toBe(VOYAGES.length);

@@ -1,33 +1,26 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Anchor, ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, ExternalLink, Pause, Route, Sailboat, Ship, Sparkles, Users, Waves, X } from 'lucide-react';
 import { flagUrl } from '../lib/data';
-import { VOYAGES, BY_VOYAGE, voyageKm, type Voyage } from '../lib/voyages';
+import { VOYAGES, BY_VOYAGE, VOYAGE_ERAS, voyageKm, voyagesIn, type Voyage } from '../lib/voyages';
 import { track } from '../lib/analytics';
 import { wikiPhoto } from '../lib/wiki';
 
 interface Props {
   active: string | null;
-  hover?: string | null;   // a route hovered on the globe
+  hover?: string | null;   // the route in the spotlight
+  era: number;
+  onEra: (era: number) => void;
   stop: number | null;
   sailing: boolean;
   onPick: (id: string | null) => void;
-  onHover: (id: string | null) => void;
+  onHover: (id: string) => void;
   onStop: (i: number | null) => void;
   onSail: (on: boolean) => void;
   onClose: () => void;
 }
 
 const fmtKm = (n: number) => `≈ ${(Math.round(n / 500) * 500).toLocaleString('en-US')} km`;
-// The timeline's chapters.
-const ERAS = [
-  { to: 1450, name: 'Early voyagers', sub: 'By the stars, the swells and the sagas' },
-  { to: 1600, name: 'The Age of Discovery', sub: 'Europe sails for the spice trade — and finds the Americas' },
-  { to: 1800, name: 'Charting the oceans', sub: 'Empires, science and the great Pacific' },
-  { to: Infinity, name: 'Ice, science & adventure', sub: 'The poles, the Galápagos and a balsa raft' },
-];
-const eraOf = (year: number) => ERAS.findIndex((e) => year < e.to);
-
 function Portrait({ v }: { v: Voyage }) {
   const [src, setSrc] = useState<string | null>(null);
   useEffect(() => { let live = true; setSrc(null); void wikiPhoto(v.wiki).then((s) => { if (live) setSrc(s); }); return () => { live = false; }; }, [v.wiki]);
@@ -41,10 +34,10 @@ const Flag = ({ v, w = 80, className }: { v: Voyage; w?: 80 | 160; className?: s
   v.flag ? <img className={className} src={flagUrl(v.flag, w)} alt={v.sailedFor} title={`Sailed for ${v.sailedFor}`} /> : <Waves className={className} size={16} aria-label={v.sailedFor} />;
 
 /** Famous voyages: a timeline of them, and each one's story — routes and stops on the globe. */
-export function VoyagesPanel({ active, hover = null, stop, sailing, onPick, onHover, onStop, onSail, onClose }: Props) {
+export function VoyagesPanel({ active, hover = null, era, onEra, stop, sailing, onPick, onHover, onStop, onSail, onClose }: Props) {
   const v = active ? BY_VOYAGE.get(active) ?? null : null;
   const scroller = useRef<HTMLDivElement>(null);
-  useEffect(() => { scroller.current?.scrollTo({ top: 0 }); }, [active]);
+  useEffect(() => { scroller.current?.scrollTo({ top: 0 }); }, [active, era]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -76,46 +69,60 @@ export function VoyagesPanel({ active, hover = null, stop, sailing, onPick, onHo
         <AnimatePresence mode="wait" initial={false}>
           {v
             ? <Detail key={v.id} v={v} stop={stop} sailing={sailing} onStop={onStop} onSail={onSail} onPick={onPick} />
-            : <List key="list" hover={hover} onPick={onPick} onHover={onHover} />}
+            : <List key="list" hover={hover} era={era} onEra={onEra} scroller={scroller} onPick={onPick} onHover={onHover} />}
         </AnimatePresence>
       </div>
     </motion.aside>
   );
 }
 
-function List({ hover, onPick, onHover }: { hover: string | null; onPick: (id: string) => void; onHover: (id: string | null) => void }) {
+/** One era at a time, one route in the spotlight: pointing at a row spotlights it, or on a phone, scrolling the list. */
+function List({ hover, era, onEra, scroller, onPick, onHover }: { hover: string | null; era: number; onEra: (era: number) => void; scroller: React.RefObject<HTMLDivElement | null>; onPick: (id: string) => void; onHover: (id: string) => void }) {
+  const rows = voyagesIn(era);
+  const rowRefs = useRef(new Map<string, HTMLButtonElement>());
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el || !window.matchMedia('(hover: none)').matches) return;
+    const onScroll = () => {
+      const room = el.scrollHeight - el.clientHeight;
+      if (room > 0) onHover(rows[Math.round((el.scrollTop / room) * (rows.length - 1))].id);
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [scroller, rows, onHover]);
+  // A route pointed at on the globe: bring its row into view.
+  useEffect(() => { if (hover && window.matchMedia('(hover: hover)').matches) rowRefs.current.get(hover)?.scrollIntoView({ block: 'nearest' }); }, [hover]);
   return (
-    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.18 }} onMouseLeave={() => onHover(null)}>
-      <ol className="vy-list">
-        {VOYAGES.map((v, i) => {
-          const era = eraOf(v.year);
-          const newEra = i === 0 || eraOf(VOYAGES[i - 1].year) !== era;
+    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.18 }}>
+      <div className="vy-eras" role="tablist" aria-label="Eras">
+        {VOYAGE_ERAS.map((e, i) => (
+          <button key={e.short} role="tab" aria-selected={i === era} className={i === era ? 'on' : ''} onClick={() => onEra(i)}>
+            <b>{e.short}</b><span>{e.range}</span>
+          </button>
+        ))}
+      </div>
+      <p className="vy-era">{VOYAGE_ERAS[era].sub}</p>
+      <ol className="vy-list" key={era}>
+        {rows.map((v, i) => {
           const died = v.deaths?.map((d) => d.who).join(', ');
           return (
-            <Fragment key={v.id}>
-              {newEra && (
-                <li className="vy-era" aria-hidden={false}>
-                  <b>{ERAS[era].name}</b><span>{ERAS[era].sub}</span>
-                </li>
-              )}
-              <motion.li initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(0.4, 0.025 * i) }}>
-                <button className={`vy-row ${hover === v.id ? 'hl' : ''}`} style={{ ['--c' as string]: v.color }} onClick={() => { onPick(v.id); }}
-                  onMouseEnter={() => onHover(v.id)} onFocus={() => onHover(v.id)}>
-                  <span className="vy-year">{v.years.replace(/ – .*/, '')}</span>
-                  <span className="vy-line" aria-hidden />
-                  <span className="vy-text">
-                    <b>{v.voyager}{died && <em className="vy-dagger" title={`Died on this voyage: ${died}`}>†</em>}</b>
-                    <span>{v.tagline}</span>
-                  </span>
-                  <Flag v={v} className="vy-flag" />
-                  <ChevronRight size={16} className="vy-go" />
-                </button>
-              </motion.li>
-            </Fragment>
+            <motion.li key={v.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(0.3, 0.025 * i) }}>
+              <button ref={(el) => { if (el) rowRefs.current.set(v.id, el); else rowRefs.current.delete(v.id); }} className={`vy-row ${hover === v.id ? 'hl' : ''}`} style={{ ['--c' as string]: v.color }} onClick={() => { onPick(v.id); }}
+                onMouseEnter={() => onHover(v.id)} onFocus={() => onHover(v.id)}>
+                <span className="vy-year">{v.years.replace(/ – .*/, '')}</span>
+                <span className="vy-line" aria-hidden />
+                <span className="vy-text">
+                  <b>{v.voyager}{died && <em className="vy-dagger" title={`Died on this voyage: ${died}`}>†</em>}</b>
+                  <span>{v.tagline}</span>
+                </span>
+                <Flag v={v} className="vy-flag" />
+                <ChevronRight size={16} className="vy-go" />
+              </button>
+            </motion.li>
           );
         })}
       </ol>
-      <p className="vy-legend"><em>†</em> a life lost on the voyage</p>
+      {rows.some((v) => v.deaths?.length) && <p className="vy-legend"><em>†</em> a life lost on the voyage</p>}
     </motion.div>
   );
 }
