@@ -146,8 +146,8 @@ export function Sidebar(p: Props) {
             {rail && p.onFriends && <Item icon={Swords} label="Duel a friend" rail onClick={act(p.onFriends)} active={p.matchOn} tone="pink" />}
             {rail && p.onInvite && <Item icon={Link2} label="Invite with a link" rail onClick={act(p.onInvite)} />}
             <Item icon={Grid3x3} tone="lime" label={'Geo Wordle'} sub={'Wordle, but it’s a country'} rail={rail} active={p.playOn === 'wordle'} onClick={act(p.onWordle)} />
-            <Item icon={Puzzle} tone="cyan" label={'Geo Crossword'} sub={'Levels that never stop climbing'} rail={rail} active={p.playOn === 'crossword'} onClick={act(p.onCrossword)} trailing={p.crosswordNew && !rail ? <span className="sb-new">New</span> : undefined} />
             <Item icon={Gamepad2} tone="blue" label={'Map quiz'} sub={'Find countries, flags or clues'} rail={rail} active={p.quizOn} onClick={act(p.onQuiz)} />
+            <Item icon={Puzzle} tone="cyan" label={'Geo Crossword'} sub={'Levels that never stop climbing'} rail={rail} active={p.playOn === 'crossword'} onClick={act(p.onCrossword)} trailing={p.crosswordNew && !rail ? <span className="sb-new">New</span> : undefined} />
             <Item icon={ListOrdered} tone="teal" label={'Name the Top 5'} sub={'Rivers, peaks, populations…'} rail={rail} active={p.playOn === 'top5'} onClick={act(p.onTop5)} />
             <Item icon={Brain} tone="violet" label={'Geo Trivia'} sub={'Gets harder as you get better'} rail={rail} active={p.playOn === 'trivia'} onClick={act(p.onTrivia)} />
             <Item icon={Shapes} tone="rose" label={'Guess the Country'} sub={'Name it from its outline'} rail={rail} active={p.playOn === 'shapes'} onClick={act(p.onShapes)} />
