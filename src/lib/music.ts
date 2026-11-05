@@ -129,8 +129,11 @@ class Engine {
 
   /** Pause/resume the audio clock (e.g. while the tab is hidden) without changing state. */
   suspend(on: boolean) {
-    if (on) void this.ctx.suspend();
-    else if (this.playing) void this.ctx.resume();
+    // (and the scheduler sleeps too: nothing wakes every 60 ms while the app is in the background)
+    if (on) { void this.ctx.suspend(); window.clearInterval(this.timer); this.timer = 0; return; }
+    if (!this.playing) return;
+    void this.ctx.resume();
+    if (!this.timer) { this.nextTime = this.ctx.currentTime + 0.05; this.timer = window.setInterval(() => this.schedule(), WAKE_MS); }
   }
 
   setMode(mode: MusicMode) {

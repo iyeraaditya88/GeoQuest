@@ -158,13 +158,22 @@ export default function App() {
     const check = () => api('/api/health').then((r) => r.json()).then((d) => { if (d.build && BUILD !== 'dev' && d.build !== BUILD) setUpdateReady(true); setAi(!!d.ai); setUser(d.user ?? null); setAuth({ hosted: !!d.hosted, user: d.user ?? null, role: d.role ?? null }); startAnalytics(); setRole(d.role ?? null); setLiveMode(d.live === 'ably' || d.live === 'local' ? d.live : null); }).catch(() => setAi(false));
     void check();
     // Coming back to the app (tab or installed app): check again — that's also how a newer version is noticed.
-    const onVisible = () => { if (document.visibilityState === 'visible') void check(); };
-    window.addEventListener('focus', check);
-    document.addEventListener('visibilitychange', onVisible);
-    return () => { window.removeEventListener('focus', check); document.removeEventListener('visibilitychange', onVisible); };
+    // (Focus and visibility both fire on the way back: one check covers them.)
+    let lastAt = Date.now();
+    const again = () => { if (document.visibilityState !== 'visible' || Date.now() - lastAt < 5000) return; lastAt = Date.now(); void check(); };
+    window.addEventListener('focus', again);
+    document.addEventListener('visibilitychange', again);
+    return () => { window.removeEventListener('focus', again); document.removeEventListener('visibilitychange', again); };
   }, []);
   // A newer version is live: switch to it quietly (see below).
   const [updateReady, setUpdateReady] = useState(false);
+  const touchedRef = useRef(false);
+  useEffect(() => {
+    const on = () => { touchedRef.current = true; };
+    window.addEventListener('pointerdown', on, { once: true, passive: true });
+    window.addEventListener('keydown', on, { once: true });
+    return () => { window.removeEventListener('pointerdown', on); window.removeEventListener('keydown', on); };
+  }, []);
   const [ready, setReady] = useState(false);
   // Globe ↔ flat atlas
   const [view, setView] = useState<'globe' | 'flat'>('globe');
@@ -1255,7 +1264,9 @@ export default function App() {
     if (document.visibilityState === 'hidden') { reloadForUpdate(); return; }
     const onHide = () => { if (document.visibilityState === 'hidden') reloadForUpdate(); };
     document.addEventListener('visibilitychange', onHide);
-    const t = window.setTimeout(() => { if (!selected) reloadForUpdate(); }, 1500);
+    // Straight away only just after opening, before you've touched anything. Back after a while
+    // away, the app is already in your hands: a reload then would rebuild the globe under you.
+    const t = window.setTimeout(() => { if (!selected && !touchedRef.current && performance.now() < 20_000) reloadForUpdate(); }, 1500);
     return () => { document.removeEventListener('visibilitychange', onHide); window.clearTimeout(t); };
   }, [updateReady, idle, selected]);
 

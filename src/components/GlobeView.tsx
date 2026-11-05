@@ -511,16 +511,20 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
     return () => { el.removeEventListener('wheel', onWheel, { capture: true }); cancelAnimationFrame(raf); };
   }, []);
 
-  // Adaptive quality: if the first second of animation is slow, render fewer pixels.
-  const tuneQuality = () => {
+  // Adaptive quality: if the first second of animation is slow, render fewer pixels. Measured again
+  // when the app comes back from a while in the background: a phone may be warm, or busier, by then.
+  const tuning = useRef(false), tuned = useRef(false), asked = useRef(false);
+  const tuneQuality = (delay = 3200) => {
     const g = globe.current;
-    if (!g) return;
+    if (!g || tuning.current) return;
+    asked.current = true;
     const dpr = window.devicePixelRatio || 1;
     if (dpr <= 1.25) return;
+    tuning.current = true;
     const times: number[] = [];
     let last = 0;
     const sample = (now: number) => {
-      if (document.hidden) { times.length = 0; last = 0; requestAnimationFrame(sample); return; }
+      if (document.hidden) { times.length = 0; last = 0; tuning.current = false; return; }
       if (last) times.push(now - last);
       last = now;
       if (times.length < 90) { requestAnimationFrame(sample); return; }
@@ -528,12 +532,26 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
       const median = sorted[Math.floor(sorted.length / 2)];
       // ~60fps keeps full sharpness; noticeably slower machines trade a little resolution for smoothness.
       const ratio = median > 34 ? 1.25 : median > 21 ? 1.5 : Math.min(dpr, 2);
-      g.renderer().setPixelRatio(ratio);
+      tuning.current = false;
+      tuned.current = true;
+      if (g.renderer().getPixelRatio() !== ratio) g.renderer().setPixelRatio(ratio);
       console.info(`[geoquest] median frame ${median.toFixed(1)}ms → pixel ratio ${ratio}`);
     };
-    // Measure after the intro flight settles.
-    window.setTimeout(() => requestAnimationFrame(sample), 3200);
+    // Measure once things settle (the intro flight; on a return, the redraw).
+    window.setTimeout(() => requestAnimationFrame(sample), delay);
   };
+  const tuneRef = useRef(tuneQuality);
+  tuneRef.current = tuneQuality;
+  useEffect(() => {
+    let hiddenAt = 0;
+    const onVis = () => {
+      if (document.hidden) { hiddenAt = Date.now(); return; }
+      if (asked.current && (!tuned.current || (hiddenAt && Date.now() - hiddenAt > 30_000))) tuneRef.current(2500);
+      hiddenAt = 0;
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
 
   // Auto-rotate only while idle with nothing selected.
   useEffect(() => {
