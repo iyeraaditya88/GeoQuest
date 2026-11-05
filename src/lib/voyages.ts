@@ -324,12 +324,13 @@ export function routeView(v: Voyage) {
   return { lat, lng, altitude: Math.min(3.2, Math.max(0.9, 0.4 + spread / 22)) };
 }
 
-// The timeline's chapters. The globe and the list show one at a time.
+// The timeline's chapters. The globe and the list show one at a time; `view` is where the globe rests
+// for each, facing most of its voyages (and the first one in the spotlight).
 export const VOYAGE_ERAS = [
-  { to: 1450, short: 'Early', range: 'to 1450', sub: 'By the stars, the swells and the sagas' },
-  { to: 1600, short: 'Discovery', range: '1450–1600', sub: 'Europe sails for the spice trade — and finds the Americas' },
-  { to: 1800, short: 'Oceans', range: '1600–1800', sub: 'Empires, science and the great Pacific' },
-  { to: Infinity, short: 'Ice', range: '1800 on', sub: 'The poles, the Galápagos and a balsa raft' },
+  { to: 1450, short: 'Early', range: 'to 1450', view: [30, -20], sub: 'By the stars, the swells and the sagas' },
+  { to: 1600, short: 'Discovery', range: '1450–1600', view: [22, -20], sub: 'Europe sails for the spice trade — and finds the Americas' },
+  { to: 1800, short: 'Oceans', range: '1600–1800', view: [15, -120], sub: 'Empires, science and the great Pacific' },
+  { to: Infinity, short: 'Ice', range: '1800 on', view: [-5, -65], sub: 'The poles, the Galápagos and a balsa raft' },
 ];
 export const eraOf = (year: number) => VOYAGE_ERAS.findIndex((e) => year < e.to);
 export const voyagesIn = (era: number) => VOYAGES.filter((v) => eraOf(v.year) === era);
