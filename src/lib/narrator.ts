@@ -47,6 +47,7 @@ let priming: Promise<void> | null = null;
 let blocked = false;
 /** The voice has played from a tap at least once: the phone lets it play by itself from now on. */
 let unlocked = false;
+let lastErr = '';
 /** The clip on screen for subtitles: stays after it ends (through the breath before the next). */
 let shown: { id: string; clip: Clip } | null = null;
 const timeListeners = new Set<() => void>();
@@ -176,12 +177,14 @@ export const narrator = {
       return;
     }
     if (unlocked || current || priming) return;
-    v.muted = true;
+    // Not muted: iPhone lets a muted element play without a tap, so a muted unlock unlocks nothing
+    // (the first clip, with sound, was then refused). It's silence anyway.
+    v.muted = false;
     v.src = silentWav();
     priming = v.play()
       .then(() => { unlocked = true; if (!current) v.pause(); })
-      .catch(() => {}) // (refused: the next tap tries again)
-      .finally(() => { v.muted = false; priming = null; });
+      .catch((e) => { lastErr = `unlock:${(e as DOMException)?.name}`; }) // (refused: the next tap tries again)
+      .finally(() => { priming = null; });
   },
   /**
    * Speak a clip; resolves when it ends (or is stopped, or can't play). Saying the clip that is
@@ -220,6 +223,7 @@ export const narrator = {
       unlocked = true;
     } catch (e) {
       const why = (e as DOMException)?.name;
+      lastErr = `${id}:${why}`;
       if (current === mine && why !== 'AbortError') track('narration_err', { why: why ?? 'unknown', id, unlocked: unlocked ? 1 : 0 });
       // Interrupted (paused, or another clip took over): not a failure — whoever interrupted carries on.
       if (current !== mine || why === 'AbortError') { /* nothing to do */ }
@@ -304,6 +308,24 @@ function clearSession() {
   const s = ms();
   if (!s) return;
   try { s.metadata = null; s.playbackState = 'none'; } catch { /* unsupported */ }
+}
+
+// A readout of the narrator's state, for checking a phone: open the app with ?narrdebug.
+if (typeof window !== 'undefined' && /[?&]narrdebug/.test(window.location.search)) {
+  const box = document.createElement('pre');
+  box.style.cssText = 'position:fixed;z-index:99999;top:calc(env(safe-area-inset-top,0px) + 4px);left:4px;margin:0;padding:6px 8px;max-width:70vw;font:11px/1.35 ui-monospace,monospace;color:#bef264;background:rgba(0,0,0,0.8);border-radius:6px;pointer-events:none;white-space:pre-wrap';
+  const show = () => {
+    box.textContent = [
+      `on ${narrationOn()} · available ${available}`,
+      `unlocked ${unlocked} · priming ${!!priming} · blocked ${blocked}`,
+      `clip ${current?.id ?? '-'} · shown ${shown?.id ?? '-'}`,
+      el ? `voice ${el.paused ? 'paused' : 'playing'} ${el.currentTime.toFixed(1)}s ${el.muted ? 'MUTED ' : ''}${el.src.startsWith('data') ? 'silence' : el.src.split('/').pop()?.slice(0, 14)}` : 'voice -',
+      `sounds ${ctx?.state ?? '-'} · bed ${bed?.id ?? '-'}`,
+      `last error ${lastErr || '-'}`,
+    ].join('\n');
+  };
+  const start = () => { document.body.appendChild(box); window.setInterval(show, 400); };
+  if (document.body) start(); else window.addEventListener('DOMContentLoaded', start);
 }
 
 // For browser tests in development: what's playing.
