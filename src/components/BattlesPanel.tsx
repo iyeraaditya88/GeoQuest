@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type MutableRefObject, type RefObject } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, Crown, ExternalLink, FastForward, MapPin, Pause, Play, RotateCcw, Skull, SkipBack, SkipForward, Sparkles, Swords, Trophy, Volume2, VolumeX, X } from 'lucide-react';
+import { ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, Crown, ExternalLink, FastForward, MapPin, Pause, Play, RotateCcw, Skull, SkipBack, SkipForward, Sparkles, ChevronUp, Swords, Trophy, Volume2, VolumeX, X } from 'lucide-react';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import { BATTLES, BATTLE_ERAS, BY_BATTLE, SIDE_COLOR, battleAltitude, battleEraOf, battlesIn, fmtMen, type Battle, type Side } from '../lib/battles';
 import { WORLD_WARS, eventAtMonth, warMapAt, type WarStatus, type WorldWar } from '../lib/worldWars';
 import { track } from '../lib/analytics';
 import { breathMs, narrationOn, narrator } from '../lib/narrator';
+import { Subtitles } from './theatre/Subtitles';
+import { useTheatre, type Inset } from './theatre/useTheatre';
 import type { GlobePath } from './GlobeView';
 import { WW2_SHAPES } from '../data/historical/ww2';
 import type { HistShape } from '../data/historical/types';
@@ -26,6 +28,8 @@ interface Props {
   onFrame: (lat: number, lng: number, altitude: number) => void;
   pinRef: MutableRefObject<(id: string) => void>;
   onClose: () => void;
+  /** How much of the screen the panel covers (the cinema map frames the rest). */
+  onInset?: (i: Inset) => void;
 }
 
 const GOLD = '#fbbf24';
@@ -35,7 +39,7 @@ const viewOf = (link?: string | null): View => (link && isWar(link) ? { kind: 'w
 const eraFor = (v: View) => (v.kind === 'battle' ? battleEraOf(BY_BATTLE.get(v.id)!.year) : v.kind === 'war' ? 3 : 0);
 
 /** Battles and wars: both world wars as animated timelines, and every other turning point since 1500. */
-export function BattlesPanel({ link, onScene, onFrame, pinRef, onClose }: Props) {
+export function BattlesPanel({ link, onScene, onFrame, pinRef, onClose, onInset }: Props) {
   const [view, setView] = useState<View>(() => viewOf(link));
   const [era, setEra] = useState(() => eraFor(viewOf(link)));
   const [hover, setHover] = useState<string | null>(null);
@@ -54,6 +58,9 @@ export function BattlesPanel({ link, onScene, onFrame, pinRef, onClose }: Props)
   }, []);
   const toList = useCallback(() => setView({ kind: 'list' }), []);
   pinRef.current = open;
+  // A war or a battle plays on the map: on a phone the panel shrinks to a now-playing card.
+  const { ref: sheetRef, peek, setPeek, swipe } = useTheatre(view.kind !== 'list', onInset);
+  const phone = useMemo(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches, []);
 
   // The camera only moves on a choice: opening something or picking a chapter, never on a hover.
   useEffect(() => {
@@ -77,9 +84,12 @@ export function BattlesPanel({ link, onScene, onFrame, pinRef, onClose }: Props)
   }, [view.kind, onClose, toList]);
 
   return (
-    <motion.aside className="voy-panel bw-panel" role="dialog" aria-label="Battles and Wars"
-      initial={{ opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
-      <span className="voy-grab" aria-hidden />
+    <motion.aside ref={sheetRef} className={`voy-panel bw-panel ${view.kind !== 'list' ? 'theatre' : ''} ${peek ? 'peek' : ''}`} role="dialog" aria-label="Battles and Wars"
+      initial={phone ? { opacity: 0, y: 40 } : { opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0, y: 0 }} exit={phone ? { opacity: 0, y: 40 } : { opacity: 0, x: -24 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      {...swipe}>
+      {view.kind !== 'list' ? (
+        <button className="voy-grab theatre-grab" onClick={() => setPeek((p) => !p)} aria-label={peek ? 'Show the details' : 'Back to the map'} aria-expanded={!peek}><i /></button>
+      ) : <span className="voy-grab" aria-hidden />}
       <header className="gc-head">
         {view.kind !== 'list' ? (
           <button className="vy-back" onClick={toList}><ArrowLeft size={16} /> All battles</button>
@@ -95,7 +105,7 @@ export function BattlesPanel({ link, onScene, onFrame, pinRef, onClose }: Props)
       <div className="voy-scroll" ref={scroller}>
         <AnimatePresence mode="wait" initial={false}>
           {view.kind === 'list' && <List key="list" era={era} onEra={(e) => { track('battle_era', { e }); setEra(e); setHover(null); }} hover={hover} onHover={setHover} scroller={scroller} onOpen={open} />}
-          {view.kind === 'battle' && <Detail key={view.id} b={BY_BATTLE.get(view.id)!} onScene={onScene} onOpen={open} />}
+          {view.kind === 'battle' && <Detail key={view.id} b={BY_BATTLE.get(view.id)!} onScene={onScene} onOpen={open} onMore={() => setPeek(false)} />}
           {view.kind === 'war' && <WarPlayer key={view.id} war={WORLD_WARS[view.id]} onScene={onScene} onFrame={onFrame} />}
         </AnimatePresence>
       </div>
@@ -177,7 +187,7 @@ function Fighter({ side, tone, won, of }: { side: Side; tone: string; won: boole
   );
 }
 
-function Detail({ b, onScene, onOpen }: { b: Battle; onScene: (s: WarScene) => void; onOpen: (id: string) => void }) {
+function Detail({ b, onScene, onOpen, onMore }: { b: Battle; onScene: (s: WarScene) => void; onOpen: (id: string) => void; onMore: () => void }) {
   const i = BATTLES.indexOf(b);
   const prev = BATTLES[i - 1], next = BATTLES[i + 1];
   const [run, setRun] = useState(0);
@@ -204,6 +214,7 @@ function Detail({ b, onScene, onOpen }: { b: Battle; onScene: (s: WarScene) => v
       <span className="er-kicker">{b.kind === 'war' ? 'War' : 'Battle'} · {b.when}</span>
       <h2 className="vy-title bw-title">{b.name}</h2>
       <p className="bw-line">{b.line}</p>
+      <button className="peek-more" onClick={onMore}><ChevronUp size={15} /> The story</button>
 
       <div className="bw-versus">
         <Fighter side={b.a} tone={SIDE_COLOR.a} won={b.won === 'a'} of={of} />
@@ -343,7 +354,7 @@ function WarPlayer({ war, onScene, onFrame }: { war: WorldWar; onScene: (s: WarS
             <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }}>
               <em className="bw-date">{ev.date}</em>
               <h2>{ev.title}</h2>
-              <p>{ev.text}</p>
+              <Subtitles id={`${war.id}:${i}`} fallback={ev.text} />
               {changed.length > 0 && (
                 <div className="bw-chips">
                   {changed.map((id, k) => (

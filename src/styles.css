@@ -3348,7 +3348,8 @@ svg.vy-flag { color: #2dd4bf; }
 .cine-layer:has(.cine-map.ready) { opacity: 1; }
 .cine-layer .cine-map { position: absolute; inset: 0; } /* (over maplibre’s own `position: relative`) */
 .cine-vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 75% 70% at 55% 45%, transparent 55%, rgba(3, 6, 14, 0.6) 100%); }
-.cine-layer .maplibregl-ctrl-bottom-right { bottom: env(safe-area-inset-bottom, 0px); }
+/* The map's credit sits up top, clear of the panel (a column on the left, or a sheet below). */
+.cine-layer .maplibregl-ctrl-top-right { top: var(--st); right: var(--sr); }
 .cine-flag { position: relative; width: 34px; height: 46px; pointer-events: none; transform-origin: bottom left; animation: cine-rise 0.6s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
 .cine-flag i { position: absolute; left: 0; top: 0; bottom: 0; width: 2.5px; border-radius: 2px; background: linear-gradient(#fafaf9, #a8a29e); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
 .cine-flag span { position: absolute; left: 2.5px; top: 2px; width: 30px; height: 20px; overflow: hidden; border-radius: 1px 3px 3px 1px; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.55); transform-origin: left center; animation: cine-wave 2.8s ease-in-out infinite; }
@@ -3357,3 +3358,38 @@ svg.vy-flag { color: #2dd4bf; }
 @keyframes cine-rise { from { opacity: 0; transform: scaleY(0); } }
 @keyframes cine-wave { 50% { transform: skewY(-5deg) scaleX(0.93); } }
 @media (prefers-reduced-motion: reduce) { .cine-flag, .cine-flag span { animation: none; } .cine-layer { transition: none; } }
+
+/* ── Theatre mode: a war, battle or voyage playing on the map ──
+   Phones (portrait): the panel shrinks to a slim now-playing card so the map has the screen;
+   swipe it up (or tap the handle) for the details. Landscape phones: a column on the left. */
+.subs { min-height: calc(1.45em * 4); font-size: 15px; }
+.subs p, .bw-now .subs p { margin: 0; font-size: 1em; line-height: 1.45; color: #e8edf5; text-wrap: pretty; }
+.subs p.long { font-size: 0.9em; }
+.peek-more { display: none; }
+@media (max-width: 900px) and (orientation: portrait), (max-width: 900px) and (min-height: 521px) {
+  .voy-panel.theatre { height: calc(100dvh - 64px - var(--st)); transition: height 0.38s var(--ease); }
+  .voy-panel.theatre.peek { height: auto; overflow: visible; }
+  .voy-grab.theatre-grab { display: grid; place-items: center; width: 100%; height: 22px; margin: 0; padding: 0; border-radius: 22px 22px 0 0; background: none; cursor: pointer; }
+  .theatre-grab i { width: 38px; height: 4px; border-radius: 4px; background: rgba(255, 255, 255, 0.28); }
+  /* Back and close float over the map, just above the card. */
+  .voy-panel.peek > .gc-head { position: absolute; left: 10px; right: 10px; bottom: calc(100% + 10px); padding: 0; pointer-events: none; }
+  .voy-panel.peek > .gc-head > * { pointer-events: auto; }
+  .voy-panel.peek > .gc-head .vy-back, .voy-panel.peek > .gc-head .icon-btn { color: var(--text); background: rgba(9, 14, 30, 0.8); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35); }
+  .voy-panel.peek .voy-scroll { overflow: hidden; padding-bottom: 10px; }
+  /* A war: date, title, what George is saying, the timeline and the controls. */
+  .peek .bw-player > :not(.bw-stage) { display: none; }
+  .peek .bw-stage { position: static; gap: 2px; padding-bottom: 0; background: none; box-shadow: none; }
+  .peek .bw-war-name, .peek .bw-legend, .peek .bw-chips { display: none; }
+  .peek .bw-now { min-height: 0; }
+  .peek .bw-now h2 { margin: 1px 0 6px; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .peek .subs, .peek .sub-fallback { height: calc(1.45em * 4); min-height: 0; overflow: hidden; font-size: 15px; line-height: 1.45; }
+  .peek .bw-scrub { height: 34px; }
+  /* A battle: what it was, then the story on a swipe. */
+  .peek .bw-detail > :not(.er-kicker, .bw-title, .bw-line, .peek-more) { display: none; }
+  .peek .bw-detail .bw-title { font-size: 20px; }
+  .peek .peek-more { display: inline-flex; align-items: center; gap: 6px; height: 36px; margin-top: 8px; padding: 0 14px 0 10px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--c, var(--gold)); background: rgba(255, 255, 255, 0.06); }
+}
+@media (max-width: 900px) and (max-height: 520px) and (orientation: landscape) {
+  .voy-panel { top: calc(8px + var(--st)); bottom: calc(8px + var(--sb)); left: calc(8px + var(--sl)) !important; right: auto; width: min(340px, 44vw); height: auto; border-radius: 18px; padding-bottom: 0; }
+  .voy-grab { display: none; }
+}

@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { alignCues, lineAt, splitSentences } from '../src/lib/subtitles';
 import { readFileSync } from 'node:fs';
 import { WORLD_WARS } from '../src/lib/worldWars';
 import { breathMs } from '../src/lib/narrator';
@@ -819,5 +820,38 @@ describe('narration', () => {
   it('breathes between clips, shorter at 2×', () => {
     expect(breathMs(false)).toBeGreaterThan(breathMs(true));
     expect(breathMs(true)).toBeGreaterThan(0);
+  });
+});
+
+describe('subtitles', () => {
+  it('splits a script into sentences, keeping initials together', () => {
+    expect(splitSentences('June 1916. Later, T. E. Lawrence rides. Watch the line give way.'))
+      .toEqual(['June 1916.', 'Later, T. E. Lawrence rides.', 'Watch the line give way.']);
+  });
+  it('every war script splits cleanly and rejoins to the same text', () => {
+    const wars = JSON.parse(readFileSync('narration/scripts/wars.json', 'utf8')) as Record<string, { text: string }>;
+    for (const [id, c] of Object.entries(wars)) {
+      const s = splitSentences(c.text);
+      expect(s.length, id).toBeGreaterThanOrEqual(3);
+      expect(s.join(' '), id).toBe(c.text.trim());
+    }
+  });
+  it('matches sentence breaks to the long pauses near where they should fall, not comma pauses', () => {
+    // Real pauses from the recording of ww1:10 (six sentences, ~45 s): the 0.52 s pause at 20.2 s is a comma.
+    const pauses = [[2.5, 0.68], [5.5, 0.23], [7.8, 0.41], [11.2, 0.7], [13.7, 0.32], [15.4, 0.39], [20.2, 0.52], [24.2, 0.79], [27.1, 0.41], [31.1, 0.27], [35.1, 1.18], [37.4, 0.47], [41, 0.44]]
+      .map(([at, len]) => ({ at, len }));
+    const lines = ['June 1916.', 'In Arabia, Sharif Hussein of Mecca rises against the Ottomans, hoping to win independence for the Arabs.',
+      'Later, a young British officer, T. E. Lawrence, rides with the camel-borne forces of Hussein’s son, Faisal, raiding the long Hejaz railway across the desert.',
+      'And far to the north, in the same month, Russia’s General Brusilov strikes Austria-Hungary with a sudden, carefully prepared offensive.',
+      'Watch the line give way.', 'It is one of Russia’s greatest victories of the war, but its cost will help to break the army.'];
+    const cues = alignCues(lines, pauses, 45);
+    expect(cues.map((c) => Math.round(c / 100) / 10)).toEqual([0, 2.4, 11.1, 24.1, 35, 37.3]);
+  });
+  it('falls back to an estimate by length when there are no pauses, and finds the line at a time', () => {
+    const cues = alignCues(['One two.', 'Three four.'], [], 10);
+    expect(cues[0]).toBe(0);
+    expect(cues[1]).toBeGreaterThan(3000);
+    expect(lineAt(cues, 0)).toBe(0);
+    expect(lineAt(cues, 9000)).toBe(1);
   });
 });

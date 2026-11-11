@@ -1115,7 +1115,14 @@ export default function App() {
   const [cineCam, setCineCam] = useState<{ lat: number; lng: number; alt: number; n: number } | null>(null);
   const [cineFailed, setCineFailed] = useState(false);
   const [cineReady, setCineReady] = useState(false);
+  // The explore panels (voyages, wars…): a bottom sheet on phones, a column on the left otherwise
+  // (a 400px card on big screens; a narrower one on a phone turned sideways).
+  const phoneSideways = vp.w <= 900 && vp.w > vp.h && vp.h <= 520;
+  const panelSheet = vp.w <= 900 && !phoneSideways;
+  const panelColumn = panelSheet ? 0 : phoneSideways ? Math.min(340, vp.w * 0.44) + 8 : 416;
   const cinemaOn = !!battles && !!warScene?.focus && !cineFailed && hasWebgl2();
+  // What the panel covers (a sheet below, or a column on the left): the cinema map frames the rest.
+  const [cineInset, setCineInset] = useState<{ left: number; bottom: number } | null>(null);
   useEffect(() => { if (!cinemaOn) setCineReady(false); }, [cinemaOn]);
   useEffect(() => {
     if (!cineReady) return;
@@ -1201,8 +1208,8 @@ export default function App() {
     state: feedback?.cca3 === c.cca3 ? feedback.kind : undefined,
   })) : NO_PINS), [findOnGlobe, feedback]);
   const globePins = useMemo(
-    () => (battles ? warScene?.pins ?? NO_PINS : voy ? voyPins : eras ? eraPins : emp ? empPins : anti ? antiPins : findOnGlobe ? tinyPins : inGame ? NO_PINS : placesOpen && placesDraft ? [...placePins, { ...placesDraft, kind: 'guess' as const }] : placePins),
-    [battles, warScene, voy, voyPins, eras, eraPins, emp, empPins, findOnGlobe, tinyPins, anti, antiPins, inGame, placesOpen, placesDraft, placePins],
+    () => (battles ? (cinemaOn ? NO_PINS : warScene?.pins ?? NO_PINS) : voy ? voyPins : eras ? eraPins : emp ? empPins : anti ? antiPins : findOnGlobe ? tinyPins : inGame ? NO_PINS : placesOpen && placesDraft ? [...placePins, { ...placesDraft, kind: 'guess' as const }] : placePins),
+    [battles, cinemaOn, warScene, voy, voyPins, eras, eraPins, emp, empPins, findOnGlobe, tinyPins, anti, antiPins, inGame, placesOpen, placesDraft, placePins],
   );
 
   const startAntipode = async () => {
@@ -1324,18 +1331,18 @@ export default function App() {
         autoRotate={autoRotate}
         feedback={feedback}
         quiz={!!quiz || liveState.quiz || mxPicking}
-        liftUp={(dockOpen && !quiz) || ((!!voy || !!eras || !!emp || !!battles || (play === 'mystery' && mxStage !== 'banner')) && vp.w <= 900) || (!!quiz && vp.w <= 600 && vp.h > vp.w)}
+        liftUp={(dockOpen && !quiz) || ((!!voy || !!eras || !!emp || !!battles || (play === 'mystery' && mxStage !== 'banner')) && panelSheet) || (!!quiz && vp.w <= 600 && vp.h > vp.w)}
         dropDown={(!!play && play !== 'mystery') || placesOpen || (!!anti && anti.stage !== 'dive') || (!!quiz && !(vp.w <= 600 && vp.h > vp.w))}
         pickMode={(!!anti && anti.stage !== 'dive') || placesOpen}
         onPick={(lat, lng) => (placesOpen ? setPlacesPick({ lat, lng, n: Date.now() }) : pickAntipode(lat, lng))}
         pins={globePins}
         onPin={(id) => (id.startsWith('bw:') ? warPin.current(id.slice(3)) : id.startsWith('stop:') ? stopVoyage(Number(id.slice(5))) : id.startsWith('era:') ? pickEra(id.slice(4)) : id === 'heart' || id.startsWith('hub:') ? placeEra(id) : id.startsWith('emp:') ? pickEmpire(id.slice(4)) : id === 'capital' || id.startsWith('place:') ? placeEmpire(id) : openPlace(id))}
-        paths={battles ? warScene?.paths ?? NO_ROUTES : voy ? voyPaths : eras ? eraPaths : mxPaths}
+        paths={battles ? (cinemaOn ? NO_ROUTES : warScene?.paths ?? NO_ROUTES) : voy ? voyPaths : eras ? eraPaths : mxPaths}
         paint={battles ? warScene?.paint ?? null : null}
         tint={empTint}
         onPathPick={voy && !voy.id ? (id) => pickVoyage(id, 'globe') : undefined}
         onPathHover={voy && !voy.id ? hoverVoyage : undefined}
-        leftInset={leftInset + ((voy || eras || emp || battles || play === 'mystery') && vp.w > 900 ? 416 : 0)}
+        leftInset={leftInset + ((voy || eras || emp || battles || play === 'mystery') ? panelColumn : 0)}
         nature={showNature}
         calm={!!voy || !!battles}
         hidden={globeHidden || !!geo || liveState.immersive}
@@ -1350,7 +1357,7 @@ export default function App() {
         <ErrorBoundary name="The battle map" onClose={() => setCineFailed(true)}>
           <Suspense fallback={null}>
             <CinemaMap scene={warScene} camera={cineCam} narrow={vp.w <= 900}
-              padding={vp.w <= 900 ? { left: 0, bottom: Math.min(vp.h * 0.52, 560) } : { left: leftInset + 416, bottom: 0 }}
+              padding={cineInset ?? (panelSheet ? { left: 0, bottom: Math.min(vp.h * 0.52, 560) } : { left: leftInset + panelColumn, bottom: 0 })}
               onReady={() => setCineReady(true)} onFail={() => setCineFailed(true)} />
           </Suspense>
         </ErrorBoundary>
@@ -1554,7 +1561,7 @@ export default function App() {
         {battles && (
           <ErrorBoundary key="battles" name="Battles and Wars" onClose={closeBattles}>
             <Suspense fallback={null}>
-              <BattlesPanel link={battles.link} onScene={setWarScene} onFrame={frameWar} pinRef={warPin} onClose={closeBattles} />
+              <BattlesPanel link={battles.link} onScene={setWarScene} onFrame={frameWar} pinRef={warPin} onClose={closeBattles} onInset={setCineInset} />
             </Suspense>
           </ErrorBoundary>
         )}

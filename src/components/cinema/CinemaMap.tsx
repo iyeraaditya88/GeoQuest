@@ -197,8 +197,10 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, onReady, onFa
       });
     } catch { onFail(); return; }
     map.current = m;
+    // Start framed like the globe it replaces (the same room left for the panel), then swoop in.
+    m.setPadding({ ...padRef.current, top: 0, right: 0 });
     if (import.meta.env.DEV) (window as unknown as { __cine?: maplibregl.Map }).__cine = m; // (for checking it from the console)
-    m.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+    m.addControl(new maplibregl.AttributionControl({ compact: true }), 'top-right');
     let failed = false;
     m.on('error', (e) => { if (!ready.current && !failed && /webgl|context/i.test(String(e.error?.message))) { failed = true; onFail(); } });
     m.once('load', () => {
@@ -408,6 +410,16 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, onReady, onFa
       m.easeTo({ bearing: bearing + 7, zoom: zoom + 0.22, duration: 16000, easing: (t) => t, padding: pad, essential: true });
     });
   }
+
+  // The panel grew or shrank (the details opened, the phone turned): re-centre on what's left.
+  const padKey = `${padding.left},${padding.bottom}`;
+  const lastPad = useRef(padKey);
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !ready.current || lastPad.current === padKey) return;
+    lastPad.current = padKey;
+    m.easeTo({ padding: { ...padRef.current, top: 0, right: 0 }, duration: calmMotion() ? 0 : 500, essential: true });
+  }, [padKey]);
 
   // Redraw whenever the panel hands over a new scene or camera.
   useEffect(() => { draw(); }); // eslint-disable-line react-hooks/exhaustive-deps

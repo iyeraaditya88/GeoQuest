@@ -7,6 +7,7 @@
 // The beds are Web Audio buffers, because iPhones won't let a page set an <audio> element's volume.
 // Background music dips while the voice speaks.
 import { music, silentWav } from './music';
+import { lineAt } from './subtitles';
 
 const BASE = '/narration';
 const KEY = 'gq-narration';
@@ -14,7 +15,7 @@ const BED_VOL = 0.24, HIT_VOL = 0.33; // under the voice: the mix approved at th
 /** Where in a clip its single sound lands (share of the clip): bells at the end, a whistle at the start. */
 const HIT_AT: Record<string, number> = { whistle: 0.1, 'church-bells': 0.72, 'crowd-cheer': 0.45, 'air-raid-siren': 0.55 };
 
-export interface Clip { file: string; ms: number; bed?: string; hit?: string }
+export interface Clip { file: string; ms: number; lines?: string[]; cues?: number[]; bed?: string; hit?: string }
 export type SayResult = 'ended' | 'stopped' | 'failed';
 
 /** The pause after a clip before the story moves on: room to look at the map. */
@@ -39,6 +40,10 @@ function load() {
 let el: HTMLAudioElement | null = null;
 let current: { id: string; done: (r: SayResult) => void; hit?: string; hitAt: number; hitDone: boolean } | null = null;
 let unduck = 0;
+/** The clip on screen for subtitles: stays after it ends (through the breath before the next). */
+let shown: { id: string; clip: Clip } | null = null;
+const timeListeners = new Set<() => void>();
+const tick = () => { for (const l of timeListeners) l(); };
 
 function voice() {
   if (el) return el;
@@ -48,6 +53,7 @@ function voice() {
   el.addEventListener('ended', () => finish('ended'));
   el.addEventListener('error', () => { if (current && el?.src.includes(BASE)) finish('failed'); });
   el.addEventListener('timeupdate', () => {
+    tick();
     const c = current;
     if (!c || c.hitDone || !c.hit || !el?.duration) return;
     if (el.currentTime >= c.hitAt * el.duration) { c.hitDone = true; void playHit(c.hit); }
@@ -58,6 +64,7 @@ function voice() {
 function finish(r: SayResult) {
   const c = current;
   current = null;
+  if (r === 'failed' && shown?.id === c?.id) { shown = null; tick(); } // the summary shows instead
   // Music comes back up only if nothing follows shortly (between clips it stays low).
   window.clearTimeout(unduck);
   unduck = window.setTimeout(() => music.duck(false), r === 'ended' ? 2600 : 300);
@@ -168,6 +175,8 @@ export const narrator = {
     if (!resuming) {
       current?.done('stopped');
       v.src = `${BASE}/${clip.file}`;
+      shown = { id, clip };
+      tick();
     }
     const done = new Promise<SayResult>((res) => {
       const prev = resuming ? current : null;
@@ -201,10 +210,24 @@ export const narrator = {
   stop() {
     el?.pause();
     if (current) finish('stopped');
+    shown = null;
+    tick();
     if (ctx?.state === 'suspended') void ctx.resume();
     dropBed(1.2);
     clearSession();
   },
+  /**
+   * The subtitle for a clip: its sentences and which one George is on (null if that clip isn't
+   * the one playing). After a clip ends its last sentence stays until the next begins.
+   */
+  line(id: string): { lines: string[]; k: number } | null {
+    if (shown?.id !== id || !shown.clip.lines?.length) return null;
+    const { lines, cues = [0] } = shown.clip;
+    const k = current?.id === id && el ? lineAt(cues, el.currentTime * 1000) : lines.length - 1;
+    return { lines, k };
+  },
+  /** Called as the voice moves on (a few times a second while speaking). */
+  onTime(cb: () => void) { timeListeners.add(cb); return () => { timeListeners.delete(cb); }; },
   setOn(on: boolean) {
     try { localStorage.setItem(KEY, on ? 'on' : 'off'); } catch { /* ignore */ }
     if (!on) narrator.stop();

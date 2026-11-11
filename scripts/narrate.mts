@@ -9,10 +9,11 @@
 // Needs ELEVENLABS_API_KEY in .env (read here at run time, never printed). Files land in folders
 // that git ignores; nothing is uploaded yet.
 import 'dotenv/config';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { alignCues, splitSentences, type Pause } from '../src/lib/subtitles.ts';
 
 const KEY = process.env.ELEVENLABS_API_KEY;
 if (!KEY) { console.error('Add ELEVENLABS_API_KEY to .env first (and keep it out of chat).'); process.exit(1); }
@@ -39,6 +40,12 @@ async function voices(): Promise<Voice[]> {
   const r = await fetch(`${API}/voices`, { headers: { 'xi-api-key': KEY! } });
   if (!r.ok) throw new Error(`ElevenLabs ${r.status}: ${(await r.text()).slice(0, 200)}`);
   return ((await r.json()) as { voices: Voice[] }).voices;
+}
+
+/** The silences in a clip (where speech resumes, and for how long it paused), for the subtitles. */
+function pauses(file: string): Pause[] {
+  const r = spawnSync('ffmpeg', ['-hide_banner', '-i', file, '-af', 'silencedetect=noise=-38dB:d=0.18', '-f', 'null', '-'], { encoding: 'utf8' });
+  return [...r.stderr.matchAll(/silence_end: ([\d.]+) \| silence_duration: ([\d.]+)/g)].map((m) => ({ at: +m[1], len: +m[2] }));
 }
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -79,7 +86,7 @@ if (mode === '--audition') {
   const scripts = JSON.parse(await readFile(`narration/scripts/${set}.json`, 'utf8')) as Record<string, { text: string; bed?: string; hit?: string }>;
   await mkdir('narration/out', { recursive: true });
   const mPath = 'narration/out/manifest.json';
-  const manifest: Record<string, { file: string; ms: number; bed?: string; hit?: string }> = existsSync(mPath) ? JSON.parse(await readFile(mPath, 'utf8')) : {};
+  const manifest: Record<string, { file: string; ms: number; lines?: string[]; cues?: number[]; bed?: string; hit?: string }> = existsSync(mPath) ? JSON.parse(await readFile(mPath, 'utf8')) : {};
   await mkdir('narration/out/raw', { recursive: true });
   let made = 0, chars = 0;
   for (const [id, c] of Object.entries(scripts)) {
@@ -94,7 +101,10 @@ if (mode === '--audition') {
       execFileSync('ffmpeg', ['-loglevel', 'error', '-y', '-i', raw, '-filter:a', `atempo=${TEMPO}`, '-ac', '1', '-b:a', '64k', `narration/out/${file}`]);
     }
     const bytes = (await readFile(`narration/out/${file}`)).length;
-    manifest[id] = { file, ms: Math.round((bytes * 8) / 64), ...(c.bed && { bed: c.bed }), ...(c.hit && { hit: c.hit }) }; // 64 kbps CBR
+    const ms = Math.round((bytes * 8) / 64); // 64 kbps CBR
+    const lines = splitSentences(c.text);
+    const cues = alignCues(lines, pauses(`narration/out/${file}`), ms / 1000);
+    manifest[id] = { file, ms, lines, cues, ...(c.bed && { bed: c.bed }), ...(c.hit && { hit: c.hit }) };
     process.stdout.write('.');
   }
   await writeFile(mPath, JSON.stringify(manifest, null, 1) + '\n');
