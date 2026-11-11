@@ -7,6 +7,9 @@ import { speedPoints, buildScript, GAMES } from '../src/lib/match';
 import { matchAnswer, TOP5 } from '../src/lib/top5';
 import { makeRound } from '../src/lib/capitals';
 import { LEVELS } from '../src/lib/trivia';
+import { arrowPolygon, labelSizeAtZoom0, spineFor, zoomForAltitude } from '../src/lib/cinema/geo';
+import { WW2_SHAPES } from '../src/data/historical/ww2';
+import { FEATURES } from '../src/lib/data';
 import { matchQuestions, MATCH_RAMP, nextQuestion, triviaPool } from '../src/lib/triviaPick';
 
 describe('escapeHtml', () => {
@@ -738,3 +741,51 @@ describe('battles and wars', () => {
     expect(warMapAt(WW2, barb).get('UKR')).toBe('held');
   });
 });
+
+describe('cinema map geometry', () => {
+  it('draws an arrow as one closed shape that ends at its target, and grows from its tail', () => {
+    const ring = arrowPolygon({ from: [52.5, 13.4], to: [52.23, 21], width: 20_000 });
+    expect(ring.length).toBeGreaterThan(20);
+    expect(ring[0]).toEqual(ring[ring.length - 1]);
+    const tip = ring.reduce((best, p) => (Math.hypot(p[0] - 21, p[1] - 52.23) < Math.hypot(best[0] - 21, best[1] - 52.23) ? p : best));
+    expect(Math.hypot(tip[0] - 21, tip[1] - 52.23)).toBeLessThan(0.01);
+    // Half grown: it stops well short of Warsaw.
+    const half = arrowPolygon({ from: [52.5, 13.4], to: [52.23, 21], width: 20_000, progress: 0.5 });
+    expect(Math.max(...half.map((p) => p[0]))).toBeLessThan(19);
+    // Across the date line it takes the short way (Japan → Pearl Harbor stays in the Pacific).
+    const pacific = arrowPolygon({ from: [44, 147], to: [21.35, -157.97], width: 60_000 });
+    expect(Math.max(...pacific.map((p) => p[0])) - Math.min(...pacific.map((p) => p[0]))).toBeLessThan(80);
+  });
+  it('lays a name along a shape’s long axis, never steeper than 50°', () => {
+    const chile = mainlandRing('CHL');
+    for (const ring of [mainlandRing('RUS'), mainlandRing('FRA'), chile]) {
+      const s = spineFor(ring);
+      expect(s.length).toBeGreaterThan(5);
+      const [x0, y0] = s[0], [x1, y1] = s[s.length - 1];
+      const k = Math.cos((((y0 + y1) / 2) * Math.PI) / 180);
+      expect(Math.abs((Math.atan2(y1 - y0, (x1 - x0) * k) * 180) / Math.PI) % 180).toBeLessThanOrEqual(50.5);
+      expect(labelSizeAtZoom0(s, 6)).toBeGreaterThan(0);
+    }
+  });
+  it('frames the globe’s camera heights as map zooms: closer is a higher zoom', () => {
+    expect(zoomForAltitude(0.8, false)).toBeGreaterThan(zoomForAltitude(2.3, false));
+    expect(zoomForAltitude(1.3, true)).toBeLessThan(zoomForAltitude(1.3, false));
+  });
+  it('keeps the historical shapes sound', () => {
+    expect(new Set(WW2_SHAPES.map((s) => s.id)).size).toBe(WW2_SHAPES.length);
+    for (const s of WW2_SHAPES) {
+      expect(s.ring.length, s.id).toBeGreaterThanOrEqual(5);
+      expect(s.from, s.id).toBeLessThan(s.until);
+      for (const [la, lo] of s.ring) { expect(Math.abs(la), s.id).toBeLessThanOrEqual(90); expect(Math.abs(lo), s.id).toBeLessThanOrEqual(180); }
+    }
+    // Each stretch of the eastern front hands over to the next, with no gap.
+    const east = WW2_SHAPES.filter((s) => s.id.startsWith('ww2-east')).sort((a, b) => a.from - b.from);
+    for (let i = 1; i < east.length; i++) expect(east[i].from).toBe(east[i - 1].until);
+  });
+});
+
+function mainlandRing(cca3: string) {
+  const f = FEATURES.find((x) => x.properties.cca3 === cca3)!;
+  const rings = f.geometry.type === 'Polygon' ? [f.geometry.coordinates[0]] : (f.geometry as GeoJSON.MultiPolygon).coordinates.map((p) => p[0]);
+  return rings.sort((a, b) => b.length - a.length)[0];
+}

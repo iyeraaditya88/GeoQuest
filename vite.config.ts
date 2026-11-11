@@ -25,6 +25,8 @@ export default defineConfig({
         codeSplitting: {
           groups: [
             { name: 'vendor-3d', test: /node_modules[\\/](three|three-[a-z-]+|three-globe|react-globe\.gl|globe\.gl|kapsule|tween|@tweenjs|d3-[a-z-]+|topojson-client|earcut|delaunator|polished|accessor-fn|data-bind-mapper|frame-ticker|index-array-by|float-tooltip|yaot|lodash-es)[\\/]/, priority: 20 },
+            // MapLibre: shared by Street View and the battle cinema map (fetched only when one opens).
+            { name: 'maplibre', test: /node_modules[\\/](maplibre-gl|@maplibre)[\\/]/, priority: 20 },
             // The atlas data (countries, cities…): large, and rarely changes — cached apart from app code.
             { name: 'data', test: /src[\\/](lib[\\/]data\.ts|data[\\/](countries|cities)\.json)$/, priority: 10 },
             { name: 'vendor-react', test: /node_modules[\\/](react|react-dom|scheduler|motion|framer-motion|motion-dom|motion-utils|lucide-react)[\\/]/, priority: 20 },

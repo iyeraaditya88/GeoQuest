@@ -49,7 +49,9 @@ function unwrapRings(g: GeoJSON.Geometry): GeoJSON.Geometry {
   return g;
 }
 
-type CountriesTopo = Topology<{ countries: GeometryCollection<{ name: string }> }>;
+export type CountriesTopo = Topology<{ countries: GeometryCollection<{ name: string }> }>;
+/** The country a shape in the world-atlas topology stands for (by its ISO numeric code, or its name). */
+export const topoCca3 = (id: string | number | undefined, name: string) => (BY_CCN3.get(String(id ?? '')) ?? BY_CCA3.get(NAME_FALLBACK[name] ?? ''))?.cca3 ?? null;
 function buildFeatures(src: unknown): CountryFeature[] {
   const t = src as CountriesTopo;
   const fc = feature(t, t.objects.countries) as unknown as GeoJSON.FeatureCollection<GeoJSON.Geometry, { name: string }>;
@@ -57,10 +59,11 @@ function buildFeatures(src: unknown): CountryFeature[] {
     .filter((f) => f.properties.name !== 'Antarctica')
     .map((f) => {
       const id = String(f.id ?? '');
-      const c = BY_CCN3.get(id) ?? BY_CCA3.get(NAME_FALLBACK[f.properties.name] ?? '');
-      return { type: 'Feature', id, properties: { name: f.properties.name, cca3: c?.cca3 ?? null }, geometry: unwrapRings(f.geometry) };
+      return { type: 'Feature', id, properties: { name: f.properties.name, cca3: topoCca3(id, f.properties.name) }, geometry: unwrapRings(f.geometry) };
     });
 }
+/** The 1:50m country topology itself (borders shared between countries, for drawing outlines). */
+export const TOPO_50 = topo as unknown as CountriesTopo;
 
 export const FEATURES = buildFeatures(topo);
 /** Low-detail shapes, used while animating the flat atlas. */

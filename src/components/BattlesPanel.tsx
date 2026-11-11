@@ -6,10 +6,17 @@ import { BATTLES, BATTLE_ERAS, BY_BATTLE, SIDE_COLOR, battleAltitude, battleEraO
 import { WORLD_WARS, eventAtMonth, warMapAt, type WarStatus, type WorldWar } from '../lib/worldWars';
 import { track } from '../lib/analytics';
 import type { GlobePath } from './GlobeView';
+import { WW2_SHAPES } from '../data/historical/ww2';
+import type { HistShape } from '../data/historical/types';
 
 type ClashPin = { lat: number; lng: number; kind: 'clash'; id: string; name: string; tone: string; active: boolean };
-/** What the panel wants drawn on the globe. */
-export interface WarScene { paint: Record<string, string> | null; paths: GlobePath[]; pins: ClashPin[] }
+export interface SceneShape { id: string; ring: [number, number][]; color: string; name: string; spine?: [number, number][] }
+/**
+ * What the panel wants drawn. `focus`: a battle or war is open — the tilted cinema map plays it
+ * (the globe shows the list). `flags`: countries to plant a flag on; `shapes`: areas of the past.
+ */
+export interface WarScene { paint: Record<string, string> | null; paths: GlobePath[]; pins: ClashPin[]; focus?: boolean; flags?: string[]; shapes?: SceneShape[] }
+const HIST_SHAPES: HistShape[] = [...WW2_SHAPES];
 type View = { kind: 'list' } | { kind: 'battle'; id: string } | { kind: 'war'; id: 'ww1' | 'ww2' };
 
 interface Props {
@@ -179,13 +186,13 @@ function Detail({ b, onScene, onOpen }: { b: Battle; onScene: (s: WarScene) => v
   // The camera arrives, then the sides colour in and the armies march.
   useEffect(() => {
     const pins: ClashPin[] = [{ lat: b.at[0], lng: b.at[1], kind: 'clash', id: `bw:${b.id}`, name: b.name, tone, active: true }];
-    onScene({ paint: null, paths: [], pins });
+    onScene({ paint: null, paths: [], pins, focus: true });
     const t = window.setTimeout(() => {
       const paint: Record<string, string> = {};
       for (const id of b.lands?.a ?? []) paint[id] = SIDE_COLOR.a;
       for (const id of b.lands?.b ?? []) paint[id] = SIDE_COLOR.b;
       const paths: GlobePath[] = (b.moves ?? []).map((m, k) => ({ id: `${b.id}:${run}:${k}`, points: [m.f, m.t], color: SIDE_COLOR[m.s], mode: 'arrow', arrow: true, delay: 300 + k * 350 }));
-      onScene({ paint, paths, pins });
+      onScene({ paint, paths, pins, focus: true });
     }, run ? 250 : 750);
     return () => window.clearTimeout(t);
   }, [b, run, onScene, tone]);
@@ -272,8 +279,10 @@ function WarPlayer({ war, onScene, onFrame }: { war: WorldWar; onScene: (s: WarS
       ...(ev.fronts ?? []).map((points, k) => ({ id: `${war.id}:front:${k}`, points, color: '#fde68a', mode: 'front' as const })),
       ...(ev.moves ?? []).map((m, k) => ({ id: `${war.id}:${i}:${k}`, points: [m.f, m.t] as [number, number][], color: m.s === 'allies' ? war.colors.allies : war.colors.enemy, mode: 'arrow' as const, arrow: true, delay: 500 + k * 300 })),
     ];
-    onScene({ paint, paths, pins: [{ lat: ev.at[0], lng: ev.at[1], kind: 'clash', id: `war:${i}`, name: ev.title, tone: GOLD, active: true }] });
-  }, [war, i, ev, map, onScene]);
+    const shapes = HIST_SHAPES.filter((h) => h.war === war.id && h.from <= ev.m && ev.m < h.until)
+      .map((h) => ({ id: h.id, ring: h.ring, color: war.colors[h.side], name: h.name, spine: h.spine }));
+    onScene({ paint, paths, pins: [{ lat: ev.at[0], lng: ev.at[1], kind: 'clash', id: `war:${i}`, name: ev.title, tone: GOLD, active: true }], focus: true, flags: changed, shapes });
+  }, [war, i, ev, map, changed, onScene]);
 
   // Follow the war with the camera, except mid-drag: it settles on the event when the finger lifts.
   const dragging = dragM !== null;

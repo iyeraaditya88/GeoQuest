@@ -24,6 +24,10 @@ const loadCrossword = () => fresh(import('./components/GeoCrossword'));
 const loadTrivia = () => fresh(import('./components/TriviaGame'));
 const loadBattles = () => fresh(import('./components/BattlesPanel'));
 const BattlesPanel = lazy(() => loadBattles().then((m) => ({ default: m.BattlesPanel })));
+const CinemaMap = lazy(() => fresh(import('./components/cinema/CinemaMap')).then((m) => ({ default: m.CinemaMap })));
+/** The cinema map needs WebGL 2 (MapLibre); without it, battles play on the globe as before. */
+let webgl2: boolean | null = null;
+const hasWebgl2 = () => webgl2 ??= (() => { try { return !!document.createElement('canvas').getContext('webgl2'); } catch { return false; } })();
 const TriviaGame = lazy(() => loadTrivia().then((m) => ({ default: m.TriviaGame })));
 const Top5Game = lazy(() => loadTop5().then((m) => ({ default: m.Top5Game })));
 const CapitalsGame = lazy(() => loadCapitals().then((m) => ({ default: m.CapitalsGame })));
@@ -1102,7 +1106,21 @@ export default function App() {
     setBattles({ link });
   };
   const closeBattles = () => { setBattles(null); cam.reset(); };
-  const frameWar = useCallback((lat: number, lng: number, altitude: number) => { globe.current?.frame(lat, lng, narrow() ? Math.min(3.4, altitude * 1.25) : altitude); }, []);
+  const frameWar = useCallback((lat: number, lng: number, altitude: number) => {
+    globe.current?.frame(lat, lng, narrow() ? Math.min(3.4, altitude * 1.25) : altitude);
+    setCineCam((c) => ({ lat, lng, alt: altitude, n: (c?.n ?? 0) + 1 }));
+  }, []);
+  // A battle or a war open: it plays on the tilted cinema map (the globe, paused underneath, keeps its place).
+  const [cineCam, setCineCam] = useState<{ lat: number; lng: number; alt: number; n: number } | null>(null);
+  const [cineFailed, setCineFailed] = useState(false);
+  const [cineReady, setCineReady] = useState(false);
+  const cinemaOn = !!battles && !!warScene?.focus && !cineFailed && hasWebgl2();
+  useEffect(() => { if (!cinemaOn) setCineReady(false); }, [cinemaOn]);
+  useEffect(() => {
+    if (!cineReady) return;
+    const t = window.setTimeout(() => globe.current?.pause(), 700);
+    return () => { window.clearTimeout(t); globe.current?.resume(); };
+  }, [cineReady]);
   const warPin = useRef<(id: string) => void>(() => {});
   const battlesOpen = useRef(false);
   battlesOpen.current = !!battles;
@@ -1326,6 +1344,16 @@ export default function App() {
         onInteract={onGlobeInteract}
         onReady={() => { track('ready', { ms: Math.round(performance.now()) }); setTimeout(() => setReady(true), 300); }}
       />
+
+      {cinemaOn && warScene && (
+        <ErrorBoundary name="The battle map" onClose={() => setCineFailed(true)}>
+          <Suspense fallback={null}>
+            <CinemaMap scene={warScene} camera={cineCam} narrow={vp.w <= 900}
+              padding={vp.w <= 900 ? { left: 0, bottom: Math.min(vp.h * 0.52, 560) } : { left: leftInset + 416, bottom: 0 }}
+              onReady={() => setCineReady(true)} onFail={() => setCineFailed(true)} />
+          </Suspense>
+        </ErrorBoundary>
+      )}
 
       {atlasFrom && (
         <div className={`atlas-layer ${atlasLeaving ? 'leaving' : ''}`}>
