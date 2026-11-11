@@ -3,6 +3,7 @@
 //   npx tsx scripts/narrate.mts --audition            the same paragraph in a few calm voices → narration/audition/
 //   npx tsx scripts/narrate.mts --sample <voiceId> [prefix]   every clip (or those starting with prefix) in narration/scripts/sample.json → narration/sample/
 //   npx tsx scripts/narrate.mts --record <set>        narration/scripts/<set>.json → narration/out/ (+ manifest.json)
+//   npx tsx scripts/narrate.mts --upload              narration/out + sounds → the public narration Blob store
 //   npx tsx scripts/narrate.mts --sfx                 the sound effects in narration/sfx.json → narration/sfx/
 //
 // Needs ELEVENLABS_API_KEY in .env (read here at run time, never printed). Files land in folders
@@ -98,6 +99,32 @@ if (mode === '--audition') {
   }
   await writeFile(mPath, JSON.stringify(manifest, null, 1) + '\n');
   console.log(`\n${set}: ${Object.keys(scripts).length} clips, ${made} recorded (${chars} chars)`);
+} else if (mode === '--upload') {
+  // Everything in narration/out (+ the sounds) → the public narration Blob store, which the site
+  // serves at /narration/ (a rewrite in vercel.json). Clips are named by their content, so they
+  // never change once uploaded (cached for a year); the manifest is re-sent each time (short cache).
+  const token = process.env.NARRATE_BLOB_READ_WRITE_TOKEN;
+  if (!token) { console.error('Add NARRATE_BLOB_READ_WRITE_TOKEN to .env first (from the narration-blob store page; keep it out of chat).'); process.exit(1); }
+  const { list, put } = await import('@vercel/blob');
+  const have = new Set<string>();
+  let cursor: string | undefined;
+  do { const r = await list({ prefix: 'narration/', cursor, token }); r.blobs.forEach((b) => have.add(b.pathname)); cursor = r.hasMore ? r.cursor : undefined; } while (cursor);
+  const manifest = JSON.parse(await readFile('narration/out/manifest.json', 'utf8')) as Record<string, { file: string; bed?: string; hit?: string }>;
+  const files = new Map<string, string>(); // pathname → local file
+  for (const c of Object.values(manifest)) {
+    files.set(`narration/${c.file}`, `narration/out/${c.file}`);
+    for (const s of [c.bed, c.hit]) if (s) files.set(`narration/sfx/${s}.mp3`, `narration/sfx/${s}.mp3`);
+  }
+  let sent = 0, host = '';
+  for (const [pathname, local] of files) {
+    if (have.has(pathname)) continue;
+    const r = await put(pathname, await readFile(local), { access: 'public', token, contentType: 'audio/mpeg', addRandomSuffix: false, allowOverwrite: true, cacheControlMaxAge: 31_536_000 });
+    host = new URL(r.url).host; sent++;
+    process.stdout.write('.');
+  }
+  const r = await put('narration/manifest.json', JSON.stringify(manifest), { access: 'public', token, contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true, cacheControlMaxAge: 300 });
+  host ||= new URL(r.url).host;
+  console.log(`\n${sent} new files (${files.size - sent} already there) + manifest → https://${host}/narration/`);
 } else if (mode === '--sfx') {
   // Sound effects, described in narration/sfx.json: beds loop under the voice, one-shots don't.
   const list = JSON.parse(await readFile('narration/sfx.json', 'utf8')) as Record<string, { text: string; seconds: number; loop: boolean }>;

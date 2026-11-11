@@ -5,6 +5,10 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
+      "source": "/narration/:path*",
+      "destination": "https://xhli1vfgypjbedt9.public.blob.vercel-storage.com/narration/:path*"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api"
     }
