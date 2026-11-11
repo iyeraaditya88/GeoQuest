@@ -6,7 +6,8 @@ import { missHint, takeaway } from '../src/lib/quizCoach';
 import { speedPoints, buildScript, GAMES } from '../src/lib/match';
 import { matchAnswer, TOP5 } from '../src/lib/top5';
 import { makeRound } from '../src/lib/capitals';
-import { matchQuestions, MATCH_RAMP, LEVELS } from '../src/lib/trivia';
+import { LEVELS } from '../src/lib/trivia';
+import { matchQuestions, MATCH_RAMP, nextQuestion, triviaPool } from '../src/lib/triviaPick';
 
 describe('escapeHtml', () => {
   it('escapes markup and quotes', () => {
@@ -91,6 +92,39 @@ describe('games', () => {
     expect(qs).toHaveLength(MATCH_RAMP.length);
     expect(qs.map((q) => LEVELS.indexOf(q.difficulty))).toEqual(MATCH_RAMP);
     expect(new Set(qs.map((q) => q.id)).size).toBe(qs.length);
+  });
+  it('has thousands of trivia questions, each sound, at every level', () => {
+    const all = triviaPool();
+    expect(all.length).toBeGreaterThan(3000);
+    for (const lv of LEVELS) expect(all.filter((q) => q.difficulty === lv).length).toBeGreaterThan(600);
+    expect(new Set(all.map((q) => q.id)).size).toBe(all.length);
+    for (const q of all) {
+      expect(q.options.length, q.question).toBeGreaterThanOrEqual(2);
+      expect(new Set(q.options).size, q.question).toBe(q.options.length);
+      expect(q.options, q.question).toContain(q.answer);
+      expect(q.question.includes('undefined') || q.options.some((o) => !o || o.includes('undefined')), q.question).toBe(false);
+    }
+    // Facts the data gets wrong are kept out (Bulgaria pays in euros since 2026).
+    expect(all.some((q) => q.answer === 'Bulgaria' && ['euro', 'coin', 'cur'].includes(q.kind!))).toBe(false);
+  });
+  it('never repeats a trivia question on a device until it has asked them all', () => {
+    const store = new Map<string, string>();
+    const prev = (globalThis as { localStorage?: unknown }).localStorage;
+    (globalThis as { localStorage?: unknown }).localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v), removeItem: (k: string) => store.delete(k) };
+    try {
+      const seen = new Set<number>();
+      for (let round = 0; round < 60; round++) {
+        const asked = new Set<number>();
+        const kinds: string[] = [];
+        for (let i = 0; i < 10; i++) {
+          const q = nextQuestion(i % 4, asked)!;
+          expect(seen.has(q.id), `round ${round}: ${q.question}`).toBe(false);
+          seen.add(q.id); asked.add(q.id); kinds.push(q.kind!);
+        }
+        // A round is a mix, not ten of one kind.
+        expect(new Set(kinds).size).toBeGreaterThanOrEqual(6);
+      }
+    } finally { (globalThis as { localStorage?: unknown }).localStorage = prev; }
   });
   it('builds scripts every game understands', async () => {
     for (const g of ['capitals', 'trivia', 'quiz', 'top5'] as const) {

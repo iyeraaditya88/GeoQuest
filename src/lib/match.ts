@@ -8,7 +8,7 @@
 import { api } from './api';
 import type { Live, LiveChannel, Member } from './live';
 import { makeRound } from './capitals';
-import { matchQuestions, type TriviaQ } from './trivia';
+import type { TriviaQ } from './trivia';
 import { shuffledQuestions } from './top5';
 import { QUIZ_POOL, CLUE_POOL, clueFor } from './quiz';
 import { findMapillarySpot } from './mapillary';
@@ -45,7 +45,7 @@ export async function buildScript(game: GameId, opts: MatchOpts): Promise<Script
     case 'capitals':
       return { game, qs: makeRound(opts.level ?? 'easy', n).map((q) => ({ c: q.country.cca3, kind: q.kind, o: q.options.map((o) => o.cca3) })) };
     case 'trivia':
-      return { game, qs: matchQuestions() };
+      return { game, qs: (await import('./triviaPick')).matchQuestions() };
     case 'quiz': {
       const mode = opts.mode ?? 'find';
       const pool = [...(mode === 'clue' ? CLUE_POOL : QUIZ_POOL)].sort(() => Math.random() - 0.5).slice(0, n);

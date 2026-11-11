@@ -1,5 +1,4 @@
-// Geo Trivia: question bank, "always something new" picking, and adaptive difficulty.
-import bank from '../../geography_trivia_bank.json';
+// Geo Trivia: levels, scoring, and where an answer is on the globe. (Picking questions: triviaPick.)
 import citiesRaw from '../data/cities.json';
 import { COUNTRIES } from './data';
 
@@ -10,61 +9,7 @@ export const ROUND = 10;
 /** Correct answers in a row needed to move up a level (one miss moves you down). */
 export const UP_AFTER = 2;
 
-export interface TriviaQ { id: number; difficulty: Level; question: string; options: string[]; answer: string }
-
-// Only well-formed questions make it in (answer must be one of the options).
-const QUESTIONS: TriviaQ[] = (bank as TriviaQ[]).filter(
-  (q) => LEVELS.includes(q.difficulty) && q.options.length >= 2 && q.options.includes(q.answer),
-);
-
-// ── "Always new": remember what this browser has seen, least-recent first ──
-const SEEN_KEY = 'gq-trivia-seen';
-function loadSeen(): number[] {
-  try { return JSON.parse(localStorage.getItem(SEEN_KEY) ?? '[]') as number[]; } catch { return []; }
-}
-function markSeen(id: number) {
-  const seen = loadSeen().filter((x) => x !== id);
-  seen.push(id);
-  try { localStorage.setItem(SEEN_KEY, JSON.stringify(seen)); } catch { /* private mode */ }
-}
-
-const shuffle = <T,>(xs: T[]) => { const a = [...xs]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-
-/**
- * Next question at `level` (0–3), never one already asked this round. Prefers questions
- * this browser has never seen; once a level is exhausted, the one seen longest ago.
- * Falls back to the nearest level if a level has nothing left this round.
- */
-export function nextQuestion(level: number, askedThisRound: Set<number>): TriviaQ | null {
-  const seen = loadSeen();
-  const order = new Map(seen.map((id, i) => [id, i]));
-  for (const lv of [level, level - 1, level + 1, level - 2, level + 2, level - 3, level + 3]) {
-    if (lv < 0 || lv >= LEVELS.length) continue;
-    const pool = QUESTIONS.filter((q) => q.difficulty === LEVELS[lv] && !askedThisRound.has(q.id));
-    if (!pool.length) continue;
-    const fresh = pool.filter((q) => !order.has(q.id));
-    const pick = fresh.length
-      ? fresh[Math.floor(Math.random() * fresh.length)]
-      : pool.sort((a, b) => order.get(a.id)! - order.get(b.id)!)[0]; // least recently seen
-    markSeen(pick.id);
-    return { ...pick, options: shuffle(pick.options) };
-  }
-  return null;
-}
-
-/** A fixed difficulty ramp for live matches (everyone gets the same ten): 3 Easy, 3 Medium, 3 Hard, 1 Impossible. */
-export const MATCH_RAMP = [0, 0, 0, 1, 1, 1, 2, 2, 2, 3];
-export function matchQuestions(): TriviaQ[] {
-  const asked = new Set<number>();
-  const out: TriviaQ[] = [];
-  for (const lv of MATCH_RAMP) {
-    const q = nextQuestion(lv, asked);
-    if (!q) break;
-    asked.add(q.id);
-    out.push(q);
-  }
-  return out;
-}
+export interface TriviaQ { id: number; difficulty: Level; question: string; options: string[]; answer: string; kind?: string }
 
 export function loadBest() { try { return Number(localStorage.getItem('gq-trivia-best') ?? 0); } catch { return 0; } }
 export function saveBest(n: number) { try { localStorage.setItem('gq-trivia-best', String(n)); } catch { /* ignore */ } }
