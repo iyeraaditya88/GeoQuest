@@ -11,6 +11,7 @@ import { mesh } from 'topojson-client';
 import { BY_CCA3, FEATURES, TOPO_50, flagUrl, topoCca3 } from '../../lib/data';
 import { arrowPolygon, labelSizeAtZoom0, metresPerPixel, spineFor, zoomForAltitude } from '../../lib/cinema/geo';
 import type { WarScene } from '../BattlesPanel';
+import { VOYAGE_LAYERS, VOYAGE_SOURCES, createVoyage, type CinemaSail, type VoyageScene } from './voyage';
 
 maplibregl.setWorkerUrl(mapWorkerUrl);
 
@@ -22,6 +23,9 @@ interface Props {
   padding: { left: number; bottom: number };
   narrow: boolean;
   onPin?: (id: string) => void;
+  /** A voyage instead of a war: its route, ports and ship (and `sailRef` to set it sailing). */
+  voyage?: VoyageScene | null;
+  sailRef?: { current: CinemaSail | null };
   onReady: () => void;
   onFail: () => void;
 }
@@ -144,6 +148,7 @@ function style(): maplibregl.StyleSpecification {
       arrows: { type: 'geojson', data: EMPTY, tolerance: 0.2 },
       labels: { type: 'geojson', data: EMPTY, buffer: 256 },
       seas: { type: 'geojson', data: seas(), buffer: 256 },
+      ...VOYAGE_SOURCES,
     },
     layers: [
       { id: 'ocean', type: 'background', paint: { 'background-color': OCEAN } },
@@ -163,6 +168,7 @@ function style(): maplibregl.StyleSpecification {
       { id: 'arrow-glow', type: 'line', source: 'arrows', layout: { 'line-join': 'round' }, paint: { 'line-color': ['get', 'c'], 'line-width': 10, 'line-blur': 8, 'line-opacity': 0.75 } },
       { id: 'arrow-fill', type: 'fill', source: 'arrows', paint: { 'fill-color': ['get', 'c'] } },
       { id: 'arrow-edge', type: 'line', source: 'arrows', layout: { 'line-join': 'round' }, paint: { 'line-color': 'rgba(255,255,255,0.9)', 'line-width': 1.3 } },
+      ...VOYAGE_LAYERS,
       { id: 'names', type: 'symbol', source: 'labels', filter: inZoom(), layout: { 'symbol-placement': 'line-center', 'symbol-sort-key': ['get', 'r'], 'text-field': ['get', 't'], 'text-font': ['Noto Sans Bold'], 'text-size': sizeAt('k'), 'text-letter-spacing': 0.32, 'text-max-angle': 36, 'text-pitch-alignment': 'map', 'text-rotation-alignment': 'map', 'text-keep-upright': true, 'text-padding': 4 }, paint: { 'text-color': 'rgba(255,255,255,0.93)', 'text-halo-color': 'rgba(12,16,32,0.55)', 'text-halo-width': 1.4, 'text-halo-blur': 1, 'text-opacity-transition': { duration: 600 } } },
     ],
   };
@@ -171,12 +177,15 @@ function style(): maplibregl.StyleSpecification {
 const ARROW_MS = 1150;
 const ease = (t: number) => 1 - (1 - t) ** 3;
 
-export function CinemaMap({ scene, camera, padding, narrow, onPin, onReady, onFail }: Props) {
+export function CinemaMap({ scene, camera, padding, narrow, onPin, voyage = null, sailRef, onReady, onFail }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const ready = useRef(false);
   const sceneRef = useRef(scene), camRef = useRef(camera), padRef = useRef(padding), pinRef = useRef(onPin);
   sceneRef.current = scene; camRef.current = camera; padRef.current = padding; pinRef.current = onPin;
+  const voyRef = useRef(voyage);
+  voyRef.current = voyage;
+  const voy = useRef<ReturnType<typeof createVoyage> | null>(null);
   const drawn = useRef<{ scene: WarScene | null; cam: number }>({ scene: null, cam: -1 });
   const painted = useRef(new Map<string, [number, number, number]>());
   const markers = useRef<maplibregl.Marker[]>([]);
@@ -192,7 +201,7 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, onReady, onFa
     try {
       m = new maplibregl.Map({
         container: host.current!, style: style(), attributionControl: false,
-        center: cam ? [cam.lng, cam.lat] : [10, 45], zoom: cam ? zoomForAltitude(cam.alt, narrow) - 1.2 : 2, pitch: 0,
+        center: cam ? [cam.lng, cam.lat] : voyRef.current ? [voyRef.current.points[0][1], voyRef.current.points[0][0]] : [10, 45], zoom: cam ? zoomForAltitude(cam.alt, narrow) - 1.2 : 2, pitch: 0,
         pixelRatio: Math.min(2, window.devicePixelRatio || 1), maxPitch: 70, fadeDuration: 250, renderWorldCopies: false,
       });
     } catch { onFail(); return; }
@@ -206,6 +215,9 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, onReady, onFa
     m.once('load', () => {
       ready.current = true;
       host.current?.classList.add('ready');
+      voy.current = createVoyage(m, { narrow, calm: calmMotion, padding: () => padRef.current, onPin: (id) => pinRef.current?.(id) });
+      if (sailRef) sailRef.current = { sail: (o) => voy.current?.sail(o) ?? (() => {}) };
+      voy.current.show(voyRef.current);
       onReady();
       draw(true);
     });
@@ -217,6 +229,9 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, onReady, onFa
     m.on('dragstart', mine); m.on('zoomstart', mine); m.on('rotatestart', mine); m.on('pitchstart', mine);
     return () => {
       cancelAnimationFrame(raf.current);
+      voy.current?.clear();
+      voy.current = null;
+      if (sailRef) sailRef.current = null;
       ready.current = false;
       m.remove(); // (its markers go with it)
       map.current = null;
@@ -286,6 +301,7 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, onReady, onFa
     if (calmMotion()) { for (const mv of moving) set(mv.k, mv.to); return; }
     const t0 = performance.now(), STEP = Math.min(24, 900 / moving.length), FADE = 700;
     const tick = (now: number) => {
+      if (map.current !== m) return; // (the map closed mid-fade)
       let busy = false;
       moving.forEach((mv, i) => {
         const t = Math.min(1, Math.max(0, (now - t0 - i * STEP) / FADE));
@@ -418,8 +434,15 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, onReady, onFa
     const m = map.current;
     if (!m || !ready.current || lastPad.current === padKey) return;
     lastPad.current = padKey;
+    // (A bare padding change would cut short a flight under way: frame the same thing again.)
+    if (voy.current?.reframe()) return;
+    const cam = camRef.current;
+    if (cam && m.isMoving()) { fly(cam, false); return; }
     m.easeTo({ padding: { ...padRef.current, top: 0, right: 0 }, duration: calmMotion() ? 0 : 500, essential: true });
   }, [padKey]);
+
+  // A voyage opened, changed, or a port was picked.
+  useEffect(() => { voy.current?.show(voyage); }, [voyage]);
 
   // Redraw whenever the panel hands over a new scene or camera.
   useEffect(() => { draw(); }); // eslint-disable-line react-hooks/exhaustive-deps

@@ -17,6 +17,7 @@ import { createReliefLayer } from '../lib/relief';
 import { createRouteLayer } from '../lib/routeLayer';
 import { panelWidth, sidePanel } from '../lib/layout';
 import { escapeHtml } from '../lib/html';
+import { PLANE_SVG, SHIP_SVG, makeRoute, routeAt } from '../lib/sail';
 
 export type MapStyle = 'satellite' | 'political' | 'daynight';
 export type Feedback = { cca3: string; kind: 'good' | 'bad' | 'reveal' } | null;
@@ -384,37 +385,16 @@ export const GlobeView = forwardRef<GlobeHandle, Props>(function GlobeView(
       if (!g || !host || o.points.length < 2) return () => {};
       cancelFlight();
       // Distances along the route (radians), and where each stop falls.
-      const ll = o.points.map(([la, lo]) => [lo, la] as [number, number]);
-      const cum = [0];
-      for (let i = 1; i < ll.length; i++) cum.push(cum[i - 1] + geoDistance(ll[i - 1], ll[i]));
-      const total = cum[cum.length - 1];
-      const at = o.stopAt.map((i) => cum[i]);
+      const route = makeRoute(o.points, o.stopAt);
+      const { total, at } = route;
       const speed = total / (o.seconds * 1000); // radians per ms
-      const where = (d: number): [number, number] => {
-        let j = 0;
-        while (j < cum.length - 2 && cum[j + 1] < d) j++;
-        const seg = cum[j + 1] - cum[j];
-        const [lo, la] = seg > 0 ? geoInterpolate(ll[j], ll[j + 1])(Math.min(1, Math.max(0, (d - cum[j]) / seg))) : ll[j];
-        return [la, lo];
-      };
+      const where = (d: number) => routeAt(route, d);
       // The ship: drawn over the globe, turned to its heading, bobbing gently.
       const ship = document.createElement('div');
       const plane = o.vehicle === 'plane';
       ship.className = plane ? 'sail-ship plane' : 'sail-ship';
       ship.style.setProperty('--c', o.color);
-      ship.innerHTML = plane ? `<div class="ss-turn"><div class="sp-body"><svg viewBox="0 0 48 56" aria-hidden="true">
-        <path class="sp-trail" d="M24 44 L24 56"/>
-        <path class="sp-wing" d="M24 16 L45 31 L45 35 L24 28 L3 35 L3 31 Z"/>
-        <path class="sp-wing" d="M24 40 L33 46 L33 48 L24 45 L15 48 L15 46 Z"/>
-        <path class="sp-hull" d="M24 3 C 27 3, 28 8, 28 14 L28 40 C 28 44, 26 47, 24 47 C 22 47, 20 44, 20 40 L20 14 C 20 8, 21 3, 24 3 Z"/>
-        <circle class="sp-glass" cx="24" cy="9" r="2"/>
-      </svg></div></div>` : `<div class="ss-turn"><div class="ss-bob"><svg viewBox="0 0 48 56" aria-hidden="true">
-        <path class="ss-wake" d="M20 42 C 17 48, 13 52, 9 55 M28 42 C 31 48, 35 52, 39 55"/>
-        <path class="ss-hull" d="M24 4 C 32 13, 33 29, 29 44 L19 44 C 15 29, 16 13, 24 4 Z"/>
-        <path class="ss-deck" d="M24 10 C 28 17, 29 28, 27 40 L21 40 C 19 28, 20 17, 24 10 Z"/>
-        <path class="ss-sail" d="M11 19 Q 24 27 37 19"/><path class="ss-sail" d="M14 31 Q 24 37 34 31"/>
-        <circle class="ss-mast" cx="24" cy="22" r="1.8"/><circle class="ss-mast" cx="24" cy="33" r="1.6"/>
-      </svg></div></div>`;
+      ship.innerHTML = plane ? PLANE_SVG : SHIP_SVG;
       host.appendChild(ship);
       let follow = true;
       const stopFollow = () => { follow = false; };

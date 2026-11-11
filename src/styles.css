@@ -3389,7 +3389,30 @@ svg.vy-flag { color: #2dd4bf; }
   .peek .bw-detail .bw-title { font-size: 20px; }
   .peek .peek-more { display: inline-flex; align-items: center; gap: 6px; height: 36px; margin-top: 8px; padding: 0 14px 0 10px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--c, var(--gold)); background: rgba(255, 255, 255, 0.06); }
 }
+/* A voyage's now-playing card: only in the phone's peek (elsewhere the full story shows). */
+.vy-now { display: none; }
+@media (max-width: 900px) and (orientation: portrait), (max-width: 900px) and (min-height: 521px) {
+  .peek .vy-detail > :not(.vy-now) { display: none; }
+  .peek .vy-now { display: grid; gap: 6px; padding-top: 2px; }
+  .vy-now > .er-kicker { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .vy-now-body { min-height: 0; height: calc(18px + 2.9em + 8px); font-size: 14px; }
+  .vy-now-body b { display: flex; align-items: center; gap: 8px; font: 700 18px/1.2 var(--display); color: var(--text); white-space: nowrap; overflow: hidden; }
+  .vy-now-body b i { flex: none; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; font: 700 11px var(--display); font-style: normal; color: #0b1020; background: var(--c); }
+  .vy-now-body b em { margin-left: auto; font: 600 12px var(--body, inherit); font-style: normal; color: var(--dim); }
+  .vy-now-body p { margin: 4px 0 0; line-height: 1.45; color: #e2e8f0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .vy-now-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+  .vy-now-row .vy-tour { flex: 1; margin: 0; }
+  .vy-now-row .peek-more { margin: 0; flex: none; }
+}
 @media (max-width: 900px) and (max-height: 520px) and (orientation: landscape) {
   .voy-panel { top: calc(8px + var(--st)); bottom: calc(8px + var(--sb)); left: calc(8px + var(--sl)) !important; right: auto; width: min(340px, 44vw); height: auto; border-radius: 18px; padding-bottom: 0; }
   .voy-grab { display: none; }
 }
+/* Voyages on the cinema map: a bigger ship (the marker turns it to its course), ports that pulse on arrival. */
+.cine-ship { width: 0; height: 0; pointer-events: none; transition: opacity 0.4s; }
+.cine-ship.gone { opacity: 0; }
+.cine-ship .ss-turn { left: -34px; top: -40px; width: 68px; height: 80px; transform: none; transition: none; }
+.cine-stop.on i { position: relative; }
+.cine-stop.on i::after { content: ''; position: absolute; inset: -2px; border-radius: 50%; box-shadow: 0 0 0 2px var(--c); animation: cine-port 1.6s ease-out 2; pointer-events: none; }
+@keyframes cine-port { from { transform: scale(1); opacity: 0.9; } to { transform: scale(2.6); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .cine-stop.on i::after { animation: none; } }

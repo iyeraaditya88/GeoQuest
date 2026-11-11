@@ -79,6 +79,7 @@ import { VoyagesPanel } from './components/VoyagesPanel';
 import { ErasPanel } from './components/ErasPanel';
 import { EmpiresPanel } from './components/EmpiresPanel';
 import type { WarScene } from './components/BattlesPanel';
+import type { CinemaSail, VoyageScene } from './components/cinema/voyage';
 import { EMPIRES, BY_EMPIRE, empireView } from './lib/empires';
 import { ERAS, BY_ERA, eraView } from './lib/eras';
 import { VOYAGES, BY_VOYAGE, VOYAGE_ERAS, eraOf, routePoints, routeView, voyageKm, voyagesIn } from './lib/voyages';
@@ -130,6 +131,7 @@ const dailyTargets = (date: string) => dailyPicks(date, themeOf(date) === 'clue'
 
 const NO_ROUTES: GlobePath[] = [];
 const NO_PINS: never[] = [];
+const NO_SCENE: WarScene = { paint: null, paths: [], pins: [] };
 
 function newRound(mode: QuizMode, prev?: QuizState): QuizState {
   const pool = mode === 'clue' ? CLUE_POOL : QUIZ_POOL;
@@ -964,6 +966,14 @@ export default function App() {
     const stopAt = v.route.flatMap((p, i) => (typeof p === 'number' ? [i] : []));
     const from = voy?.stop !== null && voy?.stop !== undefined && voy.stop < v.stops.length - 1 ? voy.stop : 0;
     const km = voyageKm(v);
+    const seconds = Math.min(80, Math.max(26, km / 800)); // for the whole route: slow, steady sailing
+    const onStop = (i: number) => setVoy((x) => (x ? { ...x, stop: i } : x));
+    const onDone = () => { sailStop.current = null; setSailing(false); };
+    if (cineSail.current) {
+      sailStop.current = cineSail.current.sail({ from, seconds: seconds * 1.3, pauseMs: 2600, onStop, onDone });
+      setSailing(true);
+      return;
+    }
     sailStop.current = globe.current?.sail({
       points, stopAt, from, color: v.color,
       seconds: Math.min(80, Math.max(26, km / 800)), // for the whole route: slow, steady sailing
@@ -1020,6 +1030,17 @@ export default function App() {
       return [{ lat: s.at[0], lng: s.at[1], kind: 'stop' as const, id: `stop:${i}`, n: i + 1, name: s.name, tone: v.color, active: voy?.stop === i, dead: !!v.deaths?.some((d) => d.stop === i) }];
     });
   }, [voy]);
+
+  // The open voyage, for the cinema map: its route, ports, and the port in the spotlight.
+  const voyScene = useMemo<VoyageScene | null>(() => {
+    const v = voy?.id ? BY_VOYAGE.get(voy.id) : null;
+    if (!v) return null;
+    return {
+      id: v.id, color: v.color, points: routePoints(v), active: voy?.stop ?? null,
+      stopAt: v.route.flatMap((p, i) => (typeof p === 'number' ? [i] : [])),
+      stops: v.stops.map((s, i) => ({ at: s.at, name: s.name, dead: !!v.deaths?.some((d) => d.stop === i) })),
+    };
+  }, [voy?.id, voy?.stop]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Empires of the world ───────────────────────────────
   const [emp, setEmp] = useState<{ id: string | null; place: string | null; hover: string | null } | null>(null);
@@ -1120,7 +1141,9 @@ export default function App() {
   const phoneSideways = vp.w <= 900 && vp.w > vp.h && vp.h <= 520;
   const panelSheet = vp.w <= 900 && !phoneSideways;
   const panelColumn = panelSheet ? 0 : phoneSideways ? Math.min(340, vp.w * 0.44) + 8 : 416;
-  const cinemaOn = !!battles && !!warScene?.focus && !cineFailed && hasWebgl2();
+  // …and an open voyage plays there too (the list of voyages stays on the globe).
+  const cinemaOn = (battles ? !!warScene?.focus : !!voy?.id) && !cineFailed && hasWebgl2();
+  const cineSail = useRef<CinemaSail | null>(null);
   // What the panel covers (a sheet below, or a column on the left): the cinema map frames the rest.
   const [cineInset, setCineInset] = useState<{ left: number; bottom: number } | null>(null);
   useEffect(() => { if (!cinemaOn) setCineReady(false); }, [cinemaOn]);
@@ -1208,7 +1231,7 @@ export default function App() {
     state: feedback?.cca3 === c.cca3 ? feedback.kind : undefined,
   })) : NO_PINS), [findOnGlobe, feedback]);
   const globePins = useMemo(
-    () => (battles ? (cinemaOn ? NO_PINS : warScene?.pins ?? NO_PINS) : voy ? voyPins : eras ? eraPins : emp ? empPins : anti ? antiPins : findOnGlobe ? tinyPins : inGame ? NO_PINS : placesOpen && placesDraft ? [...placePins, { ...placesDraft, kind: 'guess' as const }] : placePins),
+    () => (battles ? (cinemaOn ? NO_PINS : warScene?.pins ?? NO_PINS) : voy ? (cinemaOn ? NO_PINS : voyPins) : eras ? eraPins : emp ? empPins : anti ? antiPins : findOnGlobe ? tinyPins : inGame ? NO_PINS : placesOpen && placesDraft ? [...placePins, { ...placesDraft, kind: 'guess' as const }] : placePins),
     [battles, cinemaOn, warScene, voy, voyPins, eras, eraPins, emp, empPins, findOnGlobe, tinyPins, anti, antiPins, inGame, placesOpen, placesDraft, placePins],
   );
 
@@ -1337,7 +1360,7 @@ export default function App() {
         onPick={(lat, lng) => (placesOpen ? setPlacesPick({ lat, lng, n: Date.now() }) : pickAntipode(lat, lng))}
         pins={globePins}
         onPin={(id) => (id.startsWith('bw:') ? warPin.current(id.slice(3)) : id.startsWith('stop:') ? stopVoyage(Number(id.slice(5))) : id.startsWith('era:') ? pickEra(id.slice(4)) : id === 'heart' || id.startsWith('hub:') ? placeEra(id) : id.startsWith('emp:') ? pickEmpire(id.slice(4)) : id === 'capital' || id.startsWith('place:') ? placeEmpire(id) : openPlace(id))}
-        paths={battles ? (cinemaOn ? NO_ROUTES : warScene?.paths ?? NO_ROUTES) : voy ? voyPaths : eras ? eraPaths : mxPaths}
+        paths={battles ? (cinemaOn ? NO_ROUTES : warScene?.paths ?? NO_ROUTES) : voy ? (cinemaOn ? NO_ROUTES : voyPaths) : eras ? eraPaths : mxPaths}
         paint={battles ? warScene?.paint ?? null : null}
         tint={empTint}
         onPathPick={voy && !voy.id ? (id) => pickVoyage(id, 'globe') : undefined}
@@ -1353,10 +1376,11 @@ export default function App() {
         onReady={() => { track('ready', { ms: Math.round(performance.now()) }); setTimeout(() => setReady(true), 300); }}
       />
 
-      {cinemaOn && warScene && (
+      {cinemaOn && (battles ? warScene : voyScene) && (
         <ErrorBoundary name="The battle map" onClose={() => setCineFailed(true)}>
           <Suspense fallback={null}>
-            <CinemaMap scene={warScene} camera={cineCam} narrow={vp.w <= 900}
+            <CinemaMap scene={battles ? warScene! : NO_SCENE} camera={battles ? cineCam : null} narrow={vp.w <= 900}
+              voyage={battles ? null : voyScene} sailRef={cineSail} onPin={(id) => { if (id.startsWith('stop:')) stopVoyage(Number(id.slice(5))); }}
               padding={cineInset ?? (panelSheet ? { left: 0, bottom: Math.min(vp.h * 0.52, 560) } : { left: leftInset + panelColumn, bottom: 0 })}
               onReady={() => setCineReady(true)} onFail={() => setCineFailed(true)} />
           </Suspense>
@@ -1576,7 +1600,7 @@ export default function App() {
       <AnimatePresence>
         {voy && (
           <ErrorBoundary key="voyages" name="Famous voyages" onClose={closeVoyages}>
-            <VoyagesPanel active={voy.id} hover={voy.hover} stop={voy.stop} sailing={sailing} onSail={sail} era={voy.era} onEra={pickVoyageEra} onPick={pickVoyage} onHover={hoverVoyage} onStop={stopVoyage} onClose={closeVoyages} />
+            <VoyagesPanel active={voy.id} hover={voy.hover} stop={voy.stop} sailing={sailing} onSail={sail} era={voy.era} onEra={pickVoyageEra} onPick={pickVoyage} onHover={hoverVoyage} onStop={stopVoyage} onClose={closeVoyages} onInset={setCineInset} />
           </ErrorBoundary>
         )}
       </AnimatePresence>

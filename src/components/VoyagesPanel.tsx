@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Anchor, ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, ExternalLink, Pause, Route, Sailboat, Ship, Sparkles, Users, Waves, X } from 'lucide-react';
+import { Anchor, ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, ChevronUp, ExternalLink, Pause, Route, Sailboat, Ship, Sparkles, Users, Waves, X } from 'lucide-react';
 import { flagUrl } from '../lib/data';
 import { VOYAGES, BY_VOYAGE, VOYAGE_ERAS, voyageKm, voyagesIn, type Voyage } from '../lib/voyages';
 import { track } from '../lib/analytics';
 import { wikiPhoto } from '../lib/wiki';
+import { useTheatre, type Inset } from './theatre/useTheatre';
 
 interface Props {
   active: string | null;
@@ -18,6 +19,8 @@ interface Props {
   onStop: (i: number | null) => void;
   onSail: (on: boolean) => void;
   onClose: () => void;
+  /** How much of the screen the panel covers (the cinema map frames the rest). */
+  onInset?: (i: Inset) => void;
 }
 
 const fmtKm = (n: number) => `≈ ${(Math.round(n / 500) * 500).toLocaleString('en-US')} km`;
@@ -34,10 +37,14 @@ const Flag = ({ v, w = 80, className }: { v: Voyage; w?: 80 | 160; className?: s
   v.flag ? <img className={className} src={flagUrl(v.flag, w)} alt={v.sailedFor} title={`Sailed for ${v.sailedFor}`} /> : <Waves className={className} size={16} aria-label={v.sailedFor} />;
 
 /** Famous voyages: a timeline of them, and each one's story — routes and stops on the globe. */
-export function VoyagesPanel({ active, hover = null, era, onEra, stop, sailing, onPick, onHover, onStop, onSail, onClose }: Props) {
+export function VoyagesPanel({ active, hover = null, era, onEra, stop, sailing, onPick, onHover, onStop, onSail, onClose, onInset }: Props) {
   const v = active ? BY_VOYAGE.get(active) ?? null : null;
   const scroller = useRef<HTMLDivElement>(null);
   useEffect(() => { scroller.current?.scrollTo({ top: 0 }); }, [active, era]);
+  // An open voyage plays on the map: on a phone the panel shrinks to a now-playing card.
+  const { ref: sheetRef, peek, setPeek, swipe } = useTheatre(!!v, onInset);
+  const phone = useMemo(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches, []);
+  useEffect(() => { if (sailing) setPeek(true); }, [sailing, setPeek]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -50,9 +57,12 @@ export function VoyagesPanel({ active, hover = null, era, onEra, stop, sailing, 
   }, [active, onPick, onClose]);
 
   return (
-    <motion.aside className="voy-panel" role="dialog" aria-label="Famous voyages"
-      initial={{ opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
-      <span className="voy-grab" aria-hidden />
+    <motion.aside ref={sheetRef} className={`voy-panel ${v ? 'theatre' : ''} ${peek ? 'peek' : ''}`} role="dialog" aria-label="Famous voyages"
+      initial={phone ? { opacity: 0, y: 40 } : { opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0, y: 0 }} exit={phone ? { opacity: 0, y: 40 } : { opacity: 0, x: -24 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      {...swipe}>
+      {v ? (
+        <button className="voy-grab theatre-grab" onClick={() => setPeek((p) => !p)} aria-label={peek ? 'Show the details' : 'Back to the map'} aria-expanded={!peek}><i /></button>
+      ) : <span className="voy-grab" aria-hidden />}
       <header className="gc-head">
         {v ? (
           <button className="vy-back" onClick={() => onPick(null)}><ArrowLeft size={16} /> All voyages</button>
@@ -68,7 +78,7 @@ export function VoyagesPanel({ active, hover = null, era, onEra, stop, sailing, 
       <div className="voy-scroll" ref={scroller}>
         <AnimatePresence mode="wait" initial={false}>
           {v
-            ? <Detail key={v.id} v={v} stop={stop} sailing={sailing} onStop={onStop} onSail={onSail} onPick={onPick} />
+            ? <Detail key={v.id} v={v} stop={stop} sailing={sailing} onStop={onStop} onSail={onSail} onPick={onPick} onMore={() => setPeek(false)} />
             : <List key="list" hover={hover} era={era} onEra={onEra} scroller={scroller} onPick={onPick} onHover={onHover} />}
         </AnimatePresence>
       </div>
@@ -127,7 +137,7 @@ function List({ hover, era, onEra, scroller, onPick, onHover }: { hover: string 
   );
 }
 
-function Detail({ v, stop, sailing, onStop, onSail, onPick }: { v: Voyage; stop: number | null; sailing: boolean; onStop: (i: number | null) => void; onSail: (on: boolean) => void; onPick: (id: string) => void }) {
+function Detail({ v, stop, sailing, onStop, onSail, onPick, onMore }: { v: Voyage; stop: number | null; sailing: boolean; onStop: (i: number | null) => void; onSail: (on: boolean) => void; onPick: (id: string) => void; onMore: () => void }) {
   const idx = VOYAGES.indexOf(v);
   const prev = VOYAGES[idx - 1], next = VOYAGES[idx + 1];
   const dist = useMemo(() => voyageKm(v), [v]);
@@ -140,9 +150,31 @@ function Detail({ v, stop, sailing, onStop, onSail, onPick }: { v: Voyage; stop:
     onSail(!sailing);
   };
   const atEnd = stop === v.stops.length - 1;
+  const here = stop !== null ? v.stops[stop] : null;
+  const tour = (
+    <button className={`vy-tour ${sailing ? 'on' : ''}`} onClick={sail}>
+      {sailing ? <><Pause size={15} /> Pause the voyage</> : <><Sailboat size={16} /> {stop !== null && !atEnd ? 'Sail on' : 'Follow the voyage'}</>}
+      <em>{stop !== null ? `${stop + 1} / ${v.stops.length}` : `${v.stops.length} stops`}</em>
+    </button>
+  );
 
   return (
     <motion.div className="vy-detail" style={{ ['--c' as string]: v.color }} initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 14 }} transition={{ duration: 0.2 }}>
+      {/* The now-playing card (phones, while the voyage has the map): who, where the ship is, and sail. */}
+      <div className="vy-now">
+        <span className="er-kicker">{v.voyager} · {v.years}</span>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div key={stop ?? -1} className="vy-now-body" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.25 }}>
+            {here ? (
+              <><b><i>{deathAt.has(stop!) ? '†' : stop! + 1}</i>{here.name}<em>{here.when}</em></b><p>{deathAt.get(stop!)?.text ?? here.note}</p></>
+            ) : (
+              <><b className="vy-now-title">{v.title}</b><p>{v.tagline}</p></>
+            )}
+          </motion.div>
+        </AnimatePresence>
+        <div className="vy-now-row">{tour}<button className="peek-more" onClick={onMore}><ChevronUp size={15} /> Story</button></div>
+      </div>
+
       <div className="vy-hero">
         <Portrait v={v} />
         <div className="vy-who">
@@ -169,10 +201,7 @@ function Detail({ v, stop, sailing, onStop, onSail, onPick }: { v: Voyage; stop:
 
       <p className="vy-story">{v.story}</p>
 
-      <button className={`vy-tour ${sailing ? 'on' : ''}`} onClick={sail}>
-        {sailing ? <><Pause size={15} /> Pause the voyage</> : <><Sailboat size={16} /> {stop !== null && !atEnd ? 'Sail on' : 'Follow the voyage'}</>}
-        <em>{stop !== null ? `${stop + 1} / ${v.stops.length}` : `${v.stops.length} stops`}</em>
-      </button>
+      {tour}
 
       <ol className="vy-stops">
         {v.stops.map((s, i) => {

@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { makeRoute, routeAt, routeHeading, routeLine } from '../src/lib/sail';
 import { alignCues, lineAt, splitSentences } from '../src/lib/subtitles';
 import { readFileSync } from 'node:fs';
 import { WORLD_WARS } from '../src/lib/worldWars';
@@ -853,5 +854,34 @@ describe('subtitles', () => {
     expect(cues[1]).toBeGreaterThan(3000);
     expect(lineAt(cues, 0)).toBe(0);
     expect(lineAt(cues, 9000)).toBe(1);
+  });
+});
+
+describe('sailing a route', () => {
+  it('walks a route: starts at the first point, ends at the last, stops in order', () => {
+    const r = makeRoute([[38.7, -9.1], [14.9, -23.5], [-34.4, 18.5]], [0, 1, 2]);
+    expect(r.at[0]).toBe(0);
+    expect(r.at[1]).toBeGreaterThan(0);
+    expect(r.at[2]).toBeCloseTo(r.total);
+    const [la0, lo0] = routeAt(r, 0), [la1, lo1] = routeAt(r, r.total);
+    expect([la0, lo0].map((x) => +x.toFixed(1))).toEqual([38.7, -9.1]);
+    expect([la1, lo1].map((x) => +x.toFixed(1))).toEqual([-34.4, 18.5]);
+    // Lisbon → Cape Verde heads south-west
+    const h = routeHeading(r, r.at[1] / 2);
+    expect(h).toBeGreaterThan(180);
+    expect(h).toBeLessThan(270);
+  });
+  it('crosses the date line without a jump (Magellan across the Pacific)', () => {
+    const r = makeRoute([[-52.5, -70], [-30, -120], [13.4, 144.8], [10.3, 123.9]], [0, 3]);
+    const line = routeLine(r, 0, r.total);
+    const jumps = line.slice(1).map((p, i) => Math.abs(p[0] - line[i][0]));
+    expect(Math.max(...jumps)).toBeLessThan(5);
+    expect(line.length).toBeGreaterThan(20); // curved along the great circle, not one straight jump
+  });
+  it('draws only the part sailed so far', () => {
+    const r = makeRoute([[0, 0], [0, 40]], [0, 1]);
+    const half = routeLine(r, 0, r.total / 2);
+    expect(half[half.length - 1][0]).toBeCloseTo(20, 0);
+    expect(routeLine(r, 0, 0)).toEqual([]);
   });
 });
