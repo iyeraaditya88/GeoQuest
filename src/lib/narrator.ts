@@ -8,6 +8,7 @@
 // Background music dips while the voice speaks.
 import { music, silentWav } from './music';
 import { lineAt } from './subtitles';
+import { track } from './analytics';
 
 const BASE = '/narration';
 const KEY = 'gq-narration';
@@ -44,6 +45,8 @@ let unduck = 0;
 let priming: Promise<void> | null = null;
 /** The phone refused a clip (no tap yet): the next tap anywhere starts it. */
 let blocked = false;
+/** The voice has played from a tap at least once: the phone lets it play by itself from now on. */
+let unlocked = false;
 /** The clip on screen for subtitles: stays after it ends (through the breath before the next). */
 let shown: { id: string; clip: Clip } | null = null;
 const timeListeners = new Set<() => void>();
@@ -55,7 +58,11 @@ function voice() {
   el.preload = 'auto';
   el.setAttribute('playsinline', '');
   el.addEventListener('ended', () => finish('ended'));
-  el.addEventListener('error', () => { if (current && el?.src.includes(BASE)) finish('failed'); });
+  el.addEventListener('error', () => {
+    if (!current || !el?.src.includes(BASE)) return;
+    track('narration_err', { why: `media${el.error?.code ?? ''}`, id: current.id });
+    finish('failed');
+  });
   el.addEventListener('timeupdate', () => {
     tick();
     const c = current;
@@ -154,26 +161,27 @@ export const narrator = {
    * Call during a tap: phones only let audio start from one. Primes the voice element and the
    * sound beds so a clip can begin later, when the story moves on by itself.
    */
-  unlock() {
+  unlock(e?: Event) {
     void load();
+    // iPhone only counts a finished tap (touchend / click), not the pointerup just before it: an
+    // attempt there is refused, and would only get in the way of the one that counts.
+    if (e?.type === 'pointerup' && (e as PointerEvent).pointerType !== 'mouse') return;
     const c = audio();
     if (c && c.state !== 'running') void c.resume().catch(() => null);
     const v = voice();
     if (blocked && current) { // a clip is waiting for this tap
       blocked = false;
       tick();
-      void v.play().catch(() => { blocked = true; });
+      void v.play().then(() => { unlocked = true; }).catch(() => { blocked = true; tick(); });
       return;
     }
-    if (!v.dataset.primed && !current) {
-      v.dataset.primed = '1';
-      v.muted = true;
-      v.src = silentWav();
-      priming = v.play()
-        .then(() => { if (!current) v.pause(); })
-        .catch(() => { delete v.dataset.primed; })
-        .finally(() => { v.muted = false; priming = null; });
-    }
+    if (unlocked || current || priming) return;
+    v.muted = true;
+    v.src = silentWav();
+    priming = v.play()
+      .then(() => { unlocked = true; if (!current) v.pause(); })
+      .catch(() => {}) // (refused: the next tap tries again)
+      .finally(() => { v.muted = false; priming = null; });
   },
   /**
    * Speak a clip; resolves when it ends (or is stopped, or can't play). Saying the clip that is
@@ -209,8 +217,10 @@ export const narrator = {
     try {
       await v.play();
       blocked = false;
+      unlocked = true;
     } catch (e) {
       const why = (e as DOMException)?.name;
+      if (current === mine && why !== 'AbortError') track('narration_err', { why: why ?? 'unknown', id, unlocked: unlocked ? 1 : 0 });
       // Interrupted (paused, or another clip took over): not a failure — whoever interrupted carries on.
       if (current !== mine || why === 'AbortError') { /* nothing to do */ }
       // iPhone: sound has to start from a tap. Wait a moment for one (any tap starts the clip);
@@ -219,7 +229,6 @@ export const narrator = {
       else {
         blocked = true;
         tick();
-        delete v.dataset.primed;
         window.setTimeout(() => { if (blocked && current?.id === id) { blocked = false; tick(); finish('failed'); } }, 6000);
       }
     }

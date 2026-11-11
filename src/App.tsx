@@ -1277,7 +1277,7 @@ export default function App() {
   // (Cheap: once it's playing, music.unlock() returns straight away.)
   useEffect(() => {
     const EVENTS = ['pointerup', 'touchend', 'click', 'keydown'] as const;
-    const unlock = () => { music.unlock(); narrator.unlock(); };
+    const unlock = (e: Event) => { music.unlock(); narrator.unlock(e); };
     for (const ev of EVENTS) window.addEventListener(ev, unlock, true);
     return () => { for (const ev of EVENTS) window.removeEventListener(ev, unlock, true); };
   }, []);
