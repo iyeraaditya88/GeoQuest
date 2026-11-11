@@ -107,6 +107,7 @@ import { localName } from './lib/live';
 import { panelWidth } from './lib/layout';
 import { MusicButton } from './components/MusicButton';
 import { music } from './lib/music';
+import { narrator } from './lib/narrator';
 import type { MysteryStage } from './components/MysteryGame';
 import { geoDistance } from 'd3-geo';
 import { isShareGame, type ShareGame } from './lib/share';
@@ -1246,7 +1247,7 @@ export default function App() {
   // (Cheap: once it's playing, music.unlock() returns straight away.)
   useEffect(() => {
     const EVENTS = ['pointerup', 'touchend', 'click', 'keydown'] as const;
-    const unlock = () => music.unlock();
+    const unlock = () => { music.unlock(); narrator.unlock(); };
     for (const ev of EVENTS) window.addEventListener(ev, unlock, true);
     return () => { for (const ev of EVENTS) window.removeEventListener(ev, unlock, true); };
   }, []);

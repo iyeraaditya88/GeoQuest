@@ -42,3 +42,10 @@ dist-ssr
 # Marketing output (generated)
 marketing/packs/
 marketing/reports/
+
+# Narration test recordings (auditions and samples, not shipped)
+narration/audition/
+narration/sample/
+narration/sfx/
+narration/review/
+narration/out/

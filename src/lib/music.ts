@@ -44,6 +44,7 @@ const IOS = typeof navigator !== 'undefined' && (/iPad|iPhone|iPod/.test(navigat
 
 class Engine {
   private ctx: AudioContext;
+  private ducked = false;
   private master: GainNode;
   private filter: BiquadFilterNode;
   private delay: DelayNode;
@@ -101,7 +102,7 @@ class Engine {
     window.clearTimeout(this.stopTimer);
     // A page that's out of sight stays quiet (it starts when it's shown — see visibilitychange).
     if (document.hidden) void this.ctx.suspend(); else void this.ctx.resume();
-    this.fadeTo(MODES[this.mode].volume, 1.8);
+    this.fadeTo(this.level(), 1.8);
     this.playing = true;
     if (this.timer) return;
     this.nextTime = this.ctx.currentTime + 0.05;
@@ -136,12 +137,20 @@ class Engine {
     if (!this.timer) { this.nextTime = this.ctx.currentTime + 0.05; this.timer = window.setInterval(() => this.schedule(), WAKE_MS); }
   }
 
+  /** Dip under the narrator's voice (to a quarter), and come back up after. */
+  duck(on: boolean) {
+    if (on === this.ducked) return;
+    this.ducked = on;
+    if (this.playing) this.fadeTo(this.level(), on ? 0.8 : 2.2);
+  }
+  private level() { return MODES[this.mode].volume * (this.ducked ? 0.25 : 1); }
+
   setMode(mode: MusicMode) {
     if (mode === this.mode) return;
     this.mode = mode;
     this.bpm = MODES[mode].bpm;
     this.delay.delayTime.setTargetAtTime(this.stepLen() * 3, this.ctx.currentTime, 0.3);
-    if (this.playing) this.fadeTo(MODES[mode].volume, 1.2);
+    if (this.playing) this.fadeTo(this.level(), 1.2);
     this.setIntensity(1);
   }
 
@@ -291,7 +300,7 @@ if (typeof document !== 'undefined') {
 // iPhone: web audio is silenced by the ring/silent switch unless the page plays "media". Declare
 // playback (Safari 16.4+) and keep a silent <audio> loop going — the long-standing workaround.
 let silentEl: HTMLAudioElement | null = null;
-function silentWav() {
+export function silentWav() {
   const n = 4000, buf = new Uint8Array(44 + n), v = new DataView(buf.buffer);
   const str = (o: number, t: string) => { for (let i = 0; i < t.length; i++) buf[o + i] = t.charCodeAt(i); };
   str(0, 'RIFF'); v.setUint32(4, 36 + n, true); str(8, 'WAVE'); str(12, 'fmt ');
@@ -349,6 +358,8 @@ export const music = {
   intensity(n: number) { if (engine && engine.intensity !== n) engine.setIntensity(n); },
   sfx(kind: 'good' | 'bad' | 'rival') { if (!musicMuted()) get()?.sfx(kind); },
   stop() { engine?.stop(); },
+  /** Under the narrator: quieter while the voice speaks. */
+  duck(on: boolean) { engine?.duck(on); },
   setMuted(off: boolean) {
     try { localStorage.setItem(KEY, off ? 'off' : 'on'); } catch { /* ignore */ }
     unlocked = true;

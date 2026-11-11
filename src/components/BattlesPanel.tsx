@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject, type RefObject } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type MutableRefObject, type RefObject } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, Crown, ExternalLink, FastForward, MapPin, Pause, Play, RotateCcw, Skull, SkipBack, SkipForward, Sparkles, Swords, Trophy, X } from 'lucide-react';
+import { ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, Crown, ExternalLink, FastForward, MapPin, Pause, Play, RotateCcw, Skull, SkipBack, SkipForward, Sparkles, Swords, Trophy, Volume2, VolumeX, X } from 'lucide-react';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import { BATTLES, BATTLE_ERAS, BY_BATTLE, SIDE_COLOR, battleAltitude, battleEraOf, battlesIn, fmtMen, type Battle, type Side } from '../lib/battles';
 import { WORLD_WARS, eventAtMonth, warMapAt, type WarStatus, type WorldWar } from '../lib/worldWars';
 import { track } from '../lib/analytics';
+import { breathMs, narrationOn, narrator } from '../lib/narrator';
 import type { GlobePath } from './GlobeView';
 import { WW2_SHAPES } from '../data/historical/ww2';
 import type { HistShape } from '../data/historical/types';
@@ -252,6 +253,13 @@ const FlagOf = ({ id }: { id: string }) => {
   return c ? <img src={flagUrl(c.cca2, 80)} alt="" loading="lazy" /> : null;
 };
 
+/** Narration: is it there (recorded and reachable), and does this device want it? */
+function useNarration() {
+  const snap = useSyncExternalStore(narrator.subscribe, () => `${narrator.available() ? 1 : 0}${narrationOn() ? 1 : 0}`);
+  useEffect(() => { void narrator.load(); }, []);
+  return { available: snap[0] === '1', on: snap[1] === '1' };
+}
+
 function WarPlayer({ war, onScene, onFrame }: { war: WorldWar; onScene: (s: WarScene) => void; onFrame: (lat: number, lng: number, alt: number) => void }) {
   const last = war.events.length - 1;
   const [i, setI] = useState(0);
@@ -288,12 +296,37 @@ function WarPlayer({ war, onScene, onFrame }: { war: WorldWar; onScene: (s: WarS
   const dragging = dragM !== null;
   useEffect(() => { if (!dragging) onFrame(ev.at[0], ev.at[1], ev.alt); }, [i, dragging]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Moving on: with narration, each event waits for George to finish (plus a breath to look at the
+  // map); without it, or if a clip can't play, on a fixed timer.
+  const voice = useNarration();
+  const voiced = voice.available && voice.on;
   useEffect(() => {
     if (!playing || dragging) return;
-    if (i >= last) { setPlaying(false); return; }
-    const t = window.setTimeout(() => setI((n) => Math.min(last, n + 1)), fast ? STEP_MS / 2 : STEP_MS);
-    return () => window.clearTimeout(t);
-  }, [playing, dragging, i, last, fast]);
+    if (!voiced && i >= last) { setPlaying(false); return; }
+    let live = true, t = 0;
+    const next = () => {
+      if (i < last) { setI((n) => Math.min(last, n + 1)); return; }
+      narrator.stop();
+      setPlaying(false);
+    };
+    const timer = () => { t = window.setTimeout(next, fast ? STEP_MS / 2 : STEP_MS); };
+    if (!voiced) timer();
+    else {
+      void narrator.say(`${war.id}:${i}`, { rate: fast ? 1.15 : 1, title: ev.title, album: war.name, prefetch: i < last ? `${war.id}:${i + 1}` : undefined })
+        .then((r) => {
+          if (!live) return;
+          if (r === 'ended') t = window.setTimeout(next, breathMs(fast));
+          else if (r === 'failed') timer();
+        });
+    }
+    return () => { live = false; window.clearTimeout(t); if (voiced) narrator.pause(); };
+  }, [playing, dragging, i, last, fast, voiced, war, ev]);
+  useEffect(() => { if (!voiced) narrator.stop(); }, [voiced]);
+  // Lock-screen play/pause while this war is open; silence when it closes.
+  useEffect(() => {
+    narrator.controls({ play: () => setPlaying(true), pause: () => setPlaying(false) });
+    return () => { narrator.controls(null); narrator.stop(); };
+  }, []);
 
   const go = (n: number) => { track('war_step', { w: war.id, n }); setI(Math.max(0, Math.min(last, n))); };
   const toggle = () => { if (i >= last && !playing) { setI(0); setPlaying(true); } else setPlaying((p) => !p); };
@@ -337,12 +370,17 @@ function WarPlayer({ war, onScene, onFrame }: { war: WorldWar; onScene: (s: WarS
         </div>
 
         <div className="bw-controls">
-          <button className="icon-btn" onClick={() => { setPlaying(false); go(i - 1); }} disabled={i === 0} aria-label="Previous event"><SkipBack size={17} /></button>
+          <button className="icon-btn" onClick={() => { if (!voiced) setPlaying(false); go(i - 1); }} disabled={i === 0} aria-label="Previous event"><SkipBack size={17} /></button>
           <button className="bw-play" onClick={toggle} aria-label={playing ? 'Pause' : ended ? 'Watch again' : 'Play'}>
             {playing ? <Pause size={18} fill="currentColor" /> : ended ? <RotateCcw size={18} /> : <Play size={18} fill="currentColor" />}
           </button>
-          <button className="icon-btn" onClick={() => { setPlaying(false); go(i + 1); }} disabled={i === last} aria-label="Next event"><SkipForward size={17} /></button>
+          <button className="icon-btn" onClick={() => { if (!voiced) setPlaying(false); go(i + 1); }} disabled={i === last} aria-label="Next event"><SkipForward size={17} /></button>
           <button className={`bw-speed ${fast ? 'on' : ''}`} onClick={() => setFast((f) => !f)} aria-pressed={fast}><FastForward size={13} /> {fast ? '2×' : '1×'}</button>
+          {voice.available && (
+            <button className={`bw-speed bw-voice ${voice.on ? 'on' : ''}`} onClick={() => { track('narration', { on: voice.on ? 0 : 1 }); narrator.setOn(!voice.on); }} aria-pressed={voice.on} aria-label="Narration">
+              {voice.on ? <Volume2 size={14} /> : <VolumeX size={14} />}
+            </button>
+          )}
           <span className="bw-count">{i + 1} / {war.events.length}</span>
         </div>
 

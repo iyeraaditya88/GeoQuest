@@ -1,4 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { WORLD_WARS } from '../src/lib/worldWars';
+import { breathMs } from '../src/lib/narrator';
 import { escapeHtml } from '../src/lib/html';
 import { sidePanel, panelWidth } from '../src/lib/layout';
 import { riverLength, displayName } from '../src/lib/features';
@@ -789,3 +792,32 @@ function mainlandRing(cca3: string) {
   const rings = f.geometry.type === 'Polygon' ? [f.geometry.coordinates[0]] : (f.geometry as GeoJSON.MultiPolygon).coordinates.map((p) => p[0]);
   return rings.sort((a, b) => b.length - a.length)[0];
 }
+
+describe('narration', () => {
+  const wars = JSON.parse(readFileSync('narration/scripts/wars.json', 'utf8')) as Record<string, { text: string; bed?: string; hit?: string }>;
+  const sfx = JSON.parse(readFileSync('narration/sfx.json', 'utf8')) as Record<string, { loop: boolean }>;
+  it('has a script for every world-war event, and nothing else', () => {
+    const ids = Object.values(WORLD_WARS).flatMap((w) => w.events.map((_, i) => `${w.id}:${i}`));
+    expect(Object.keys(wars).sort()).toEqual(ids.sort());
+  });
+  it('keeps clips in a calm, unhurried range, with no exclamations', () => {
+    for (const [id, c] of Object.entries(wars)) {
+      expect(c.text.length, id).toBeGreaterThan(250);
+      expect(c.text.length, id).toBeLessThan(700);
+      expect(c.text, id).not.toMatch(/!/);
+    }
+  });
+  it('only cues sounds that exist: beds that loop, single sounds that don’t', () => {
+    for (const [id, c] of Object.entries(wars)) {
+      if (c.bed) expect(sfx[c.bed]?.loop, `${id} bed ${c.bed}`).toBe(true);
+      if (c.hit) expect(sfx[c.hit]?.loop, `${id} hit ${c.hit}`).toBe(false);
+    }
+  });
+  it('leaves the darkest moments without sound effects', () => {
+    for (const id of ['ww1:0', 'ww2:24', 'ww2:26']) expect(wars[id].bed ?? wars[id].hit, id).toBeUndefined();
+  });
+  it('breathes between clips, shorter at 2×', () => {
+    expect(breathMs(false)).toBeGreaterThan(breathMs(true));
+    expect(breathMs(true)).toBeGreaterThan(0);
+  });
+});

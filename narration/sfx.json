@@ -1,0 +1,127 @@
+{
+  "artillery-distant": {
+    "loop": true,
+    "seconds": 12,
+    "text": "Distant artillery rumbling far away over open countryside, low muffled booms, calm wind, no music, documentary ambience"
+  },
+  "tanks-rolling": {
+    "loop": true,
+    "seconds": 12,
+    "text": "A column of tanks and trucks rolling slowly along a road in the distance, low engine drone and soft metal track clatter, no music"
+  },
+  "aircraft-drone": {
+    "loop": true,
+    "seconds": 12,
+    "text": "A formation of 1940s propeller bombers droning high overhead, deep steady engine hum, distant, no music"
+  },
+  "marching": {
+    "loop": true,
+    "seconds": 10,
+    "text": "Soldiers marching in step on a dirt road, boots and gear, heard from a short distance, no voices, no music"
+  },
+  "waves-hull": {
+    "loop": true,
+    "seconds": 14,
+    "text": "Calm open sea from the deck of an old wooden sailing ship, gentle waves against the hull, creaking timber, soft wind in the sails, no music"
+  },
+  "explosion-far": {
+    "loop": false,
+    "seconds": 4,
+    "text": "A single far-off explosion echoing across a valley, deep and muffled, not loud, no music"
+  },
+  "trench-rain": {
+    "loop": true,
+    "seconds": 14,
+    "text": "Steady rain falling on a muddy First World War trench, water dripping, distant artillery rumbling far away, heard from a distance, soft and atmospheric, no music, no voices"
+  },
+  "winter-wind": {
+    "loop": true,
+    "seconds": 14,
+    "text": "Cold winter wind blowing across a snowy steppe, snow hissing, very faint distant rumble of guns, heard from a distance, soft and atmospheric, no music, no voices"
+  },
+  "desert-wind": {
+    "loop": true,
+    "seconds": 14,
+    "text": "Dry desert wind blowing over sand dunes, sand hissing softly, vast and empty, heard from a distance, soft and atmospheric, no music, no voices"
+  },
+  "jungle": {
+    "loop": true,
+    "seconds": 14,
+    "text": "Humid tropical jungle on a Pacific island, insects and distant birds, faint far-off gunfire now and then, heard from a distance, soft and atmospheric, no music, no voices"
+  },
+  "naval-battle": {
+    "loop": true,
+    "seconds": 14,
+    "text": "A sea battle far away over the ocean, deep booms of naval guns rolling across the water, waves, wind, heard from a distance, soft and atmospheric, no music, no voices"
+  },
+  "surf-landing": {
+    "loop": true,
+    "seconds": 14,
+    "text": "Waves breaking on a beach, landing craft engines idling offshore, distant gunfire up the coast, heard from a distance, soft and atmospheric, no music, no voices"
+  },
+  "city-ruins": {
+    "loop": true,
+    "seconds": 14,
+    "text": "A ruined city in winter, wind through broken buildings, scattered distant rifle and machine gun fire, falling rubble, heard from a distance, soft and atmospheric, no music, no voices"
+  },
+  "ocean-convoy": {
+    "loop": true,
+    "seconds": 14,
+    "text": "An old steamship crossing the open Atlantic, deep engine throb, waves against the steel hull, wind, heard from a distance, soft and atmospheric, no music, no voices"
+  },
+  "cavalry": {
+    "loop": true,
+    "seconds": 10,
+    "text": "Cavalry horses moving at a trot across a field, hooves and harness jingling, a large group, heard from a distance, soft and atmospheric, no music, no voices"
+  },
+  "melee-distant": {
+    "loop": true,
+    "seconds": 12,
+    "text": "A medieval battle far across a field, swords and shields clashing, horses, war cries muffled by distance, heard from a distance, soft and atmospheric, no music, no voices"
+  },
+  "cannon-musket": {
+    "loop": true,
+    "seconds": 12,
+    "text": "An 18th century battlefield, cannon booming and musket volleys crackling far away, drifting smoke, wind, heard from a distance, soft and atmospheric, no music, no voices"
+  },
+  "storm-sea": {
+    "loop": true,
+    "seconds": 14,
+    "text": "An old wooden sailing ship in a storm at sea, howling wind in the rigging, heavy waves crashing, timber groaning, heard from a distance, soft and atmospheric, no music, no voices"
+  },
+  "gulls-harbour": {
+    "loop": true,
+    "seconds": 14,
+    "text": "A calm harbour on a tropical coast, seagulls calling, small waves lapping on the shore, a wooden ship creaking at anchor, heard from a distance, soft and atmospheric, no music, no voices"
+  },
+  "whistle": {
+    "loop": false,
+    "seconds": 3,
+    "text": "A single brass officer's whistle blown once in a First World War trench, heard from a distance, soft and atmospheric, no music, no voices"
+  },
+  "air-raid-siren": {
+    "loop": false,
+    "seconds": 8,
+    "text": "A 1940s air raid siren winding up and wailing over a city at night, heard from a distance, soft and atmospheric, no music, no voices"
+  },
+  "church-bells": {
+    "loop": false,
+    "seconds": 8,
+    "text": "Church bells ringing out in celebration over a European town, heard from a distance, soft and atmospheric, no music, no voices"
+  },
+  "crowd-cheer": {
+    "loop": false,
+    "seconds": 6,
+    "text": "A large crowd cheering and applauding in a city street, celebrating liberation, heard from a distance, soft and atmospheric, no music, no voices"
+  },
+  "ship-bell": {
+    "loop": false,
+    "seconds": 3,
+    "text": "A ship's brass bell rung twice on deck, heard from a distance, soft and atmospheric, no music, no voices"
+  },
+  "rifle-volley": {
+    "loop": false,
+    "seconds": 3,
+    "text": "A single volley of rifles fired together far away, echoing, heard from a distance, soft and atmospheric, no music, no voices"
+  }
+}
