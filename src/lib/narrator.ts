@@ -40,6 +40,10 @@ function load() {
 let el: HTMLAudioElement | null = null;
 let current: { id: string; done: (r: SayResult) => void; hit?: string; hitAt: number; hitDone: boolean } | null = null;
 let unduck = 0;
+/** The tap's unlock under way (a moment of silence): a clip waits for it, or it would cut it off. */
+let priming: Promise<void> | null = null;
+/** The phone refused a clip (no tap yet): the next tap anywhere starts it. */
+let blocked = false;
 /** The clip on screen for subtitles: stays after it ends (through the breath before the next). */
 let shown: { id: string; clip: Clip } | null = null;
 const timeListeners = new Set<() => void>();
@@ -155,11 +159,20 @@ export const narrator = {
     const c = audio();
     if (c && c.state !== 'running') void c.resume().catch(() => null);
     const v = voice();
+    if (blocked && current) { // a clip is waiting for this tap
+      blocked = false;
+      tick();
+      void v.play().catch(() => { blocked = true; });
+      return;
+    }
     if (!v.dataset.primed && !current) {
       v.dataset.primed = '1';
       v.muted = true;
       v.src = silentWav();
-      void v.play().then(() => { if (!current) v.pause(); v.muted = false; }).catch(() => { v.muted = false; delete v.dataset.primed; });
+      priming = v.play()
+        .then(() => { if (!current) v.pause(); })
+        .catch(() => { delete v.dataset.primed; })
+        .finally(() => { v.muted = false; priming = null; });
     }
   },
   /**
@@ -171,6 +184,7 @@ export const narrator = {
     const clip = m?.[id];
     if (!clip) return 'failed';
     const v = voice();
+    if (priming) await priming;
     const resuming = current?.id === id && v.paused && v.currentTime > 0;
     if (!resuming) {
       current?.done('stopped');
@@ -182,6 +196,7 @@ export const narrator = {
       const prev = resuming ? current : null;
       current = { id, done: res, hit: clip.hit, hitAt: HIT_AT[clip.hit ?? ''] ?? 0.35, hitDone: prev?.hitDone ?? false };
     });
+    const mine = current; // (a later say or a pause can overtake this one: it only answers for itself)
     v.playbackRate = opt.rate ?? 1;
     v.preservesPitch = true;
     window.clearTimeout(unduck);
@@ -190,7 +205,24 @@ export const narrator = {
     if (c && c.state !== 'running') void c.resume().catch(() => null);
     void setBed(clip.bed);
     session(opt.title, opt.album, true);
-    try { await v.play(); } catch { finish('failed'); }
+    v.muted = false;
+    try {
+      await v.play();
+      blocked = false;
+    } catch (e) {
+      const why = (e as DOMException)?.name;
+      // Interrupted (paused, or another clip took over): not a failure — whoever interrupted carries on.
+      if (current !== mine || why === 'AbortError') { /* nothing to do */ }
+      // iPhone: sound has to start from a tap. Wait a moment for one (any tap starts the clip);
+      // without one, the story carries on by the clock.
+      else if (why !== 'NotAllowedError') finish('failed');
+      else {
+        blocked = true;
+        tick();
+        delete v.dataset.primed;
+        window.setTimeout(() => { if (blocked && current?.id === id) { blocked = false; tick(); finish('failed'); } }, 6000);
+      }
+    }
     if (opt.prefetch && m?.[opt.prefetch]) {
       const next = m[opt.prefetch];
       void fetch(`${BASE}/${next.file}`, { priority: 'low' } as RequestInit).catch(() => null);
@@ -226,6 +258,8 @@ export const narrator = {
     const k = current?.id === id && el ? lineAt(cues, el.currentTime * 1000) : lines.length - 1;
     return { lines, k };
   },
+  /** The phone is waiting for a tap before George can speak. */
+  blocked: () => blocked,
   /** Called as the voice moves on (a few times a second while speaking). */
   onTime(cb: () => void) { timeListeners.add(cb); return () => { timeListeners.delete(cb); }; },
   setOn(on: boolean) {
