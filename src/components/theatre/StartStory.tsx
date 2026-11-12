@@ -1,7 +1,7 @@
 import { useLayoutEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
-import { Play } from 'lucide-react';
+import { Play, Volume2 } from 'lucide-react';
 
 const ROOM = 180; // the button and its label need about this much clear map
 const TOP = 64; // (the app's own buttons along the top)
@@ -49,10 +49,10 @@ export function StartStory({ onStart, narrated = true }: { onStart: () => void; 
   const spot = useSpot();
   if (!spot) return null;
   return createPortal(
-    <motion.button className="start-story" onClick={onStart} aria-label={narrated ? 'Play the story, narrated' : 'Play the story'} style={{ left: spot.x, top: spot.y }}
+    <motion.button className="start-story" onClick={onStart} aria-label={narrated ? 'Play the story, narrated (turn your sound on)' : 'Play the story'} style={{ left: spot.x, top: spot.y }}
       initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', stiffness: 260, damping: 22, delay: 0.4 }}>
       <i><Play size={30} fill="currentColor" /></i>
-      <span>Play the story{narrated && <small>narrated</small>}</span>
+      <span>Play the story{narrated && <small><Volume2 size={15} aria-hidden /> narrated · sound on</small>}</span>
     </motion.button>,
     document.body,
   );
