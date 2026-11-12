@@ -50,7 +50,7 @@ export const BATTLE_ERAS = [
 ];
 export const battleEraOf = (year: number) => BATTLE_ERAS.findIndex((e) => year < e.to);
 export const battlesIn = (era: number) => BATTLES.filter((b) => battleEraOf(b.year) === era);
-export const SIDE_COLOR = { a: '#60a5fa', b: '#f87171' } as const;
+export const SIDE_COLOR = { a: '#2f6fe8', b: '#dc3b3b' } as const;
 
 const rad = (d: number) => (d * Math.PI) / 180;
 function km([a1, o1]: LL, [a2, o2]: LL) {

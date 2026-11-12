@@ -419,7 +419,13 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, voyage = null
     const calm = calmMotion();
     m.stop();
     if (!calm) showNames(false);
-    m.flyTo({ center: [cam.lng, cam.lat], zoom, pitch, bearing, padding: pad, duration: calm ? 0 : first ? 2600 : 2200, curve: 1.35, essential: true });
+    // A journey you can follow: out, across, and in, taking longer the further it goes (Hawaii to
+    // Singapore is a long, high arc; the next valley over, a short glide).
+    const here = m.getCenter();
+    const km = 6371 * 2 * Math.asin(Math.min(1, Math.sqrt(Math.sin(((cam.lat - here.lat) * Math.PI) / 360) ** 2
+      + Math.cos((cam.lat * Math.PI) / 180) * Math.cos((here.lat * Math.PI) / 180) * Math.sin(((cam.lng - here.lng) * Math.PI) / 360) ** 2)));
+    const duration = calm ? 0 : Math.round(Math.min(5600, Math.max(first ? 2600 : 1600, 1300 + km * 0.45)));
+    m.flyTo({ center: [cam.lng, cam.lat], zoom, pitch, bearing, padding: pad, duration, curve: km > 1500 ? 1.75 : 1.4, easing: (t) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2), essential: true });
     if (calm) return;
     m.once('moveend', () => {
       if (userMoved.current || drawn.current.cam !== cam.n) return;

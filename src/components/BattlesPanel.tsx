@@ -351,6 +351,14 @@ function WarPlayer({ war, onScene, onFrame }: { war: WorldWar; onScene: (s: WarS
     return () => { live = false; window.clearTimeout(t); if (voiced) narrator.pause(); };
   }, [playing, dragging, i, last, fast, voiced, war, ev]);
   useEffect(() => { if (!voiced) narrator.stop(); }, [voiced]);
+  // As George names a place, the camera goes there (and back to the event's view when the script says).
+  const spoken = useSyncExternalStore(narrator.onTime, () => (voiced ? narrator.line(`${war.id}:${i}`)?.k ?? -1 : -1));
+  useEffect(() => {
+    if (spoken < 0 || dragging) return;
+    const c = narrator.camAt(`${war.id}:${i}`, spoken);
+    if (c === 'home') onFrame(ev.at[0], ev.at[1], ev.alt);
+    else if (c) onFrame(c[0], c[1], c[2]);
+  }, [spoken]); // eslint-disable-line react-hooks/exhaustive-deps
   // Lock-screen play/pause while this war is open; silence when it closes.
   useEffect(() => {
     narrator.controls({ play: () => setPlaying(true), pause: () => setPlaying(false) });

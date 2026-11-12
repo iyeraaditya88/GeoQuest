@@ -83,10 +83,10 @@ if (mode === '--audition') {
   // Files are named by a hash of voice + settings + text, so a re-run only records lines that changed.
   const set = process.argv[3], voiceId = process.argv[4] ?? VOICE;
   if (!set) { console.error('Usage: --record <wars|battles|voyages> [voiceId]'); process.exit(1); }
-  const scripts = JSON.parse(await readFile(`narration/scripts/${set}.json`, 'utf8')) as Record<string, { text: string; bed?: string; hit?: string }>;
+  const scripts = JSON.parse(await readFile(`narration/scripts/${set}.json`, 'utf8')) as Record<string, { text: string; bed?: string; hit?: string; cams?: Record<string, unknown> }>;
   await mkdir('narration/out', { recursive: true });
   const mPath = 'narration/out/manifest.json';
-  const manifest: Record<string, { file: string; ms: number; lines?: string[]; cues?: number[]; bed?: string; hit?: string }> = existsSync(mPath) ? JSON.parse(await readFile(mPath, 'utf8')) : {};
+  const manifest: Record<string, { file: string; ms: number; lines?: string[]; cues?: number[]; bed?: string; hit?: string; cams?: Record<string, unknown> }> = existsSync(mPath) ? JSON.parse(await readFile(mPath, 'utf8')) : {};
   await mkdir('narration/out/raw', { recursive: true });
   let made = 0, chars = 0;
   for (const [id, c] of Object.entries(scripts)) {
@@ -104,7 +104,7 @@ if (mode === '--audition') {
     const ms = Math.round((bytes * 8) / 64); // 64 kbps CBR
     const lines = splitSentences(c.text);
     const cues = alignCues(lines, pauses(`narration/out/${file}`), ms / 1000);
-    manifest[id] = { file, ms, lines, cues, ...(c.bed && { bed: c.bed }), ...(c.hit && { hit: c.hit }) };
+    manifest[id] = { file, ms, lines, cues, ...(c.bed && { bed: c.bed }), ...(c.hit && { hit: c.hit }), ...(c.cams && { cams: c.cams }) }; // cams: where the camera goes, by sentence
     process.stdout.write('.');
   }
   await writeFile(mPath, JSON.stringify(manifest, null, 1) + '\n');

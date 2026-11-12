@@ -137,13 +137,13 @@ class Engine {
     if (!this.timer) { this.nextTime = this.ctx.currentTime + 0.05; this.timer = window.setInterval(() => this.schedule(), WAKE_MS); }
   }
 
-  /** Dip under the narrator's voice (to a quarter), and come back up after. */
+  /** Silent while the narrator is telling a story, and back after. */
   duck(on: boolean) {
     if (on === this.ducked) return;
     this.ducked = on;
     if (this.playing) this.fadeTo(this.level(), on ? 0.8 : 2.2);
   }
-  private level() { return MODES[this.mode].volume * (this.ducked ? 0.25 : 1); }
+  private level() { return this.ducked ? 0 : MODES[this.mode].volume; }
 
   setMode(mode: MusicMode) {
     if (mode === this.mode) return;
@@ -358,7 +358,7 @@ export const music = {
   intensity(n: number) { if (engine && engine.intensity !== n) engine.setIntensity(n); },
   sfx(kind: 'good' | 'bad' | 'rival') { if (!musicMuted()) get()?.sfx(kind); },
   stop() { engine?.stop(); },
-  /** Under the narrator: quieter while the voice speaks. */
+  /** Under the narrator: silent while a story is being told. */
   duck(on: boolean) { engine?.duck(on); },
   setMuted(off: boolean) {
     try { localStorage.setItem(KEY, off ? 'off' : 'on'); } catch { /* ignore */ }

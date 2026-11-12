@@ -3349,7 +3349,7 @@ svg.vy-flag { color: #2dd4bf; }
 .cine-layer .cine-map { position: absolute; inset: 0; } /* (over maplibre’s own `position: relative`) */
 .cine-vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 75% 70% at 55% 45%, transparent 55%, rgba(3, 6, 14, 0.6) 100%); }
 /* The map's credit sits up top, clear of the panel (a column on the left, or a sheet below). */
-.cine-layer .maplibregl-ctrl-top-right { top: var(--st); right: var(--sr); }
+.cine-layer .maplibregl-ctrl-top-right { top: calc(var(--st) + 62px); right: calc(var(--sr) + 4px); } /* (below the music button) */
 .cine-flag { position: relative; width: 34px; height: 46px; pointer-events: none; transform-origin: bottom left; animation: cine-rise 0.6s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
 .cine-flag i { position: absolute; left: 0; top: 0; bottom: 0; width: 2.5px; border-radius: 2px; background: linear-gradient(#fafaf9, #a8a29e); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
 .cine-flag span { position: absolute; left: 2.5px; top: 2px; width: 30px; height: 20px; overflow: hidden; border-radius: 1px 3px 3px 1px; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.55); transform-origin: left center; animation: cine-wave 2.8s ease-in-out infinite; }

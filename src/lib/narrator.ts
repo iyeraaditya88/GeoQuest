@@ -5,7 +5,7 @@
 //
 // The voice is a plain <audio> element at full volume, so it keeps playing with the screen off.
 // The beds are Web Audio buffers, because iPhones won't let a page set an <audio> element's volume.
-// Background music dips while the voice speaks.
+// The app's background music is off while a story is being told, and back when it closes.
 import { music, silentWav } from './music';
 import { lineAt } from './subtitles';
 import { track } from './analytics';
@@ -17,7 +17,9 @@ const BED_VOL = 0.24, HIT_VOL = 0.33; // under the voice: the mix approved at th
 /** Where in a clip its single sound lands (share of the clip): bells at the end, a whistle at the start. */
 const HIT_AT: Record<string, number> = { whistle: 0.1, 'church-bells': 0.72, 'crowd-cheer': 0.45, 'air-raid-siren': 0.55 };
 
-export interface Clip { file: string; ms: number; lines?: string[]; cues?: number[]; bed?: string; hit?: string }
+/** Where the camera goes as a sentence is spoken: [lat, lng, height], or back to the event's own view. */
+export type ClipCam = [number, number, number] | 'home';
+export interface Clip { file: string; ms: number; lines?: string[]; cues?: number[]; bed?: string; hit?: string; cams?: Record<string, ClipCam> }
 export type SayResult = 'ended' | 'stopped' | 'failed';
 
 /** The pause after a clip before the story moves on: room to look at the map. */
@@ -80,9 +82,6 @@ function finish(r: SayResult) {
   dlog('narr', `finish ${c?.id ?? '-'} ${r}`);
   current = null;
   if (r === 'failed' && shown?.id === c?.id) { shown = null; tick(); } // the summary shows instead
-  // Music comes back up only if nothing follows shortly (between clips it stays low).
-  window.clearTimeout(unduck);
-  unduck = window.setTimeout(() => music.duck(false), r === 'ended' ? 2600 : 300);
   c?.done(r);
 }
 
@@ -288,8 +287,8 @@ export const narrator = {
     if (!current) return;
     el?.pause();
     // The beds hush (suspending the sound instead would need a tap to resume on iPhone).
+    // (The music stays off: the story is still open.)
     if (bed && ctx) fade(bed.gain, 0, 0.4);
-    music.duck(false);
     session(undefined, undefined, false);
   },
   /** Stop for good: the voice ends, the beds fade, the music comes back. */
@@ -300,6 +299,8 @@ export const narrator = {
     shown = null;
     tick();
     dropBed(1.2);
+    window.clearTimeout(unduck);
+    unduck = window.setTimeout(() => music.duck(false), 600); // the story's over: the music comes back
     clearSession();
   },
   /**
@@ -320,6 +321,10 @@ export const narrator = {
   },
   /** The clip whose words are on screen (the one playing, or the last one, until the next). */
   shownId: () => shown?.id ?? null,
+  /** The camera move for a sentence of a clip (if the script names a place there). */
+  camAt(id: string, k: number): ClipCam | null {
+    return shown?.id === id ? shown.clip.cams?.[String(k)] ?? null : null;
+  },
   /** The phone is waiting for a tap before George can speak. */
   blocked: () => blocked,
   /** Called as the voice moves on (a few times a second while speaking). */

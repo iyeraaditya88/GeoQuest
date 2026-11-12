@@ -4,7 +4,20 @@
   },
   "ww1:1": {
     "text": "One month later, on the 28th of July, Austria-Hungary declares war on Serbia, certain of Germany's support. Watch the red of the Central Powers gather around the small kingdom. Belgrade, just across the river from Austro-Hungarian guns, is shelled within hours. And in Saint Petersburg, Russia, Serbia's great protector, begins to mobilise its vast army. One by one, the great powers are being drawn in.",
-    "bed": "artillery-distant"
+    "bed": "artillery-distant",
+    "cams": {
+      "2": [
+        44.8,
+        20.46,
+        0.8
+      ],
+      "3": [
+        59.9,
+        30.3,
+        1.4
+      ],
+      "4": "home"
+    }
   },
   "ww1:2": {
     "text": "August 1914. In a matter of days, Germany, Russia, France and Britain are all at war. Germany's plan is to knock out France quickly, before Russia is ready, and its armies sweep through neutral Belgium to get there. Follow the arrows, curving west towards Paris. Britain had promised to protect Belgium, and so Britain, and its whole empire, come into the war. Across the continent, crowds cheer the departing soldiers, and many believe it will all be over by Christmas.",
@@ -12,15 +25,48 @@
   },
   "ww1:3": {
     "text": "In the east, two Russian armies march into East Prussia, sooner than anyone expected. Near the village of Tannenberg, at the end of August, one of them is surrounded among the forests and lakes, and destroyed. Russia loses about 150,000 men, many of them taken prisoner. Its commander, General Samsonov, takes his own life. Yet the invasion has achieved something. Germany has pulled troops away from the west, at the very moment it needs them most.",
-    "bed": "artillery-distant"
+    "bed": "artillery-distant",
+    "cams": {
+      "5": "home"
+    }
   },
   "ww1:4": {
     "text": "September. The Germans are now close to Paris. The French government leaves for Bordeaux, and reinforcements are rushed to the front, some of them in the city's taxis. On the river Marne, France and Britain turn and strike back, and the Germans fall back to high ground. Then both sides begin to dig. Watch the front line form, a scar running all the way from the North Sea to the Swiss border. For almost four years, it will hardly move.",
-    "bed": "artillery-distant"
+    "bed": "artillery-distant",
+    "cams": {
+      "2": [
+        44.84,
+        -0.58,
+        1.0
+      ],
+      "3": [
+        49.0,
+        3.3,
+        0.8
+      ],
+      "5": [
+        49.2,
+        4.5,
+        1.7
+      ]
+    }
   },
   "ww1:5": {
     "text": "November. The Ottoman Empire, old, vast, and weakened by recent wars, enters on Germany's side. See the red spread across Anatolia and the Middle East. New fronts open, in the snowy mountains of the Caucasus, in the deserts of Sinai, and along the rivers of Mesopotamia. And the narrow straits at Istanbul are shut, closing the Black Sea route that carries supplies to Russia from its allies. This is no longer only a European war.",
-    "bed": "desert-wind"
+    "bed": "desert-wind",
+    "cams": {
+      "3": [
+        35,
+        40,
+        2.0
+      ],
+      "4": [
+        41.0,
+        29.0,
+        0.8
+      ],
+      "5": "home"
+    }
   },
   "ww1:6": {
     "text": "April 1915. To open the straits, and knock the Ottomans out of the war, British, French, Australian and New Zealand troops land on the Gallipoli peninsula. Watch the arrows come ashore from the Aegean. They find steep cliffs, and Ottoman defenders who will not give way, led in part by a young officer named Mustafa Kemal. Through a scorching summer, the two sides cling to trenches, sometimes only metres apart. Eight months and about 500,000 casualties later, the Allies slip away by night. For Australia and New Zealand, the day of the landing, the 25th of April, is still remembered as Anzac Day.",
@@ -28,11 +74,35 @@
   },
   "ww1:7": {
     "text": "May. Before the war, Italy had been an ally of Germany and Austria-Hungary. Now, promised Austrian lands along the Adriatic and in the Alps, it changes sides, and joins the Allies. Watch the blue spread down the peninsula. A new front opens high in the mountains, where soldiers fight among peaks and glaciers, and the cold and avalanches can be as deadly as the enemy. Along the river Isonzo, Italy will attack again and again, eleven times in little more than two years.",
-    "bed": "winter-wind"
+    "bed": "winter-wind",
+    "cams": {
+      "5": [
+        46.0,
+        13.6,
+        0.7
+      ]
+    }
   },
   "ww1:8": {
     "text": "Autumn, 1915. Bulgaria joins the Central Powers, and Serbia is attacked from two sides at once. Follow the arrows closing in from the north and the east. Further away, Russia has been driven back across Poland, in what becomes known as the Great Retreat. As winter sets in, the Serbian army, with its old king and thousands of civilians, retreats through the mountains of Albania towards the sea. Many die of cold and hunger along the way. The survivors are carried by Allied ships to the Greek island of Corfu.",
-    "bed": "winter-wind"
+    "bed": "winter-wind",
+    "cams": {
+      "3": [
+        52.2,
+        21,
+        1.4
+      ],
+      "4": [
+        41.3,
+        19.8,
+        0.9
+      ],
+      "6": [
+        39.6,
+        19.9,
+        0.7
+      ]
+    }
   },
   "ww1:9": {
     "text": "February 1916. Germany attacks Verdun, a ring of old fortresses that France will never give up. The aim, its commander later claims, is to bleed France white. Watch the red press against this one small corner of the line. The French rally to the words, they shall not pass, and a single road keeps the city supplied, with trucks passing day and night. The shelling turns forests and villages into a moonscape, and some of those villages are never rebuilt. After ten months, and some 700,000 casualties, the line is almost exactly where it began.",
@@ -41,7 +111,24 @@
   },
   "ww1:10": {
     "text": "June 1916. In Arabia, Sharif Hussein of Mecca rises against the Ottomans, hoping to win independence for the Arabs. Later, a young British officer, T. E. Lawrence, rides with the camel-borne forces of Hussein's son, Faisal, raiding the long Hejaz railway across the desert. And far to the north, in the same month, Russia's General Brusilov strikes Austria-Hungary with a sudden, carefully prepared offensive. Watch the line give way. It is one of Russia's greatest victories of the war, but its cost will help to break the army.",
-    "bed": "desert-wind"
+    "bed": "desert-wind",
+    "cams": {
+      "1": [
+        21.4,
+        39.8,
+        1.4
+      ],
+      "2": [
+        27,
+        38,
+        1.2
+      ],
+      "3": [
+        49.5,
+        25.5,
+        1.2
+      ]
+    }
   },
   "ww1:11": {
     "text": "The 1st of July, 1916. After a week of shelling meant to destroy the German barbed wire, British soldiers climb from their trenches along the river Somme, and walk towards the enemy lines. But the wire is still there, and so are the machine guns. Nearly 20,000 British soldiers die on that first day, the worst in the history of the British army. The battle goes on through the summer, and into the autumn rain. In September, tanks appear for the first time. By November, over a million men on both sides have been killed or wounded, for a few kilometres of mud.",
@@ -50,20 +137,79 @@
   },
   "ww1:12": {
     "text": "August 1916. Encouraged by Russia's success, Romania joins the Allies, and its army crosses the Carpathian mountains into Transylvania. Watch the blue reach over the mountains, and then be thrown back. German, Austrian, Bulgarian and Ottoman troops strike from two sides. By December, Bucharest has fallen, and Romania's oil and wheat are in German hands, though retreating engineers set many of the oil wells on fire. What remains of the Romanian army holds on in the north-east, in Moldavia.",
-    "bed": "marching"
+    "bed": "marching",
+    "cams": {
+      "4": [
+        44.43,
+        26.1,
+        0.9
+      ],
+      "5": [
+        47,
+        27.5,
+        0.9
+      ]
+    }
   },
   "ww1:13": {
     "text": "April 1917. German U-boats are sinking ships across the Atlantic without warning, American ships among them. Then the British intercept and decode a secret telegram. In it, Germany offers Mexico an alliance against the United States, and the return of Texas, New Mexico and Arizona. The United States declares war. Watch the blue spread across the Americas. Fresh troops begin to cross the Atlantic, in their hundreds of thousands, and later in their millions. China, Siam and Brazil also join the Allies that year.",
-    "bed": "ocean-convoy"
+    "bed": "ocean-convoy",
+    "cams": {
+      "1": [
+        45,
+        -30,
+        2.2
+      ],
+      "3": [
+        23,
+        -102,
+        1.8
+      ],
+      "5": "home"
+    }
   },
   "ww1:14": {
     "text": "November 1917. Russia is exhausted, hungry, and tired of war. The Tsar has already been forced from his throne, and now, in Petrograd, Lenin's Bolsheviks seize power. They promise peace, land and bread, and soon ask Germany for an armistice. Far to the south, General Allenby's British army pushes north from Egypt. In December, Allenby enters Jerusalem on foot, out of respect for the holy city. Four centuries of Ottoman rule there come to an end.",
-    "bed": "marching"
+    "bed": "marching",
+    "cams": {
+      "2": [
+        59.94,
+        30.3,
+        1.0
+      ],
+      "4": [
+        30.5,
+        32.5,
+        1.2
+      ],
+      "5": [
+        31.78,
+        35.2,
+        0.7
+      ]
+    }
   },
   "ww1:15": {
     "text": "March 1918. At Brest-Litovsk, Russia signs a harsh peace, and gives up vast lands, from Finland and the Baltic, through Poland, to Ukraine. Watch Russia leave the war. With the eastern front closed, Germany can bring its armies west, and it throws almost everything into a great spring offensive in France, before the Americans arrive in strength. Soon, German guns are close enough to shell Paris. For a few weeks, it seems they might still win.",
     "bed": "artillery-distant",
-    "hit": "explosion-far"
+    "hit": "explosion-far",
+    "cams": {
+      "1": [
+        52.1,
+        23.7,
+        1.2
+      ],
+      "3": [
+        49.8,
+        3,
+        1.3
+      ],
+      "4": [
+        48.86,
+        2.35,
+        0.9
+      ]
+    }
   },
   "ww1:16": {
     "text": "August 1918. Near Amiens, on a misty morning, Allied tanks, aircraft and infantry strike together, and the German line breaks. Watch the arrows push east. The German commander, Ludendorff, calls it the black day of the German army. It is the start of what becomes known as the Hundred Days, a rolling advance that does not stop until the war is over. American soldiers are now arriving in their hundreds of thousands, and Germany has no more reserves to send.",
@@ -71,45 +217,167 @@
   },
   "ww1:17": {
     "text": "Autumn, 1918. One by one, Germany's allies give way. Bulgaria asks for peace at the end of September, and the Ottoman Empire follows a month later. Austria-Hungary, an empire of many peoples, falls apart into new nations, as Czechs, Slovaks, Poles and South Slavs declare their independence. Watch the red break apart. Germany is left standing alone, its sailors in mutiny, and its people hungry.",
-    "bed": "marching"
+    "bed": "marching",
+    "cams": {
+      "2": [
+        42.7,
+        25,
+        1.4
+      ],
+      "3": [
+        47.5,
+        17,
+        1.4
+      ],
+      "4": "home"
+    }
   },
   "ww1:18": {
     "text": "Early on the 11th of November, 1918, in a railway carriage in a forest near Compiègne, German delegates sign the armistice. The Kaiser has already fled to the Netherlands, and Germany has become a republic. The fighting goes on until the very last minute. Then, at the eleventh hour of the eleventh day of the eleventh month, the guns fall silent. Bells ring out across Europe. After more than four years, the war is over. Somewhere between 15 and 22 million people have died.",
     "bed": "artillery-distant",
-    "hit": "church-bells"
+    "hit": "church-bells",
+    "cams": {
+      "0": [
+        49.42,
+        2.83,
+        0.7
+      ],
+      "1": [
+        52.1,
+        5.3,
+        1.0
+      ],
+      "4": "home"
+    }
   },
   "ww2:0": {
     "text": "September the 1st, 1939. Before dawn, German tanks roll across the Polish border, and dive-bombers fill the sky above them. Watch the red spread out from Germany, the colour of the Axis on this map. Poland's army is brave, but its horses and old guns are no match for this new kind of war, fast and mechanised. And far away in Asia, Japan has already been at war with China for two years. The Second World War has begun.",
     "bed": "tanks-rolling",
-    "hit": "explosion-far"
+    "hit": "explosion-far",
+    "cams": {
+      "4": [
+        34,
+        115,
+        2.2
+      ],
+      "5": "home"
+    }
   },
   "ww2:1": {
     "text": "Two days later, Britain and France keep their promise to Poland, and declare war on Germany. See how the blue reaches across the world. Their empires come with them, from Canada to India, from Australia to much of Africa. Then, on the 17th of September, the Soviet Union invades Poland from the east, under a secret pact with Hitler. Caught between two great armies, Poland is divided, and disappears from the map once more.",
-    "bed": "marching"
+    "bed": "marching",
+    "cams": {
+      "1": [
+        30,
+        40,
+        3.0
+      ],
+      "3": [
+        52.2,
+        23,
+        1.2
+      ]
+    }
   },
   "ww2:2": {
     "text": "Spring, 1940. After a long, uneasy winter of waiting, Germany strikes north. In a single day, Denmark is taken, and German troops land along the coast of Norway, from Oslo far up to Narvik. The prize is the sea route that carries Swedish iron ore to German factories. Notice how the orange of occupation creeps up the coast of Scandinavia.",
-    "bed": "ocean-convoy"
+    "bed": "ocean-convoy",
+    "cams": {
+      "3": [
+        67.85,
+        20.2,
+        1.2
+      ],
+      "4": "home"
+    }
   },
   "ww2:3": {
     "text": "May. Germany turns west, and the war that had been waiting comes all at once. German armour slips through the dense forests of the Ardennes, where few expected tanks could pass, and races to the English Channel in just ten days. Follow the arrows to the coast. Trapped on the beaches at Dunkirk, over 338,000 Allied soldiers are carried home across the water, many of them in small fishing boats and pleasure craft.",
-    "bed": "surf-landing"
+    "bed": "surf-landing",
+    "cams": {
+      "2": [
+        50.0,
+        5.5,
+        0.8
+      ],
+      "4": [
+        51.03,
+        2.37,
+        0.7
+      ]
+    }
   },
   "ww2:4": {
     "text": "June. Hitler's troops march into Paris, and the city falls without a fight. France is now divided, with the north under German occupation, shown here in orange. In Rome, Mussolini declares war, and brings Italy's lands in Africa into the fight. For now, most of France's colonies follow the new government at Vichy. And across the Channel, Britain stands almost alone.",
-    "bed": "marching"
+    "bed": "marching",
+    "cams": {
+      "1": [
+        48.86,
+        2.35,
+        0.8
+      ],
+      "3": [
+        41.9,
+        12.5,
+        1.0
+      ],
+      "4": "home"
+    }
   },
   "ww2:5": {
     "text": "Summer, 1940. Hitler plans to invade Britain, but first, he needs control of the skies. Day after day, over the fields of southern England, the pilots of the RAF climb to meet the Luftwaffe, guided by a new invention: radar. Listen, and you can almost hear them overhead. In September, the German bombers turn on London instead, and the Blitz begins, night after night. But the invasion never comes. Britain, with its empire behind it, fights on.",
     "bed": "aircraft-drone",
-    "hit": "air-raid-siren"
+    "hit": "air-raid-siren",
+    "cams": {
+      "4": [
+        51.5,
+        -0.12,
+        0.7
+      ],
+      "6": "home"
+    }
   },
   "ww2:6": {
-    "text": "September 1940. In Berlin, Germany, Italy and Japan sign the Tripartite Pact, and promise to stand together. Over the following months, Hungary and Romania join them, and Bulgaria follows in the spring. Watch the red spread east. In Asia, Japan moves its troops into French Indochina, cut off now from a defeated France. The lines of the war are being drawn across the whole world."
+    "text": "September 1940. In Berlin, Germany, Italy and Japan sign the Tripartite Pact, and promise to stand together. Over the following months, Hungary and Romania join them, and Bulgaria follows in the spring. Watch the red spread east. In Asia, Japan moves its troops into French Indochina, cut off now from a defeated France. The lines of the war are being drawn across the whole world.",
+    "cams": {
+      "1": [
+        52.52,
+        13.4,
+        1.2
+      ],
+      "2": [
+        46,
+        24,
+        1.4
+      ],
+      "4": [
+        16,
+        106,
+        1.4
+      ],
+      "5": "home"
+    }
   },
   "ww2:7": {
     "text": "April 1941. Italy's invasion of Greece has stalled, and Hitler comes to its rescue. German armies overrun Yugoslavia in less than two weeks, and then Greece, pushing the British back to Crete. Follow the arrows south through the mountains. Meanwhile, in North Africa, a new German general arrives in the desert: Erwin Rommel, with his Afrika Korps. Fast and daring, he drives the British back across Libya, towards the border of Egypt. Only the port of Tobruk holds out, under siege.",
-    "bed": "desert-wind"
+    "bed": "desert-wind",
+    "cams": {
+      "2": [
+        42,
+        21,
+        1.3
+      ],
+      "4": [
+        31,
+        20,
+        1.6
+      ],
+      "6": [
+        32.08,
+        23.96,
+        0.8
+      ]
+    }
   },
   "ww2:8": {
     "text": "The 22nd of June, 1941. Before dawn, over 3 million Axis soldiers cross into the Soviet Union, along a front from the Baltic to the Black Sea. It is the largest invasion in history. Watch the great arrows drive east, towards Leningrad, Moscow and Kyiv. Hitler has broken his pact with Stalin, and the Red Army, caught unprepared, loses whole armies in the first weeks. Yet the Soviet Union is vast, and now, it stands with the Allies.",
@@ -123,11 +391,35 @@
   "ww2:10": {
     "text": "The 7th of December, 1941. On a quiet Sunday morning in Hawaii, Japanese aircraft from six carriers attack the American fleet at Pearl Harbor. Battleships burn and sink at their moorings, and more than 2,400 Americans are killed. In the same hours, Japan strikes across the Pacific, at Malaya, Hong Kong and the Philippines. America is in the war. Within days, Hitler declares war on the United States too. The conflict is now truly global.",
     "bed": "aircraft-drone",
-    "hit": "explosion-far"
+    "hit": "explosion-far",
+    "cams": {
+      "3": [
+        12,
+        112,
+        2.4
+      ]
+    }
   },
   "ww2:11": {
     "text": "Early 1942. Japan's advance is swift and astonishing. Watch the red spread across Southeast Asia. Singapore, the fortress Britain believed could never fall, surrenders in February, and around 80,000 British, Indian and Australian soldiers are taken prisoner. The Philippines, the oil-rich Dutch East Indies, and Burma follow within months. By late spring, Japan's empire reaches from the borders of India almost to Australia. It is at its greatest extent.",
-    "bed": "jungle"
+    "bed": "jungle",
+    "cams": {
+      "3": [
+        1.35,
+        103.8,
+        0.8
+      ],
+      "4": [
+        10,
+        105,
+        1.9
+      ],
+      "5": [
+        8,
+        118,
+        2.7
+      ]
+    }
   },
   "ww2:12": {
     "text": "June 1942. American code-breakers have learned that Japan plans to attack the island of Midway, and the US Navy lies in wait. The two fleets never see each other. The battle is fought by aircraft, flying hundreds of kilometres across the open ocean. On the morning of the 4th of June, in just a few minutes, American dive-bombers set three Japanese carriers ablaze, and a fourth is sunk later that day. The tide in the Pacific begins to turn.",
@@ -141,11 +433,31 @@
   "ww2:14": {
     "text": "October 1942. In the Egyptian desert at El Alamein, General Montgomery's Eighth Army attacks Rommel, behind a thunderous barrage of nearly a thousand guns. After twelve days, the Afrika Korps is in retreat, and it never returns. Days later, American and British troops land far to the west, in Morocco and Algeria. Watch the two arrows begin to squeeze from either side. In reply, Germany occupies the rest of France.",
     "bed": "artillery-distant",
-    "hit": "explosion-far"
+    "hit": "explosion-far",
+    "cams": {
+      "1": [
+        30.83,
+        28.95,
+        0.9
+      ],
+      "3": [
+        34,
+        -3,
+        1.4
+      ],
+      "4": "home"
+    }
   },
   "ww2:15": {
     "text": "May 1943. Caught between the two Allied armies, the Axis forces in Tunisia are trapped, with the sea at their backs. Some 250,000 German and Italian soldiers surrender. Watch the red disappear from Africa. After almost three years of fighting back and forth across the desert, the war in North Africa is over. And now, from these shores, the Allies can look north, across the Mediterranean, towards Italy.",
-    "bed": "desert-wind"
+    "bed": "desert-wind",
+    "cams": {
+      "5": [
+        38,
+        12,
+        1.6
+      ]
+    }
   },
   "ww2:16": {
     "text": "July 1943. Around the city of Kursk, where the front line bulges deep into German-held land, Germany launches one last great offensive in the east. But the Soviets know it is coming, and have dug deep belts of minefields, trenches and anti-tank guns. In the largest tank battle ever fought, thousands of tanks clash across the summer fields. The German armour breaks on the Soviet defences. From now on, in the east, it is the Red Army that attacks, and Germany that retreats.",
@@ -154,11 +466,36 @@
   },
   "ww2:17": {
     "text": "July 1943. Allied troops land on the island of Sicily. Within weeks, Mussolini is overthrown and arrested, and in September, Italy surrenders. But German troops pour into the peninsula, seize Rome and the north, and dig in across the mountains. Watch the blue creep slowly up from the south. The fighting goes on up the length of Italy, ridge by ridge, through rain and mud, almost to the very end of the war.",
-    "bed": "surf-landing"
+    "bed": "surf-landing",
+    "cams": {
+      "1": [
+        37.5,
+        14,
+        0.9
+      ],
+      "3": [
+        42.5,
+        12.5,
+        1.3
+      ]
+    }
   },
   "ww2:18": {
     "text": "In the Pacific, American forces have begun a long journey towards Japan. From Guadalcanal, they leap from island to island, skipping some strongholds and seizing others: Tarawa, Kwajalein, Saipan, Guam. Watch the arrows hop across the ocean. Each island is small, but the fighting on them is fierce, in the heat and the jungle. And on the borders of India, at Imphal and Kohima, a Japanese invasion is stopped, and the war in Burma begins to turn.",
-    "bed": "jungle"
+    "bed": "jungle",
+    "cams": {
+      "1": [
+        -9.6,
+        160,
+        1.0
+      ],
+      "2": "home",
+      "4": [
+        25,
+        94,
+        1.0
+      ]
+    }
   },
   "ww2:19": {
     "text": "The 6th of June, 1944. Before dawn, paratroopers drop behind the coast of Normandy. Then, as the light grows, thousands of ships appear off the beaches. 156,000 Allied soldiers, American, British, Canadian and more, come ashore on five beaches, codenamed Utah, Omaha, Gold, Juno and Sword. Follow the arrows across the Channel. At Omaha, the fighting is fierce, and the cost is high. But by nightfall, the Allies are ashore. The liberation of western Europe has begun.",
@@ -167,11 +504,36 @@
   },
   "ww2:20": {
     "text": "Late June 1944, three years almost to the day after Germany invaded, the Soviet Union launches Operation Bagration, a vast offensive across Belarus. Watch the red driven back, hundreds of kilometres, in a matter of weeks. Germany's Army Group Centre is shattered, in one of the worst defeats in its history. By August, the Red Army has reached the river Vistula, close to Warsaw. Ukraine and the Baltic states have been retaken.",
-    "bed": "tanks-rolling"
+    "bed": "tanks-rolling",
+    "cams": {
+      "3": [
+        52.2,
+        21,
+        1.0
+      ],
+      "4": [
+        53,
+        28,
+        1.8
+      ]
+    }
   },
   "ww2:21": {
     "text": "August 1944. As the Allied armies break out of Normandy, Paris rises against its occupiers. On the 25th of August, French and American troops enter the city, and crowds fill the streets to greet them. Watch the orange of occupation fade from France, Belgium and Luxembourg. In the east, as Soviet armies close in, Romania, Bulgaria and Finland abandon Germany, one after another. The Axis is coming apart.",
-    "hit": "crowd-cheer"
+    "hit": "crowd-cheer",
+    "cams": {
+      "2": [
+        48.86,
+        2.35,
+        0.8
+      ],
+      "3": "home",
+      "4": [
+        52,
+        26,
+        2.4
+      ]
+    }
   },
   "ww2:22": {
     "text": "October 1944. American forces return to the Philippines, landing on the island of Leyte, as General MacArthur had promised. Japan sends almost its entire navy to stop them. In the waters around Leyte Gulf, over several days, perhaps the largest sea battle in history is fought. Japan's navy is destroyed as a fighting force. And here, for the first time, Japanese pilots deliberately crash their planes into American ships: the kamikaze.",
@@ -180,17 +542,60 @@
   "ww2:23": {
     "text": "December 1944. In the deep snow of the Ardennes forest, Hitler makes his last gamble in the west. German tanks strike through thinly held American lines, aiming for the port of Antwerp. Watch the bulge push into the front. At the crossroads town of Bastogne, surrounded American soldiers refuse to surrender. When the skies clear, Allied aircraft return, and the attack runs out of fuel and strength. It has burned through Germany's last reserves.",
     "bed": "winter-wind",
-    "hit": "explosion-far"
+    "hit": "explosion-far",
+    "cams": {
+      "4": [
+        50.0,
+        5.72,
+        0.6
+      ],
+      "6": "home"
+    }
   },
   "ww2:24": {
-    "text": "Early 1945. In January, Soviet soldiers reach Auschwitz, and free the few thousand prisoners still alive there. The world is beginning to learn the full horror of the Nazi death camps. Soviet armies cross into Germany from the east, and in March, the Western Allies cross the Rhine. Watch the two fronts close in. In the Pacific, American marines take Iwo Jima, and then Okinawa, after weeks of fighting. Japan's home islands are now within reach."
+    "text": "Early 1945. In January, Soviet soldiers reach Auschwitz, and free the few thousand prisoners still alive there. The world is beginning to learn the full horror of the Nazi death camps. Soviet armies cross into Germany from the east, and in March, the Western Allies cross the Rhine. Watch the two fronts close in. In the Pacific, American marines take Iwo Jima, and then Okinawa, after weeks of fighting. Japan's home islands are now within reach.",
+    "cams": {
+      "1": [
+        50.03,
+        19.2,
+        0.8
+      ],
+      "3": [
+        50.5,
+        7.5,
+        1.3
+      ],
+      "4": "home",
+      "5": [
+        24.78,
+        141.32,
+        1.0
+      ],
+      "6": [
+        34,
+        135,
+        1.6
+      ]
+    }
   },
   "ww2:25": {
     "text": "April 1945. Soviet troops fight their way into Berlin. On the 30th of April, in his bunker beneath the city, Hitler takes his own life. Days later, Berlin falls, and on the 8th of May, Germany surrenders unconditionally. In Europe, the war is over, and crowds fill the streets of Allied cities. But as the camps are opened, the full horror of the Holocaust is laid bare: 6 million Jews murdered, and millions of others with them.",
     "hit": "church-bells"
   },
   "ww2:26": {
-    "text": "August 1945. On the morning of the 6th, an American bomber drops a single atomic bomb on the city of Hiroshima. Three days later, a second falls on Nagasaki. Tens of thousands of people die in an instant, and many more in the months that follow. In between, the Soviet Union declares war on Japan, and its armies sweep into Manchuria. Nuclear weapons have been used in war for the first time, and so far, the last."
+    "text": "August 1945. On the morning of the 6th, an American bomber drops a single atomic bomb on the city of Hiroshima. Three days later, a second falls on Nagasaki. Tens of thousands of people die in an instant, and many more in the months that follow. In between, the Soviet Union declares war on Japan, and its armies sweep into Manchuria. Nuclear weapons have been used in war for the first time, and so far, the last.",
+    "cams": {
+      "2": [
+        32.75,
+        129.88,
+        0.8
+      ],
+      "4": [
+        45,
+        125,
+        1.8
+      ]
+    }
   },
   "ww2:27": {
     "text": "The 2nd of September, 1945. In Tokyo Bay, on the deck of the American battleship Missouri, Japan's representatives sign the formal surrender. After six years, the Second World War is over. It has been the deadliest war in history, with somewhere between 70 and 85 million dead, most of them civilians. Europe and Asia lie in ruins, and the old empires are fatally weakened. From the ashes, the United States and the Soviet Union emerge as superpowers, and the United Nations is founded, in the hope of keeping the peace."
