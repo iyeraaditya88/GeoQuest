@@ -1,0 +1,1077 @@
+{
+  "voyage:leif-erikson:intro": {
+    "text": "Around the year 1000, a Norse farmer's son named Leif Erikson listens to a sailor's tale of unknown land, seen far to the west of Greenland. He buys that sailor's ship, gathers about 35 men, and sets out to find it. Five centuries before Columbus, a small wooden ship is about to reach the edge of a new world.",
+    "bed": "waves-hull"
+  },
+  "voyage:leif-erikson:0": {
+    "text": "Brattahlíð, on Greenland's south-west coast. This is the farm of Leif's father, Erik the Red, who founded the Norse settlements here. The knarr slips out of the fjord and turns west.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:leif-erikson:1": {
+    "text": "The first coast is bleak: flat stone and glaciers, with nothing growing. The sagas say there was nothing good about it at all. Leif calls it Helluland, the land of flat stones, today's Baffin Island.",
+    "bed": "winter-wind"
+  },
+  "voyage:leif-erikson:2": {
+    "text": "Further south, the land softens. Low, wooded hills run down to white beaches. Leif names it Markland, the land of forests. For the Norse of treeless Greenland, this timber is a treasure.",
+    "bed": "waves-hull"
+  },
+  "voyage:leif-erikson:3": {
+    "text": "And then, Vinland. Grass for the animals, salmon in the rivers, and wild grapes. The Norse build houses here, and stay the winter, before sailing home. Their settlement, at the northern tip of Newfoundland, was found again in the 1960s.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:polynesian-aotearoa:intro": {
+    "text": "Long before compasses or charts, Polynesian navigators read the stars, the long ocean swells, and the flight of birds, and with them they settled almost every island in the vast Pacific. Around 1250, in double-hulled voyaging canoes, families set out with their plants and animals on the last great leap of all: south-west, into the open ocean, towards a land no one had seen.",
+    "bed": "waves-hull"
+  },
+  "voyage:polynesian-aotearoa:0": {
+    "text": "Raʻiātea, in the Society Islands. The marae of Taputapuātea is the spiritual heart of East Polynesian voyaging. From here, canoes go out across a third of the world's ocean.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:polynesian-aotearoa:1": {
+    "text": "Rarotonga, in the Cook Islands. A green, mountainous stepping stone on the long route south-west, a place to rest and take on food and water.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:polynesian-aotearoa:2": {
+    "text": "The Kermadec Islands, lonely volcanic peaks in a cold, wide sea. Stone tools found on Raoul Island show that voyagers passed this way.",
+    "bed": "waves-hull"
+  },
+  "voyage:polynesian-aotearoa:3": {
+    "text": "Landfall. Ahead lies a vast new land of mountains and forests, home to giant flightless birds, the moa. The voyagers who settle here will become the Māori, and they will call it Aotearoa.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:zheng-he:intro": {
+    "text": "In the winter of 1431, Admiral Zheng He prepares his seventh and last great voyage for the Ming emperor. His fleet is enormous: around 100 ships, some of them giant treasure ships, and some 27,000 men. They carry silk, porcelain and envoys, bound for more than twenty kingdoms across Asia and the Indian Ocean.",
+    "bed": "waves-hull"
+  },
+  "voyage:zheng-he:0": {
+    "text": "Liujiagang, near Nanjing. The great fleet gathers at the mouth of the Yangtze, sails and banners as far as the eye can see.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:zheng-he:1": {
+    "text": "Changle, on the coast of Fujian. Here the fleet waits for the winter monsoon, the steady wind that will carry it south.",
+    "bed": "waves-hull"
+  },
+  "voyage:zheng-he:2": {
+    "text": "Champa, in today's Vietnam. The first foreign port of the voyage, where gifts are exchanged with the kingdom's rulers.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:zheng-he:3": {
+    "text": "Surabaya, on Java, where the fleet trades with the Majapahit kingdom, one of the great powers of the islands.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:zheng-he:4": {
+    "text": "Malacca, on its narrow strait. This is Zheng He's great base, with warehouses for the fleet's goods, at the crossroads of Asian trade.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:zheng-he:5": {
+    "text": "Semudera, on Sumatra, the gateway out of the strait. Beyond it lies the open Indian Ocean.",
+    "bed": "waves-hull"
+  },
+  "voyage:zheng-he:6": {
+    "text": "Galle, in Sri Lanka. On an earlier voyage, Zheng He left a stone here, inscribed in three languages: Chinese, Tamil and Persian.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:zheng-he:7": {
+    "text": "Calicut, the great pepper port of India's Malabar coast. Zheng He is thought to have died on the voyage home, probably near here, and to have been buried at sea."
+  },
+  "voyage:zheng-he:8": {
+    "text": "Hormuz, the gateway to the Persian Gulf. From here, smaller squadrons sail on to Aden, to Mecca, and to Malindi on the coast of Africa. After this voyage, China turns inward, and the great fleets never sail again.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:bartolomeu-dias:intro": {
+    "text": "In August 1487, King John the Second of Portugal sends Bartolomeu Dias south with two small caravels and a supply ship. His task is simple to say, and very hard to do: find where Africa ends. If there is a way around it, the riches of India may be reached by sea.",
+    "bed": "waves-hull"
+  },
+  "voyage:bartolomeu-dias:0": {
+    "text": "Lisbon. The little fleet leaves the Tagus and turns south, along the coast of Africa.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:bartolomeu-dias:1": {
+    "text": "Angra Pequena, on the coast of today's Namibia. Dias raises a stone cross, a padrão, to mark how far Portugal has come.",
+    "bed": "waves-hull"
+  },
+  "voyage:bartolomeu-dias:2": {
+    "text": "Soon after, a storm catches the ships and drives them south for thirteen days, far out of sight of land. When it passes, Dias turns north, and finds the coast now running east. Without seeing it, he has rounded Africa. At Mossel Bay, the Europeans meet the Khoikhoi.",
+    "bed": "storm-sea"
+  },
+  "voyage:bartolomeu-dias:3": {
+    "text": "Kwaaihoek. The crew is exhausted and afraid, and insists on turning back. Here Dias leaves his last stone cross, the way to India open, just ahead of him.",
+    "bed": "waves-hull"
+  },
+  "voyage:bartolomeu-dias:4": {
+    "text": "And now, on the way home, he sees it for the first time: the great cape at the tip of Africa. It will be called the Cape of Good Hope.",
+    "bed": "storm-sea"
+  },
+  "voyage:bartolomeu-dias:5": {
+    "text": "Lisbon, after sixteen months at sea. The road to India is open.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:columbus:intro": {
+    "text": "In 1492, a Genoese sailor named Christopher Columbus is convinced that Asia can be reached by sailing west, across the open Atlantic. After years of asking, he wins the backing of Ferdinand and Isabella of Spain. With three small ships and about 90 men, he sets out into an ocean no European has crossed.",
+    "bed": "waves-hull"
+  },
+  "voyage:columbus:0": {
+    "text": "Palos de la Frontera, the 3rd of August 1492. The Santa María, the Pinta and the Niña leave the little Andalusian port at dawn.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:columbus:1": {
+    "text": "La Gomera, in the Canary Islands. Last fresh water, last repairs. From here, there is nothing ahead but open ocean.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:columbus:2": {
+    "text": "After 33 days out of sight of land, the crew is restless. Then, at two in the morning, a lookout on the Pinta cries out: land. The island is in the Bahamas. The Taíno who live there call it Guanahaní.",
+    "bed": "waves-hull"
+  },
+  "voyage:columbus:3": {
+    "text": "Cuba. Its mountains and long coast make Columbus think he may have reached the mainland of Asia.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:columbus:4": {
+    "text": "Hispaniola. On Christmas Eve, the Santa María runs aground and is lost. Thirty-nine men stay behind, in a fort built from her timbers.",
+    "bed": "waves-hull"
+  },
+  "voyage:columbus:5": {
+    "text": "The Azores. On the way home, the two remaining ships are battered by fierce storms.",
+    "bed": "storm-sea"
+  },
+  "voyage:columbus:6": {
+    "text": "Lisbon. Driven in by a storm, Columbus tells the King of Portugal what he has found.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:columbus:7": {
+    "text": "Palos again, seven and a half months after leaving. Columbus will cross the ocean three more times, certain, to his death, that he had reached the Indies.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:vasco-da-gama:intro": {
+    "text": "In July 1497, ten years after Dias rounded Africa, Vasco da Gama sets out to finish the journey, all the way to India. His four ships carry about 170 men. Only about 55 of them will come home. But the route they open will change the trade of the world.",
+    "bed": "waves-hull"
+  },
+  "voyage:vasco-da-gama:0": {
+    "text": "Lisbon. Four ships leave from Belém, on the banks of the Tagus.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:vasco-da-gama:1": {
+    "text": "The Cape Verde Islands. From here, da Gama makes a bold choice: instead of hugging the coast, he swings far out into the South Atlantic, to catch the winds.",
+    "bed": "waves-hull"
+  },
+  "voyage:vasco-da-gama:2": {
+    "text": "Ninety-three days without sight of land, the longest ocean passage any European has made. Then, St Helena Bay, on Africa's south-west coast, and a skirmish with the Khoikhoi.",
+    "bed": "waves-hull"
+  },
+  "voyage:vasco-da-gama:3": {
+    "text": "The Cape of Good Hope, rounded after days of fighting the wind.",
+    "bed": "storm-sea"
+  },
+  "voyage:vasco-da-gama:4": {
+    "text": "Mozambique Island, the first Swahili trading town, rich with Arab and Indian merchants. A new world of trade opens up before the Portuguese.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:vasco-da-gama:5": {
+    "text": "Mombasa. The welcome is hostile, and the fleet slips away by night.",
+    "bed": "waves-hull"
+  },
+  "voyage:vasco-da-gama:6": {
+    "text": "Malindi. A friendly sultan provides a pilot who knows the monsoon winds, and the way across the Indian Ocean.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:vasco-da-gama:7": {
+    "text": "Calicut, after 23 days crossing the ocean. Vasco da Gama has reached India by sea, and the age of European empires in Asia begins.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:john-cabot:intro": {
+    "text": "In 1497, a Venetian sailor named John Cabot sails for King Henry the Seventh of England. In one small ship, the Matthew, with about 18 men, he sets out across the cold North Atlantic, hoping to reach Asia by the shorter, northern route.",
+    "bed": "waves-hull"
+  },
+  "voyage:john-cabot:0": {
+    "text": "Bristol, England's great Atlantic port. The Matthew sails west in the spring of 1497.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:john-cabot:1": {
+    "text": "Dursey Head, at the tip of Ireland. The last sight of Europe.",
+    "bed": "waves-hull"
+  },
+  "voyage:john-cabot:2": {
+    "text": "Landfall, on the 24th of June. Exactly where is still argued over, most likely Newfoundland, or Cape Breton. Cabot goes ashore and raises the flags of England and Venice.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:john-cabot:3": {
+    "text": "Back to Bristol, after a fast passage home. King Henry rewards him with ten pounds.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:cabral:intro": {
+    "text": "In March 1500, Pedro Álvares Cabral leads the largest Portuguese fleet yet, thirteen ships and about 1,500 men, bound for India along Vasco da Gama's route. But the great loop out into the Atlantic will carry him further west than anyone expects.",
+    "bed": "waves-hull"
+  },
+  "voyage:cabral:0": {
+    "text": "Lisbon. Thirteen ships sail for India.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:cabral:1": {
+    "text": "Near the Cape Verde Islands, one of the ships disappears without trace.",
+    "bed": "waves-hull"
+  },
+  "voyage:cabral:2": {
+    "text": "A mountain rises out of the sea to the west. Cabral has struck an unknown coast: Brazil. The first Europeans to arrive here meet the Tupiniquim people, and the land is claimed for Portugal.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:cabral:3": {
+    "text": "In the South Atlantic, a sudden storm sinks four ships with all hands. Among those lost is Bartolomeu Dias, the first to round the Cape, twelve years before."
+  },
+  "voyage:cabral:4": {
+    "text": "Mozambique Island, where the battered fleet gathers itself again.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:cabral:5": {
+    "text": "Malindi, where pilots are found for the crossing to India.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:cabral:6": {
+    "text": "Calicut. A trading post is set up, then attacked. Cabral replies by bombarding the city.",
+    "bed": "waves-hull"
+  },
+  "voyage:cabral:7": {
+    "text": "Cochin, and a friendlier ruler. The ships load pepper, and turn for home.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:vespucci:intro": {
+    "text": "In 1501, a Florentine merchant and navigator named Amerigo Vespucci sails for Portugal, to explore the land Cabral had found the year before. What he sees along that coast will change how Europe thinks about the world, and give two continents their name.",
+    "bed": "waves-hull"
+  },
+  "voyage:vespucci:0": {
+    "text": "Lisbon. Three caravels set out for the new land.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:vespucci:1": {
+    "text": "Bezeguiche, near today's Dakar. Here Vespucci meets Cabral's fleet, returning from India, and hears its news.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:vespucci:2": {
+    "text": "Cape São Roque, the north-east corner of Brazil. Landfall, and the start of the long voyage south along the coast.",
+    "bed": "waves-hull"
+  },
+  "voyage:vespucci:3": {
+    "text": "A great bay, reached on All Saints' Day, and named for it. Today it is Salvador.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:vespucci:4": {
+    "text": "Another bay, reached in January. It will later be called the River of January: Rio de Janeiro.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:vespucci:5": {
+    "text": "The coast goes on and on, far too long to be a corner of Asia. Vespucci writes that this must be a New World. Just how far south they sailed is still debated.",
+    "bed": "waves-hull"
+  },
+  "voyage:vespucci:6": {
+    "text": "Lisbon. Within a few years, a mapmaker names the new land after him: America.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:magellan-elcano:intro": {
+    "text": "In September 1519, five ships slip out of the mouth of the Guadalquivir, in southern Spain. Their captain, Ferdinand Magellan, is Portuguese, sailing for the Spanish crown, and he means to reach the Spice Islands by sailing west. About 270 men are aboard. Three years from now, one ship, and just 18 of them, will come home.",
+    "bed": "waves-hull"
+  },
+  "voyage:magellan-elcano:0": {
+    "text": "Sanlúcar de Barrameda. The five ships leave the river mouth behind, and the coast of Spain falls away over the stern.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:magellan-elcano:1": {
+    "text": "December, on the coast of Brazil. In the bay of Rio de Janeiro, the fleet takes two weeks of rest and trade, before the long run south.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:magellan-elcano:2": {
+    "text": "Far to the south, in Patagonia, winter closes in. For months the fleet waits at Puerto San Julián. A mutiny is crushed there, and one ship is wrecked on the coast.",
+    "bed": "winter-wind"
+  },
+  "voyage:magellan-elcano:3": {
+    "text": "At last, a passage opens through the tip of South America. For 38 days the ships thread their way through cold, twisting channels, and one of them turns back for home. The strait still carries Magellan's name.",
+    "bed": "storm-sea"
+  },
+  "voyage:magellan-elcano:4": {
+    "text": "Then, the Pacific, far wider than anyone imagined. For 99 days there is no fresh food. The men are starving and sick with scurvy when they reach Guam.",
+    "bed": "waves-hull"
+  },
+  "voyage:magellan-elcano:5": {
+    "text": "Mactan, in the Philippines. Here Magellan is killed, fighting the warriors of the chief Lapulapu. Juan Sebastián Elcano will later take command."
+  },
+  "voyage:magellan-elcano:6": {
+    "text": "Tidore, in the Moluccas. At last, the Spice Islands. The ships load cloves.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:magellan-elcano:7": {
+    "text": "Elcano takes the Victoria home the long way, across the Indian Ocean and round the Cape of Good Hope, avoiding Portuguese ports.",
+    "bed": "storm-sea"
+  },
+  "voyage:magellan-elcano:8": {
+    "text": "Sanlúcar, the 6th of September 1522. Eighteen men on one battered ship have completed the first voyage around the world.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:jacques-cartier:intro": {
+    "text": "In May 1535, the Breton navigator Jacques Cartier sets out on his second voyage to the New World, with three ships and about 110 men. Guided by two young Iroquoians he had met the year before, he means to follow a great river deep into the continent, along what they call the road to Canada.",
+    "bed": "waves-hull"
+  },
+  "voyage:jacques-cartier:0": {
+    "text": "Saint-Malo, in Brittany. Three ships leave the walled port for the west.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:jacques-cartier:1": {
+    "text": "The Strait of Belle Isle, between Newfoundland and Labrador. Cold, grey water, and the way into the great gulf beyond.",
+    "bed": "winter-wind"
+  },
+  "voyage:jacques-cartier:2": {
+    "text": "The Gulf of St. Lawrence, named for the saint whose feast day it is. Ahead, the river narrows and leads inland.",
+    "bed": "waves-hull"
+  },
+  "voyage:jacques-cartier:3": {
+    "text": "Stadacona, the village of the chief Donnacona, where Québec City stands today. The French will spend a brutal winter here, and when scurvy strikes, the Iroquoians save them with a tea made from white cedar.",
+    "bed": "winter-wind"
+  },
+  "voyage:jacques-cartier:4": {
+    "text": "Hochelaga, a great fortified town of the St. Lawrence Iroquoians. Cartier climbs the hill above it, and names it Mont Royal. Today it is Montréal.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:francis-drake:intro": {
+    "text": "In December 1577, Francis Drake sails from Plymouth with five ships, officially bound for Egypt. His real orders, from Queen Elizabeth the First, are to raid the rich Spanish empire on the Pacific coast of the Americas. Only one of his ships will make it all the way around the world.",
+    "bed": "waves-hull"
+  },
+  "voyage:francis-drake:0": {
+    "text": "Plymouth. Five ships set out, their true destination a secret.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:francis-drake:1": {
+    "text": "Puerto San Julián, in Patagonia. Here Drake has his former friend, Thomas Doughty, tried and beheaded for mutiny.",
+    "bed": "winter-wind"
+  },
+  "voyage:francis-drake:2": {
+    "text": "The Strait of Magellan, passed in just 16 days. Drake renames his flagship the Golden Hind.",
+    "bed": "storm-sea"
+  },
+  "voyage:francis-drake:3": {
+    "text": "Storms drive the ships far to the south, and Drake sees open sea beyond Tierra del Fuego. The stormy waters there still carry his name: the Drake Passage.",
+    "bed": "storm-sea"
+  },
+  "voyage:francis-drake:4": {
+    "text": "Valparaíso, and the Spanish ports up the coast of Chile, raided one by one.",
+    "bed": "waves-hull"
+  },
+  "voyage:francis-drake:5": {
+    "text": "Off the coast of South America, the Golden Hind captures the Spanish treasure ship Cacafuego, laden with silver and gold.",
+    "bed": "waves-hull"
+  },
+  "voyage:francis-drake:6": {
+    "text": "California. Drake comes ashore to repair his ship among the Coast Miwok, and claims the land for England, calling it Nova Albion.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:francis-drake:7": {
+    "text": "Ternate, in the Moluccas, after crossing the Pacific. The Sultan sells him six tons of cloves.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:francis-drake:8": {
+    "text": "Java, his last stop in Asia.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:francis-drake:9": {
+    "text": "The Cape of Good Hope. His chaplain called it the most stately thing, and the fairest cape, they had seen in all the world.",
+    "bed": "storm-sea"
+  },
+  "voyage:francis-drake:10": {
+    "text": "Plymouth, almost three years after leaving. Drake's first question to the fishermen is whether the Queen is still alive.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:willem-barentsz:intro": {
+    "text": "In 1596, the Dutch navigator Willem Barentsz sets out to find a way to China across the top of the world, by the north-east. Instead, his ship will be caught in the Arctic ice, and his crew will face a polar winter that no Europeans had ever survived.",
+    "bed": "waves-hull"
+  },
+  "voyage:willem-barentsz:0": {
+    "text": "Amsterdam. Two ships set out for China, by the north.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:willem-barentsz:1": {
+    "text": "A new island, far to the north. The crew fights off a polar bear here, and names it Bear Island.",
+    "bed": "winter-wind"
+  },
+  "voyage:willem-barentsz:2": {
+    "text": "Spitsbergen, discovered and named for its pointed mountains. Here the two ships part ways.",
+    "bed": "winter-wind"
+  },
+  "voyage:willem-barentsz:3": {
+    "text": "Barentsz rounds the northern tip of Novaya Zemlya, and the ice begins to close in.",
+    "bed": "winter-wind"
+  },
+  "voyage:willem-barentsz:4": {
+    "text": "Ice Haven. The ship is crushed and trapped. Seventeen men build a hut from driftwood and ship's timbers, and call it the Safe House. Through the long, dark polar winter, they hold on.",
+    "bed": "winter-wind"
+  },
+  "voyage:willem-barentsz:5": {
+    "text": "In June, the survivors escape in two open boats. A week later, Barentsz, already sick, dies, and is buried in the Arctic."
+  },
+  "voyage:willem-barentsz:6": {
+    "text": "The Kola Peninsula. Twelve survivors are rescued by a Dutch ship, captained by the very man who had parted from them at Spitsbergen.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:henry-hudson:intro": {
+    "text": "In April 1610, the English navigator Henry Hudson is hired by London merchants to find a north-west passage to Asia. His ship, the Discovery, carries 23 men into icy waters that no European ship has sailed.",
+    "bed": "waves-hull"
+  },
+  "voyage:henry-hudson:0": {
+    "text": "London. The Discovery sails down the Thames.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:henry-hudson:1": {
+    "text": "Iceland, where the volcano Hekla is erupting as they pass.",
+    "bed": "waves-hull"
+  },
+  "voyage:henry-hudson:2": {
+    "text": "Hudson Strait. Weeks of fog, ice and racing currents, in what the sailors call the furious overfall.",
+    "bed": "winter-wind"
+  },
+  "voyage:henry-hudson:3": {
+    "text": "Beyond the strait, open water stretches away to the west. Is this the Pacific? It is a vast inland sea, Hudson Bay.",
+    "bed": "waves-hull"
+  },
+  "voyage:henry-hudson:4": {
+    "text": "James Bay. The ship is frozen in for a long, hungry winter.",
+    "bed": "winter-wind"
+  },
+  "voyage:henry-hudson:5": {
+    "text": "In the spring, with food running out, the crew mutinies. Hudson, his teenage son John and seven loyal men are set adrift in a small open boat. They are never seen again."
+  },
+  "voyage:henry-hudson:6": {
+    "text": "London. Eight survivors return. None is ever punished for the mutiny.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:mayflower:intro": {
+    "text": "In the summer of 1620, a congregation of English religious Separatists, with other settlers, prepares to cross the Atlantic in a small merchant ship, the Mayflower. They mean to start a new life, and a new colony, in America.",
+    "bed": "waves-hull"
+  },
+  "voyage:mayflower:0": {
+    "text": "Southampton. The Mayflower sails with a second ship, the Speedwell, which has brought Pilgrims from Holland.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:mayflower:1": {
+    "text": "Dartmouth. The Speedwell is leaking, and both ships turn back for repairs.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:mayflower:2": {
+    "text": "Plymouth, in England. The Speedwell gives up for good, and the Mayflower sails on alone, crammed full, with 102 passengers.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:mayflower:3": {
+    "text": "In the middle of the Atlantic, a storm cracks one of the main beams. It is jacked back into place with an iron screw.",
+    "bed": "storm-sea"
+  },
+  "voyage:mayflower:4": {
+    "text": "Cape Cod, after 66 stormy days, and far to the north of where they had planned. Before going ashore, the men sign the Mayflower Compact, an agreement to govern themselves.",
+    "bed": "waves-hull"
+  },
+  "voyage:mayflower:5": {
+    "text": "Plymouth, Massachusetts. The settlers choose a site with fresh water and cleared fields. It is a village of the Patuxet people, emptied by an epidemic.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:abel-tasman:intro": {
+    "text": "In August 1642, the Dutch East India Company sends Abel Tasman to find the great Southern Land that mapmakers believe must exist. With two ships, he sails far south into the Roaring Forties, and will circle Australia without ever seeing it.",
+    "bed": "waves-hull"
+  },
+  "voyage:abel-tasman:0": {
+    "text": "Batavia, today's Jakarta, the Company's headquarters in Asia. Two ships set out.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:abel-tasman:1": {
+    "text": "Mauritius, for supplies and timber, before heading south into the cold, windy latitudes.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:abel-tasman:2": {
+    "text": "A new land, which Tasman names for the Company's governor-general, Van Diemen's Land. Today it carries his own name: Tasmania.",
+    "bed": "waves-hull"
+  },
+  "voyage:abel-tasman:3": {
+    "text": "Golden Bay, in New Zealand. The first meeting of Europeans and Māori ends in a deadly clash.",
+    "bed": "waves-hull"
+  },
+  "voyage:abel-tasman:4": {
+    "text": "Tonga, and a warm welcome on Tongatapu.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:abel-tasman:5": {
+    "text": "Fiji, where the ships narrowly escape the reefs.",
+    "bed": "waves-hull"
+  },
+  "voyage:abel-tasman:6": {
+    "text": "Batavia, ten months later, after sailing home along the north coast of New Guinea.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:vitus-bering:intro": {
+    "text": "In June 1741, the Danish captain Vitus Bering sails east from Kamchatka, at the edge of the Russian empire, leading the Great Northern Expedition. His goal is to find America from the west.",
+    "bed": "waves-hull"
+  },
+  "voyage:vitus-bering:0": {
+    "text": "Petropavlovsk, on Kamchatka. Two ships sail east into the unknown.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:vitus-bering:1": {
+    "text": "Kayak Island, off Alaska. The great snowy peak of Mount Saint Elias towers above. The naturalist Steller gets just ten hours ashore.",
+    "bed": "winter-wind"
+  },
+  "voyage:vitus-bering:2": {
+    "text": "The Shumagin Islands. Scurvy claims its first victim, and the Russians meet the Aleut people for the first time.",
+    "bed": "waves-hull"
+  },
+  "voyage:vitus-bering:3": {
+    "text": "In November, the St. Peter is wrecked on an unknown island. Here, Bering dies of scurvy, with 28 of his men. The island now bears his name."
+  },
+  "voyage:vitus-bering:4": {
+    "text": "Petropavlovsk, the following August. Forty-six survivors sail home in a small boat built from the wreck.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:bougainville:intro": {
+    "text": "In December 1766, Louis-Antoine de Bougainville sets out to sail around the world for France. Aboard his supply ship is a young woman named Jeanne Baret, disguised as a man, working as assistant to the expedition's botanist. She will become the first woman known to sail around the world.",
+    "bed": "waves-hull"
+  },
+  "voyage:bougainville:0": {
+    "text": "Brest, in Brittany. La Boudeuse sets out; the supply ship Étoile will join later.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:bougainville:1": {
+    "text": "Rio de Janeiro, where the two ships meet. Ashore, the botanist Commerson collects a flowering vine that will be named after the captain: bougainvillea.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:bougainville:2": {
+    "text": "The Strait of Magellan. Seven hard weeks threading the strait into the Pacific.",
+    "bed": "storm-sea"
+  },
+  "voyage:bougainville:3": {
+    "text": "Tahiti. Only ten days, but Bougainville's glowing account of the island will enchant Europe.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:bougainville:4": {
+    "text": "Near the Great Barrier Reef, breakers ahead force him north. He turns back, within reach of Australia's east coast.",
+    "bed": "waves-hull"
+  },
+  "voyage:bougainville:5": {
+    "text": "Batavia, today's Jakarta. Short of food and sick with scurvy, the crews reach the Dutch port.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:bougainville:6": {
+    "text": "Mauritius. Jeanne Baret and Commerson stay behind here to collect plants. She will complete her own journey around the world years later.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:bougainville:7": {
+    "text": "Saint-Malo, after two years and four months at sea.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:james-cook:intro": {
+    "text": "In August 1768, a young naval officer named James Cook sails from Plymouth in a small, sturdy ship, the Endeavour. His public mission is to watch the planet Venus cross the face of the Sun. But he also carries secret orders: to search for a great continent believed to lie in the south.",
+    "bed": "waves-hull"
+  },
+  "voyage:james-cook:0": {
+    "text": "Plymouth. The Endeavour sails with astronomers, and the botanist Joseph Banks.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:james-cook:1": {
+    "text": "Rio de Janeiro, where the suspicious Portuguese viceroy keeps the crew on board.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:james-cook:2": {
+    "text": "Cape Horn, rounded into the Pacific.",
+    "bed": "storm-sea"
+  },
+  "voyage:james-cook:3": {
+    "text": "Tahiti, where on the 3rd of June 1769, the transit of Venus is observed.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:james-cook:4": {
+    "text": "New Zealand. After the first landing, Cook spends six months charting both islands, coast by coast.",
+    "bed": "waves-hull"
+  },
+  "voyage:james-cook:5": {
+    "text": "Botany Bay. The Endeavour makes the first European landing on Australia's east coast.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:james-cook:6": {
+    "text": "On the Great Barrier Reef, the ship is holed, and nearly lost. Seven weeks of repairs ashore, at the Endeavour River.",
+    "bed": "waves-hull"
+  },
+  "voyage:james-cook:7": {
+    "text": "Batavia, for repairs. But malaria and dysentery kill about 30 of the crew.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:james-cook:8": {
+    "text": "Cape Town, on the long way home around Africa.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:james-cook:9": {
+    "text": "Deal, in England, almost three years after leaving.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:cook-last-voyage:intro": {
+    "text": "In July 1776, James Cook sets out on his third great voyage. Officially, he is taking the Tahitian Mai home. His real mission is to search for a north-west passage, from the Pacific side. It will be his last voyage.",
+    "bed": "waves-hull"
+  },
+  "voyage:cook-last-voyage:0": {
+    "text": "Plymouth, a week after the American Declaration of Independence.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:cook-last-voyage:1": {
+    "text": "Cape Town, where livestock is taken aboard for the Pacific islands.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:cook-last-voyage:2": {
+    "text": "Adventure Bay, in Tasmania, for wood and water.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:cook-last-voyage:3": {
+    "text": "Queen Charlotte Sound, in New Zealand, Cook's favourite anchorage, and his fifth visit here.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:cook-last-voyage:4": {
+    "text": "Tonga, where Cook spends months among what he calls the Friendly Islands.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:cook-last-voyage:5": {
+    "text": "Tahiti, where Mai is taken home at last.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:cook-last-voyage:6": {
+    "text": "Kauaʻi. Cook becomes the first European known to reach Hawaiʻi.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:cook-last-voyage:7": {
+    "text": "Nootka Sound, on the coast of North America. A month with the Nuu-chah-nulth people, refitting the ships.",
+    "bed": "waves-hull"
+  },
+  "voyage:cook-last-voyage:8": {
+    "text": "North, through the Bering Strait, into the Arctic, until a wall of ice stops them.",
+    "bed": "winter-wind"
+  },
+  "voyage:cook-last-voyage:9": {
+    "text": "Kealakekua Bay, in Hawaiʻi. A great welcome, during the Makahiki festival. But when the ships return for repairs, the welcome sours, and on the 14th of February 1779, Cook is killed on the shore."
+  },
+  "voyage:la-perouse:intro": {
+    "text": "In August 1785, King Louis the Sixteenth sends Jean-François de La Pérouse on a grand scientific voyage, to complete the work of Captain Cook. Two ships, packed with scientists and instruments, set out to cross the Pacific from end to end. Neither will ever come home.",
+    "bed": "waves-hull"
+  },
+  "voyage:la-perouse:0": {
+    "text": "Brest. The Boussole and the Astrolabe set out, laden with instruments.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:la-perouse:1": {
+    "text": "Easter Island, where the expedition measures and draws the great stone moai.",
+    "bed": "waves-hull"
+  },
+  "voyage:la-perouse:2": {
+    "text": "Maui. The French become the first Europeans to set foot on the island.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:la-perouse:3": {
+    "text": "Lituya Bay, in Alaska. Twenty-one men drown when their boats are swept into the tidal race at the bay's mouth.",
+    "bed": "winter-wind"
+  },
+  "voyage:la-perouse:4": {
+    "text": "Monterey, the first foreign visitors to Spanish California.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:la-perouse:5": {
+    "text": "Macau, where furs from Alaska are sold in China.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:la-perouse:6": {
+    "text": "La Pérouse charts the strait between Sakhalin and Hokkaidō. It still carries his name.",
+    "bed": "waves-hull"
+  },
+  "voyage:la-perouse:7": {
+    "text": "Petropavlovsk, on Kamchatka. He sends his journals home overland, across the whole of Siberia, and they survive.",
+    "bed": "winter-wind"
+  },
+  "voyage:la-perouse:8": {
+    "text": "Samoa. Twelve men, including his second-in-command, de Langle, are killed in a clash ashore.",
+    "bed": "waves-hull"
+  },
+  "voyage:la-perouse:9": {
+    "text": "Botany Bay, just as Britain's First Fleet arrives to found a colony. La Pérouse sends his last letters home with the British.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:la-perouse:10": {
+    "text": "Vanikoro, in the Solomon Islands. In a cyclone, both ships are wrecked on the reefs. No one comes home, and the mystery is solved only forty years later, when the wrecks are found."
+  },
+  "voyage:bligh-bounty:intro": {
+    "text": "In December 1787, Lieutenant William Bligh sails in HMS Bounty, to carry breadfruit plants from Tahiti to the Caribbean. The voyage will end in the most famous mutiny in naval history, and in one of the greatest feats of navigation ever made.",
+    "bed": "waves-hull"
+  },
+  "voyage:bligh-bounty:0": {
+    "text": "Spithead, in England. The Bounty sails late, for a mission that depends on the seasons.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:bligh-bounty:1": {
+    "text": "A month of storms at Cape Horn forces Bligh the other way round the world, to Cape Town.",
+    "bed": "storm-sea"
+  },
+  "voyage:bligh-bounty:2": {
+    "text": "Adventure Bay, in Tasmania, for wood and water.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:bligh-bounty:3": {
+    "text": "Matavai Bay, Tahiti. Five months collecting breadfruit, and the crew grows attached to life ashore.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:bligh-bounty:4": {
+    "text": "At dawn, the crew mutinies under Fletcher Christian. Bligh and 18 loyal men are cast adrift in a small open boat. At Tofua, they land for supplies, and are driven off by an attack. Quartermaster John Norton is killed."
+  },
+  "voyage:bligh-bounty:5": {
+    "text": "Past the Great Barrier Reef, the starving men land on a small island to gather oysters and berries. Bligh names it Restoration Island.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:bligh-bounty:6": {
+    "text": "Kupang, on Timor. Forty-seven days and some 6,700 kilometres later, with almost no charts and very little food, Bligh brings the launch into a Dutch port.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:darwin-beagle:intro": {
+    "text": "In December 1831, HMS Beagle sets out on a five-year survey voyage around the world. Aboard, as the ship's naturalist, is a 22-year-old named Charles Darwin. What he sees on this voyage will one day change how we understand life itself.",
+    "bed": "waves-hull"
+  },
+  "voyage:darwin-beagle:0": {
+    "text": "Plymouth. After weeks of storms the Beagle finally sails, and Darwin is seasick for days.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:darwin-beagle:1": {
+    "text": "The Cape Verde Islands. Darwin's first look at volcanic islands, and the start of his life as a geologist.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:darwin-beagle:2": {
+    "text": "Bahia, in Brazil. The rainforest amazes him. Slavery appals him.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:darwin-beagle:3": {
+    "text": "Rio de Janeiro, where Darwin spends months collecting, while the Beagle surveys the coast.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:darwin-beagle:4": {
+    "text": "Montevideo, the base for surveying the River Plate. Darwin rides with the gauchos, and digs up the fossils of giant extinct animals.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:darwin-beagle:5": {
+    "text": "The Falkland Islands, surveyed for a Britain that has just occupied them.",
+    "bed": "winter-wind"
+  },
+  "voyage:darwin-beagle:6": {
+    "text": "Tierra del Fuego, and the channel named after the ship on her first voyage: the Beagle Channel.",
+    "bed": "storm-sea"
+  },
+  "voyage:darwin-beagle:7": {
+    "text": "Valparaíso. Darwin crosses the Andes, and lives through the great Chile earthquake of 1835.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:darwin-beagle:8": {
+    "text": "The Galápagos Islands. Five weeks among giant tortoises, and finches and mockingbirds that differ from island to island. The seed of a great idea.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:darwin-beagle:9": {
+    "text": "Tahiti, where Darwin studies how coral reefs form.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:darwin-beagle:10": {
+    "text": "Sydney. He finds the platypus so strange that he wonders whether there were two Creators.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:darwin-beagle:11": {
+    "text": "Cape Town, where he meets the astronomer John Herschel.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:darwin-beagle:12": {
+    "text": "Falmouth, after four years and nine months. Twenty-three years later, Darwin will publish On the Origin of Species.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:john-franklin:intro": {
+    "text": "In May 1845, two of the best-equipped ships in the Royal Navy, HMS Erebus and HMS Terror, sail under Sir John Franklin to complete the Northwest Passage. They carry 129 men, three years of food, and steam engines. They will never return.",
+    "bed": "waves-hull"
+  },
+  "voyage:john-franklin:0": {
+    "text": "Greenhithe, on the Thames. Two ships set out, cheered from the shore.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:john-franklin:1": {
+    "text": "Stromness, in Orkney. The last fresh water in Britain.",
+    "bed": "waves-hull"
+  },
+  "voyage:john-franklin:2": {
+    "text": "Disko Bay, in Greenland, where the last letters home are sent.",
+    "bed": "winter-wind"
+  },
+  "voyage:john-franklin:3": {
+    "text": "Melville Bay. Two whaling ships see Erebus and Terror waiting to cross Baffin Bay. No European sees them again.",
+    "bed": "winter-wind"
+  },
+  "voyage:john-franklin:4": {
+    "text": "Beechey Island, the first winter. Three men are buried here; their graves are found in 1850.",
+    "bed": "winter-wind"
+  },
+  "voyage:john-franklin:5": {
+    "text": "Off King William Island, the ships are caught in the ice of Victoria Strait, and held there for nineteen months. Franklin dies aboard Erebus in June 1847."
+  },
+  "voyage:john-franklin:6": {
+    "text": "Victory Point. A note left in a stone cairn tells the story: the ships abandoned, and 105 men setting off south on foot. None of them survives."
+  },
+  "voyage:john-franklin:7": {
+    "text": "For more than 160 years, the ships were lost. Then, in 2014, Erebus was found in shallow water, exactly where Inuit oral history said a ship had sunk.",
+    "bed": "winter-wind"
+  },
+  "voyage:nansen-fram:intro": {
+    "text": "In 1893, the Norwegian scientist Fridtjof Nansen has a daring idea. If the Arctic ice drifts across the polar sea, then a ship frozen into it might drift with it, close to the North Pole. He builds a ship for that very purpose, with a round hull that the ice will lift, not crush. He calls her Fram, which means forward.",
+    "bed": "waves-hull"
+  },
+  "voyage:nansen-fram:0": {
+    "text": "Christiania, today's Oslo. Crowds cheer the odd, egg-shaped hull as it sails down the fjord.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:nansen-fram:1": {
+    "text": "Vardø, the last port before the ice, and the long Siberian coast.",
+    "bed": "winter-wind"
+  },
+  "voyage:nansen-fram:2": {
+    "text": "Off the New Siberian Islands, Nansen lets the pack ice close around the Fram. It squeezes, and the ship rises, just as designed.",
+    "bed": "winter-wind"
+  },
+  "voyage:nansen-fram:3": {
+    "text": "Nansen and Hjalmar Johansen leave the ship and set off on skis for the Pole. At their farthest north, they turn back, closer to the Pole than anyone had ever been.",
+    "bed": "winter-wind"
+  },
+  "voyage:nansen-fram:4": {
+    "text": "Franz Josef Land. After a winter in a stone hut, a chance meeting with an English expedition saves them.",
+    "bed": "winter-wind"
+  },
+  "voyage:nansen-fram:5": {
+    "text": "Vardø again. Nansen is home. A week later, the Fram, freed from the ice near Spitsbergen, sails in too.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:joshua-slocum:intro": {
+    "text": "In 1895, at the age of 51, a sea captain named Joshua Slocum rebuilds a rotting oyster sloop in a field, and names her Spray. Then he sets out, entirely alone, to sail around the world. No one has ever done it before.",
+    "bed": "waves-hull"
+  },
+  "voyage:joshua-slocum:0": {
+    "text": "Boston. Slocum sets out alone, with a little money, and a lot of nerve.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:joshua-slocum:1": {
+    "text": "Gibraltar. Warned of pirates in the Red Sea, he turns around, and goes the other way round the world.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:joshua-slocum:2": {
+    "text": "The Strait of Magellan, the worst of the journey. Storms, and night raiders, which he keeps away by scattering carpet tacks on the deck.",
+    "bed": "storm-sea"
+  },
+  "voyage:joshua-slocum:3": {
+    "text": "The Juan Fernández Islands, Robinson Crusoe's island. Slocum teaches the children there to make doughnuts.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:joshua-slocum:4": {
+    "text": "Apia, in Samoa. He calls on the widow of Robert Louis Stevenson, who gives him her husband's sailing guides.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:joshua-slocum:5": {
+    "text": "Sydney, where he spends the summer ashore, giving lectures to pay his way.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:joshua-slocum:6": {
+    "text": "Cape Town. He meets President Kruger of the Transvaal, who insists that the world is flat.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:joshua-slocum:7": {
+    "text": "Newport, Rhode Island. Three years and two months, some 74,000 kilometres, in the same small boat, all alone. Slocum is the first person to sail single-handed around the world.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:amundsen:intro": {
+    "text": "In 1903, the young Norwegian explorer Roald Amundsen sets out to do what Franklin and so many others had died attempting: sail the Northwest Passage. He takes not a great naval ship, but a small herring boat, the Gjøa, and six men.",
+    "bed": "waves-hull"
+  },
+  "voyage:amundsen:0": {
+    "text": "Kristiania, today's Oslo. The Gjøa slips out at night, partly to dodge a creditor.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:amundsen:1": {
+    "text": "Godhavn, in Greenland, to take on sled dogs and supplies.",
+    "bed": "winter-wind"
+  },
+  "voyage:amundsen:2": {
+    "text": "Beechey Island, where Franklin's lost expedition spent its first winter.",
+    "bed": "winter-wind"
+  },
+  "voyage:amundsen:3": {
+    "text": "A sheltered harbour on King William Island, today called Gjoa Haven. Two winters among the Netsilik Inuit, learning how to live and travel in the cold.",
+    "bed": "winter-wind"
+  },
+  "voyage:amundsen:4": {
+    "text": "Herschel Island, frozen in for a third winter. Amundsen skis some 800 kilometres to send a telegram home.",
+    "bed": "winter-wind"
+  },
+  "voyage:amundsen:5": {
+    "text": "Nome, in Alaska. The Northwest Passage has been sailed at last, and the town greets them with a party.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:amundsen-south-pole:intro": {
+    "text": "In June 1910, Roald Amundsen sails from Norway in Nansen's old ship, the Fram, telling the world he is bound for the North Pole. But he has a secret. He is really heading south, in a race with the British explorer Robert Falcon Scott, to be first to the South Pole.",
+    "bed": "waves-hull"
+  },
+  "voyage:amundsen-south-pole:0": {
+    "text": "Kristiania. The Fram leaves, publicly bound for the Arctic.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:amundsen-south-pole:1": {
+    "text": "Funchal, on Madeira. Here Amundsen tells his crew the real plan. Every man agrees to go on.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:amundsen-south-pole:2": {
+    "text": "The Bay of Whales, on the Ross Ice Shelf. The base, Framheim, is built closer to the Pole than Scott's.",
+    "bed": "winter-wind"
+  },
+  "voyage:amundsen-south-pole:3": {
+    "text": "The Axel Heiberg Glacier, a climb of more than 3,000 metres onto the polar plateau, with skis and dog sledges.",
+    "bed": "winter-wind"
+  },
+  "voyage:amundsen-south-pole:4": {
+    "text": "The South Pole, the 14th of December 1911. Five men plant the Norwegian flag, and leave a tent, and a note for Scott.",
+    "bed": "winter-wind"
+  },
+  "voyage:amundsen-south-pole:5": {
+    "text": "Hobart, in Tasmania, where Amundsen cables the news to the world.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:titanic:intro": {
+    "text": "In April 1912, the largest ship in the world sets out on her maiden voyage, from Southampton to New York. RMS Titanic carries about 2,200 passengers and crew, and lifeboats for only about half of them.",
+    "bed": "waves-hull"
+  },
+  "voyage:titanic:0": {
+    "text": "Southampton, at noon. As she leaves, the great ship narrowly misses a moored liner.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:titanic:1": {
+    "text": "Cherbourg, in France, an evening stop, with small tenders ferrying passengers out to her.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:titanic:2": {
+    "text": "Queenstown, today's Cobh, in Ireland. More than 100 Irish emigrants board. It is the last land she will ever touch.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:titanic:3": {
+    "text": "On the night of the 14th of April, in a calm and moonless sea, the Titanic strikes an iceberg at 11.40. By 2.20 in the morning, she is gone. More than 1,500 people die in the freezing water."
+  },
+  "voyage:titanic:4": {
+    "text": "New York, reached only by the survivors, about 700 of them, aboard the Carpathia, in the rain.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:shackleton:intro": {
+    "text": "In August 1914, days after the outbreak of the First World War, Ernest Shackleton sails to make the first crossing of Antarctica. He will never land on the continent. Instead, his ship will be crushed by the ice, and he will lead 28 men through one of the greatest survival stories ever told.",
+    "bed": "waves-hull"
+  },
+  "voyage:shackleton:0": {
+    "text": "Plymouth. The Endurance sails as Europe goes to war.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:shackleton:1": {
+    "text": "Buenos Aires, for the last supplies. Later, at sea, a stowaway is discovered.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:shackleton:2": {
+    "text": "Grytviken, on South Georgia. The whalers here warn of the worst ice in living memory.",
+    "bed": "winter-wind"
+  },
+  "voyage:shackleton:3": {
+    "text": "The Weddell Sea. The Endurance is frozen in, within sight of the Antarctic coast.",
+    "bed": "winter-wind"
+  },
+  "voyage:shackleton:4": {
+    "text": "After ten months adrift, the ice crushes the ship, and she sinks. The men camp on the floating ice.",
+    "bed": "winter-wind"
+  },
+  "voyage:shackleton:5": {
+    "text": "Elephant Island. Three small lifeboats reach land, the first solid ground in 497 days.",
+    "bed": "storm-sea"
+  },
+  "voyage:shackleton:6": {
+    "text": "Shackleton and five men sail the 7-metre lifeboat James Caird for sixteen days across the stormiest sea on Earth, to South Georgia.",
+    "bed": "storm-sea"
+  },
+  "voyage:shackleton:7": {
+    "text": "Stromness whaling station. Shackleton, Worsley and Crean cross the island's unmapped mountains on foot to reach help.",
+    "bed": "winter-wind"
+  },
+  "voyage:shackleton:8": {
+    "text": "Elephant Island again. On the fourth attempt, the Chilean tug Yelcho brings all 22 men off the island. Every one of the 28 has survived.",
+    "bed": "waves-hull"
+  },
+  "voyage:shackleton:9": {
+    "text": "Punta Arenas, in Chile, and a hero's welcome.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:kon-tiki:intro": {
+    "text": "In 1947, the Norwegian explorer Thor Heyerdahl sets out to show that ancient South Americans could have reached Polynesia. With five companions, he builds a raft from balsa logs and hemp rope, with no engine and no way to steer against the wind. Then they let the ocean carry them west.",
+    "bed": "waves-hull"
+  },
+  "voyage:kon-tiki:0": {
+    "text": "Callao, in Peru. The Kon-Tiki is towed out to sea, then left to the Humboldt Current.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:kon-tiki:1": {
+    "text": "The open Pacific. Flying fish land on deck for breakfast, and a whale shark circles the raft.",
+    "bed": "waves-hull"
+  },
+  "voyage:kon-tiki:2": {
+    "text": "Puka-Puka. After 93 days, the first sight of land.",
+    "bed": "waves-hull"
+  },
+  "voyage:kon-tiki:3": {
+    "text": "The reef at Raroia, in the Tuamotus. After 101 days and some 6,900 kilometres, the raft is smashed onto the reef. All six men wade ashore.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:nautilus-north-pole:intro": {
+    "text": "In July 1958, the world's first nuclear submarine, USS Nautilus, slips out of Pearl Harbor on a top-secret mission. Her goal: to travel beneath the Arctic ice cap, and become the first ship ever to reach the North Pole.",
+    "bed": "waves-hull"
+  },
+  "voyage:nautilus-north-pole:0": {
+    "text": "Pearl Harbor. Nautilus slips out in secret; very few know her true mission.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:nautilus-north-pole:1": {
+    "text": "Point Barrow, in Alaska. The submarine dives beneath the ice, for the long run across the top of the world.",
+    "bed": "waves-hull"
+  },
+  "voyage:nautilus-north-pole:2": {
+    "text": "The North Pole, at 11.15 at night, on the 3rd of August. The captain's message reads: for the world, our country, and the Navy.",
+    "bed": "waves-hull"
+  },
+  "voyage:nautilus-north-pole:3": {
+    "text": "Off the north-east coast of Greenland, Nautilus surfaces, after some 96 hours and about 2,900 kilometres beneath the ice.",
+    "bed": "winter-wind"
+  },
+  "voyage:nautilus-north-pole:4": {
+    "text": "Portland, in England, and a hero's welcome.",
+    "bed": "gulls-harbour"
+  }
+}

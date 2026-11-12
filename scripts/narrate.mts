@@ -21,8 +21,8 @@ const API = 'https://api.elevenlabs.io/v1';
 const MODEL = 'eleven_multilingual_v2';
 // Calm and unhurried: steady, a touch slower than conversation.
 const VOICE = 'JBFqnCBsd6RMkjVDRZzb'; // George, chosen at the audition
-// A touch slower again after recording, pitch kept (ffmpeg atempo): 0.92 sounded right, 0.86 stretched.
-const TEMPO = 0.92;
+// A touch slower again after recording, pitch kept (ffmpeg atempo): 0.94 (0.92 felt a tad slow, 0.86 stretched).
+const TEMPO = 0.94;
 const SETTINGS = { stability: 0.62, similarity_boost: 0.78, style: 0.12, use_speaker_boost: true, speed: 0.84 };
 
 async function speak(voiceId: string, text: string): Promise<Buffer> {

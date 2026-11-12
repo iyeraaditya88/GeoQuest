@@ -152,13 +152,13 @@ function dropBed(secs = 1.6) {
   b.src.stop(ctx.currentTime + secs + 0.05);
 }
 
-async function setBed(id: string | undefined) {
+async function setBed(id: string | undefined, always = false) {
   if (bed?.id === id) return; // the same ground carries on under the next clip
   dropBed();
   if (!id) return;
   const buf = await sound(id);
   const c = ctx;
-  if (!buf || !c || current === null || bed) return;
+  if (!buf || !c || (current === null && !always) || bed) return;
   const src = c.createBufferSource();
   src.buffer = buf;
   src.loop = true;
@@ -312,6 +312,14 @@ export const narrator = {
     const k = current?.id === id && el ? lineAt(cues, el.currentTime * 1000) : lines.length - 1;
     return { lines, k };
   },
+  /** The ground under the story between clips (e.g. the open sea while the ship sails on). */
+  ambience(id: string | null) {
+    const c = audio();
+    if (c && c.state !== 'running') void c.resume().catch(() => null);
+    void setBed(id ?? undefined, true);
+  },
+  /** The clip whose words are on screen (the one playing, or the last one, until the next). */
+  shownId: () => shown?.id ?? null,
   /** The phone is waiting for a tap before George can speak. */
   blocked: () => blocked,
   /** Called as the voice moves on (a few times a second while speaking). */

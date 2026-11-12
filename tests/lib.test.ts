@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { VOYAGES } from '../src/lib/voyages';
 import { makeRoute, routeAt, routeHeading, routeLine } from '../src/lib/sail';
 import { alignCues, lineAt, splitSentences } from '../src/lib/subtitles';
 import { readFileSync } from 'node:fs';
@@ -883,5 +884,22 @@ describe('sailing a route', () => {
     const half = routeLine(r, 0, r.total / 2);
     expect(half[half.length - 1][0]).toBeCloseTo(20, 0);
     expect(routeLine(r, 0, 0)).toEqual([]);
+  });
+});
+
+describe('voyage narration', () => {
+  const voy = JSON.parse(readFileSync('narration/scripts/voyages.json', 'utf8')) as Record<string, { text: string; bed?: string; hit?: string }>;
+  const sfx = JSON.parse(readFileSync('narration/sfx.json', 'utf8')) as Record<string, { loop: boolean }>;
+  it('has an intro and a clip for every stop of every voyage, and nothing else', () => {
+    const ids = VOYAGES.flatMap((v) => [`voyage:${v.id}:intro`, ...v.stops.map((_, i) => `voyage:${v.id}:${i}`)]);
+    expect(Object.keys(voy).sort()).toEqual(ids.sort());
+  });
+  it('keeps clips calm and cues only sounds that exist', () => {
+    for (const [id, c] of Object.entries(voy)) {
+      expect(c.text, id).not.toMatch(/!/);
+      expect(c.text.length, id).toBeLessThan(560);
+      if (c.bed) expect(sfx[c.bed]?.loop, `${id} bed`).toBe(true);
+      if (c.hit) expect(sfx[c.hit]?.loop, `${id} hit`).toBe(false);
+    }
   });
 });

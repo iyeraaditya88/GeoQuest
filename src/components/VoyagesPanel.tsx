@@ -1,11 +1,21 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Anchor, ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, ChevronUp, ExternalLink, Pause, Route, Sailboat, Ship, Sparkles, Users, Waves, X } from 'lucide-react';
+import { Anchor, ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, ChevronUp, ExternalLink, Pause, Route, Sailboat, Ship, Sparkles, Users, Volume2, VolumeX, Waves, X } from 'lucide-react';
 import { flagUrl } from '../lib/data';
 import { VOYAGES, BY_VOYAGE, VOYAGE_ERAS, voyageKm, voyagesIn, type Voyage } from '../lib/voyages';
 import { track } from '../lib/analytics';
 import { wikiPhoto } from '../lib/wiki';
 import { useTheatre, type Inset } from './theatre/useTheatre';
+import { Subtitles } from './theatre/Subtitles';
+import { narrationOn, narrator } from '../lib/narrator';
+
+/** Narration for this voyage: is it there, is it on, and which of its clips is on screen. */
+function useVoice(voyage: string) {
+  const snap = useSyncExternalStore(narrator.subscribe, () => `${narrator.available() ? 1 : 0}${narrationOn() ? 1 : 0}`);
+  const shown = useSyncExternalStore(narrator.onTime, narrator.shownId);
+  useEffect(() => { void narrator.load(); }, []);
+  return { available: snap[0] === '1', on: snap[1] === '1', shown: shown?.startsWith(`voyage:${voyage}:`) ? shown : null };
+}
 
 interface Props {
   active: string | null;
@@ -150,7 +160,9 @@ function Detail({ v, stop, sailing, onStop, onSail, onPick, onMore }: { v: Voyag
     onSail(!sailing);
   };
   const atEnd = stop === v.stops.length - 1;
-  const here = stop !== null ? v.stops[stop] : null;
+  const voice = useVoice(v.id);
+  const intro = voice.shown === `voyage:${v.id}:intro`;
+  const here = stop !== null && !intro ? v.stops[stop] : null;
   const tour = (
     <button className={`vy-tour ${sailing ? 'on' : ''}`} onClick={sail}>
       {sailing ? <><Pause size={15} /> Pause the voyage</> : <><Sailboat size={16} /> {stop !== null && !atEnd ? 'Sail on' : 'Follow the voyage'}</>}
@@ -166,13 +178,20 @@ function Detail({ v, stop, sailing, onStop, onSail, onPick, onMore }: { v: Voyag
         <AnimatePresence mode="wait" initial={false}>
           <motion.div key={stop ?? -1} className="vy-now-body" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.25 }}>
             {here ? (
-              <><b><i>{deathAt.has(stop!) ? '†' : stop! + 1}</i>{here.name}<em>{here.when}</em></b><p>{deathAt.get(stop!)?.text ?? here.note}</p></>
+              <><b><i>{deathAt.has(stop!) ? '†' : stop! + 1}</i>{here.name}<em>{here.when}</em></b>
+                <Subtitles id={voice.shown ?? `voyage:${v.id}:${stop}`} fallback={deathAt.get(stop!)?.text ?? here.note} /></>
             ) : (
-              <><b className="vy-now-title">{v.title}</b><p>{v.tagline}</p></>
+              <><b className="vy-now-title">{v.title}</b>{intro ? <Subtitles id={voice.shown!} fallback={v.tagline} /> : <p>{v.tagline}</p>}</>
             )}
           </motion.div>
         </AnimatePresence>
-        <div className="vy-now-row">{tour}<button className="peek-more" onClick={onMore}><ChevronUp size={15} /> Story</button></div>
+        <div className="vy-now-row">{tour}
+          {voice.available && (
+            <button className={`bw-speed bw-voice ${voice.on ? 'on' : ''}`} onClick={() => { track('narration', { on: voice.on ? 0 : 1 }); narrator.setOn(!voice.on); }} aria-pressed={voice.on} aria-label="Narration">
+              {voice.on ? <Volume2 size={14} /> : <VolumeX size={14} />}
+            </button>
+          )}
+          <button className="peek-more" onClick={onMore}><ChevronUp size={15} /> Story</button></div>
       </div>
 
       <div className="vy-hero">

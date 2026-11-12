@@ -108,7 +108,7 @@ import { localName } from './lib/live';
 import { panelWidth } from './lib/layout';
 import { MusicButton } from './components/MusicButton';
 import { music } from './lib/music';
-import { narrator } from './lib/narrator';
+import { narrationOn, narrator } from './lib/narrator';
 import { DebugBadge } from './components/DebugBadge';
 import type { MysteryStage } from './components/MysteryGame';
 import { geoDistance } from 'd3-geo';
@@ -958,7 +958,8 @@ export default function App() {
   // Sailing: a ship follows the route, the camera following it, pausing at each stop.
   const [sailing, setSailing] = useState(false);
   const sailStop = useRef<(() => void) | null>(null);
-  const stopSail = useCallback(() => { sailStop.current?.(); sailStop.current = null; setSailing(false); }, []);
+  // (Stopping the ship holds George mid-sentence too: "Sail on" picks him up where he stopped.)
+  const stopSail = useCallback(() => { sailStop.current?.(); sailStop.current = null; setSailing(false); narrator.pause(); }, []);
   const sail = (on: boolean) => {
     stopSail();
     const v = voy?.id ? BY_VOYAGE.get(voy.id) : null;
@@ -970,8 +971,18 @@ export default function App() {
     const seconds = Math.min(80, Math.max(26, km / 800)); // for the whole route: slow, steady sailing
     const onStop = (i: number) => setVoy((x) => (x ? { ...x, stop: i } : x));
     const onDone = () => { sailStop.current = null; setSailing(false); };
+    // With narration: the ship waits at each port while George tells it (the voyage's introduction
+    // first, as it sets out); without, or if a clip can't play, a short pause as before.
+    const voiced = narrationOn() && narrator.available();
+    const said = (id: string, title: string, next?: string) => narrator.say(id, { title, album: v.title, prefetch: next })
+      .then((r) => (r === 'failed' ? new Promise((ok) => window.setTimeout(ok, 2600)) : r));
+    const hold = voiced ? async (i: number) => {
+      if (i === 0 && from === 0) { const r = await said(`voyage:${v.id}:intro`, v.title, `voyage:${v.id}:0`); if (r === 'stopped') return; }
+      const r = await said(`voyage:${v.id}:${i}`, `${v.stops[i].name} · ${v.voyager}`, i + 1 < v.stops.length ? `voyage:${v.id}:${i + 1}` : undefined);
+      if (r === 'ended' && i + 1 < v.stops.length) narrator.ambience('waves-hull'); // out to sea again
+    } : undefined;
     if (cineSail.current) {
-      sailStop.current = cineSail.current.sail({ from, seconds: seconds * 1.3, pauseMs: 2600, onStop, onDone });
+      sailStop.current = cineSail.current.sail({ from, seconds: seconds * 1.3, pauseMs: 2600, hold, onStop, onDone: () => { onDone(); window.setTimeout(() => narrator.stop(), 4000); } });
       setSailing(true);
       return;
     }
@@ -985,10 +996,11 @@ export default function App() {
     }) ?? null;
     setSailing(!!sailStop.current);
   };
-  const closeVoyages = () => { stopSail(); setVoy(null); cam.reset(); };
+  const closeVoyages = () => { stopSail(); narrator.stop(); setVoy(null); cam.reset(); };
   const pickVoyage = useCallback((id: string | null, from?: string) => {
     if (id) track('voyage', from ? { v: id, from } : { v: id });
     stopSail();
+    narrator.stop();
     const v = BY_VOYAGE.get(id ?? voyRef.current?.id ?? voyRef.current?.hover ?? '');
     const era = v ? eraOf(v.year) : voyRef.current?.era ?? 1;
     setVoy((x) => (x ? { id, stop: null, hover: v?.id ?? x.hover, era } : x));
@@ -1002,6 +1014,8 @@ export default function App() {
     stopSail();
     if (i !== null) track('voyage_stop', { v: v.id, p: v.stops[i]?.name ?? String(i) });
     setVoy((x) => (x ? { ...x, stop: i } : x));
+    // A port picked by hand: George tells that stop.
+    if (i !== null && narrationOn() && narrator.available()) void narrator.say(`voyage:${v.id}:${i}`, { title: `${v.stops[i].name} · ${v.voyager}`, album: v.title });
     const r = voyView(v);
     if (i === null) globe.current?.frame(r.lat, r.lng, r.altitude);
     else globe.current?.frame(v.stops[i].at[0], v.stops[i].at[1], Math.min(r.altitude, 1.05));
