@@ -211,6 +211,11 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, voyage = null
     m.setPadding({ ...padRef.current, top: 0, right: 0 });
     if (import.meta.env.DEV) (window as unknown as { __cine?: maplibregl.Map }).__cine = m; // (for checking it from the console)
     m.addControl(new maplibregl.AttributionControl({ compact: true }), 'top-right');
+    // The terrain's credit is required, but it needn't fill the corner: a small "i", tap for the text.
+    // (MapLibre opens the compact credit at first; close it once the sources have reported theirs.)
+    const fold = () => host.current?.querySelector('.maplibregl-ctrl-attrib.maplibregl-compact-show')?.classList.remove('maplibregl-compact-show');
+    m.once('load', fold);
+    m.once('idle', fold);
     let failed = false;
     m.on('error', (e) => { if (!ready.current && !failed && /webgl|context/i.test(String(e.error?.message))) { failed = true; onFail(); } });
     m.once('load', () => {

@@ -3442,3 +3442,4 @@ svg.vy-flag { color: #2dd4bf; }
 .maplibregl-marker.off-side > * { opacity: 0; pointer-events: none; }
 .cine-map.far .cine-clash > button { scale: 0.62; opacity: 0.85; }
 .cine-map.far .cine-flag > * { scale: 0.75; }
+.cine-layer .maplibregl-ctrl-attrib.maplibregl-compact:not(.maplibregl-compact-show) { opacity: 0.55; }
