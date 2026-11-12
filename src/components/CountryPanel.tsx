@@ -226,7 +226,8 @@ function HistoryHere({ cca3, onStory }: { cca3: string; onStory: (kind: StoryKin
   useEffect(() => {
     let live = true;
     setMore(false);
-    void import('../lib/historyIndex').then(({ historyIn }) => { if (live) setHere({ cca3, few: historyIn(cca3), all: historyIn(cca3, Infinity) }); });
+    void import('../lib/historyIndex').then(({ historyIn }) => { if (live) setHere({ cca3, few: historyIn(cca3), all: historyIn(cca3, Infinity) }); })
+      .catch(() => null); // (offline: the country page just goes without its history)
     return () => { live = false; };
   }, [cca3]);
   if (!here || here.cca3 !== cca3 || !here.few.length) return null;

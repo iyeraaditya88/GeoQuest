@@ -26,7 +26,7 @@ export function useStoryOfDay(wanted = true) {
       if (live) setStory({ ...s, min: null });
       const min = await narrator.minutes(s.kind, s.id);
       if (live && min) setStory({ ...s, min });
-    });
+    }).catch(() => null); // (offline, or an update replaced it: the story of the day just doesn't show)
     return () => { live = false; };
   }, [wanted]);
   return story;

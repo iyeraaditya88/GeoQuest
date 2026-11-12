@@ -229,6 +229,7 @@ function Detail({ b, onScene, onFrame, onOpen, onMore }: { b: Battle; onScene: (
   const [playing, setPlaying] = useState(false);
   const [ended, setEnded] = useState(false);
   const [run, setRun] = useState(0); // (say it again: a jump the voice couldn't make by itself)
+  const [lost, setLost] = useState(false); // George couldn't be loaded (a bad connection): say so
   const from = useRef<number | undefined>(undefined); // where to pick the next clip up (a jump)
   const heard = useRef(-1); // the chapter George last finished
   const held = useSyncExternalStore(narrator.onTime, narrator.blocked); // (the phone refused the voice: same button)
@@ -246,7 +247,7 @@ function Detail({ b, onScene, onFrame, onOpen, onMore }: { b: Battle; onScene: (
     void narrator.say(clip, { title: told ? `${b.name} · ${names[ch]}` : b.name, album: 'Battles and Wars', from: at, prefetch: more ? `battle:${b.id}:${ch + 1}` : undefined })
       .then((r) => {
         if (!live) return;
-        if (r === 'failed') setPlaying(false);
+        if (r === 'failed') { setPlaying(false); setLost(true); }
         if (r !== 'ended') return;
         if (more) { heard.current = ch; t = window.setTimeout(() => setCh((c) => c + 1), breathMs(false)); }
         else { setPlaying(false); setEnded(true); if (told) onFrame(b.at[0], b.at[1], battleAltitude(b)); } // the end: back to the whole scene
@@ -270,14 +271,16 @@ function Detail({ b, onScene, onFrame, onOpen, onMore }: { b: Battle; onScene: (
     else if (c) onFrame(c[0], c[1], c[2]);
   }, [spoken, clip]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const start = () => { track('battle_play', { b: b.id }); setStarted(true); setEnded(false); setDraw((d) => d + 1); setPlaying(true); };
+  const start = () => { track('battle_play', { b: b.id }); setLost(false); setStarted(true); setEnded(false); setDraw((d) => d + 1); setPlaying(true); };
   const toggle = () => {
     if (!started) { start(); return; }
+    setLost(false);
     if (ended) { from.current = 0; setEnded(false); setCh(0); setRun((r) => r + 1); setPlaying(true); return; }
     setPlaying((p) => !p);
   };
   const jump = (k: number, ms: number) => {
     track('battle_seek', { b: b.id, k });
+    setLost(false);
     from.current = ms;
     setStarted(true);
     setEnded(false);
@@ -295,7 +298,7 @@ function Detail({ b, onScene, onFrame, onOpen, onMore }: { b: Battle; onScene: (
       <h2 className="vy-title bw-title">{b.name}</h2>
       <div className="bw-line"><Subtitles id={clip} fallback={b.line} /></div>
       {voiced ? (
-        <StoryBar segs={segs} k={told ? ch : 0} playing={playing && !held} ended={ended} onToggle={toggle} onJump={jump}>
+        <StoryBar segs={segs} k={told ? ch : 0} playing={playing && !held} ended={ended} onToggle={toggle} onJump={jump} note={lost ? 'Couldn’t load the narration. Check your connection, then press play.' : undefined}>
           <VoiceToggle on={voice.on} />
           <button className="peek-more" onClick={onMore}><ChevronUp size={15} /> The story</button>
         </StoryBar>

@@ -3439,6 +3439,9 @@ svg.vy-flag { color: #2dd4bf; }
   .voy-panel.theatre { height: calc(100dvh - 64px - var(--st)); transition: height 0.38s var(--ease); }
   .voy-panel.theatre.peek { height: auto; overflow: visible; }
   .voy-grab.theatre-grab { display: grid; place-items: center; width: 100%; height: 22px; margin: 0; padding: 0; border-radius: 22px 22px 0 0; background: none; cursor: pointer; }
+  /* (A slim bar to look at, a finger's height to hit: the touch area reaches up over the card's edge.) */
+  .voy-grab.theatre-grab { position: relative; }
+  .voy-grab.theatre-grab::before { content: ''; position: absolute; left: 0; right: 0; top: -8px; bottom: -6px; }
   .theatre-grab i { width: 38px; height: 4px; border-radius: 4px; background: rgba(255, 255, 255, 0.28); }
   /* Back and close float over the map, just above the card. */
   .voy-panel.peek > .gc-head { position: absolute; left: 10px; right: 10px; bottom: calc(100% + 10px); padding: 0; pointer-events: none; }
@@ -3504,6 +3507,7 @@ svg.vy-flag { color: #2dd4bf; }
 .sb-time { display: flex; justify-content: space-between; gap: 12px; margin-top: -2px; font-size: 12px; color: var(--dim); font-variant-numeric: tabular-nums; }
 .sb-time > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sb-time b { font-weight: 600; color: var(--muted); }
+.sb-time.sb-note span { white-space: normal; color: #fbbf77; }
 .sb-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
 .sb-row > .icon-btn { position: relative; width: 40px; height: 40px; }
 .sb-row > .icon-btn i { position: absolute; inset: 0; display: grid; place-items: center; padding-top: 1px; font: 700 7px var(--display); font-style: normal; pointer-events: none; }

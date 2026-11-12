@@ -13,9 +13,11 @@ const clock = (ms: number) => { const s = Math.max(0, Math.round(ms / 1000)); re
  * telling (a tick at each chapter or port), with where George is and how long it runs. A move
  * inside the clip being told just moves the voice; one into another chapter goes to `onJump`.
  */
-export function StoryBar({ segs, k, playing, ended, onToggle, onJump, children }: {
+export function StoryBar({ segs, k, playing, ended, onToggle, onJump, note, children }: {
   segs: StorySeg[]; k: number; playing: boolean; ended: boolean;
   onToggle: () => void; onJump: (k: number, ms: number) => void;
+  /** Something to say in place of the time (George couldn't be loaded). */
+  note?: string;
   /** More buttons, at the end of the controls (the voice, the story). */
   children?: ReactNode;
 }) {
@@ -56,7 +58,7 @@ export function StoryBar({ segs, k, playing, ended, onToggle, onJump, children }
           onChange={(e) => setDrag(Number(e.target.value))}
           onPointerUp={commit} onPointerCancel={() => setDrag(null)} onKeyUp={commit} onBlur={() => setDrag(null)} />
       </div>
-      <div className="sb-time"><span><b>{label}</b> · {clock(shown)}</span><span>{clock(total)}</span></div>
+      <div className={`sb-time ${note ? 'sb-note' : ''}`} role={note ? 'status' : undefined}>{note ? <span>{note}</span> : <><span><b>{label}</b> · {clock(shown)}</span><span>{clock(total)}</span></>}</div>
       <div className="sb-row">
         <button className="icon-btn" onClick={() => go(now - SKIP_MS)} aria-label="Back 10 seconds"><RotateCcw size={17} /><i>10</i></button>
         <button className="bw-play" onPointerDown={() => { wasWaiting.current = narrator.blocked(); }}
