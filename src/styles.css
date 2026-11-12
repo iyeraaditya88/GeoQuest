@@ -3428,3 +3428,12 @@ svg.vy-flag { color: #2dd4bf; }
 .bw-line .sub-fallback, .bw-line .subs p { margin: 0; }
 .bw-peek-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
 .bw-peek-row .peek-more { margin-top: 0; }
+/* A story opened from a shared link waits for its first tap, like a video (see StartStory). */
+.start-story { position: fixed; z-index: 15; left: 50%; top: 38%; translate: -50% -50%; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 0; background: none; color: var(--text); cursor: pointer; }
+.start-story i { width: 84px; height: 84px; display: grid; place-items: center; border-radius: 50%; color: #1a1205; background: var(--gold); box-shadow: 0 0 0 10px rgba(251, 191, 36, 0.22), 0 10px 30px rgba(0, 0, 0, 0.5); animation: start-pulse 2.2s ease-in-out infinite; }
+.start-story i svg { margin-left: 4px; }
+.start-story span { display: grid; justify-items: center; gap: 1px; padding: 7px 16px 8px; border-radius: 14px; font: 700 17px var(--display); background: rgba(9, 14, 30, 0.82); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4); }
+.start-story small { font: 600 12px var(--body, inherit); letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold-soft); }
+@keyframes start-pulse { 50% { box-shadow: 0 0 0 18px rgba(251, 191, 36, 0.08), 0 10px 30px rgba(0, 0, 0, 0.5); } }
+@media (min-width: 901px) { .start-story { left: calc(50% + 208px); top: 50%; } }
+@media (prefers-reduced-motion: reduce) { .start-story i { animation: none; } }

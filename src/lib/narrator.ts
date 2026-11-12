@@ -325,6 +325,15 @@ export const narrator = {
   camAt(id: string, k: number): ClipCam | null {
     return shown?.id === id ? shown.clip.cams?.[String(k)] ?? null : null;
   },
+  /**
+   * Opened straight from a link, before any tap: the browser won't let George speak yet, so the
+   * story waits for a "play" tap rather than starting in silence.
+   */
+  needsTap() {
+    if (!narrationOn() || unlocked) return false;
+    const ua = (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }).userActivation;
+    return ua ? !ua.hasBeenActive : true;
+  },
   /** The phone is waiting for a tap before George can speak. */
   blocked: () => blocked,
   /** Called as the voice moves on (a few times a second while speaking). */

@@ -8,6 +8,7 @@ import { track } from '../lib/analytics';
 import { breathMs, narrationOn, narrator } from '../lib/narrator';
 import { Subtitles } from './theatre/Subtitles';
 import { ShareStory } from './theatre/ShareStory';
+import { StartStory } from './theatre/StartStory';
 import { useTheatre, type Inset } from './theatre/useTheatre';
 import type { GlobePath } from './GlobeView';
 import { WW2_SHAPES } from '../data/historical/ww2';
@@ -193,6 +194,7 @@ function Detail({ b, onScene, onOpen, onMore }: { b: Battle; onScene: (s: WarSce
   const i = BATTLES.indexOf(b);
   const prev = BATTLES[i - 1], next = BATTLES[i + 1];
   const [run, setRun] = useState(0);
+  const [gate, setGate] = useState(() => narrator.needsTap()); // (from a shared link: wait for play)
   const of = b.a.men && b.b.men ? Math.max(b.a.men, b.b.men) : 0;
   const tone = b.empire ? GOLD : '#f87171';
 
@@ -214,14 +216,15 @@ function Detail({ b, onScene, onOpen, onMore }: { b: Battle; onScene: (s: WarSce
   const voice = useNarration();
   const voiced = voice.available && voice.on;
   useEffect(() => {
-    if (!voiced) return;
+    if (!voiced || gate) return;
     void narrator.say(`battle:${b.id}`, { title: b.name, album: 'Battles and Wars' });
     return () => narrator.stop();
-  }, [b, run, voiced]);
+  }, [b, run, voiced, gate]);
 
   const outcome = b.won === 'draw' ? 'Inconclusive' : b.won === 'open' ? (b.asOf ? 'Not settled' : 'No clear winner') : null;
   return (
     <motion.div className="vy-detail bw-detail" style={{ ['--c' as string]: tone }} initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 14 }} transition={{ duration: 0.2 }}>
+      {gate && <StartStory onStart={() => { setGate(false); setRun((r) => r + 1); }} />}
       <span className="er-kicker">{b.kind === 'war' ? 'War' : 'Battle'} · {b.when}</span>
       <h2 className="vy-title bw-title">{b.name}</h2>
       <div className="bw-line"><Subtitles id={`battle:${b.id}`} fallback={b.line} /></div>
@@ -292,7 +295,9 @@ function useNarration() {
 function WarPlayer({ war, onScene, onFrame }: { war: WorldWar; onScene: (s: WarScene) => void; onFrame: (lat: number, lng: number, alt: number) => void }) {
   const last = war.events.length - 1;
   const [i, setI] = useState(0);
-  const [playing, setPlaying] = useState(() => !calmMotion());
+  // From a shared link, nothing has been tapped yet: wait for "play" rather than start in silence.
+  const [gate, setGate] = useState(() => narrator.needsTap());
+  const [playing, setPlaying] = useState(() => !calmMotion() && !gate);
   const [fast, setFast] = useState(false);
   const [dragM, setDragM] = useState<number | null>(null);
   const [roster, setRoster] = useState<Exclude<WarStatus, null> | null>(null);
@@ -373,6 +378,7 @@ function WarPlayer({ war, onScene, onFrame }: { war: WorldWar; onScene: (s: WarS
 
   return (
     <motion.div className="bw-player" initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 14 }} transition={{ duration: 0.2 }}>
+      {gate && <StartStory onStart={() => { setGate(false); setI(0); setPlaying(true); }} />}
       <div className="bw-stage">
         <div className="bw-war-name"><b>{war.name}</b><span>{war.years}</span></div>
         <div className="bw-now" aria-live="polite">
