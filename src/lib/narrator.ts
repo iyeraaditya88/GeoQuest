@@ -49,6 +49,7 @@ let blocked = false;
 /** The voice has played from a tap at least once: the phone lets it play by itself from now on. */
 let unlocked = false;
 let lastErr = '';
+let saying = 0;
 /** The clip on screen for subtitles: stays after it ends (through the breath before the next). */
 let shown: { id: string; clip: Clip } | null = null;
 const timeListeners = new Set<() => void>();
@@ -83,6 +84,31 @@ function finish(r: SayResult) {
   window.clearTimeout(unduck);
   unduck = window.setTimeout(() => music.duck(false), r === 'ended' ? 2600 : 300);
   c?.done(r);
+}
+
+// ── The clips: fetched whole, then played from memory ──
+// (iPhone's player streaming a clip itself could sit "loading" with nothing for many seconds — seen
+// on a real phone with the first clip of a war, while the ones already fetched started at once.)
+const clips = new Map<string, Promise<string | null>>(); // file → object URL
+function clipUrl(file: string) {
+  let p = clips.get(file);
+  if (!p) {
+    const ctl = new AbortController();
+    const slow = window.setTimeout(() => ctl.abort(), 8000);
+    p = fetch(`${BASE}/${file}`, { signal: ctl.signal })
+      .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((b) => URL.createObjectURL(b))
+      .catch((e: Error) => { clips.delete(file); dlog('narr', `fetch ${file} failed: ${e.name === 'AbortError' ? 'too slow' : e.message}`); return null; })
+      .finally(() => window.clearTimeout(slow));
+    clips.set(file, p);
+    // Keep the last few in memory (a clip is ~300 KB).
+    if (clips.size > 5) {
+      const [old, url] = clips.entries().next().value!;
+      clips.delete(old);
+      void url.then((u) => { if (u && el?.src !== u) URL.revokeObjectURL(u); });
+    }
+  }
+  return p;
 }
 
 // ── The sound beds ──
@@ -202,8 +228,14 @@ export const narrator = {
     if (priming) await priming;
     const resuming = current?.id === id && v.paused && v.currentTime > 0;
     if (!resuming) {
+      const seq = ++saying;
+      const t0 = performance.now();
+      const url = await clipUrl(clip.file);
+      if (seq !== saying) return 'stopped'; // another clip was asked for meanwhile
+      if (!url) return 'failed';
+      dlog('narr', `fetched ${id} in ${Math.round(performance.now() - t0)} ms`);
       current?.done('stopped');
-      v.src = `${BASE}/${clip.file}`;
+      v.src = url;
       shown = { id, clip };
       tick();
     }
@@ -218,6 +250,7 @@ export const narrator = {
     music.duck(true);
     const c = audio();
     if (c && c.state !== 'running') void c.resume().catch(() => null);
+    if (bed && ctx && bed.id === clip.bed) fade(bed.gain, BED_VOL, 0.8); // (back up after a pause)
     void setBed(clip.bed);
     session(opt.title, opt.album, true);
     v.muted = false;
@@ -244,26 +277,28 @@ export const narrator = {
     }
     if (opt.prefetch && m?.[opt.prefetch]) {
       const next = m[opt.prefetch];
-      void fetch(`${BASE}/${next.file}`, { priority: 'low' } as RequestInit).catch(() => null);
+      void clipUrl(next.file);
       if (next.bed) void sound(next.bed);
     }
     return done;
   },
   /** Hold the voice where it is (and the beds); `say` with the same id carries on. */
   pause() {
+    saying++; // (a clip still being fetched won't start)
     if (!current) return;
     el?.pause();
-    if (ctx?.state === 'running') void ctx.suspend();
+    // The beds hush (suspending the sound instead would need a tap to resume on iPhone).
+    if (bed && ctx) fade(bed.gain, 0, 0.4);
     music.duck(false);
     session(undefined, undefined, false);
   },
   /** Stop for good: the voice ends, the beds fade, the music comes back. */
   stop() {
+    saying++;
     el?.pause();
     if (current) finish('stopped');
     shown = null;
     tick();
-    if (ctx?.state === 'suspended') void ctx.resume();
     dropBed(1.2);
     clearSession();
   },
