@@ -31,7 +31,8 @@ Generous: the map moves slowly while the voice speaks, so give it time.
   result, the cost, what it changed). About 3 minutes in all.
 - Battle: three chapters, `battle:<id>:0`–`:2`: the sides and the road to the battle, the battle
   itself, what it changed. About 2 minutes. (Older battles are still one clip, `battle:<id>`,
-  until they're rewritten.)
+  until they're rewritten. Wars still going on, such as Ukraine, Sudan and Gaza, stay one short
+  clip on purpose: a longer telling would date quickly, and much of it is still contested.)
 - Chapters carry `cams` (sentence → [lat, lng, altitude] or "home") so the camera follows the
   places George names; each chapter also redraws the map's arrows.
 - Voyage: an intro of 3–5 sentences, then 1–3 per stop.
