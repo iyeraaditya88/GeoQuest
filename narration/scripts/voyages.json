@@ -149,20 +149,83 @@
   },
   "voyage:vasco-da-gama:intro": {
     "text": "In July 1497, ten years after Dias rounded Africa, Vasco da Gama sets out to finish the journey, all the way to India. His four ships carry about 170 men. Only about 55 of them will come home. But the route they open will change the trade of the world.",
-    "bed": "waves-hull"
+    "bed": "waves-hull",
+    "marks": {
+      "0": [
+        {
+          "t": "person",
+          "name": "Bartolomeu Dias",
+          "wiki": "Bartolomeu_Dias",
+          "role": "First round the Cape, 1488"
+        },
+        {
+          "t": "person",
+          "name": "Vasco da Gama",
+          "wiki": "Vasco_da_Gama",
+          "role": "Commander of the fleet, aged about 28"
+        }
+      ]
+    }
   },
   "voyage:vasco-da-gama:0": {
     "text": "Lisbon. Four ships leave from Belém, on the banks of the Tagus.",
     "bed": "gulls-harbour",
-    "hit": "ship-bell"
+    "hit": "ship-bell",
+    "marks": {
+      "1": [
+        {
+          "t": "place",
+          "name": "Belém",
+          "at": [
+            38.697,
+            -9.206
+          ]
+        },
+        {
+          "t": "river",
+          "name": "Tagus",
+          "river": "Tagus",
+          "at": [
+            38.9,
+            -8.85
+          ]
+        }
+      ]
+    }
   },
   "voyage:vasco-da-gama:1": {
     "text": "The Cape Verde Islands. From here, da Gama makes a bold choice: instead of hugging the coast, he swings far out into the South Atlantic, to catch the winds.",
-    "bed": "waves-hull"
+    "bed": "waves-hull",
+    "marks": {
+      "1": [
+        {
+          "t": "place",
+          "name": "South Atlantic",
+          "at": [
+            -12,
+            -22
+          ],
+          "kind": "sea"
+        }
+      ]
+    }
   },
   "voyage:vasco-da-gama:2": {
     "text": "Ninety-three days without sight of land, the longest ocean passage any European has made. Then, St Helena Bay, on Africa's south-west coast, and a skirmish with the Khoikhoi.",
-    "bed": "waves-hull"
+    "bed": "waves-hull",
+    "marks": {
+      "1": [
+        {
+          "t": "place",
+          "name": "Khoikhoi lands",
+          "at": [
+            -31.2,
+            19.4
+          ],
+          "kind": "region"
+        }
+      ]
+    }
   },
   "voyage:vasco-da-gama:3": {
     "text": "The Cape of Good Hope, rounded after days of fighting the wind.",
@@ -170,7 +233,24 @@
   },
   "voyage:vasco-da-gama:4": {
     "text": "Mozambique Island, the first Swahili trading town, rich with Arab and Indian merchants. A new world of trade opens up before the Portuguese.",
-    "bed": "gulls-harbour"
+    "bed": "gulls-harbour",
+    "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "galley",
+          "label": "Dhows of the Swahili coast",
+          "from": [
+            -12.2,
+            41.2
+          ],
+          "to": [
+            -14.8,
+            40.85
+          ]
+        }
+      ]
+    }
   },
   "voyage:vasco-da-gama:5": {
     "text": "Mombasa. The welcome is hostile, and the fleet slips away by night.",
@@ -178,11 +258,47 @@
   },
   "voyage:vasco-da-gama:6": {
     "text": "Malindi. A friendly sultan provides a pilot who knows the monsoon winds, and the way across the Indian Ocean.",
-    "bed": "gulls-harbour"
+    "bed": "gulls-harbour",
+    "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "With a monsoon pilot",
+          "from": [
+            -3.2,
+            40.2
+          ],
+          "to": [
+            6,
+            55
+          ]
+        },
+        {
+          "t": "place",
+          "name": "Indian Ocean",
+          "at": [
+            3,
+            62
+          ],
+          "kind": "sea"
+        }
+      ]
+    }
   },
   "voyage:vasco-da-gama:7": {
     "text": "Calicut, after 23 days crossing the ocean. Vasco da Gama has reached India by sea, and the age of European empires in Asia begins.",
-    "bed": "gulls-harbour"
+    "bed": "gulls-harbour",
+    "marks": {
+      "1": [
+        {
+          "t": "person",
+          "name": "Vasco da Gama",
+          "wiki": "Vasco_da_Gama",
+          "role": "Reached Calicut, May 1498"
+        }
+      ]
+    }
   },
   "voyage:john-cabot:intro": {
     "text": "In 1497, a Venetian sailor named John Cabot sails for King Henry the Seventh of England. In one small ship, the Matthew, with about 18 men, he sets out across the cold North Atlantic, hoping to reach Asia by the shorter, northern route.",

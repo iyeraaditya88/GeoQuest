@@ -19,7 +19,18 @@ const HIT_AT: Record<string, number> = { whistle: 0.1, 'church-bells': 0.72, 'cr
 
 /** Where the camera goes as a sentence is spoken: [lat, lng, height], or back to the event's own view. */
 export type ClipCam = [number, number, number] | 'home';
-export interface Clip { file: string; ms: number; lines?: string[]; cues?: number[]; bed?: string; hit?: string; cams?: Record<string, ClipCam> }
+/**
+ * What appears on the map as a sentence is spoken: a place named (or a river, traced along its
+ * course), a person (their portrait, as a caption), or a thing — a fleet, a gunboat, guns — standing
+ * somewhere or moving from one place to another. Side 'a' is blue, 'b' red, as on the map.
+ */
+export type Mark =
+  | { t: 'place'; name: string; at: [number, number]; kind?: 'city' | 'fort' | 'region' | 'sea' | 'island' | 'cape' }
+  | { t: 'river'; name: string; river: string; at: [number, number] }
+  | { t: 'person'; name: string; wiki: string; role: string; side?: 'a' | 'b' }
+  | { t: 'item'; icon: ItemIcon; label?: string; at?: [number, number]; from?: [number, number]; to?: [number, number]; side?: 'a' | 'b' };
+export type ItemIcon = 'ship' | 'steamship' | 'galley' | 'fleet' | 'cannon' | 'army' | 'cavalry' | 'fort' | 'treaty' | 'plane' | 'tank' | 'train' | 'cargo';
+export interface Clip { file: string; ms: number; lines?: string[]; cues?: number[]; bed?: string; hit?: string; cams?: Record<string, ClipCam>; marks?: Record<string, Mark[]> }
 export type SayResult = 'ended' | 'stopped' | 'failed';
 
 /** The pause after a clip before the story moves on: room to look at the map. */
@@ -363,6 +374,23 @@ export const narrator = {
   },
   /** The clip whose words are on screen (the one playing, or the last one, until the next). */
   shownId: () => shown?.id ?? null,
+  /** What's on the map for the clip on screen: every mark up to the sentence George is on. */
+  marks(id: string): { marks: { k: number; m: Mark }[]; k: number; spanMs: number } | null {
+    if (shown?.id !== id || !shown.clip.marks) return null;
+    const { lines = [], cues = [0], marks, ms: total } = shown.clip;
+    const k = current?.id === id && el ? lineAt(cues, heardMs) : lines.length - 1;
+    const out: { k: number; m: Mark }[] = [];
+    for (const [s, ms] of Object.entries(marks)) if (Number(s) <= k) for (const m of ms) out.push({ k: Number(s), m });
+    return { marks: out, k, spanMs: (cues[k + 1] ?? total) - (cues[k] ?? 0) };
+  },
+  /** Which sentence of the clip on screen George is on (-1 if it isn't on screen): a cheap key to watch. */
+  sentence(id: string) {
+    if (shown?.id !== id) return -1;
+    const { lines = [], cues = [0] } = shown.clip;
+    return current?.id === id && el ? lineAt(cues, heardMs) : lines.length - 1;
+  },
+  /** Every mark in a clip (to fetch its portraits ahead of time). */
+  allMarks: (id: string) => Object.values(loaded?.[id]?.marks ?? {}).flat(),
   /** The camera move for a sentence of a clip (if the script names a place there). */
   camAt(id: string, k: number): ClipCam | null {
     return shown?.id === id ? shown.clip.cams?.[String(k)] ?? null : null;

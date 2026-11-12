@@ -818,12 +818,135 @@
         88.3,
         0.6
       ]
+    },
+    "marks": {
+      "0": [
+        {
+          "t": "place",
+          "name": "Bengal",
+          "at": [
+            23.9,
+            88.9
+          ],
+          "kind": "region"
+        }
+      ],
+      "1": [
+        {
+          "t": "person",
+          "name": "Siraj ud-Daulah",
+          "wiki": "Siraj_ud-Daulah",
+          "role": "Nawab of Bengal, aged 24",
+          "side": "b"
+        }
+      ],
+      "2": [
+        {
+          "t": "person",
+          "name": "Robert Clive",
+          "wiki": "Robert_Clive",
+          "role": "Commander of the East India Company's army",
+          "side": "a"
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Nawab · 50,000",
+          "at": [
+            24.18,
+            88.27
+          ],
+          "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Company · 3,000",
+          "at": [
+            22.57,
+            88.36
+          ],
+          "side": "a"
+        }
+      ],
+      "4": [
+        {
+          "t": "place",
+          "name": "Calcutta",
+          "at": [
+            22.57,
+            88.36
+          ],
+          "kind": "fort"
+        }
+      ],
+      "5": [
+        {
+          "t": "place",
+          "name": "Plassey",
+          "at": [
+            23.8,
+            88.25
+          ]
+        }
+      ]
     }
   },
   "battle:plassey:1": {
     "text": "On the 23rd of June, the two armies meet near the village of Palashi, beside a grove of mango trees. But Clive has made a secret deal. He has promised Bengal's throne to the nawab's own commander, Mir Jafar, and when the moment comes, Mir Jafar's troops simply stand and watch. Around midday, a monsoon downpour soaks the nawab's gunpowder, while the Company keeps its own dry under cover. The nawab's guns fall silent, his army loses heart, and by evening it has fled.",
     "bed": "trench-rain",
-    "hit": "rifle-volley"
+    "hit": "rifle-volley",
+    "marks": {
+      "0": [
+        {
+          "t": "place",
+          "name": "Palashi",
+          "at": [
+            23.8,
+            88.25
+          ]
+        }
+      ],
+      "2": [
+        {
+          "t": "person",
+          "name": "Mir Jafar",
+          "wiki": "Mir_Jafar",
+          "role": "The nawab's own commander",
+          "side": "b"
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "The nawab's guns",
+          "at": [
+            23.84,
+            88.28
+          ],
+          "side": "b"
+        }
+      ],
+      "4": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "In flight",
+          "from": [
+            23.83,
+            88.27
+          ],
+          "to": [
+            24.16,
+            88.27
+          ],
+          "side": "b"
+        }
+      ]
+    }
   },
   "battle:plassey:2": {
     "text": "Siraj ud-Daulah escapes, but within days he is captured and killed. Mir Jafar becomes nawab, in name. The real power now belongs to the Company, which lost only about 22 men that day. Over the next century, it uses Bengal's wealth to spread its rule across India, and in 1858 the British Crown takes over. A short battle beside a mango grove has begun almost two centuries of British power in India.",
@@ -832,6 +955,26 @@
         22,
         80,
         3.2
+      ]
+    },
+    "marks": {
+      "0": [
+        {
+          "t": "person",
+          "name": "Siraj ud-Daulah",
+          "wiki": "Siraj_ud-Daulah",
+          "role": "Captured and killed, July 1757",
+          "side": "b"
+        }
+      ],
+      "1": [
+        {
+          "t": "person",
+          "name": "Mir Jafar",
+          "wiki": "Mir_Jafar",
+          "role": "Nawab of Bengal, 1757–1760",
+          "side": "b"
+        }
       ]
     }
   },
@@ -1260,24 +1403,153 @@
         1.6,
         1
       ]
+    },
+    "marks": {
+      "0": [
+        {
+          "t": "place",
+          "name": "Cape Trafalgar",
+          "at": [
+            36.18,
+            -6.03
+          ],
+          "kind": "cape"
+        }
+      ],
+      "1": [
+        {
+          "t": "person",
+          "name": "Pierre-Charles Villeneuve",
+          "wiki": "Pierre-Charles_Villeneuve",
+          "role": "Admiral of the combined fleet",
+          "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "France & Spain · 33",
+          "at": [
+            36.42,
+            -6.42
+          ],
+          "side": "b"
+        }
+      ],
+      "2": [
+        {
+          "t": "person",
+          "name": "Horatio Nelson",
+          "wiki": "Horatio_Nelson,_1st_Viscount_Nelson",
+          "role": "Vice-admiral, Royal Navy",
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Britain · 27",
+          "at": [
+            36.2,
+            -6.95
+          ],
+          "side": "a"
+        }
+      ],
+      "3": [
+        {
+          "t": "person",
+          "name": "Napoleon",
+          "wiki": "Napoleon",
+          "role": "Emperor of the French",
+          "side": "b"
+        },
+        {
+          "t": "place",
+          "name": "Boulogne",
+          "at": [
+            50.73,
+            1.61
+          ]
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Army of England",
+          "at": [
+            50.55,
+            2
+          ],
+          "side": "b"
+        }
+      ]
     }
   },
   "battle:trafalgar:1": {
     "text": "Nelson does not form the usual line. Instead, he drives two columns of ships straight at the enemy line, to break it into pieces. Before the battle, he signals to his fleet: England expects that every man will do his duty. Watch the blue arrow. The fighting is ship against ship, at close range, for hours. At the height of it, Nelson is shot by a French marksman, on the deck of his flagship, Victory.",
     "cams": {
       "0": [
-        36.25,
-        -6.4,
-        0.6
+        36.24,
+        -6.5,
+        0.3
       ],
       "3": [
-        36.2,
-        -6.2,
-        0.5
+        36.22,
+        -6.36,
+        0.26
       ]
     },
     "bed": "naval-battle",
-    "hit": "explosion-far"
+    "hit": "explosion-far",
+    "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "Victory",
+          "from": [
+            36.46,
+            -7
+          ],
+          "to": [
+            36.3,
+            -6.43
+          ],
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "Royal Sovereign",
+          "from": [
+            36,
+            -7
+          ],
+          "to": [
+            36.14,
+            -6.43
+          ],
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Enemy line",
+          "at": [
+            36.22,
+            -6.28
+          ],
+          "side": "b"
+        }
+      ],
+      "5": [
+        {
+          "t": "person",
+          "name": "Horatio Nelson",
+          "wiki": "Horatio_Nelson,_1st_Viscount_Nelson",
+          "role": "Shot on the deck of Victory",
+          "side": "a"
+        }
+      ]
+    }
   },
   "battle:trafalgar:2": {
     "text": "Twenty-two enemy ships are taken or destroyed, without a single British ship lost. Nelson dies below decks, knowing he has won. Napoleon's hopes of invading Britain are over. He turns instead to conquer Europe on land, but for the next hundred years, Britain's navy rules the seas.",
@@ -1291,6 +1563,42 @@
         48,
         10,
         2.8
+      ]
+    },
+    "marks": {
+      "1": [
+        {
+          "t": "person",
+          "name": "Horatio Nelson",
+          "wiki": "Horatio_Nelson,_1st_Viscount_Nelson",
+          "role": "Died 21 October 1805",
+          "side": "a"
+        }
+      ],
+      "2": [
+        {
+          "t": "person",
+          "name": "Napoleon",
+          "wiki": "Napoleon",
+          "role": "Emperor of the French",
+          "side": "b"
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Grande Armée",
+          "from": [
+            50.6,
+            1.9
+          ],
+          "to": [
+            48.4,
+            9.99
+          ],
+          "side": "b"
+        }
       ]
     }
   },
@@ -1513,6 +1821,41 @@
         113.3,
         1
       ]
+    },
+    "marks": {
+      "3": [
+        {
+          "t": "place",
+          "name": "Canton",
+          "at": [
+            23.13,
+            113.26
+          ]
+        },
+        {
+          "t": "place",
+          "name": "British India",
+          "at": [
+            23.5,
+            80.5
+          ],
+          "kind": "region"
+        },
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "Opium clippers",
+          "from": [
+            21.6,
+            88.2
+          ],
+          "to": [
+            22.1,
+            113.7
+          ],
+          "side": "a"
+        }
+      ]
     }
   },
   "battle:opium-war:1": {
@@ -1527,6 +1870,77 @@
         12,
         110,
         2.6
+      ]
+    },
+    "marks": {
+      "0": [
+        {
+          "t": "person",
+          "name": "The Daoguang Emperor",
+          "wiki": "Daoguang_Emperor",
+          "role": "Emperor of Qing China",
+          "side": "b"
+        },
+        {
+          "t": "person",
+          "name": "Lin Zexu",
+          "wiki": "Lin_Zexu",
+          "role": "Imperial commissioner sent to Canton",
+          "side": "b"
+        },
+        {
+          "t": "place",
+          "name": "Canton",
+          "at": [
+            23.13,
+            113.26
+          ]
+        }
+      ],
+      "1": [
+        {
+          "t": "item",
+          "icon": "cargo",
+          "label": "1,000 tonnes of opium",
+          "at": [
+            22.82,
+            113.67
+          ],
+          "side": "b"
+        }
+      ],
+      "3": [
+        {
+          "t": "place",
+          "name": "Singapore",
+          "at": [
+            1.29,
+            103.85
+          ]
+        },
+        {
+          "t": "place",
+          "name": "Hong Kong",
+          "at": [
+            22.28,
+            114.16
+          ],
+          "kind": "island"
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Royal Navy",
+          "from": [
+            1.6,
+            104.4
+          ],
+          "to": [
+            21.9,
+            114.3
+          ],
+          "side": "a"
+        }
       ]
     }
   },
@@ -1549,7 +1963,112 @@
         0.8
       ]
     },
-    "bed": "naval-battle"
+    "bed": "naval-battle",
+    "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "steamship",
+          "label": "Nemesis",
+          "from": [
+            22.25,
+            113.75
+          ],
+          "to": [
+            23.04,
+            113.42
+          ],
+          "side": "a"
+        },
+        {
+          "t": "river",
+          "name": "Pearl River",
+          "river": "Pearl",
+          "at": [
+            22.62,
+            113.62
+          ]
+        }
+      ],
+      "1": [
+        {
+          "t": "place",
+          "name": "Canton",
+          "at": [
+            23.13,
+            113.26
+          ],
+          "kind": "fort"
+        },
+        {
+          "t": "place",
+          "name": "Amoy",
+          "at": [
+            24.48,
+            118.09
+          ]
+        },
+        {
+          "t": "place",
+          "name": "Chusan",
+          "at": [
+            30.02,
+            122.1
+          ],
+          "kind": "island"
+        },
+        {
+          "t": "place",
+          "name": "Ningbo",
+          "at": [
+            29.87,
+            121.55
+          ]
+        }
+      ],
+      "2": [
+        {
+          "t": "river",
+          "name": "Yangtze",
+          "river": "Yangtze",
+          "at": [
+            31.15,
+            117.75
+          ]
+        },
+        {
+          "t": "place",
+          "name": "Zhenjiang",
+          "at": [
+            32.19,
+            119.43
+          ]
+        },
+        {
+          "t": "place",
+          "name": "Grand Canal",
+          "at": [
+            32.75,
+            119.45
+          ],
+          "kind": "region"
+        },
+        {
+          "t": "item",
+          "icon": "steamship",
+          "label": "British squadron",
+          "from": [
+            31.35,
+            121.75
+          ],
+          "to": [
+            32.15,
+            119.62
+          ],
+          "side": "a"
+        }
+      ]
+    }
   },
   "battle:opium-war:3": {
     "text": "With Nanking under threat, China signs the Treaty of Nanking, in August 1842. It hands Hong Kong island to Britain, opens five ports to foreign trade, and pays a large sum in silver. It is the first of the treaties that China would call unequal. China remembers it as the beginning of a century of humiliation, and it marks the start of the long decline of the Qing.",
@@ -1568,6 +2087,38 @@
         30,
         112,
         3
+      ]
+    },
+    "marks": {
+      "0": [
+        {
+          "t": "place",
+          "name": "Nanking",
+          "at": [
+            32.06,
+            118.78
+          ]
+        },
+        {
+          "t": "item",
+          "icon": "treaty",
+          "label": "Treaty of Nanking",
+          "at": [
+            31.6,
+            118.5
+          ]
+        }
+      ],
+      "1": [
+        {
+          "t": "place",
+          "name": "Hong Kong",
+          "at": [
+            22.28,
+            114.16
+          ],
+          "kind": "island"
+        }
       ]
     }
   },

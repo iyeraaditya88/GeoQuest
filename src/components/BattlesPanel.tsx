@@ -28,7 +28,7 @@ type View = { kind: 'list' } | { kind: 'battle'; id: string } | { kind: 'war'; i
 interface Props {
   link?: string | null;     // opened from a shared link: a battle, or ww1 / ww2
   onScene: (s: WarScene) => void;
-  onFrame: (lat: number, lng: number, altitude: number) => void;
+  onFrame: (lat: number, lng: number, altitude: number, lands?: string[]) => void;
   pinRef: MutableRefObject<(id: string) => void>;
   onClose: () => void;
   /** How much of the screen the panel covers (the cinema map frames the rest). */
@@ -68,7 +68,7 @@ export function BattlesPanel({ link, onScene, onFrame, pinRef, onClose, onInset 
   // The camera only moves on a choice: opening something or picking a chapter, never on a hover.
   useEffect(() => {
     if (view.kind === 'list') { const [lat, lng] = BATTLE_ERAS[era].view; onFrame(lat, lng, 2.4); }
-    else if (view.kind === 'battle') { const b = BY_BATTLE.get(view.id)!; onFrame(b.at[0], b.at[1], battleAltitude(b)); }
+    else if (view.kind === 'battle') { const b = BY_BATTLE.get(view.id)!; onFrame(b.at[0], b.at[1], battleAltitude(b), sidesOf(b)); } // (the establishing shot: everyone involved)
   }, [viewKey, view.kind === 'list' ? era : -1]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -193,9 +193,11 @@ function Fighter({ side, tone, won, of }: { side: Side; tone: string; won: boole
 
 // A story told in chapters: a long war in four, a battle in three.
 const WAR_CHAPTERS = ['The sides', 'How it began', 'The fighting', 'How it ended'];
+/** Every country on either side, for the shot that shows who's fighting. */
+const sidesOf = (b: Battle) => [...(b.lands?.a ?? []), ...(b.lands?.b ?? [])];
 const BATTLE_CHAPTERS = ['The sides', 'The battle', 'What it changed'];
 
-function Detail({ b, onScene, onFrame, onOpen, onMore }: { b: Battle; onScene: (s: WarScene) => void; onFrame: (lat: number, lng: number, alt: number) => void; onOpen: (id: string) => void; onMore: () => void }) {
+function Detail({ b, onScene, onFrame, onOpen, onMore }: { b: Battle; onScene: (s: WarScene) => void; onFrame: (lat: number, lng: number, alt: number, lands?: string[]) => void; onOpen: (id: string) => void; onMore: () => void }) {
   const i = BATTLES.indexOf(b);
   const prev = BATTLES[i - 1], next = BATTLES[i + 1];
   const [draw, setDraw] = useState(0); // the armies march again
@@ -262,13 +264,27 @@ function Detail({ b, onScene, onFrame, onOpen, onMore }: { b: Battle; onScene: (
   // Each new chapter, the armies march again, so the arrows move while George describes them.
   const firstCh = useRef(true);
   useEffect(() => { if (firstCh.current) { firstCh.current = false; return; } if (told) setDraw((d) => d + 1); }, [ch, told]);
-  // As George names a place, the camera goes there ('home': back to the battle).
-  const spoken = useSyncExternalStore(narrator.onTime, () => (told ? narrator.line(clip)?.k ?? -1 : -1));
+  // As George names a place, the camera goes there ('home': back to the battle). The telling opens on
+  // everyone involved; a later chapter that doesn't name a place first moves in on the fighting.
+  const spoken = useSyncExternalStore(narrator.onTime, () => (voiced ? narrator.sentence(clip) : -1));
+  const wide = useRef(true); // (the camera hasn't yet moved in from the shot of who's fighting)
   useEffect(() => {
     if (spoken < 0) return;
     const c = narrator.camAt(clip, spoken);
-    if (c === 'home') onFrame(b.at[0], b.at[1], battleAltitude(b));
-    else if (c) onFrame(c[0], c[1], c[2]);
+    const opening = !told || ch === 0;
+    if (spoken === 0) wide.current = opening;
+    // (The place the first sentence names comes a sentence later, after the shot of who's fighting.)
+    const named = opening && spoken === 1 && !c ? narrator.camAt(clip, 0) : null;
+    // Still on the wide opening shot, "In blue is…" and "In red is…" show each side in turn.
+    const line = narrator.line(clip)?.lines[spoken] ?? '';
+    const close = named && named !== 'home' && named[2] < 2 ? named : null; // (a place first: it leads)
+    const side = wide.current && !c && !close ? (/^In blue\b/.test(line) ? b.lands?.a : /^In red\b/.test(line) ? b.lands?.b : null) : null;
+    const go = (lat: number, lng: number, alt: number) => { if (alt < 2) wide.current = false; onFrame(lat, lng, alt); };
+    if (spoken === 0 && opening) onFrame(b.at[0], b.at[1], battleAltitude(b), sidesOf(b));
+    else if (side?.length) { const [la, lo] = BY_CCA3.get(side[0])?.latlng ?? b.at; onFrame(la, lo, battleAltitude(b), side); }
+    else if (close) go(close[0], close[1], close[2]);
+    else if (c === 'home' || (spoken === 0 && !c)) go(b.at[0], b.at[1], battleAltitude(b));
+    else if (c) go(c[0], c[1], c[2]);
   }, [spoken, clip]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const start = () => { track('battle_play', { b: b.id }); setLost(false); setStarted(true); setEnded(false); setDraw((d) => d + 1); setPlaying(true); };
@@ -364,7 +380,7 @@ function useNarration() {
   return { available: snap[0] === '1', on: snap[1] === '1' };
 }
 
-function WarPlayer({ war, onScene, onFrame }: { war: WorldWar; onScene: (s: WarScene) => void; onFrame: (lat: number, lng: number, alt: number) => void }) {
+function WarPlayer({ war, onScene, onFrame }: { war: WorldWar; onScene: (s: WarScene) => void; onFrame: (lat: number, lng: number, alt: number, lands?: string[]) => void }) {
   const last = war.events.length - 1;
   const [i, setI] = useState(0);
   // It opens like a video, waiting on its big play button (and from a shared link, that first tap

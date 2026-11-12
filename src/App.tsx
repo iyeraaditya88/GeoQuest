@@ -1175,12 +1175,12 @@ export default function App() {
     setBattles({ link });
   };
   const closeBattles = () => { setBattles(null); cam.reset(); };
-  const frameWar = useCallback((lat: number, lng: number, altitude: number) => {
+  const frameWar = useCallback((lat: number, lng: number, altitude: number, lands?: string[]) => {
     globe.current?.frame(lat, lng, narrow() ? Math.min(3.4, altitude * 1.25) : altitude);
-    setCineCam((c) => ({ lat, lng, alt: altitude, n: (c?.n ?? 0) + 1 }));
+    setCineCam((c) => ({ lat, lng, alt: altitude, n: (c?.n ?? 0) + 1, lands }));
   }, []);
   // A battle or a war open: it plays on the tilted cinema map (the globe, paused underneath, keeps its place).
-  const [cineCam, setCineCam] = useState<{ lat: number; lng: number; alt: number; n: number } | null>(null);
+  const [cineCam, setCineCam] = useState<{ lat: number; lng: number; alt: number; n: number; lands?: string[] } | null>(null);
   const [cineFailed, setCineFailed] = useState(false);
   const [cineReady, setCineReady] = useState(false);
   // The explore panels (voyages, wars…): a bottom sheet on phones, a column on the left otherwise

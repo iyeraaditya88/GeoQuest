@@ -3,7 +3,7 @@
 // bold arrows that grow across the land, names in wide capitals that curve along each country, flags
 // planted where countries join, and a camera that swoops between events and drifts while you read.
 // It draws whatever scene the Battles panel hands the globe (see WarScene), so the panel is unchanged.
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import mapWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -14,10 +14,17 @@ import type { WarScene } from '../BattlesPanel';
 import { cull, track } from './cull';
 import { VOYAGE_LAYERS, VOYAGE_SOURCES, createVoyage, type CinemaSail, type VoyageScene } from './voyage';
 import { flyTo } from './fly';
+import { ANNOTATION_LAYERS, ANNOTATION_SOURCES, createAnnotations } from './annotate';
+import { PersonCards, prefetchPortraits } from './PersonCards';
+import { narrator, type Mark } from '../../lib/narrator';
 
 maplibregl.setWorkerUrl(mapWorkerUrl);
 
-export interface CinemaCamera { lat: number; lng: number; alt: number; n: number }
+/**
+ * Where the camera goes: a point at a height, or (with `lands`) a shot framing those countries whole —
+ * the establishing shot that shows who is fighting before the story moves in on the fighting.
+ */
+export interface CinemaCamera { lat: number; lng: number; alt: number; n: number; lands?: string[] }
 interface Props {
   scene: WarScene;
   camera: CinemaCamera | null;
@@ -151,6 +158,7 @@ function style(): maplibregl.StyleSpecification {
       labels: { type: 'geojson', data: EMPTY, buffer: 256 },
       seas: { type: 'geojson', data: seas(), buffer: 256 },
       ...VOYAGE_SOURCES,
+      ...ANNOTATION_SOURCES,
     },
     layers: [
       { id: 'ocean', type: 'background', paint: { 'background-color': OCEAN } },
@@ -164,6 +172,7 @@ function style(): maplibregl.StyleSpecification {
       { id: 'edge-core', type: 'line', source: 'edges', layout: { 'line-join': 'round' }, paint: { 'line-color': 'rgba(255,248,232,0.85)', 'line-width': ['interpolate', ['linear'], ['zoom'], 2, 0.7, 6, 1.5] } },
       { id: 'shape-glow', type: 'line', source: 'shapes', layout: { 'line-join': 'round' }, paint: { 'line-color': ['get', 'c'], 'line-width': ['interpolate', ['linear'], ['zoom'], 2, 5, 6, 11], 'line-blur': ['interpolate', ['linear'], ['zoom'], 2, 4, 6, 9], 'line-opacity': 0, 'line-opacity-transition': { duration: 700 } } },
       { id: 'shape-core', type: 'line', source: 'shapes', layout: { 'line-join': 'round' }, paint: { 'line-color': 'rgba(255,248,232,0.85)', 'line-width': ['interpolate', ['linear'], ['zoom'], 2, 0.7, 6, 1.5], 'line-dasharray': [3, 2], 'line-opacity': 0, 'line-opacity-transition': { duration: 700 } } },
+      ...ANNOTATION_LAYERS,
       { id: 'front-glow', type: 'line', source: 'fronts', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#fde68a', 'line-width': 10, 'line-blur': 8, 'line-opacity': 0.55 } },
       { id: 'front', type: 'line', source: 'fronts', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#fff3c4', 'line-width': 2.4, 'line-dasharray': [2, 1.4] } },
       { id: 'sea-names', type: 'symbol', source: 'seas', filter: inZoom(), layout: { 'symbol-placement': 'line-center', 'text-field': ['get', 't'], 'text-font': ['Noto Sans Italic'], 'text-size': sizeAt('k'), 'text-letter-spacing': 0.5, 'text-max-angle': 40, 'text-pitch-alignment': 'map', 'text-rotation-alignment': 'map', 'text-keep-upright': true }, paint: { 'text-color': 'rgba(196,224,255,0.5)', 'text-opacity-transition': { duration: 500 } } },
@@ -202,6 +211,7 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, voyage = null
   const voyRef = useRef(voyage);
   voyRef.current = voyage;
   const voy = useRef<ReturnType<typeof createVoyage> | null>(null);
+  const ann = useRef<ReturnType<typeof createAnnotations> | null>(null);
   const drawn = useRef<{ scene: WarScene | null; cam: number }>({ scene: null, cam: -1 });
   const painted = useRef(new Map<string, [number, number, number]>());
   const markers = useRef<maplibregl.Marker[]>([]);
@@ -239,6 +249,7 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, voyage = null
       voy.current = createVoyage(m, { narrow, calm: calmMotion, padding: room, onPin: (id) => pinRef.current?.(id) });
       if (sailRef) sailRef.current = { sail: (o) => voy.current?.sail(o) ?? (() => {}) };
       voy.current.show(voyRef.current);
+      ann.current = createAnnotations(m, { calm: calmMotion, onPin: ([la, lo]) => sceneRef.current.pins.some((p) => p.active && Math.abs(p.lat - la) < 0.2 && Math.abs(p.lng - lo) < 0.2) });
       onReady();
       draw(true);
     });
@@ -254,6 +265,8 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, voyage = null
     m.on('dragstart', mine); m.on('zoomstart', mine); m.on('rotatestart', mine); m.on('pitchstart', mine);
     return () => {
       cancelAnimationFrame(raf.current);
+      ann.current?.destroy();
+      ann.current = null;
       voy.current?.clear();
       voy.current = null;
       if (sailRef) sailRef.current = null;
@@ -283,7 +296,7 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, voyage = null
     const m = map.current;
     if (!m || !ready.current) return;
     const sc = sceneRef.current, cam = camRef.current;
-    if (cam && drawn.current.cam !== cam.n) { drawn.current.cam = cam.n; fly(cam, first); }
+    if (cam && drawn.current.cam !== cam.n) { drawn.current.cam = cam.n; aim(cam, first); }
     if (drawn.current.scene === sc) return;
     const prev = drawn.current.scene;
     drawn.current.scene = sc;
@@ -357,18 +370,24 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, voyage = null
     }
   }
 
-  function drawPaths() {
+  /** The zoom the arrows were last drawn for: their width is set for it. */
+  const pathZoom = useRef(0);
+  const growing = useRef(false);
+  function drawPaths(settled = false) {
     const m = map.current!;
+    pathZoom.current = targetZoom.current;
     const paths = sceneRef.current.paths;
     const fronts = paths.filter((p) => p.mode === 'front');
     (m.getSource('fronts') as maplibregl.GeoJSONSource).setData({ type: 'FeatureCollection', features: fronts.map((p) => ({ type: 'Feature', geometry: { type: 'LineString', coordinates: p.points.map(([la, lo]) => [lo, la]) }, properties: {} })) });
     const arrows = paths.filter((p) => p.mode === 'arrow' && p.points.length >= 2);
     cancelAnimationFrame(raf.current);
     const lat = camRef.current?.lat ?? 45;
-    const W = (narrow ? 12 : 15) * metresPerPixel(targetZoom.current, lat);
-    const t0 = performance.now(), calm = calmMotion();
+    const t0 = performance.now(), calm = calmMotion() || settled;
     const build = (now: number) => {
       let busy = false;
+      // (Their width follows the view the camera is heading for, while they grow.)
+      const W = (narrow ? 12 : 15) * metresPerPixel(targetZoom.current, lat);
+      pathZoom.current = targetZoom.current;
       const features: GeoJSON.Feature[] = [];
       arrows.forEach((p, k) => {
         const t = calm ? 1 : Math.min(1, Math.max(0, (now - t0 - (p.delay ?? 0)) / ARROW_MS));
@@ -378,8 +397,10 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, voyage = null
         features.push({ type: 'Feature', geometry: { type: 'Polygon', coordinates: [ring] }, properties: { c: p.color } });
       });
       (map.current?.getSource('arrows') as maplibregl.GeoJSONSource | undefined)?.setData({ type: 'FeatureCollection', features });
+      growing.current = busy;
       if (busy) raf.current = requestAnimationFrame(build);
     };
+    growing.current = true;
     raf.current = requestAnimationFrame(build);
   }
 
@@ -434,30 +455,77 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, voyage = null
   }
 
   // ── The camera: a swoop to each event, then a slow drift while you read ──
+  /** The countries' mainlands (and the point itself) as one box; across the date line if that's tighter. */
+  function boxOf(cam: CinemaCamera): [[number, number], [number, number]] | null {
+    const pts: [number, number][] = [[cam.lng, cam.lat]];
+    for (const id of cam.lands ?? []) for (const [x, y] of mainlandOf(id)) pts.push([x, y]);
+    if (pts.length < 3) return null;
+    const lats = pts.map((p) => p[1]);
+    const span = (xs: number[]) => Math.max(...xs) - Math.min(...xs);
+    const raw = pts.map((p) => p[0]), shifted = raw.map((x) => (x < 0 ? x + 360 : x));
+    const xs = span(shifted) < span(raw) ? shifted : raw;
+    return [[Math.min(...xs), Math.min(...lats)], [Math.max(...xs), Math.max(...lats)]];
+  }
+
+  // Shots follow one another, never on top of each other: each one holds a moment once it arrives,
+  // and a move asked for before then waits its turn (only the latest waits).
+  const settledAt = useRef(0);
+  const waiting = useRef(0);
+  const HOLD = 900;
+  function aim(cam: CinemaCamera, first: boolean) {
+    window.clearTimeout(waiting.current);
+    const wait = first ? 0 : settledAt.current - performance.now();
+    if (wait > 0) { waiting.current = window.setTimeout(() => { if (camRef.current?.n === cam.n && map.current) fly(cam, false); }, wait); return; }
+    fly(cam, first);
+  }
+
   function fly(cam: CinemaCamera, first: boolean) {
     const m = map.current!;
-    const zoom = zoomForAltitude(cam.alt, narrow);
-    targetZoom.current = zoom;
-    userMoved.current = false;
-    const bearing = ((cam.n * 37) % 28) - 14;
-    const pitch = narrow ? 46 : 54;
     const pad = room();
     const calm = calmMotion();
+    // The establishing shot: every country in the war, flat enough to read them all.
+    const box = cam.lands?.length ? boxOf(cam) : null;
+    let center: [number, number] = [cam.lng, cam.lat];
+    let zoom = zoomForAltitude(cam.alt, narrow);
+    let pitch = narrow ? 46 : 54;
+    let bearing = ((cam.n * 37) % 28) - 14;
+    if (box) {
+      try {
+        // (Margins only: maplibre adds the panel's room, the map's own padding, by itself.)
+        m.setPadding(pad);
+        const fit = m.cameraForBounds(box, { padding: { top: 64, bottom: 40, left: 40, right: 40 } });
+        if (fit?.center && Number.isFinite(fit.zoom)) {
+          const c = maplibregl.LngLat.convert(fit.center);
+          center = [((c.lng + 540) % 360) - 180, c.lat];
+          zoom = Math.max(0.9, Math.min(5.2, fit.zoom!));
+        }
+      } catch { /* (a box the map can't frame: the point and height instead) */ }
+      pitch = narrow ? 22 : 26;
+      bearing = 0;
+    }
+    targetZoom.current = zoom;
+    // Moving in (or out) a long way: the arrows are redrawn for the new view, at once (no replay).
+    if (!growing.current && sceneRef.current.paths.length && Math.abs(zoom - pathZoom.current) > 0.9) drawPaths(true);
+    userMoved.current = false;
     m.stop();
     if (!calm) showNames(false);
     // A journey you can follow: out, across, and in, taking longer the further it goes (Hawaii to
-    // Singapore is a long, high arc; the next valley over, a short glide).
+    // Singapore is a long, high arc; the next valley over, a slow glide).
     const here = m.getCenter();
-    const km = 6371 * 2 * Math.asin(Math.min(1, Math.sqrt(Math.sin(((cam.lat - here.lat) * Math.PI) / 360) ** 2
-      + Math.cos((cam.lat * Math.PI) / 180) * Math.cos((here.lat * Math.PI) / 180) * Math.sin(((cam.lng - here.lng) * Math.PI) / 360) ** 2)));
-    const duration = calm ? 0 : Math.round(Math.min(5600, Math.max(first ? 2600 : 1600, 1300 + km * 0.45)));
-    flyTo(m, { center: [cam.lng, cam.lat], zoom, pitch, bearing, padding: pad, duration, curve: km > 1500 ? 1.75 : 1.4, easing: (t) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2), essential: true });
+    const km = 6371 * 2 * Math.asin(Math.min(1, Math.sqrt(Math.sin(((center[1] - here.lat) * Math.PI) / 360) ** 2
+      + Math.cos((center[1] * Math.PI) / 180) * Math.cos((here.lat * Math.PI) / 180) * Math.sin(((center[0] - here.lng) * Math.PI) / 360) ** 2)));
+    const zoomed = Math.abs(zoom - m.getZoom());
+    const duration = calm ? 0 : Math.round(Math.min(5200, Math.max(first ? 2600 : 1900, 1300 + km * 0.38 + zoomed * 320)));
+    settledAt.current = performance.now() + duration + HOLD;
+    flyTo(m, { center, zoom, pitch, bearing, padding: pad, duration, curve: km > 1500 ? 1.75 : 1.4, easing: (t) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2), essential: true });
     if (calm) return;
     m.once('moveend', () => {
       if (userMoved.current || drawn.current.cam !== cam.n) return;
-      m.easeTo({ bearing: bearing + 7, zoom: zoom + 0.22, duration: 16000, easing: (t) => t, padding: pad, essential: true });
+      // While you read: a slow drift (a wide shot only breathes; a close one turns a little too).
+      m.easeTo({ bearing: bearing + (box ? 0 : 7), zoom: zoom + (box ? 0.12 : 0.22), duration: 16000, easing: (t) => t, padding: pad, essential: true });
     });
   }
+
 
   // The panel grew or shrank (the details opened, the phone turned): re-centre on what's left.
   const padKey = `${padding.left},${padding.bottom}`;
@@ -479,10 +547,36 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, voyage = null
   // Redraw whenever the panel hands over a new scene or camera.
   useEffect(() => { draw(); }); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // What George names appears as he says it: places, rivers and things on the map, people as captions.
+  // (Watched by clip and sentence, a cheap key: the marks themselves are only read when it changes.)
+  const [people, setPeople] = useState<Extract<Mark, { t: 'person' }>[]>([]);
+  useEffect(() => {
+    let last = '', lastClip: string | null = null;
+    const sync = () => {
+      if (!ann.current) return; // (the map is still loading: it looks again once it can draw)
+      const id = narrator.shownId();
+      const k = id ? narrator.sentence(id) : -1;
+      const key = `${id}|${k}`;
+      if (key === last) return;
+      last = key;
+      if (id !== lastClip) { lastClip = id; if (id) prefetchPortraits(narrator.allMarks(id)); }
+      const r = id ? narrator.marks(id) : null;
+      ann.current?.update(r ? id : null, r?.marks ?? [], r?.k ?? -1, r?.spanMs ?? 0);
+      // A person's caption stays for the sentence they're named in and the next; two at most.
+      const near = (r?.marks ?? []).filter((x) => x.m.t === 'person' && x.k >= r!.k - 1).map((x) => x.m as Extract<Mark, { t: 'person' }>);
+      const two = near.filter((p, i) => near.findIndex((q) => q.wiki === p.wiki) === i).slice(-2);
+      setPeople((old) => (old.map((p) => p.wiki).join() === two.map((p) => p.wiki).join() ? old : two));
+    };
+    const offT = narrator.onTime(sync), offS = narrator.subscribe(sync);
+    sync();
+    return () => { offT(); offS(); };
+  }, []);
+
   return (
     <div className="cine-layer">
       <div className="cine-map" ref={host} />
       <div className="cine-vignette" aria-hidden />
+      <PersonCards people={people} left={padding.left} />
     </div>
   );
 }

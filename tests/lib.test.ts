@@ -993,3 +993,29 @@ describe('recent games (the sidebar shows yours first)', () => {
     localStorage.clear();
   });
 });
+
+describe('story annotations (what appears on the map as George speaks)', () => {
+  const scripts = { ...JSON.parse(readFileSync('narration/scripts/battles.json', 'utf8')), ...JSON.parse(readFileSync('narration/scripts/voyages.json', 'utf8')) } as Record<string, { text: string; marks?: Record<string, Record<string, unknown>[]> }>;
+  const rivers = new Set((JSON.parse(readFileSync('public/nature.json', 'utf8')) as { rivers: { id: string }[] }).rivers.map((r) => r.id));
+  const ICONS = ['ship', 'steamship', 'galley', 'fleet', 'cannon', 'army', 'cavalry', 'fort', 'treaty', 'plane', 'tank', 'train', 'cargo'];
+  const ll = (p: unknown) => Array.isArray(p) && p.length === 2 && Math.abs(p[0]) <= 90 && Math.abs(p[1]) <= 180;
+  const marked = Object.entries(scripts).filter(([, c]) => c.marks);
+  it('has the pilot stories annotated', () => {
+    for (const id of ['battle:opium-war:2', 'battle:plassey:0', 'battle:trafalgar:1', 'voyage:vasco-da-gama:intro']) expect(scripts[id].marks, id).toBeTruthy();
+  });
+  it('ties every mark to a sentence George says, with a shape the map can draw', () => {
+    for (const [id, c] of marked) {
+      const n = splitSentences(c.text).length;
+      for (const [k, list] of Object.entries(c.marks!)) {
+        expect(Number(k), `${id} sentence ${k}`).toBeLessThan(n);
+        for (const m of list) {
+          if (m.t === 'place') { expect(ll(m.at), `${id} ${m.name}`).toBe(true); expect(m.name).toBeTruthy(); }
+          else if (m.t === 'river') { expect(rivers.has(m.river as string), `${id} river ${m.river}`).toBe(true); expect(ll(m.at)).toBe(true); }
+          else if (m.t === 'person') { expect(m.wiki && m.name && m.role, `${id} person`).toBeTruthy(); expect(['a', 'b', undefined]).toContain(m.side); }
+          else if (m.t === 'item') { expect(ICONS, `${id} icon`).toContain(m.icon); expect(ll(m.at) || (ll(m.from) && ll(m.to)), `${id} ${m.icon} position`).toBe(true); }
+          else throw new Error(`${id}: unknown mark ${JSON.stringify(m)}`);
+        }
+      }
+    }
+  });
+});

@@ -3543,3 +3543,74 @@ svg.vy-flag { color: #2dd4bf; }
 .cine-map.far .cine-clash > button { scale: 0.62; opacity: 0.85; }
 .cine-map.far .cine-flag > * { scale: 0.75; }
 .cine-layer .maplibregl-ctrl-attrib.maplibregl-compact:not(.maplibregl-compact-show) { opacity: 0.55; }
+
+/* ── Annotations: what George names, on the map as he says it ─────────── */
+/* Places: a dot where it is and its name beside it, in the warm ivory of an old atlas. */
+.cine-place { width: 0; height: 0; pointer-events: none; opacity: 0; transition: opacity 0.6s ease; }
+.cine-place.in { opacity: 1; }
+.cine-place.out { opacity: 0; transition-duration: 0.4s; }
+.cine-place i { position: absolute; left: -5px; top: -5px; width: 10px; height: 10px; border-radius: 50%; background: #fbf3dc; box-shadow: 0 0 0 2px rgba(20, 16, 10, 0.75), 0 2px 6px rgba(0, 0, 0, 0.5); }
+.cine-place.now i::after { content: ''; position: absolute; inset: -2px; border-radius: 50%; box-shadow: 0 0 0 2px #fbf3dc; animation: cine-port 1.8s ease-out 2; }
+.cine-place span { position: absolute; left: 11px; top: 0; translate: 0 -50%; white-space: nowrap; font: 700 14px/1 var(--display); letter-spacing: 0.02em; color: #fbf3dc; text-shadow: 0 0 3px rgba(12, 10, 6, 0.95), 0 0 10px rgba(12, 10, 6, 0.7), 0 1px 2px rgba(0, 0, 0, 0.8); transition: opacity 0.6s, translate 0.6s var(--ease); }
+.cine-place:not(.in) span { translate: -4px -50%; }
+.cine-place.past span { opacity: 0; }
+.cine-place.past i { scale: 0.7; opacity: 0.7; }
+.cine-place.now span { font-size: 15px; }
+/* Regions, seas and rivers: no dot, a spaced italic name across the place. */
+.cine-place.k-region span, .cine-place.k-sea span, .cine-place.k-river span { left: 0; translate: -50% -50%; font: italic 600 13px/1 var(--display); letter-spacing: 0.16em; text-transform: uppercase; }
+.cine-place.k-region:not(.in) span, .cine-place.k-sea:not(.in) span, .cine-place.k-river:not(.in) span { translate: -50% -40%; }
+.cine-place.k-sea span { color: rgba(205, 228, 255, 0.92); }
+.cine-place.k-river span { color: #cdeaff; }
+.cine-place.k-fort i { border-radius: 2px; rotate: 45deg; }
+.cine-place.by-pin i { display: none; }
+.cine-place.by-pin span { left: 30px; }
+.cine-place.hush span, .cine-item.hush span { opacity: 0; }
+.cine-item span { transition: opacity 0.4s; }
+
+/* Things: vessels drawn from above, turned to their course; everything else a badge in its side's colour. */
+.cine-item { width: 0; height: 0; pointer-events: none; opacity: 0; transition: opacity 0.6s ease; }
+.cine-item.in { opacity: 1; }
+.cine-item.out { opacity: 0; transition-duration: 0.4s; }
+.cine-item.vessel .ss-turn { left: -26px; top: -30px; width: 52px; height: 60px; transform-origin: 50% 50%; transition: none; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 10px color-mix(in srgb, var(--c) 55%, transparent)); }
+.cine-item.vessel .ss-turn.fleet { left: -36px; top: -32px; width: 72px; height: 64px; }
+.cine-item.arrived .ss-wake, .cine-item.arrived .st-smoke { opacity: 0; transition: opacity 1.2s; }
+.cine-item.badge b { position: absolute; left: -17px; top: -17px; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--c) 70%, white), var(--c) 70%); box-shadow: 0 0 0 2px rgba(255, 248, 232, 0.9), 0 6px 16px rgba(0, 0, 0, 0.55), 0 0 18px color-mix(in srgb, var(--c) 60%, transparent); scale: 0.6; transition: scale 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.cine-item.badge.in b { scale: 1; }
+.cine-item.badge b { translate: var(--dx, 0) var(--dy, 0); }
+.cine-item.badge span { translate: calc(-50% + var(--dx, 0px)) var(--dy, 0); }
+.cine-item.badge b, .cine-item.badge span { transition: scale 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), translate 0.4s ease, opacity 0.4s; }
+.cine-item.badge b svg { width: 18px; height: 18px; }
+.cine-item span { position: absolute; left: 0; top: 22px; translate: -50% 0; white-space: nowrap; padding: 2px 7px; border-radius: 6px; font: 700 11px/1.3 var(--display); letter-spacing: 0.03em; color: #fbf3dc; background: rgba(12, 14, 24, 0.72); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4); }
+.cine-item.vessel span { top: 30px; }
+.st-hull { fill: #33373f; stroke: #e7e9ee; stroke-width: 1.4; }
+.st-deck { fill: #5a5f69; }
+.st-funnel { fill: var(--c); stroke: #1c1f25; stroke-width: 1; }
+.st-smoke circle { fill: rgba(220, 222, 228, 0.55); animation: st-smoke 2.4s ease-out infinite; }
+.st-smoke circle:nth-child(2) { animation-delay: 0.6s; }
+.st-smoke circle:nth-child(3) { animation-delay: 1.2s; }
+@keyframes st-smoke { 0% { opacity: 0.75; transform: translateY(0) scale(0.8); } 100% { opacity: 0; transform: translateY(6px) scale(1.4); } }
+.gl-oar { fill: none; stroke: #e9d5b0; stroke-width: 1.3; stroke-linecap: round; }
+@media (prefers-reduced-motion: reduce) { .st-smoke circle { animation: none; } .cine-place.now i::after { animation: none; } }
+.cine-map.far .cine-place span { font-size: 12px; }
+.cine-map.far .cine-item.badge b { scale: 0.8; }
+
+/* People: a documentary caption over the top of the map as George names them. */
+.pc-stack { position: absolute; z-index: 3; top: calc(var(--st, 0px) + 16px); left: calc(var(--pc-left, 0px) + 16px); display: grid; gap: 8px; pointer-events: none; max-width: min(340px, calc(100vw - var(--pc-left, 0px) - 32px)); }
+.pc-card { display: flex; align-items: center; gap: 12px; padding: 8px 14px 8px 8px; border-radius: 14px; background: linear-gradient(90deg, rgba(10, 13, 24, 0.9), rgba(10, 13, 24, 0.78)); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: inset 3px 0 0 var(--c), 0 8px 24px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.07); }
+.pc-photo { flex: none; width: 54px; height: 64px; border-radius: 10px; overflow: hidden; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 30%, #1b2030); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12); }
+.pc-photo img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; filter: sepia(0.18) contrast(1.04); }
+.pc-photo i { font: 700 16px var(--display); font-style: normal; color: rgba(255, 255, 255, 0.85); }
+.pc-text { display: grid; gap: 2px; min-width: 0; }
+.pc-text b { font: 700 16px/1.2 var(--display); color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pc-text span { font-size: 12.5px; line-height: 1.3; color: #d6dbe6; }
+.pc-text small { margin-top: 2px; font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(214, 219, 230, 0.5); }
+@media (max-width: 900px) {
+  /* Phones: under the menu button, compact, so the map keeps the screen. */
+  .pc-stack { top: calc(var(--st, 0px) + 66px); left: 12px; max-width: min(260px, calc(100vw - 110px)); gap: 6px; }
+  .pc-card { padding: 5px 10px 5px 5px; gap: 9px; border-radius: 12px; }
+  .pc-photo { width: 36px; height: 42px; border-radius: 8px; }
+  .pc-text { gap: 1px; }
+  .pc-text b { font-size: 13.5px; }
+  .pc-text span { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pc-text small { margin-top: 0; font-size: 8px; }
+}
