@@ -3480,6 +3480,13 @@ svg.vy-flag { color: #2dd4bf; }
 .bw-line .sub-fallback, .bw-line .subs p { margin: 0; }
 .bw-peek-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
 .bw-peek-row .peek-more { margin-top: 0; }
+/* Chapters of a narrated battle: a dash each, the current one lit, with its name */
+.bw-chapters { flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; }
+.bw-chapters button { display: grid; place-items: center; height: 28px; padding: 0 2px; }
+.bw-chapters i { display: block; width: 18px; height: 4px; border-radius: 99px; background: rgba(255, 255, 255, 0.18); transition: background 0.3s, width 0.3s; }
+.bw-chapters .done i { background: color-mix(in srgb, var(--c) 55%, transparent); }
+.bw-chapters .on i { width: 26px; background: var(--c); }
+.bw-chapters span { margin-left: 4px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 12px var(--display); color: var(--muted); }
 /* A story opened from a shared link waits for its first tap, like a video (see StartStory). */
 .start-story { position: fixed; z-index: 15; left: 50%; top: 38%; translate: -50% -50%; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 0; background: none; color: var(--text); cursor: pointer; }
 .start-story i { width: 84px; height: 84px; display: grid; place-items: center; border-radius: 50%; color: #1a1205; background: var(--gold); box-shadow: 0 0 0 10px rgba(251, 191, 36, 0.22), 0 10px 30px rgba(0, 0, 0, 0.5); animation: start-pulse 2.2s ease-in-out infinite; }

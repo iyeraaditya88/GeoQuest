@@ -108,7 +108,7 @@ export function BattlesPanel({ link, onScene, onFrame, pinRef, onClose, onInset 
       <div className="voy-scroll" ref={scroller}>
         <AnimatePresence mode="wait" initial={false}>
           {view.kind === 'list' && <List key="list" era={era} onEra={(e) => { track('battle_era', { e }); setEra(e); setHover(null); }} hover={hover} onHover={setHover} scroller={scroller} onOpen={open} />}
-          {view.kind === 'battle' && <Detail key={view.id} b={BY_BATTLE.get(view.id)!} onScene={onScene} onOpen={open} onMore={() => setPeek(false)} />}
+          {view.kind === 'battle' && <Detail key={view.id} b={BY_BATTLE.get(view.id)!} onScene={onScene} onFrame={onFrame} onOpen={open} onMore={() => setPeek(false)} />}
           {view.kind === 'war' && <WarPlayer key={view.id} war={WORLD_WARS[view.id]} onScene={onScene} onFrame={onFrame} />}
         </AnimatePresence>
       </div>
@@ -190,47 +190,86 @@ function Fighter({ side, tone, won, of }: { side: Side; tone: string; won: boole
   );
 }
 
-function Detail({ b, onScene, onOpen, onMore }: { b: Battle; onScene: (s: WarScene) => void; onOpen: (id: string) => void; onMore: () => void }) {
+// A story told in chapters: a long war in four, a battle in three.
+const WAR_CHAPTERS = ['The sides', 'How it began', 'The fighting', 'How it ended'];
+const BATTLE_CHAPTERS = ['The sides', 'The battle', 'What it changed'];
+
+function Detail({ b, onScene, onFrame, onOpen, onMore }: { b: Battle; onScene: (s: WarScene) => void; onFrame: (lat: number, lng: number, alt: number) => void; onOpen: (id: string) => void; onMore: () => void }) {
   const i = BATTLES.indexOf(b);
   const prev = BATTLES[i - 1], next = BATTLES[i + 1];
-  const [run, setRun] = useState(0);
+  const [run, setRun] = useState(0); // George starts over
+  const [draw, setDraw] = useState(0); // the armies march again
   const [gate, setGate] = useState(() => narrator.needsTap()); // (from a shared link: wait for play)
   const held = useSyncExternalStore(narrator.onTime, narrator.blocked); // (the phone refused the voice: same button)
   const of = b.a.men && b.b.men ? Math.max(b.a.men, b.b.men) : 0;
   const tone = b.empire ? GOLD : '#f87171';
 
-  // The camera arrives, then the sides colour in and the armies march.
+  // The camera arrives, then the sides colour in and the armies march (again, when asked: the
+  // colours stay put and only the arrows redraw).
   useEffect(() => {
     const pins: ClashPin[] = [{ lat: b.at[0], lng: b.at[1], kind: 'clash', id: `bw:${b.id}`, name: b.name, tone, active: true }];
-    onScene({ paint: null, paths: [], pins, focus: true });
+    const paint: Record<string, string> = {};
+    for (const id of b.lands?.a ?? []) paint[id] = SIDE_COLOR.a;
+    for (const id of b.lands?.b ?? []) paint[id] = SIDE_COLOR.b;
+    onScene({ paint: draw ? paint : null, paths: [], pins, focus: true });
     const t = window.setTimeout(() => {
-      const paint: Record<string, string> = {};
-      for (const id of b.lands?.a ?? []) paint[id] = SIDE_COLOR.a;
-      for (const id of b.lands?.b ?? []) paint[id] = SIDE_COLOR.b;
-      const paths: GlobePath[] = (b.moves ?? []).map((m, k) => ({ id: `${b.id}:${run}:${k}`, points: [m.f, m.t], color: SIDE_COLOR[m.s], mode: 'arrow', arrow: true, delay: 300 + k * 350 }));
+      const paths: GlobePath[] = (b.moves ?? []).map((m, k) => ({ id: `${b.id}:${draw}:${k}`, points: [m.f, m.t], color: SIDE_COLOR[m.s], mode: 'arrow', arrow: true, delay: 300 + k * 350 }));
       onScene({ paint, paths, pins, focus: true });
-    }, run ? 250 : 750);
+    }, draw ? 250 : 750);
     return () => window.clearTimeout(t);
-  }, [b, run, onScene, tone]);
+  }, [b, draw, onScene, tone]);
 
-  // George tells the battle as the armies move (opening it was a tap, so phones let him speak).
+  // George tells it as the armies move (opening it was a tap, so phones let him speak): in
+  // chapters when it's recorded that way, one after another, else in one clip.
   const voice = useNarration();
   const voiced = voice.available && voice.on;
+  const parts = useSyncExternalStore(narrator.subscribe, () => narrator.chapters(`battle:${b.id}`));
+  const told = voiced && parts > 0;
+  const [ch, setCh] = useState(0);
+  const names = parts >= 4 ? WAR_CHAPTERS : BATTLE_CHAPTERS;
+  const clip = told ? `battle:${b.id}:${ch}` : `battle:${b.id}`;
   useEffect(() => {
     if (!voiced || gate) return;
-    void narrator.say(`battle:${b.id}`, { title: b.name, album: 'Battles and Wars' });
-    return () => narrator.stop();
-  }, [b, run, voiced, gate]);
+    let live = true, t = 0;
+    const more = told && ch < parts - 1;
+    void narrator.say(clip, { title: told ? `${b.name} · ${names[ch]}` : b.name, album: 'Battles and Wars', prefetch: more ? `battle:${b.id}:${ch + 1}` : undefined })
+      .then((r) => {
+        if (!live || r !== 'ended') return;
+        if (more) t = window.setTimeout(() => setCh((c) => c + 1), breathMs(false));
+        else if (told) onFrame(b.at[0], b.at[1], battleAltitude(b)); // the end: back to the whole scene
+      });
+    return () => { live = false; window.clearTimeout(t); narrator.pause(); };
+  }, [b, run, clip, voiced, gate]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => narrator.stop(), []);
+  // Each new chapter, the armies march again, so the arrows move while George describes them.
+  useEffect(() => { if (told && ch > 0) setDraw((d) => d + 1); }, [ch, told]);
+  // As George names a place, the camera goes there ('home': back to the battle).
+  const spoken = useSyncExternalStore(narrator.onTime, () => (told ? narrator.line(clip)?.k ?? -1 : -1));
+  useEffect(() => {
+    if (spoken < 0) return;
+    const c = narrator.camAt(clip, spoken);
+    if (c === 'home') onFrame(b.at[0], b.at[1], battleAltitude(b));
+    else if (c) onFrame(c[0], c[1], c[2]);
+  }, [spoken, clip]); // eslint-disable-line react-hooks/exhaustive-deps
+  const chapter = (k: number) => { track('battle_chapter', { b: b.id, k }); setCh(k); setRun((r) => r + 1); };
 
   const outcome = b.won === 'draw' ? 'Inconclusive' : b.won === 'open' ? (b.asOf ? 'Not settled' : 'No clear winner') : null;
   return (
     <motion.div className="vy-detail bw-detail" style={{ ['--c' as string]: tone }} initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 14 }} transition={{ duration: 0.2 }}>
-      {(gate || held) && <StartStory onStart={() => { if (gate) { setGate(false); setRun((r) => r + 1); } }} />}
+      {(gate || held) && <StartStory onStart={() => { if (gate) { setGate(false); setCh(0); setRun((r) => r + 1); } }} />}
       <span className="er-kicker">{b.kind === 'war' ? 'War' : 'Battle'} · {b.when}</span>
       <h2 className="vy-title bw-title">{b.name}</h2>
-      <div className="bw-line"><Subtitles id={`battle:${b.id}`} fallback={b.line} /></div>
+      <div className="bw-line"><Subtitles id={clip} fallback={b.line} /></div>
       <div className="bw-peek-row">
         <button className="peek-more" onClick={onMore}><ChevronUp size={15} /> The story</button>
+        {told && (
+          <div className="bw-chapters" role="group" aria-label="Chapters">
+            {names.slice(0, parts).map((n, k) => (
+              <button key={n} className={k === ch ? 'on' : k < ch ? 'done' : ''} onClick={() => chapter(k)} aria-label={`Chapter ${k + 1}: ${n}`} aria-current={k === ch ? 'step' : undefined}><i /></button>
+            ))}
+            <span>{names[ch]}</span>
+          </div>
+        )}
         {voice.available && (
           <button className={`bw-speed bw-voice ${voice.on ? 'on' : ''}`} onClick={() => { track('narration', { on: voice.on ? 0 : 1 }); narrator.setOn(!voice.on); }} aria-pressed={voice.on} aria-label="Narration">
             {voice.on ? <Volume2 size={14} /> : <VolumeX size={14} />}
@@ -259,7 +298,7 @@ function Detail({ b, onScene, onOpen, onMore }: { b: Battle; onScene: (s: WarSce
 
       <p className="vy-story">{b.story}</p>
 
-      {(b.moves?.length ?? 0) > 0 && <button className="vy-tour bw-replay" onClick={() => { track('battle_replay', { b: b.id }); setRun((r) => r + 1); }}><RotateCcw size={15} /> Replay the movements</button>}
+      {(b.moves?.length ?? 0) > 0 && <button className="vy-tour bw-replay" onClick={() => { track('battle_replay', { b: b.id }); setDraw((d) => d + 1); }}><RotateCcw size={15} /> Replay the movements</button>}
 
       <div className="fr-label"><Sparkles size={12} /> Why it mattered</div>
       <ul className="vy-mattered">{b.why.map((m) => <li key={m}>{m}</li>)}</ul>

@@ -29,13 +29,14 @@ export const narrationOn = () => { try { return localStorage.getItem(KEY) !== 'o
 
 let manifest: Promise<Record<string, Clip> | null> | null = null;
 let available = false;
+let loaded: Record<string, Clip> | null = null; // (the manifest, once it's here)
 const listeners = new Set<() => void>();
 const emit = () => { for (const l of listeners) l(); };
 
 function load() {
   manifest ??= fetch(`${BASE}/manifest.json`)
     .then((r) => (r.ok && (r.headers.get('content-type') ?? '').includes('json') ? r.json() : null))
-    .then((m: Record<string, Clip> | null) => { available = !!m; emit(); return m; })
+    .then((m: Record<string, Clip> | null) => { available = !!m; loaded = m; emit(); return m; })
     .catch(() => null);
   return manifest;
 }
@@ -189,8 +190,9 @@ export const narrator = {
   async minutes(kind: 'battles' | 'voyages', id: string) {
     const m = await load();
     if (!m) return null;
-    const pre = kind === 'voyages' ? `voyage:${id}:` : `${id}:`;
-    const ms = Object.entries(m).reduce((t, [k, c]) => (k === `battle:${id}` || k.startsWith(pre) ? t + c.ms : t), 0);
+    // A war or a battle is told in chapters (battle:plassey:0, :1…), or as one clip (battle:plassey).
+    const pre = kind === 'voyages' ? `voyage:${id}:` : m[`battle:${id}:0`] ? `battle:${id}:` : `${id}:`;
+    const ms = Object.entries(m).reduce((t, [k, c]) => (k.startsWith(pre) || (k === `battle:${id}` && !m[`battle:${id}:0`]) ? t + c.ms : t), 0);
     return ms ? Math.max(1, Math.round(ms / 60_000)) : null;
   },
   /**
@@ -326,6 +328,12 @@ export const narrator = {
     const c = audio();
     if (c && c.state !== 'running') void c.resume().catch(() => null);
     void setBed(id ?? undefined, true);
+  },
+  /** How many chapters a story is told in (id:0, id:1…): 0 if it's one clip, or not loaded yet. */
+  chapters(id: string) {
+    let n = 0;
+    while (loaded?.[`${id}:${n}`]) n++;
+    return n;
   },
   /** The clip whose words are on screen (the one playing, or the last one, until the next). */
   shownId: () => shown?.id ?? null,

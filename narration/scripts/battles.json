@@ -98,9 +98,40 @@
     "text": "1756. A war begins that is fought on five continents, from Canada to the Philippines, and it will decide who rules overseas. Britain and Prussia face France, Austria, Russia and Spain. When the Treaty of Paris ends it, Britain holds Canada and leads in India, the world's leading colonial power. But its debts lead to new taxes, which help spark the American Revolution, and the French one too.",
     "bed": "marching"
   },
-  "battle:plassey": {
-    "text": "Bengal, June 1757. Near the village of Palashi, about 3,000 soldiers of the East India Company, under Robert Clive, face an army of some 50,000 led by the nawab, Siraj ud-Daulah. But Clive has made a secret deal. He has promised Bengal's throne to the nawab's own commander, Mir Jafar, and when the moment comes, Mir Jafar's troops simply stand and watch. A monsoon downpour soaks the nawab's gunpowder, while the Company keeps its own dry. A trading company now holds India's richest province, and almost two centuries of British power in India have begun.",
-    "bed": "trench-rain"
+  "battle:plassey:0": {
+    "text": "Bengal, in the summer of 1757. This is India's richest province, ruled by a young nawab, Siraj ud-Daulah. In blue is the East India Company, a British trading company with its own army, led by Robert Clive. In red is the nawab's army, with French allies, some 50,000 men against the Company's 3,000. The quarrel began a year earlier, when the nawab seized the Company's fort at Calcutta. Clive has taken it back, and now he marches north. Follow the blue arrow up the river from Calcutta.",
+    "cams": {
+      "0": [
+        23.5,
+        88.5,
+        1.6
+      ],
+      "4": [
+        22.57,
+        88.36,
+        0.5
+      ],
+      "5": [
+        23.2,
+        88.3,
+        0.6
+      ]
+    }
+  },
+  "battle:plassey:1": {
+    "text": "On the 23rd of June, the two armies meet near the village of Palashi, beside a grove of mango trees. But Clive has made a secret deal. He has promised Bengal's throne to the nawab's own commander, Mir Jafar, and when the moment comes, Mir Jafar's troops simply stand and watch. Around midday, a monsoon downpour soaks the nawab's gunpowder, while the Company keeps its own dry under cover. The nawab's guns fall silent, his army loses heart, and by evening it has fled.",
+    "bed": "trench-rain",
+    "hit": "rifle-volley"
+  },
+  "battle:plassey:2": {
+    "text": "Siraj ud-Daulah escapes, but within days he is captured and killed. Mir Jafar becomes nawab, in name. The real power now belongs to the Company, which lost only about 22 men that day. Over the next century, it uses Bengal's wealth to spread its rule across India, and in 1858 the British Crown takes over. A short battle beside a mango grove has begun almost two centuries of British power in India.",
+    "cams": {
+      "3": [
+        22,
+        80,
+        3.2
+      ]
+    }
   },
   "battle:quebec-1759": {
     "text": "September 1759, Quebec. In the dark, General James Wolfe's soldiers climb the cliffs above the St. Lawrence by a hidden path, and at dawn they are lined up outside the city, on the Plains of Abraham. The battle takes less than an hour, and both commanders, Wolfe and the Marquis de Montcalm, die of their wounds. Within four years, French rule in Canada is over, though French-speaking Quebec remains.",
@@ -331,9 +362,59 @@
     "bed": "naval-battle",
     "hit": "explosion-far"
   },
-  "battle:stalingrad": {
-    "text": "August 1942. The German Sixth Army reaches Stalingrad, on the Volga. Germans and Soviets fight house by house, floor by floor, through a ruined city. In November, the Red Army strikes from north and south, and closes a ring around the Germans. In February, the survivors give in. It is the great turning point of the war in the east.",
-    "bed": "city-ruins"
+  "battle:stalingrad:0": {
+    "text": "Summer, 1942. Hitler's armies push deep into the south of the Soviet Union, toward the oil fields of the Caucasus. In red are Germany and its allies, Romania, Italy and Hungary. In blue is the Soviet Union. The German Sixth Army, under Friedrich Paulus, is sent to take Stalingrad, a great industrial city on the Volga that bears Stalin's own name. Follow the red arrow east across the open steppe.",
+    "cams": {
+      "0": [
+        47,
+        42,
+        2.4
+      ],
+      "4": [
+        49.5,
+        40,
+        1.6
+      ]
+    },
+    "bed": "tanks-rolling"
+  },
+  "battle:stalingrad:1": {
+    "text": "In late August, German bombers set the city ablaze. Then the Sixth Army fights its way in. The Soviets, under Vasily Chuikov, cling to a narrow strip along the river, fighting house by house, floor by floor, through factories and cellars. Reinforcements cross the Volga at night, under fire. By November, the Germans hold most of the ruined city, but never all of it.",
+    "cams": {
+      "0": [
+        48.71,
+        44.51,
+        0.45
+      ],
+      "2": [
+        48.75,
+        44.55,
+        0.35
+      ]
+    },
+    "bed": "city-ruins",
+    "hit": "explosion-far"
+  },
+  "battle:stalingrad:2": {
+    "text": "On the 19th of November, the Red Army strikes. Watch the blue arrows, one from the north and one from the south, breaking through the Romanian lines and meeting behind the city. The Sixth Army is trapped. Through a bitter winter, the food and ammunition run out, and the cold closes in. On the 2nd of February 1943, the last German troops give in. Nearly two million soldiers were killed, wounded or captured, and from here on, Germany is in retreat in the east.",
+    "cams": {
+      "1": [
+        48.6,
+        43.8,
+        1.1
+      ],
+      "4": [
+        48.71,
+        44.51,
+        0.5
+      ],
+      "5": [
+        50,
+        40,
+        2.6
+      ]
+    },
+    "bed": "winter-wind"
   },
   "battle:el-alamein": {
     "text": "October 1942, in the Egyptian desert. A thunderous night-time artillery barrage opens the battle, and Montgomery's Eighth Army fights its way through deep minefields to break Rommel's line. The German and Italian retreat ends only in Tunisia. As Churchill put it: before Alamein, we never had a victory. After Alamein, we never had a defeat.",
@@ -437,8 +518,105 @@
   "battle:yugoslav-wars": {
     "text": "1991. As Yugoslavia breaks apart, wars of ethnic cleansing tear the region apart. Sarajevo is besieged for almost four years, and at Srebrenica, about 8,000 Bosniak men and boys are killed. Some 130,000 people die across the decade. International courts later convict leaders of war crimes, and of genocide at Srebrenica. Seven countries now stand where one once was."
   },
-  "battle:second-congo": {
-    "text": "1998. Rooted in the aftermath of the Rwandan genocide, and in a struggle for minerals, a war draws in the armies of nine countries in and around the Democratic Republic of the Congo. It becomes the deadliest war since 1945, with estimates of up to five million dead, most of them from hunger and disease. Fighting in the east of the country continues even now."
+  "battle:second-congo:0": {
+    "text": "This is the Second Congo War, sometimes called Africa's World War. From 1998 to 2003 it is fought across the Democratic Republic of the Congo, a country as large as Western Europe. On one side, in blue, is the Congolese government of Laurent-Désiré Kabila, backed by the armies of Angola, Zimbabwe and Namibia. On the other, in red, are Rwanda and Uganda, and the rebel groups they support. Watch the map: almost all of the fighting happens on Congolese soil, but the armies come from across the continent.",
+    "cams": {
+      "1": [
+        -2.5,
+        23.5,
+        2.2
+      ],
+      "2": [
+        -9,
+        20,
+        2.6
+      ],
+      "3": [
+        -0.5,
+        30.5,
+        1.4
+      ],
+      "4": [
+        -3,
+        24,
+        2.6
+      ]
+    }
+  },
+  "battle:second-congo:1": {
+    "text": "The roots of the war lie in Rwanda. After the genocide of 1994, many of those responsible flee west, across the border into Congo, which was then called Zaire. In 1996, Rwanda and Uganda back a rebellion that sweeps across the country, and puts Laurent-Désiré Kabila in power in Kinshasa. But within two years, Kabila turns on his former allies, and orders their troops to leave. In August 1998, they come back. Follow the red arrows from Rwanda and Uganda into the east of Congo.",
+    "cams": {
+      "0": [
+        -1.9,
+        29.9,
+        0.9
+      ],
+      "1": [
+        -1.7,
+        29.2,
+        0.9
+      ],
+      "3": [
+        -4.3,
+        15.3,
+        1.2
+      ],
+      "5": [
+        -0.5,
+        28.5,
+        1.5
+      ]
+    }
+  },
+  "battle:second-congo:2": {
+    "text": "Rwandan troops are flown right across the country, to the far west, and push toward the capital, Kinshasa. Angola and Zimbabwe send in their armies to stop them, and Kinshasa holds. Follow the blue arrow up from Angola. The war settles into a long stalemate, with the country split between rival armies and rebel groups. Much of the fighting is over the riches of the east: gold, diamonds, and the coltan used in mobile phones. In January 2001, Laurent-Désiré Kabila is assassinated, and his son, Joseph, takes his place.",
+    "cams": {
+      "0": [
+        -5,
+        14.5,
+        1.3
+      ],
+      "2": [
+        -6.5,
+        14,
+        1.6
+      ],
+      "3": [
+        -2.5,
+        23.5,
+        2.2
+      ],
+      "4": [
+        -1.5,
+        28.5,
+        1.2
+      ],
+      "5": [
+        -4.3,
+        15.3,
+        1.2
+      ]
+    }
+  },
+  "battle:second-congo:3": {
+    "text": "Joseph Kabila opens talks. Peace deals are signed in 2002, the foreign armies begin to go home, and in 2003 a transitional government brings the main sides together. The cost is hard to take in. Estimates run as high as five million dead, more than in any war since 1945, and most of them die not in battle, but from hunger and disease. Peace never fully reaches the east, where armed groups still fight today. In the green hills above Lake Kivu, the war's long shadow has not lifted.",
+    "cams": {
+      "0": [
+        -4.3,
+        15.3,
+        1.4
+      ],
+      "2": [
+        -3,
+        24,
+        2.6
+      ],
+      "4": [
+        -1.7,
+        29.2,
+        0.9
+      ]
+    }
   },
   "battle:kargil": {
     "text": "May 1999, high in the mountains of Ladakh. Pakistani soldiers and militants secretly occupy ridges overlooking India's key road to Ladakh. India takes them back, at heavy cost, climbing through snow and thin air, and international pressure brings a Pakistani withdrawal. It is a rare direct war between two nuclear-armed states.",

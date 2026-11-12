@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { BATTLES } from '../src/lib/battles';
+import { BATTLES, BY_BATTLE } from '../src/lib/battles';
 import { VOYAGES } from '../src/lib/voyages';
 import { makeRoute, routeAt, routeHeading, routeLine } from '../src/lib/sail';
 import { alignCues, lineAt, splitSentences } from '../src/lib/subtitles';
@@ -921,8 +921,16 @@ describe('voyage narration', () => {
 describe('battle narration', () => {
   const bat = JSON.parse(readFileSync('narration/scripts/battles.json', 'utf8')) as Record<string, { text: string; bed?: string; hit?: string }>;
   const sfx = JSON.parse(readFileSync('narration/sfx.json', 'utf8')) as Record<string, { loop: boolean }>;
-  it('has one clip for every battle, calm, with sounds that exist', () => {
-    expect(Object.keys(bat).sort()).toEqual(BATTLES.map((b) => `battle:${b.id}`).sort());
+  it('tells every battle, in one clip or in chapters, calm, with sounds that exist', () => {
+    // Chapters: a war in four (the sides, how it began, the fighting, how it ended), a battle in three.
+    for (const b of BATTLES) {
+      const n = Object.keys(bat).filter((k) => k.startsWith(`battle:${b.id}:`)).length;
+      if (!n) { expect(bat[`battle:${b.id}`], b.id).toBeTruthy(); continue; }
+      expect(bat[`battle:${b.id}`], `${b.id}: one clip or chapters, not both`).toBeUndefined();
+      expect(n, b.id).toBe(b.kind === 'war' ? 4 : 3);
+      for (let k = 0; k < n; k++) expect(bat[`battle:${b.id}:${k}`], `${b.id}:${k}`).toBeTruthy();
+    }
+    expect(Object.keys(bat).every((k) => BY_BATTLE.has(k.split(':')[1]))).toBe(true);
     for (const [id, c] of Object.entries(bat)) {
       expect(c.text, id).not.toMatch(/!/);
       expect(c.text.length, id).toBeLessThan(620);
@@ -931,7 +939,7 @@ describe('battle narration', () => {
     }
   });
   it('keeps atrocities and today’s wars free of sound effects', () => {
-    for (const id of ['hiroshima', 'yugoslav-wars', 'gaza-2023', 'russia-ukraine', 'sudan-2023']) expect(bat[`battle:${id}`].bed ?? bat[`battle:${id}`].hit, id).toBeUndefined();
+    for (const id of ['hiroshima', 'yugoslav-wars', 'gaza-2023', 'russia-ukraine', 'sudan-2023', 'second-congo']) for (const [k, c] of Object.entries(bat)) if (k === `battle:${id}` || k.startsWith(`battle:${id}:`)) expect(c.bed ?? c.hit, k).toBeUndefined();
   });
 });
 

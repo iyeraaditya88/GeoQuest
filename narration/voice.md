@@ -26,7 +26,14 @@ while the map tells the same story.
 ## Length
 Generous: the map moves slowly while the voice speaks, so give it time.
 - War event: 5–7 sentences (about 30–40 seconds).
-- Battle: one clip of 4–6 sentences (about 35–50 seconds): the setting, the turn, why it mattered.
+- War (a long one, not the world wars): four chapters, `battle:<id>:0`–`:3`, 5–6 sentences each:
+  the sides (who fought whom, in which colour), how it began, the fighting, how it ended (the
+  result, the cost, what it changed). About 3 minutes in all.
+- Battle: three chapters, `battle:<id>:0`–`:2`: the sides and the road to the battle, the battle
+  itself, what it changed. About 2 minutes. (Older battles are still one clip, `battle:<id>`,
+  until they're rewritten.)
+- Chapters carry `cams` (sentence → [lat, lng, altitude] or "home") so the camera follows the
+  places George names; each chapter also redraws the map's arrows.
 - Voyage: an intro of 3–5 sentences, then 1–3 per stop.
 
 ## Words to avoid
