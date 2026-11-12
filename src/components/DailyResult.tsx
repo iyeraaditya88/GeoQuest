@@ -9,6 +9,8 @@ import { Reminders } from './Reminders';
 import { openFeedback } from '../lib/feedback';
 import { resultText } from '../lib/share';
 import { ShareButton } from './ShareButton';
+import { StoryNudge } from './StoryNudge';
+import type { StoryKind } from '../lib/shareStory';
 
 export interface DailyBoardRow { name: string; points: number[]; total: number }
 interface Props {
@@ -22,6 +24,8 @@ interface Props {
   fresh: boolean;
   onClose: () => void;
   onReminder?: (on: boolean) => void;
+  /** Today's narrated story, suggested once you're done */
+  onStory?: (kind: StoryKind, id: string) => void;
   /** Without an account: no board or streak — an invitation to sign up instead */
   guest?: boolean;
 }
@@ -30,7 +34,7 @@ const MAX = DAILY_N * MAX_POINTS;
 const sq = (p: number) => (p === 3 ? 'g' : p === 2 ? 'y' : p === 1 ? 'o' : 'x');
 
 /** Today's Daily: score, streak, the five countries, share, today's board and the morning reminder. */
-export function DailyResult({ date, targets, points, streak, board, me, fresh, onClose, onReminder, guest = false }: Props) {
+export function DailyResult({ date, targets, points, streak, board, me, fresh, onClose, onReminder, onStory, guest = false }: Props) {
   const score = total(points);
   const { favs } = useFavorites(me ?? 'you');
   useEffect(() => {
@@ -101,6 +105,7 @@ export function DailyResult({ date, targets, points, streak, board, me, fresh, o
           </ol>
         ) : <p className="ac-note">You’re the first today — your friends’ scores show up here as they play.</p>}
 
+        {onStory && <StoryNudge from="daily" onStory={onStory} />}
         <Reminders compact onChange={onReminder} />
         <button className="dy-fb" onClick={() => openFeedback(undefined, 'Daily result')}><MessageSquareHeart size={14} /> Found a bug or have an idea? <b>Tell us</b></button>
       </motion.section>

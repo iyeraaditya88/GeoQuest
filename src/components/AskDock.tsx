@@ -189,7 +189,7 @@ export function AskDock({ open, setOpen, country, request, keyRequest = 0, onAiC
               whileTap={{ scale: 0.97 }}
             >
               <span className="fab-orb"><Sparkles size={16} /></span>
-              Ask the Atlas<span className="fab-more">{country ? ` about ${country.name}` : ' anything'}</span>
+              Ask<span className="fab-atlas"> the Atlas</span><span className="fab-more">{country ? ` about ${country.name}` : ' anything'}</span>
             </motion.button>
           </motion.div>
         )}

@@ -934,3 +934,27 @@ describe('battle narration', () => {
     for (const id of ['hiroshima', 'yugoslav-wars', 'gaza-2023', 'russia-ukraine', 'sudan-2023']) expect(bat[`battle:${id}`].bed ?? bat[`battle:${id}`].hit, id).toBeUndefined();
   });
 });
+
+describe('history front door', () => {
+  it('picks one narrated story a day: the same everywhere, none repeated for months', async () => {
+    const { storyOfDay } = await import('../src/lib/historyIndex');
+    const { storyOf } = await import('../src/lib/shareStory');
+    expect(storyOfDay('2026-11-12')).toEqual(storyOfDay('2026-11-12'));
+    const days = Array.from({ length: 120 }, (_, i) => storyOfDay(new Date(Date.UTC(2026, 10, 1 + i)).toISOString().slice(0, 10)));
+    expect(new Set(days.map((d) => d.id)).size).toBe(120);
+    for (const d of days) expect(storyOf(d.kind, d.id), d.id).not.toBeNull();
+    const wars = JSON.parse(readFileSync('narration/scripts/wars.json', 'utf8')) as Record<string, unknown>;
+    for (const d of days.filter((x) => x.kind === 'battles' && x.icon === 'war' && WORLD_WARS[x.id as keyof typeof WORLD_WARS])) expect(wars[`${d.id}:0`], d.id).toBeTruthy();
+  });
+  it('finds what happened in a country, ports included', async () => {
+    const { historyIn } = await import('../src/lib/historyIndex');
+    const all = historyIn('IND', Infinity);
+    expect(all.map((h) => h.id)).toEqual(expect.arrayContaining(['plassey', 'vasco-da-gama']));
+    expect(all.find((h) => h.id === 'vasco-da-gama')?.stop).toBeTypeOf('number');
+    const few = historyIn('IND');
+    expect(few).toHaveLength(4);
+    expect(few.some((h) => h.kind === 'battles') && few.some((h) => h.kind === 'voyages')).toBe(true);
+    expect(few.map((h) => h.year)).toEqual([...few.map((h) => h.year)].sort((a, b) => a - b));
+    expect(historyIn('ATA')).toEqual([]);
+  });
+});

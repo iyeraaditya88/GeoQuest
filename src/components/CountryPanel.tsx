@@ -4,10 +4,12 @@ import { AnimatePresence, motion, animate } from 'motion/react';
 import { PanelShell } from './PanelShell';
 import {
   Building2, Car, Clock, Coins, Globe2, Landmark, Languages, Lightbulb, Maximize2, MessageCircle, Mountain,
-  MountainSnow, Phone, Signpost, Sparkles, Sun, TreePine, Type, Users, Waves, X, Route, CarFront, Trophy,
+  MountainSnow, Phone, Play, Ship, Signpost, Sparkles, Sun, Swords, TreePine, Type, Users, Waves, X, Route, CarFront, Trophy,
 } from 'lucide-react';
 import { BY_CCA3, autoTips, curatedFor, flagUrl, fmtInt, rankOf, type Country } from '../lib/data';
 import type { TipKind } from '../data/curated';
+import type { Here } from '../lib/historyIndex';
+import type { StoryKind } from '../lib/shareStory';
 
 const TIP_ICON: Record<TipKind, typeof Type> = {
   script: Type, road: Route, nature: TreePine, build: Building2, car: CarFront, sign: Signpost, misc: Lightbulb,
@@ -32,11 +34,13 @@ interface Props {
   onClose: () => void;
   onSelect: (cca3: string) => void;
   onAsk: (prompt: string) => void;
+  /** Open a war, a battle or a voyage (at one of its stops) that happened here */
+  onStory?: (kind: StoryKind, id: string, stop?: number) => void;
 }
 
 type Tab = 'overview' | 'geoguessr';
 
-export function CountryPanel({ country, onClose, onSelect, onAsk }: Props) {
+export function CountryPanel({ country, onClose, onSelect, onAsk, onStory }: Props) {
   const [tab, setTabState] = useState<Tab>('overview');
   const setTab = (t: Tab) => { if (t !== tab && t === 'geoguessr' && country) track('tab', { t, c: country.cca3 }); setTabState(t); };
   useEffect(() => setTabState('overview'), [country?.cca3]);
@@ -54,7 +58,7 @@ export function CountryPanel({ country, onClose, onSelect, onAsk }: Props) {
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             >
-              <PanelBody country={country} tab={tab} setTab={setTab} onClose={onClose} onSelect={onSelect} onAsk={onAsk} />
+              <PanelBody country={country} tab={tab} setTab={setTab} onClose={onClose} onSelect={onSelect} onAsk={onAsk} onStory={onStory} />
             </motion.div>
           </AnimatePresence>
         </PanelShell>
@@ -63,7 +67,7 @@ export function CountryPanel({ country, onClose, onSelect, onAsk }: Props) {
   );
 }
 
-function PanelBody({ country: c, tab, setTab, onClose, onSelect, onAsk }: Props & { country: Country; tab: Tab; setTab: (t: Tab) => void }) {
+function PanelBody({ country: c, tab, setTab, onClose, onSelect, onAsk, onStory }: Props & { country: Country; tab: Tab; setTab: (t: Tab) => void }) {
   const cur = curatedFor(c.cca3);
   const popRank = rankOf(c, 'population');
   const areaRank = rankOf(c, 'area');
@@ -164,6 +168,8 @@ function PanelBody({ country: c, tab, setTab, onClose, onSelect, onAsk }: Props 
                 </motion.div>
               )}
 
+              {onStory && <HistoryHere cca3={c.cca3} onStory={onStory} />}
+
               <h3 className="section-title">Time</h3>
               <div className="tz"><Clock size={14} /> {c.timezones.slice(0, 4).join(' · ')}{c.timezones.length > 4 ? ` +${c.timezones.length - 4} more` : ''}</div>
 
@@ -208,6 +214,41 @@ function PanelBody({ country: c, tab, setTab, onClose, onSelect, onAsk }: Props 
         <button className="primary" onClick={() => onAsk('')}>
           <MessageCircle size={16} /> Ask anything about {c.name}
         </button>
+      </div>
+    </>
+  );
+}
+
+/** Wars, battles and voyages that happened in this country: each opens its story. */
+function HistoryHere({ cca3, onStory }: { cca3: string; onStory: (kind: StoryKind, id: string, stop?: number) => void }) {
+  const [here, setHere] = useState<{ cca3: string; few: Here[]; all: Here[] } | null>(null);
+  const [more, setMore] = useState(false);
+  useEffect(() => {
+    let live = true;
+    setMore(false);
+    void import('../lib/historyIndex').then(({ historyIn }) => { if (live) setHere({ cca3, few: historyIn(cca3), all: historyIn(cca3, Infinity) }); });
+    return () => { live = false; };
+  }, [cca3]);
+  if (!here || here.cca3 !== cca3 || !here.few.length) return null;
+  const xs = more ? here.all : here.few;
+  return (
+    <>
+      <h3 className="section-title">History here <span className="count">{here.all.length}</span></h3>
+      <div className="cp-history">
+        {xs.map((h, i) => {
+          const Icon = h.icon === 'voyage' ? Ship : Swords;
+          return (
+            <motion.button key={h.id} className={`cp-story is-${h.icon}`} variants={item} initial="hidden" animate="show" custom={14 + Math.min(i, 6)}
+              onClick={() => { track('launch', { g: 'story-country', s: h.id, c: cca3 }); onStory(h.kind, h.id, h.stop); }}>
+              <span className="cp-story-icon"><Icon size={16} /></span>
+              <span className="cp-story-text"><b>{h.name}</b><span>{h.when}</span></span>
+              <span className="cp-story-play" aria-hidden><Play size={13} fill="currentColor" /></span>
+            </motion.button>
+          );
+        })}
+        {here.all.length > here.few.length && (
+          <button className="cp-story-more" onClick={() => setMore((m) => !m)}>{more ? 'Show fewer' : `Show all ${here.all.length}`}</button>
+        )}
       </div>
     </>
   );

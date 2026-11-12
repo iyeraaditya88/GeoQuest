@@ -185,6 +185,14 @@ export const narrator = {
   /** Fetch the clip list (cheap, once). The toggle only shows when narration is there. */
   load,
   available: () => available,
+  /** How long a story runs, in whole minutes (null without narration): a war, a battle or a voyage. */
+  async minutes(kind: 'battles' | 'voyages', id: string) {
+    const m = await load();
+    if (!m) return null;
+    const pre = kind === 'voyages' ? `voyage:${id}:` : `${id}:`;
+    const ms = Object.entries(m).reduce((t, [k, c]) => (k === `battle:${id}` || k.startsWith(pre) ? t + c.ms : t), 0);
+    return ms ? Math.max(1, Math.round(ms / 60_000)) : null;
+  },
   /**
    * Call during a tap: phones only let audio start from one. Primes the voice element and the
    * sound beds so a clip can begin later, when the story moves on by itself.

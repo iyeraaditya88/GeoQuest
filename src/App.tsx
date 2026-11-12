@@ -1,6 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { BellRing, CalendarDays, Check, Gamepad2, LogIn, MessageSquareHeart, X } from 'lucide-react';
+import { BellRing, CalendarDays, Check, Gamepad2, Landmark, LogIn, MessageSquareHeart, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { GlobeView, type GlobeHandle, type GlobeView2D, type MapStyle, type Feedback } from './components/GlobeView';
 import { FlatAtlas, type AtlasHandle } from './components/FlatAtlas';
@@ -71,6 +71,7 @@ const FeedbackReplies = lazy(() => loadReplies().then((m) => ({ default: m.Feedb
 import { FeedbackSheet } from './components/FeedbackSheet';
 import { AccountSheet } from './components/AccountSheet';
 import { GamesSheet, type GameKey } from './components/GamesSheet';
+import { HistorySheet, type HistoryKey } from './components/HistorySheet';
 import { countVisit, feedbackAsked, fetchReplies, markFeedbackAsked, markRepliesSeen, replyKey, repliesSeen, type FeedbackKind, type FeedbackReply } from './lib/feedback';
 import { FeaturePanel } from './components/FeaturePanel';
 import { featureInfo, type FeatureInfo, type FeatureRef } from './lib/features';
@@ -240,6 +241,13 @@ export default function App() {
   const openGames = () => {
     setGamesOpen(true);
     if (!playSeen) { setPlaySeen(true); try { localStorage.setItem('gq-play-seen', '1'); } catch { /* private mode */ } }
+  };
+  // History: wars, voyages, eras and empires, one tap from the home screen (it glows until opened once).
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historySeen, setHistorySeen] = useState(() => { try { return localStorage.getItem('gq-history-seen') === '1'; } catch { return false; } });
+  const openHistory = () => {
+    setHistoryOpen(true);
+    if (!historySeen) { setHistorySeen(true); try { localStorage.setItem('gq-history-seen', '1'); } catch { /* private mode */ } }
   };
   const [activityOpen, setActivityOpen] = useState(false);
   // Feedback: the form (anyone), and the inbox (the owner).
@@ -1227,6 +1235,25 @@ export default function App() {
     if (at) globe.current?.frame(at[0], at[1], Math.min(v.altitude, 1.3));
     else globe.current?.frame(v.lat, v.lng, narrow() ? Math.min(3.4, v.altitude * 1.25) : v.altitude);
   };
+  // A story from the History button, a country's page or a nudge: it opens just as a shared link does.
+  // A voyage asked for at one of its stops (from a country's page) opens at that port, once it's open.
+  const storyStop = useRef<{ id: string; stop: number } | null>(null);
+  const openStory = (kind: 'battles' | 'voyages', id: string, stop?: number) => {
+    setHistoryOpen(false);
+    storyStop.current = kind === 'voyages' && stop !== undefined ? { id, stop } : null;
+    if (kind === 'battles') void startBattles(id); else void startVoyages(id);
+  };
+  useEffect(() => {
+    const want = storyStop.current;
+    if (!want || voy?.id !== want.id) return;
+    storyStop.current = null;
+    setVoyLinked(null);
+    stopVoyage(want.stop);
+  }, [voy?.id, stopVoyage]);
+  const openHistoryPart = (k: HistoryKey) => {
+    setHistoryOpen(false);
+    void (k === 'battles' ? startBattles() : k === 'voyages' ? startVoyages() : k === 'eras' ? startEras() : startEmpires());
+  };
   exploreRef.current = { startVoyages, startEras, startEmpires, startBattles, pickVoyage: (id, from) => pickVoyage(id, from), pickEra, pickEmpire };
   const erasOpen = useRef(false);
   erasOpen.current = !!eras;
@@ -1336,7 +1363,7 @@ export default function App() {
 
   // Newer version live: reload onto it the next time you switch away (so you never see it), or
   // straight away if you're back on the globe with nothing open. Never mid-game or mid-typing.
-  const idle = !quiz && !geo && !play && !anti && !voy && !eras && !emp && !battles && !liveState.active && !fbForm && !dockOpen && !placesOpen && !dailyCard && !signIn && !accountOpen && !inboxOpen && !repliesOpen && !activityOpen && !gamesOpen;
+  const idle = !quiz && !geo && !play && !anti && !voy && !eras && !emp && !battles && !liveState.active && !fbForm && !dockOpen && !placesOpen && !dailyCard && !signIn && !accountOpen && !inboxOpen && !repliesOpen && !activityOpen && !gamesOpen && !historyOpen;
   useEffect(() => {
     if (!updateReady || !idle) return;
     if (document.visibilityState === 'hidden') { reloadForUpdate(); return; }
@@ -1519,6 +1546,11 @@ export default function App() {
         )}
       </AnimatePresence>
       <AnimatePresence>
+        {historyOpen && (
+          <HistorySheet key="history" onClose={() => setHistoryOpen(false)} onPick={openHistoryPart} onStory={openStory} />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
         {accountOpen && user && <AccountSheet key="account" user={user} owner={role === 'owner'} onSignOut={signOut} onClose={() => setAccountOpen(false)} />}
       </AnimatePresence>
       <AnimatePresence>
@@ -1567,7 +1599,7 @@ export default function App() {
         {play === 'trivia' && <ErrorBoundary key="trivia" name="Geo Trivia" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><TriviaGame onReveal={revealTrivia} onExit={exitPlay} /></Suspense></ErrorBoundary>}
         {play === 'crossword' && <ErrorBoundary key="crossword" name="Geo Crossword" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><GeoCrossword onReveal={revealOnGlobe} onExit={exitPlay} /></Suspense></ErrorBoundary>}
         {play === 'wordle' && <ErrorBoundary key="wordle" name="Geo Wordle" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><GeoWordle onReveal={revealOnGlobe} onExit={exitPlay} onShowCountry={(c) => { exitPlay(); select(c); setHighlighted([c]); }}
-          onGuess={(c) => { setFeedback({ cca3: c, kind: 'bad' }); cam.flyTo(c); }} /></Suspense></ErrorBoundary>}
+          onGuess={(c) => { setFeedback({ cca3: c, kind: 'bad' }); cam.flyTo(c); }} onStory={(k, id) => { exitPlay(); openStory(k, id); }} /></Suspense></ErrorBoundary>}
         {play === 'mystery' && <ErrorBoundary key="mystery" name="Solve the Mystery" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><MysteryGame onFly={mxFly} onFocus={mxFocus} setGlobePick={mxSetPick} onRoute={setMxRoute} onStage={setMxStage} onExit={exitPlay} /></Suspense></ErrorBoundary>}
         {play === 'shapes' && <ErrorBoundary key="shapes" name="Guess the Country" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><ShapeGame onReveal={(c) => { setHighlighted([c]); cam.flyTo(c); }} onExit={exitPlay} /></Suspense></ErrorBoundary>}
         {play === 'capitals' && <ErrorBoundary key="capitals" name="Capitals" onClose={exitPlay}><Suspense fallback={<GameCardSkeleton />}><CapitalsGame onReveal={(c) => { setHighlighted([c]); cam.flyTo(c); }} onExit={exitPlay} /></Suspense></ErrorBoundary>}
@@ -1579,7 +1611,7 @@ export default function App() {
         {dailyCard && (
           <DailyResult key="daily" date={dailyCard.date} targets={dailyTargets(dailyCard.date)} points={dailyCard.points} fresh={dailyCard.fresh}
             streak={guest ? null : daily?.date === dailyCard.date ? daily.streak : null} board={daily?.date === dailyCard.date ? daily.board : null} guest={guest}
-            me={user ?? 'you'} onClose={() => setDailyCard(null)} onReminder={setRemindersOn} />
+            me={user ?? 'you'} onClose={() => setDailyCard(null)} onReminder={setRemindersOn} onStory={(k, id) => { setDailyCard(null); openStory(k, id); }} />
         )}
         {remindersOpen && (
           <motion.div key="reminders" className="people-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setRemindersOpen(false)}>
@@ -1655,10 +1687,11 @@ export default function App() {
       </AnimatePresence>
       <ErrorBoundary name="This panel" onClose={() => { setFeature(null); setSelected(null); }}>
         <FeaturePanel feature={quiz || geo || play || anti || liveState.active ? null : feature} onClose={() => setFeature(null)} onSelectCountry={select} onAsk={ask} />
-        <CountryPanel country={quiz || geo || play || anti || liveState.active ? null : country} onClose={() => setSelected(null)} onSelect={select} onAsk={ask} />
+        <CountryPanel country={quiz || geo || play || anti || liveState.active ? null : country} onClose={() => setSelected(null)} onSelect={select} onAsk={ask} onStory={openStory} />
       </ErrorBoundary>
       {chrome && !quiz && !geo && !play && !anti && !voy && !eras && !emp && !battles && !liveState.active && <ErrorBoundary name="Ask the Atlas" onClose={() => setDockOpen(false)}><AskDock open={dockOpen} setOpen={setDockOpen} country={country} request={askReq} keyRequest={keyReq} onAiChange={setAi} onHosted={setHosted} onHighlight={highlight} onSelect={select}
-        leading={<motion.button className={`play-fab ${playSeen ? '' : 'beckon'}`} onClick={openGames} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} aria-label="Play a game"><Gamepad2 size={18} /> Play</motion.button>} /></ErrorBoundary>}
+        leading={<><motion.button className={`play-fab ${playSeen ? '' : 'beckon'}`} onClick={openGames} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} aria-label="Play a game"><Gamepad2 size={18} /> Play</motion.button>
+          <motion.button className={`play-fab history-fab ${historySeen ? '' : 'beckon'}`} onClick={openHistory} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} aria-label="History: wars, voyages, eras and empires"><Landmark size={18} /> History</motion.button></>} /></ErrorBoundary>}
       <ErrorBoundary name="Live play">
         <LivePlay mode={liveMode} me={liveMe} ai={ai} friendsReq={friendsReq} inviteReq={inviteReq} globe={matchGlobe} clickRef={matchClick} onState={setLiveState} owner={role === 'owner'} fab={chrome && !geo && !liveState.immersive} />
       </ErrorBoundary>

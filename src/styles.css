@@ -334,6 +334,30 @@ html.custom-cursor.cur-drag .globe-wrap, html.custom-cursor.cur-drag .globe-wrap
 .tone-green { background: linear-gradient(120deg, rgba(52, 211, 153, 0.14), rgba(52, 211, 153, 0.03)); box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.22); }
 .tone-green .lm-icon { background: rgba(52, 211, 153, 0.18); color: #6ee7b7; }
 .fact { display: flex; gap: 10px; margin-top: 10px; padding: 12px 14px; border-radius: 13px; font-size: 13px; color: #fef3c7; background: rgba(251, 191, 36, 0.08); box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.2); }
+/* History here: the stories that happened in this country */
+.cp-history { display: grid; gap: 6px; }
+.cp-story { display: flex; align-items: center; gap: 11px; width: 100%; padding: 9px 10px 9px 9px; border-radius: 13px; text-align: left; color: var(--text);
+  background: rgba(255, 255, 255, 0.04); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07); transition: background 0.15s, transform 0.15s; }
+.cp-story:hover { background: rgba(240, 163, 94, 0.1); }
+.cp-story:active { transform: scale(0.985); }
+.cp-story-icon { flex-shrink: 0; width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; color: #fca5a5; background: rgba(239, 68, 68, 0.14); }
+.cp-story.is-voyage .cp-story-icon { color: #7dd3fc; background: rgba(56, 189, 248, 0.14); }
+.cp-story-text { flex: 1; display: grid; gap: 1px; min-width: 0; }
+.cp-story-text b { font: 600 13.5px/1.3 var(--display); }
+.cp-story-text span { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cp-story-play { flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; color: #1a1205; background: linear-gradient(135deg, var(--gold-soft), var(--gold)); }
+.cp-story-play svg { margin-left: 1px; }
+.cp-story-more { justify-self: start; padding: 6px 4px; font: 600 12.5px var(--display); color: #f4b47a; }
+.cp-story-more:hover { text-decoration: underline; }
+/* After a game: today's story, one quiet line */
+.story-nudge { display: flex; align-items: center; gap: 11px; width: 100%; margin-top: 12px; padding: 10px 11px 10px 10px; border-radius: 14px; text-align: left; color: var(--text);
+  background: linear-gradient(135deg, rgba(240, 163, 94, 0.14), rgba(180, 83, 26, 0.06)); box-shadow: inset 0 0 0 1px rgba(240, 163, 94, 0.35); transition: transform 0.15s; }
+.story-nudge:active { transform: scale(0.985); }
+.story-nudge-icon { flex-shrink: 0; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; color: #fff8ec; background: linear-gradient(135deg, #f0a35e, #b4531a); }
+.story-nudge-text { flex: 1; display: grid; gap: 1px; min-width: 0; }
+.story-nudge-text em { font: 700 10.5px var(--display); font-style: normal; letter-spacing: 0.08em; text-transform: uppercase; color: #f4b47a; }
+.story-nudge-text b { font: 600 14px/1.25 var(--display); }
+.story-nudge-text span { font-size: 11.5px; color: var(--muted); }
 .fact svg { flex-shrink: 0; color: var(--gold); margin-top: 2px; }
 .tz { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
 .neighbours { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -2177,6 +2201,34 @@ button.sb-user:hover { background: rgba(255, 255, 255, 0.05); }
 .play-fab.beckon::after { content: ''; position: absolute; inset: -2px; border-radius: inherit; box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.65); animation: burgerPulse 1.8s ease-out infinite; pointer-events: none; }
 @media (max-width: 900px) { .fab-row { bottom: calc(18px + var(--sb)); } }
 @media (max-width: 600px) { .fab-more { display: none; } .fab-row { gap: 8px; } }
+/* History sits between them, in bronze */
+.history-fab { color: #fff8ec; background: linear-gradient(135deg, #f0a35e, #b4531a); box-shadow: 0 14px 34px -12px rgba(222, 120, 50, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.22) inset; }
+.history-fab.beckon::after { box-shadow: 0 0 0 2px rgba(240, 163, 94, 0.7); }
+@media (max-width: 430px) {
+  .fab-atlas { display: none; }
+  .fab-row { gap: 6px; }
+  .fab-row .play-fab { height: 44px; padding: 0 14px 0 12px; font-size: 14.5px; gap: 6px; }
+  .fab-row .ask-fab { padding-right: 12px; gap: 8px; }
+}
+
+/* The History sheet: the story of the day, then the four ways in */
+.hs-day { display: grid; gap: 10px; padding: 14px; border-radius: 20px; text-align: left; color: var(--text);
+  background: linear-gradient(135deg, rgba(240, 163, 94, 0.2), rgba(180, 83, 26, 0.1)); box-shadow: inset 0 0 0 1px rgba(240, 163, 94, 0.45); transition: transform 0.15s, background 0.2s; }
+.hs-day:hover:not(:disabled) { transform: translateY(-2px); background: linear-gradient(135deg, rgba(240, 163, 94, 0.26), rgba(180, 83, 26, 0.14)); }
+.hs-day:active:not(:disabled) { transform: scale(0.985); }
+.hs-day.is-loading { opacity: 0.6; }
+.hs-day-label { font: 700 11px var(--display); letter-spacing: 0.08em; text-transform: uppercase; color: #f4b47a; }
+.hs-day-row { display: flex; align-items: center; gap: 12px; }
+.hs-day-icon { flex-shrink: 0; width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; color: #fff8ec; background: linear-gradient(135deg, #f0a35e, #b4531a); }
+.hs-day-text { flex: 1; display: grid; gap: 3px; min-width: 0; }
+.hs-day-text b { font: 700 17px/1.2 var(--display); text-wrap: balance; }
+.hs-day-text span { font-size: 13px; line-height: 1.35; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.hs-day-text em { font: 600 12px var(--display); font-style: normal; color: #f4b47a; }
+.hs-day-play { flex-shrink: 0; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; color: #1a1205;
+  background: linear-gradient(135deg, var(--gold-soft), var(--gold)); box-shadow: 0 10px 24px -10px rgba(251, 191, 36, 0.9); }
+.hs-day-play svg { margin-left: 2px; }
+.hs-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.hs-told { position: absolute; top: 12px; right: 12px; padding: 2px 8px; border-radius: 99px; font: 700 10.5px var(--display); color: #f4b47a; background: rgba(240, 163, 94, 0.14); box-shadow: inset 0 0 0 1px rgba(240, 163, 94, 0.35); }
 
 /* Games sheet */
 .gs-backdrop { display: flex; align-items: center; justify-content: center; }

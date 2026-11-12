@@ -15,6 +15,8 @@ import { api } from '../lib/api';
 import { getAuth, isGuest, needSignIn } from '../lib/session';
 import { encodeWordle, wordleScore, type WordleRow } from '../lib/wordleResult';
 import { ShareButton } from './ShareButton';
+import { StoryNudge } from './StoryNudge';
+import type { StoryKind } from '../lib/shareStory';
 
 interface Props {
   onReveal: (cca3: string) => void;
@@ -23,6 +25,8 @@ interface Props {
   onShowCountry: (cca3: string) => void;
   /** A wrong guess: show that country on the globe. */
   onGuess?: (cca3: string) => void;
+  /** Today's narrated story, suggested in the result */
+  onStory?: (kind: StoryKind, id: string) => void;
 }
 type Mode = 'daily' | 'bonus';
 interface Row { guess: string; marks: Mark[] }
@@ -56,7 +60,7 @@ const loadStats = (): WordleStats => { try { return { ...emptyStats(), ...JSON.p
 const saveStats = (s: WordleStats) => { try { localStorage.setItem(STATS_KEY, JSON.stringify(s)); } catch { /* private mode */ } };
 
 /** Geo Wordle: guess the country in six tries — every guess a real country of the same length. */
-export function GeoWordle({ onReveal, onExit, onShowCountry, onGuess }: Props) {
+export function GeoWordle({ onReveal, onExit, onShowCountry, onGuess, onStory }: Props) {
   const date = localDate();
   // Start where you left off: today's bonus round if you've begun one, else the Daily.
   const [start] = useState(() => { const b = loadBonus(date); return b ? { mode: 'bonus' as Mode, answer: b.a, ...b } : { mode: 'daily' as Mode, answer: dailyWordle(date), ...loadProgress(date) }; });
@@ -300,7 +304,7 @@ export function GeoWordle({ onReveal, onExit, onShowCountry, onGuess }: Props) {
         <AnimatePresence>
           {resultOpen && done && (
             <WordleResult key="result" mode={mode} no={wordleNumber(date)} won={won} tries={rows.length} hints={hints} rows={rows} target={target.cca3}
-              stats={stats} board={board} me={getAuth().user ?? 'you'} shareMsg={shareMsg} onBonus={bonus} onClose={closeResult} onShow={() => onShowCountry(target.cca3)} />
+              stats={stats} board={board} me={getAuth().user ?? 'you'} shareMsg={shareMsg} onBonus={bonus} onClose={closeResult} onShow={() => onShowCountry(target.cca3)} onStory={onStory} />
           )}
         </AnimatePresence>,
         document.body,
@@ -310,7 +314,8 @@ export function GeoWordle({ onReveal, onExit, onShowCountry, onGuess }: Props) {
 }
 
 /** The result: the answer, your rows, and (for the Daily) your stats and guess distribution. */
-function WordleResult({ mode, no, won, tries, hints, rows, target, stats, board, me, shareMsg, onBonus, onClose, onShow }: {
+function WordleResult({ mode, no, won, tries, hints, rows, target, stats, board, me, shareMsg, onBonus, onClose, onShow, onStory }: {
+  onStory?: (kind: StoryKind, id: string) => void;
   mode: Mode; no: number; won: boolean; tries: number; hints: number; rows: Row[]; target: string; stats: WordleStats; board: { rows: WordleRow[]; guest: boolean } | null; me: string; shareMsg: () => string;
   onBonus: () => void; onClose: () => void; onShow: () => void;
 }) {
@@ -391,6 +396,7 @@ function WordleResult({ mode, no, won, tries, hints, rows, target, stats, board,
           <button className="ghost-cta" onClick={onBonus}><RotateCcw size={15} /> {mode === 'daily' ? 'Bonus round' : 'Another one'}</button>
         </div>
         {mode === 'daily' && <p className="gwr-next">A new country every day.</p>}
+        {onStory && <StoryNudge from="wordle" onStory={onStory} />}
       </motion.section>
     </motion.div>
   );
