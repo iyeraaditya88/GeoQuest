@@ -15,10 +15,11 @@ interface Props {
   onClose: () => void;
 }
 
-/** Today's narrated story (and how long it runs), once the index has loaded. */
-export function useStoryOfDay() {
+/** Today's narrated story (and how long it runs), once the index has loaded (and only once wanted). */
+export function useStoryOfDay(wanted = true) {
   const [story, setStory] = useState<(StoryPick & { min: number | null }) | null>(null);
   useEffect(() => {
+    if (!wanted) return;
     let live = true;
     void import('../lib/historyIndex').then(async ({ storyOfDay }) => {
       const s = storyOfDay(localDate());
@@ -27,7 +28,7 @@ export function useStoryOfDay() {
       if (live && min) setStory({ ...s, min });
     });
     return () => { live = false; };
-  }, []);
+  }, [wanted]);
   return story;
 }
 

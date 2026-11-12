@@ -759,6 +759,18 @@ html.custom-cursor.cur-drag .globe-wrap, html.custom-cursor.cur-drag .globe-wrap
 .sb-section h4 { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; padding: 0 10px; font: 600 10.5px/1 'Inter', sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); white-space: nowrap; }
 .sb-divider { height: 1px; margin: 4px 12px 10px; background: rgba(148, 163, 184, 0.12); }
 .sb-items { display: grid; gap: 2px; grid-template-columns: minmax(0, 1fr); } /* never wider than the sidebar: long subtitles ellipsize */
+/* The map's settings, folded into one row; History's own warm tiles, its story of the day. */
+.sb-map-body { display: grid; gap: 2px; grid-template-columns: minmax(0, 1fr); overflow: hidden; }
+.sb-map-body > .sb-field:first-child { margin-top: 4px; }
+.sb-chev { flex: none; color: var(--dim); transition: transform 0.2s var(--ease); }
+.sb-chev.up { transform: rotate(180deg); }
+.sb-tag { flex: none; margin-left: auto; padding: 2px 6px; border-radius: 6px; font: 700 9px/1.2 'Inter', sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: #e7c79a; background: rgba(205, 150, 90, 0.14); }
+.sb-story { display: flex; align-items: center; gap: 12px; width: 100%; min-width: 0; margin-bottom: 2px; padding: 8px 10px; border-radius: 12px; text-align: left; color: var(--text); background: linear-gradient(135deg, rgba(205, 150, 90, 0.13), rgba(205, 150, 90, 0.04)); box-shadow: inset 0 0 0 1px rgba(205, 150, 90, 0.18); transition: background 0.2s; }
+.sb-story:hover { background: linear-gradient(135deg, rgba(205, 150, 90, 0.2), rgba(205, 150, 90, 0.07)); }
+.sb-story .sb-text { display: grid; min-width: 0; }
+.sb-story .sb-sub { color: #d9b588; }
+.sb-story .sb-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-story .sb-ico svg { margin-left: 2px; }
 .sb-item {
   position: relative; width: 100%; min-height: 40px; display: flex; align-items: center; gap: 12px; padding: 6px 10px; border-radius: 10px;
   color: var(--muted); text-align: left; transition: background 0.16s, color 0.16s;
@@ -2262,6 +2274,11 @@ button.sb-user:hover { background: rgba(255, 255, 255, 0.05); }
 .t-lime .gs-icon, .sb-ico.tile.t-lime { background: linear-gradient(135deg, #a3e635, #4d7c0f); }
 .t-rose .gs-icon, .sb-ico.tile.t-rose { background: linear-gradient(135deg, #fb7185, #e11d48); }
 .t-pink .gs-icon, .sb-ico.tile.t-pink { background: linear-gradient(135deg, #f472b6, #a855f7); }
+/* History: warm, muted (old maps and brass), so it reads as its own place beside the bright games. */
+.sb-ico.tile.t-bronze { color: #fff7ec; background: linear-gradient(135deg, #c98a4b, #8a5528); }
+.sb-ico.tile.t-sepia { color: #fff7ec; background: linear-gradient(135deg, #b8946a, #75583a); }
+.sb-ico.tile.t-umber { color: #fff7ec; background: linear-gradient(135deg, #a8774f, #6b4429); }
+.sb-ico.tile.t-clay { color: #fff7ec; background: linear-gradient(135deg, #c27a5c, #874634); }
 @media (max-width: 600px) {
   /* Phones: a bottom sheet */
   .gs-backdrop { align-items: flex-end; padding-left: 0 !important; padding-right: 0 !important; padding-bottom: 0 !important; }

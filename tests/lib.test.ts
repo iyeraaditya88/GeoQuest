@@ -6,6 +6,7 @@ import { alignCues, lineAt, splitSentences } from '../src/lib/subtitles';
 import { readFileSync } from 'node:fs';
 import { WORLD_WARS } from '../src/lib/worldWars';
 import { breathMs } from '../src/lib/narrator';
+import { noteGame, recentGames } from '../src/lib/recentGames';
 import { escapeHtml } from '../src/lib/html';
 import { sidePanel, panelWidth } from '../src/lib/layout';
 import { riverLength, displayName } from '../src/lib/features';
@@ -964,5 +965,31 @@ describe('history front door', () => {
     expect(few.some((h) => h.kind === 'battles') && few.some((h) => h.kind === 'voyages')).toBe(true);
     expect(few.map((h) => h.year)).toEqual([...few.map((h) => h.year)].sort((a, b) => a - b));
     expect(historyIn('ATA')).toEqual([]);
+  });
+});
+
+describe('recent games (the sidebar shows yours first)', () => {
+  const ALL = ['wordle', 'quiz', 'crossword', 'trivia', 'top5', 'shapes', 'street', 'capitals', 'mystery'];
+  const NEW = ['wordle', 'quiz', 'crossword', 'trivia'];
+  it('starts a newcomer on the defaults, then puts what they play first', () => {
+    localStorage.clear();
+    expect(recentGames(4, NEW, ALL)).toEqual(NEW);
+    noteGame('capitals');
+    noteGame('street');
+    noteGame('capitals');
+    expect(recentGames(4, NEW, ALL)).toEqual(['capitals', 'street', 'wordle', 'quiz']);
+  });
+  it('keeps nine at most, without repeats, and ignores games it no longer knows', () => {
+    localStorage.clear();
+    for (const g of [...ALL, ...ALL, 'gone']) noteGame(g);
+    expect(JSON.parse(localStorage.getItem('gq-recent-games')!)).toHaveLength(9);
+    const r = recentGames(9, NEW, ALL);
+    expect(new Set(r).size).toBe(9);
+    expect(r).not.toContain('gone');
+  });
+  it('copes with storage it can’t read', () => {
+    localStorage.setItem('gq-recent-games', '{not json');
+    expect(recentGames(4, NEW, ALL)).toEqual(NEW);
+    localStorage.clear();
   });
 });

@@ -71,6 +71,7 @@ const FeedbackReplies = lazy(() => loadReplies().then((m) => ({ default: m.Feedb
 import { FeedbackSheet } from './components/FeedbackSheet';
 import { AccountSheet } from './components/AccountSheet';
 import { GamesSheet, type GameKey } from './components/GamesSheet';
+import { noteGame } from './lib/recentGames';
 import { HistorySheet, type HistoryKey } from './components/HistorySheet';
 import { countVisit, feedbackAsked, fetchReplies, markFeedbackAsked, markRepliesSeen, replyKey, repliesSeen, type FeedbackKind, type FeedbackReply } from './lib/feedback';
 import { FeaturePanel } from './components/FeaturePanel';
@@ -555,6 +556,7 @@ export default function App() {
   // ── Games sheet: start the picked game (the same starters the menu uses) ──
   const launch = (g: GameKey) => {
     setGamesOpen(false);
+    if (g !== 'daily' && g !== 'duel') noteGame(g);
     if (g === 'daily') startDaily();
     else if (g === 'quiz') startQuiz();
     else if (g === 'street') void startGeo();
@@ -1487,6 +1489,8 @@ export default function App() {
       </AnimatePresence>
 
       <Sidebar
+        onAllGames={openGames}
+        onStory={openStory}
         collapsed={sbCollapsed}
         setCollapsed={setSbCollapsed}
         mobile={mobile}

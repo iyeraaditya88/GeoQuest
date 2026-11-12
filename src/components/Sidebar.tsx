@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { debug } from '../lib/debug';
 import { AnimatePresence, motion } from 'motion/react';
-import { BarChart3, Grid3x3, HatGlasses, Shapes, Inbox, BellRing, Binoculars, Brain, ChevronLeft, Castle, Hourglass, Ship, Gamepad2, Globe2, KeyRound, Landmark, Link2, ListOrdered, LogIn, LogOut, Map as MapIcon, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, SunMoon, Swords, UserRound, Users, X, Puzzle } from 'lucide-react';
+import { BarChart3, Grid3x3, HatGlasses, Shapes, Inbox, BellRing, Binoculars, Brain, ChevronDown, ChevronLeft, ChevronRight, Castle, Hourglass, LayoutGrid, Play, Ship, Gamepad2, Globe2, KeyRound, Landmark, Link2, ListOrdered, LogIn, LogOut, Map as MapIcon, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, SunMoon, Swords, UserRound, Users, X, Puzzle } from 'lucide-react';
 import type { MapStyle } from './GlobeView';
+import { useStoryOfDay } from './HistorySheet';
+import { noteGame, recentGames } from '../lib/recentGames';
+import type { StoryKind } from '../lib/shareStory';
 
 export const SIDEBAR_W = { open: 268, rail: 72 } as const;
 
@@ -73,7 +76,29 @@ interface Props {
   nature: boolean;
   onNature: () => void;
   onReset: () => void;
+  /** Every game, in the Games sheet (the sidebar lists only the player's recent few). */
+  onAllGames: () => void;
+  /** Today's story, from History. */
+  onStory: (kind: StoryKind, id: string) => void;
 }
+
+type GameHandler = 'onWordle' | 'onQuiz' | 'onCrossword' | 'onTop5' | 'onTrivia' | 'onShapes' | 'onStreet' | 'onCapitals' | 'onMystery';
+type Tone = 'blue' | 'green' | 'amber' | 'violet' | 'teal' | 'pink' | 'rose' | 'lime' | 'indigo' | 'cyan' | 'bronze' | 'sepia' | 'umber' | 'clay';
+/** The games: the sidebar shows a player's four most recent; "All games" has the rest. */
+const GAMES: { key: string; icon: typeof Search; tone: Tone; label: string; sub: string; on: GameHandler }[] = [
+  { key: 'wordle', icon: Grid3x3, tone: 'lime', label: 'Geo Wordle', sub: 'Wordle, but it’s a country', on: 'onWordle' },
+  { key: 'quiz', icon: Gamepad2, tone: 'blue', label: 'Map quiz', sub: 'Find countries, flags or clues', on: 'onQuiz' },
+  { key: 'crossword', icon: Puzzle, tone: 'cyan', label: 'Geo Crossword', sub: 'Levels that never stop climbing', on: 'onCrossword' },
+  { key: 'top5', icon: ListOrdered, tone: 'teal', label: 'Name the Top 5', sub: 'Rivers, peaks, populations…', on: 'onTop5' },
+  { key: 'trivia', icon: Brain, tone: 'violet', label: 'Geo Trivia', sub: 'Gets harder as you get better', on: 'onTrivia' },
+  { key: 'shapes', icon: Shapes, tone: 'rose', label: 'Guess the Country', sub: 'Name it from its outline', on: 'onShapes' },
+  { key: 'street', icon: Binoculars, tone: 'green', label: 'Street View', sub: 'Where in the world are you?', on: 'onStreet' },
+  { key: 'capitals', icon: Landmark, tone: 'amber', label: 'Capitals', sub: 'Country ↔ capital, 10 a round', on: 'onCapitals' },
+  { key: 'mystery', icon: HatGlasses, tone: 'indigo', label: 'Solve the Mystery', sub: 'Chase a thief across the world', on: 'onMystery' },
+];
+const GAME_KEYS = GAMES.map((g) => g.key);
+const NEWCOMER = ['wordle', 'quiz', 'crossword', 'trivia'];
+const SHOWN = 4;
 
 const STYLES: { id: MapStyle; label: string; icon: typeof Satellite }[] = [
   { id: 'satellite', label: 'Satellite', icon: Satellite },
@@ -104,6 +129,26 @@ export function Sidebar(p: Props) {
 
   // Close the mobile drawer after any action.
   const act = (fn: () => void) => () => { fn(); if (p.mobile) p.setDrawerOpen(false); };
+
+  // The player's own games first. The order is settled as the drawer opens (or, on a big screen,
+  // between games), never while you're looking at it; a game being played always shows.
+  const playing = p.quizOn ? 'quiz' : p.playOn;
+  const [mine, setMine] = useState(() => recentGames(SHOWN, NEWCOMER, GAME_KEYS));
+  const looking = p.mobile ? p.drawerOpen : !p.hidden;
+  useEffect(() => { if (!p.mobile ? !playing : p.drawerOpen) setMine(recentGames(SHOWN, NEWCOMER, GAME_KEYS)); }, [p.mobile, p.drawerOpen, playing]);
+  const games = [...mine, ...(playing && !mine.includes(playing) ? [playing] : [])].flatMap((k) => GAMES.filter((g) => g.key === k));
+  const play = (key: string, on: GameHandler) => act(() => { noteGame(key); p[on](); });
+
+  // Today's story: fetched once the sidebar is in view (a phone's drawer opened; a big screen a
+  // moment after the globe, so it never slows the start).
+  const [settled, setSettled] = useState(false);
+  useEffect(() => { const t = window.setTimeout(() => setSettled(true), 2500); return () => window.clearTimeout(t); }, []);
+  const story = useStoryOfDay(looking && settled && !rail);
+
+  // The map's settings fold away into one row (remembered).
+  const [mapOpen, setMapOpen] = useState(() => { try { return localStorage.getItem('gq-sb-map') === '1'; } catch { return false; } });
+  const foldMap = () => setMapOpen((o) => { try { localStorage.setItem('gq-sb-map', o ? '0' : '1'); } catch { /* private mode */ } return !o; });
+  const styleName = STYLES.find((s) => s.id === p.style)?.label ?? '';
 
   return (
     <>
@@ -155,23 +200,26 @@ export function Sidebar(p: Props) {
           )}>
             {rail && p.onFriends && <Item icon={Swords} label="Duel a friend" rail onClick={act(p.onFriends)} active={p.matchOn} tone="pink" />}
             {rail && p.onInvite && <Item icon={Link2} label="Invite with a link" rail onClick={act(p.onInvite)} />}
-            <Item icon={Grid3x3} tone="lime" label={'Geo Wordle'} sub={'Wordle, but it’s a country'} rail={rail} active={p.playOn === 'wordle'} onClick={act(p.onWordle)} />
-            <Item icon={Gamepad2} tone="blue" label={'Map quiz'} sub={'Find countries, flags or clues'} rail={rail} active={p.quizOn} onClick={act(p.onQuiz)} />
-            <Item icon={Puzzle} tone="cyan" label={'Geo Crossword'} sub={'Levels that never stop climbing'} rail={rail} active={p.playOn === 'crossword'} onClick={act(p.onCrossword)} trailing={p.crosswordNew && !rail ? <span className="sb-new">New</span> : undefined} />
-            <Item icon={ListOrdered} tone="teal" label={'Name the Top 5'} sub={'Rivers, peaks, populations…'} rail={rail} active={p.playOn === 'top5'} onClick={act(p.onTop5)} />
-            <Item icon={Brain} tone="violet" label={'Geo Trivia'} sub={'Gets harder as you get better'} rail={rail} active={p.playOn === 'trivia'} onClick={act(p.onTrivia)} />
-            <Item icon={Shapes} tone="rose" label={'Guess the Country'} sub={'Name it from its outline'} rail={rail} active={p.playOn === 'shapes'} onClick={act(p.onShapes)} />
-            <Item icon={Binoculars} tone="green" label="Street View" sub="Where in the world are you?" rail={rail} onClick={act(p.onStreet)} />
-            <Item icon={Landmark} tone="amber" label={'Capitals'} sub={'Country ↔ capital, 10 a round'} rail={rail} active={p.playOn === 'capitals'} onClick={act(p.onCapitals)} />
-            <Item icon={HatGlasses} tone="indigo" label="Solve the Mystery" sub="Chase a thief across the world" rail={rail} active={p.playOn === 'mystery'} onClick={act(p.onMystery)} />
+            {games.map((g) => <Item key={g.key} icon={g.icon} tone={g.tone} label={g.label} sub={g.sub} rail={rail} active={playing === g.key} onClick={play(g.key, g.on)}
+              trailing={g.key === 'crossword' && p.crosswordNew && !rail ? <span className="sb-new">New</span> : undefined} />)}
+            <Item icon={LayoutGrid} label={`All ${GAMES.length} games`} rail={rail} onClick={act(p.onAllGames)} trailing={rail ? undefined : <ChevronRight size={15} className="sb-chev" />} />
           </Section>
 
           <Section title="History" rail={rail}>
             {/* (The Antipode finder is hidden for now — little used. It's still wired up: p.onAntipode.) */}
-            <Item icon={Swords} label="Battles and Wars" sub="Plassey, Stalingrad, both world wars" rail={rail} active={p.battlesOn} onClick={act(p.onBattles)} />
-            <Item icon={Ship} label="Famous voyages" sub="Columbus, Magellan, Cook & more" rail={rail} active={p.voyagesOn} onClick={act(p.onVoyages)} />
-            <Item icon={Hourglass} label="Eras of civilization" sub="Stone Age to today" rail={rail} active={p.erasOn} onClick={act(p.onEras)} />
-            <Item icon={Castle} label="Empires of the world" sub="Rome, the Ottomans, the Mughals & more" rail={rail} active={p.empiresOn} onClick={act(p.onEmpires)} />
+            {story && !rail && (
+              <button className="sb-story" onClick={act(() => p.onStory(story.kind, story.id))} aria-label={`Today’s story: ${story.title}. Play it, narrated`}>
+                <span className="sb-ico tile t-bronze"><Play size={14} fill="currentColor" /></span>
+                <span className="sb-text">
+                  <span className="sb-sub">Today’s story{story.min ? ` · ${story.min} min` : ''}</span>
+                  <span className="sb-label">{story.title}</span>
+                </span>
+              </button>
+            )}
+            <Item icon={Swords} tone="bronze" label="Battles and Wars" sub="Plassey, Stalingrad, both world wars" rail={rail} active={p.battlesOn} onClick={act(p.onBattles)} trailing={<span className="sb-tag">Narrated</span>} />
+            <Item icon={Ship} tone="sepia" label="Famous voyages" sub="Columbus, Magellan, Cook & more" rail={rail} active={p.voyagesOn} onClick={act(p.onVoyages)} trailing={<span className="sb-tag">Narrated</span>} />
+            <Item icon={Hourglass} tone="umber" label="Eras of civilization" sub="Stone Age to today" rail={rail} active={p.erasOn} onClick={act(p.onEras)} />
+            <Item icon={Castle} tone="clay" label="Empires of the world" sub="Rome, the Ottomans, the Mughals & more" rail={rail} active={p.empiresOn} onClick={act(p.onEmpires)} />
           </Section>
 
           <Section title="Map" rail={rail}>
@@ -181,40 +229,50 @@ export function Sidebar(p: Props) {
                 <StyleFlyout style={p.style} disabled={p.view === 'flat'} onStyle={p.onStyle} />
               </>
             ) : (
-              <>
-                <div className="sb-field">
-                  <span className="sb-field-label">View</span>
-                  <Segmented
-                    value={p.view}
-                    options={[{ id: 'globe', label: 'Globe', icon: Globe2 }, { id: 'flat', label: 'Atlas', icon: MapIcon }]}
-                    onChange={(v) => v !== p.view && p.onToggleView()}
-                  />
-                </div>
-                <div className={`sb-field ${p.view === 'flat' ? 'is-disabled' : ''}`}>
-                  <span className="sb-field-label">Style {p.view === 'flat' && <em>globe only</em>}</span>
-                  <Segmented value={p.style} options={STYLES} onChange={(v) => p.onStyle(v as MapStyle)} disabled={p.view === 'flat'} />
-                </div>
-              </>
+              <Item icon={p.view === 'globe' ? Globe2 : MapIcon} label={p.view === 'globe' ? `Globe · ${styleName}` : 'Flat atlas'} sub="View, style, rivers & more" rail={false} onClick={foldMap}
+                trailing={<ChevronDown size={15} className={`sb-chev ${mapOpen ? 'up' : ''}`} />} />
             )}
-            <Item
-              icon={RotateCw}
-              label="Auto-rotate"
-              rail={rail}
-              onClick={p.onAutoRotate}
-              disabled={p.view === 'flat'}
-              trailing={rail ? undefined : <Switch on={p.autoRotate && p.view === 'globe'} />}
-              active={rail && p.autoRotate}
-            />
-            <Item
-              icon={Mountain}
-              label="Rivers & mountains"
-              sub={rail ? undefined : 'Lakes, ranges and peaks'}
-              rail={rail}
-              onClick={p.onNature}
-              trailing={rail ? undefined : <Switch on={p.nature} />}
-              active={rail && p.nature}
-            />
-            <Item icon={RotateCcw} label="Reset view" rail={rail} onClick={act(p.onReset)} />
+            <AnimatePresence initial={false}>
+              {(rail || mapOpen) && (
+                <motion.div className="sb-map-body" key="map" initial={rail ? false : { height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22 }}>
+                  {!rail && (
+                    <>
+                      <div className="sb-field">
+                        <span className="sb-field-label">View</span>
+                        <Segmented
+                          value={p.view}
+                          options={[{ id: 'globe', label: 'Globe', icon: Globe2 }, { id: 'flat', label: 'Atlas', icon: MapIcon }]}
+                          onChange={(v) => v !== p.view && p.onToggleView()}
+                        />
+                      </div>
+                      <div className={`sb-field ${p.view === 'flat' ? 'is-disabled' : ''}`}>
+                        <span className="sb-field-label">Style {p.view === 'flat' && <em>globe only</em>}</span>
+                        <Segmented value={p.style} options={STYLES} onChange={(v) => p.onStyle(v as MapStyle)} disabled={p.view === 'flat'} />
+                      </div>
+                    </>
+                  )}
+                  <Item
+                    icon={RotateCw}
+                    label="Auto-rotate"
+                    rail={rail}
+                    onClick={p.onAutoRotate}
+                    disabled={p.view === 'flat'}
+                    trailing={rail ? undefined : <Switch on={p.autoRotate && p.view === 'globe'} />}
+                    active={rail && p.autoRotate}
+                  />
+                  <Item
+                    icon={Mountain}
+                    label="Rivers & mountains"
+                    sub={rail ? undefined : 'Lakes, ranges and peaks'}
+                    rail={rail}
+                    onClick={p.onNature}
+                    trailing={rail ? undefined : <Switch on={p.nature} />}
+                    active={rail && p.nature}
+                  />
+                  <Item icon={RotateCcw} label="Reset view" rail={rail} onClick={act(p.onReset)} />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </Section>
 
         </div>
@@ -307,7 +365,7 @@ function Item({ icon: Icon, label, sub, rail, onClick, active, disabled, trailin
   icon: typeof Search; label: string; sub?: string; rail: boolean; onClick: () => void;
   active?: boolean; disabled?: boolean; trailing?: ReactNode; accent?: boolean;
   /** A game: its icon in a colour tile (the same colours as the Play sheet) */
-  tone?: 'blue' | 'green' | 'amber' | 'violet' | 'teal' | 'pink' | 'rose' | 'lime' | 'indigo' | 'cyan';
+  tone?: Tone;
 }) {
   return (
     <button
