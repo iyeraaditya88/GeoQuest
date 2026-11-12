@@ -13,7 +13,8 @@ export interface Side {
   lost?: string;
 }
 /** A march or a fleet's course, drawn on the globe as an arrow. */
-export interface Move { f: LL; t: LL; s: 'a' | 'b' }
+/** A movement on the map: from `f` to `t` for side `s` (through `via`, a fleet keeping to the sea). */
+export interface Move { f: LL; t: LL; s: 'a' | 'b'; via?: LL[] }
 export interface Battle {
   id: string;
   name: string;

@@ -24,7 +24,9 @@ maplibregl.setWorkerUrl(mapWorkerUrl);
  * Where the camera goes: a point at a height, or (with `lands`) a shot framing those countries whole —
  * the establishing shot that shows who is fighting before the story moves in on the fighting.
  */
-export interface CinemaCamera { lat: number; lng: number; alt: number; n: number; lands?: string[] }
+export interface CinemaCamera { lat: number; lng: number; alt: number; n: number; lands?: string[]; pan?: CinemaPan; also?: [number, number][] }
+/** Two sides an ocean apart: the opening shot starts on one and glides across to the other in `ms`. */
+export interface CinemaPan { a: string[]; b: string[]; ms: number }
 interface Props {
   scene: WarScene;
   camera: CinemaCamera | null;
@@ -393,7 +395,7 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, voyage = null
         const t = calm ? 1 : Math.min(1, Math.max(0, (now - t0 - (p.delay ?? 0)) / ARROW_MS));
         if (t < 1) busy = true;
         if (t <= 0) return;
-        const ring = arrowPolygon({ from: p.points[0], to: p.points[p.points.length - 1], width: W, bend: k % 2 ? -0.14 : 0.16, progress: ease(t) });
+        const ring = arrowPolygon({ from: p.points[0], to: p.points[p.points.length - 1], via: p.points.slice(1, -1), width: W, bend: k % 2 ? -0.14 : 0.16, progress: ease(t) });
         features.push({ type: 'Feature', geometry: { type: 'Polygon', coordinates: [ring] }, properties: { c: p.color } });
       });
       (map.current?.getSource('arrows') as maplibregl.GeoJSONSource | undefined)?.setData({ type: 'FeatureCollection', features });
@@ -456,10 +458,11 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, voyage = null
 
   // ── The camera: a swoop to each event, then a slow drift while you read ──
   /** The countries' mainlands (and the point itself) as one box; across the date line if that's tighter. */
-  function boxOf(cam: CinemaCamera): [[number, number], [number, number]] | null {
-    const pts: [number, number][] = [[cam.lng, cam.lat]];
+  function boxOf(cam: { lat: number; lng: number; lands?: string[] }, withPoint = true): [[number, number], [number, number]] | null {
+    const pts: [number, number][] = withPoint ? [[cam.lng, cam.lat]] : [];
     for (const id of cam.lands ?? []) for (const [x, y] of mainlandOf(id)) pts.push([x, y]);
-    if (pts.length < 3) return null;
+    for (const [la, lo] of (cam as CinemaCamera).also ?? []) pts.push([lo, la]);
+    if (pts.length < 2) return null;
     const lats = pts.map((p) => p[1]);
     const span = (xs: number[]) => Math.max(...xs) - Math.min(...xs);
     const raw = pts.map((p) => p[0]), shifted = raw.map((x) => (x < 0 ? x + 360 : x));
@@ -479,28 +482,57 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, voyage = null
     fly(cam, first);
   }
 
+  /** Where the camera would stand to show a box of the map (centre and zoom), or null. */
+  function fitOf(box: [[number, number], [number, number]] | null) {
+    const m = map.current!;
+    if (!box) return null;
+    try {
+      m.setPadding(room());
+      const fit = m.cameraForBounds(box, { padding: { top: 64, bottom: 40, left: 40, right: 40 } });
+      if (!fit?.center || !Number.isFinite(fit.zoom)) return null;
+      const c = maplibregl.LngLat.convert(fit.center);
+      return { center: [((c.lng + 540) % 360) - 180, c.lat] as [number, number], zoom: fit.zoom! };
+    } catch { return null; }
+  }
+
+  // The opening shot when the two sides are an ocean apart: on the first side, then a slow glide
+  // across to the other at the same height, as George introduces them (any later shot cuts in).
+  function pan(cam: CinemaCamera & { pan: CinemaPan }, first: boolean) {
+    const m = map.current!;
+    const a = fitOf(boxOf({ ...cam, lands: cam.pan.a }, false)), b = fitOf(boxOf({ ...cam, lands: cam.pan.b }, false));
+    if (!a || !b) { fly({ ...cam, pan: undefined }, first); return; }
+    const zoom = Math.max(1.1, Math.min(3.4, Math.min(a.zoom, b.zoom) - 0.15));
+    const pad = room(), calm = calmMotion();
+    targetZoom.current = zoom;
+    userMoved.current = false;
+    m.stop();
+    const duration = calm ? 0 : first ? 2600 : 2200;
+    settledAt.current = performance.now() + duration;
+    flyTo(m, { center: a.center, zoom, pitch: narrow ? 18 : 22, bearing: 0, padding: pad, duration, essential: true });
+    if (calm) return;
+    m.once('moveend', () => {
+      if (userMoved.current || drawn.current.cam !== cam.n) return;
+      m.easeTo({ center: b.center, zoom, duration: Math.max(4000, cam.pan.ms), easing: (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2), padding: pad, essential: true });
+    });
+  }
+
   function fly(cam: CinemaCamera, first: boolean) {
     const m = map.current!;
+    if (cam.pan) { pan(cam as CinemaCamera & { pan: CinemaPan }, first); return; }
     const pad = room();
     const calm = calmMotion();
     // The establishing shot: every country in the war, flat enough to read them all.
-    const box = cam.lands?.length ? boxOf(cam) : null;
+    const box = cam.lands?.length || cam.also?.length ? boxOf(cam) : null;
     let center: [number, number] = [cam.lng, cam.lat];
     let zoom = zoomForAltitude(cam.alt, narrow);
     let pitch = narrow ? 46 : 54;
     let bearing = ((cam.n * 37) % 28) - 14;
     if (box) {
-      try {
-        // (Margins only: maplibre adds the panel's room, the map's own padding, by itself.)
-        m.setPadding(pad);
-        const fit = m.cameraForBounds(box, { padding: { top: 64, bottom: 40, left: 40, right: 40 } });
-        if (fit?.center && Number.isFinite(fit.zoom)) {
-          const c = maplibregl.LngLat.convert(fit.center);
-          center = [((c.lng + 540) % 360) - 180, c.lat];
-          zoom = Math.max(0.9, Math.min(5.2, fit.zoom!));
-        }
-      } catch { /* (a box the map can't frame: the point and height instead) */ }
-      pitch = narrow ? 22 : 26;
+      // (Margins only: maplibre adds the panel's room, the map's own padding, by itself.)
+      const fit = fitOf(box);
+      if (fit) { center = fit.center; zoom = Math.max(0.9, Math.min(5.2, fit.zoom)); }
+      // (Who's fighting: nearly flat, to read the countries; two places named together: a little tilt.)
+      pitch = cam.lands?.length ? (narrow ? 22 : 26) : (narrow ? 34 : 40);
       bearing = 0;
     }
     targetZoom.current = zoom;
@@ -515,9 +547,14 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, voyage = null
     const km = 6371 * 2 * Math.asin(Math.min(1, Math.sqrt(Math.sin(((center[1] - here.lat) * Math.PI) / 360) ** 2
       + Math.cos((center[1] * Math.PI) / 180) * Math.cos((here.lat * Math.PI) / 180) * Math.sin(((center[0] - here.lng) * Math.PI) / 360) ** 2)));
     const zoomed = Math.abs(zoom - m.getZoom());
+    // Already there: no needless nudge.
+    if (!first && !box && km < 25 && zoomed < 0.35) { drawn.current.cam = cam.n; return; }
     const duration = calm ? 0 : Math.round(Math.min(5200, Math.max(first ? 2600 : 1900, 1300 + km * 0.38 + zoomed * 320)));
     settledAt.current = performance.now() + duration + HOLD;
-    flyTo(m, { center, zoom, pitch, bearing, padding: pad, duration, curve: km > 1500 ? 1.75 : 1.4, easing: (t) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2), essential: true });
+    const easing = (t: number) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
+    // Near: one smooth glide. Far: out, across and in (the arc), so the journey can be followed.
+    if (km < 1000 && !first) m.easeTo({ center, zoom, pitch, bearing, padding: pad, duration, easing, essential: true });
+    else flyTo(m, { center, zoom, pitch, bearing, padding: pad, duration, curve: km > 1500 ? 1.75 : 1.4, easing, essential: true });
     if (calm) return;
     m.once('moveend', () => {
       if (userMoved.current || drawn.current.cam !== cam.n) return;

@@ -184,11 +184,11 @@
         {
           "t": "river",
           "name": "Tagus",
-          "river": "Tagus",
           "at": [
             38.9,
             -8.85
-          ]
+          ],
+          "river": "Tagus"
         }
       ]
     }
@@ -240,13 +240,15 @@
           "t": "item",
           "icon": "galley",
           "label": "Dhows of the Swahili coast",
-          "from": [
-            -12.2,
-            41.2
-          ],
-          "to": [
-            -14.8,
-            40.85
+          "path": [
+            [
+              -12.2,
+              41.2
+            ],
+            [
+              -14.8,
+              40.85
+            ]
           ]
         }
       ]
@@ -265,13 +267,15 @@
           "t": "item",
           "icon": "ship",
           "label": "With a monsoon pilot",
-          "from": [
-            -3.2,
-            40.2
-          ],
-          "to": [
-            6,
-            55
+          "path": [
+            [
+              -3.2,
+              40.2
+            ],
+            [
+              6,
+              55
+            ]
           ]
         },
         {

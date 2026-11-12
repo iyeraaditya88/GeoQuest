@@ -1010,12 +1010,38 @@ describe('story annotations (what appears on the map as George speaks)', () => {
         expect(Number(k), `${id} sentence ${k}`).toBeLessThan(n);
         for (const m of list) {
           if (m.t === 'place') { expect(ll(m.at), `${id} ${m.name}`).toBe(true); expect(m.name).toBeTruthy(); }
-          else if (m.t === 'river') { expect(rivers.has(m.river as string), `${id} river ${m.river}`).toBe(true); expect(ll(m.at)).toBe(true); }
+          else if (m.t === 'river') { expect(m.river ? rivers.has(m.river as string) : Array.isArray(m.line) && (m.line as unknown[]).every(ll), `${id} river ${m.name}`).toBe(true); expect(ll(m.at)).toBe(true); }
           else if (m.t === 'person') { expect(m.wiki && m.name && m.role, `${id} person`).toBeTruthy(); expect(['a', 'b', undefined]).toContain(m.side); }
-          else if (m.t === 'item') { expect(ICONS, `${id} icon`).toContain(m.icon); expect(ll(m.at) || (ll(m.from) && ll(m.to)), `${id} ${m.icon} position`).toBe(true); }
+          else if (m.t === 'item') { expect(ICONS, `${id} icon`).toContain(m.icon); expect(ll(m.at) || (Array.isArray(m.path) && (m.path as unknown[]).length >= 2 && (m.path as unknown[]).every(ll)), `${id} ${m.icon} position`).toBe(true); }
           else throw new Error(`${id}: unknown mark ${JSON.stringify(m)}`);
         }
       }
     }
+  });
+});
+
+describe('fleets keep to the sea (arrows routed through waypoints)', () => {
+  // (Up a river the map's coastline counts as land: these follow one, by design.)
+  const UP_RIVER = new Set(['opium-war:2']);
+  it('never crosses land away from its two ends', async () => {
+    const { countryAt } = await import('../src/lib/data');
+    const R = Math.PI / 180;
+    const km = (a: [number, number], b: [number, number]) => 12742 * Math.asin(Math.sqrt(Math.sin((b[0] - a[0]) * R / 2) ** 2 + Math.cos(a[0] * R) * Math.cos(b[0] * R) * Math.sin((b[1] - a[1]) * R / 2) ** 2));
+    let routed = 0;
+    for (const b of BATTLES) (b.moves ?? []).forEach((m, k) => {
+      if (!m.via || UP_RIVER.has(`${b.id}:${k}`)) return;
+      routed++;
+      const pts = [m.f, ...m.via, m.t];
+      let ashore = 0;
+      for (let i = 1; i < pts.length; i++) {
+        const n = Math.max(1, Math.ceil(km(pts[i - 1], pts[i]) / 8));
+        for (let s = 0; s <= n; s++) {
+          const p: [number, number] = [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * s / n, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * s / n];
+          if (km(p, m.f) > 30 && km(p, m.t) > 30 && countryAt(p[0], ((p[1] + 540) % 360) - 180)) ashore++;
+        }
+      }
+      expect(ashore, `${b.id} move ${k}`).toBeLessThanOrEqual(1);
+    });
+    expect(routed).toBeGreaterThan(20);
   });
 });

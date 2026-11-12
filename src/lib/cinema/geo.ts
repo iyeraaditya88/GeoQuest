@@ -20,28 +20,21 @@ const near = (lng: number, ref: number) => lng + 360 * Math.round((ref - lng) / 
 
 // ── Arrows ──
 
-export interface ArrowSpec { from: LL; to: LL; width: number /* metres */; bend?: number; progress?: number }
+export interface ArrowSpec { from: LL; to: LL; width: number /* metres */; bend?: number; progress?: number; via?: LL[] }
 
 /**
  * A bold arrow as one polygon ([lng, lat] ring): a body that bends to one side and thickens
  * towards a broad head. `progress` (0–1) draws it partway, head first at the leading end, so
  * an arrow can grow across the map.
  */
-export function arrowPolygon({ from, to, width: W, bend = 0.16, progress = 1 }: ArrowSpec): [number, number][] {
+export function arrowPolygon({ from, to, width: W, bend = 0.16, progress = 1, via }: ArrowSpec): [number, number][] {
   const p = Math.max(0.001, Math.min(1, progress));
   const toLng = near(to[1], from[1]);
   const f = frame((from[0] + to[0]) / 2, (from[1] + toLng) / 2);
   const [x0, y0] = f.to(from[0], from[1]), [x2, y2] = f.to(to[0], toLng);
-  const dx = x2 - x0, dy = y2 - y0, len = Math.hypot(dx, dy) || 1;
-  const nx = -dy / len, ny = dx / len;
-  const cx = (x0 + x2) / 2 + nx * bend * len, cy = (y0 + y2) / 2 + ny * bend * len;
-  const N = 40;
-  // The centre line (a quadratic curve), up to how far it has grown, with distance along it.
-  const pts: [number, number][] = [];
-  for (let i = 0; i <= N; i++) {
-    const t = (i / N) * p, u = 1 - t;
-    pts.push([u * u * x0 + 2 * u * t * cx + t * t * x2, u * u * y0 + 2 * u * t * cy + t * t * y2]);
-  }
+  // The centre line, up to how far it has grown: a gentle bend between two places, or (a fleet
+  // keeping to the sea, a flotilla up a river) a smooth curve through the waypoints of its route.
+  const pts = via?.length ? routeLine([[x0, y0], ...via.map(([la, lo]) => f.to(la, near(lo, from[1]))), [x2, y2]], p) : bentLine(x0, y0, x2, y2, bend, p);
   const dist = [0];
   for (let i = 1; i < pts.length; i++) dist.push(dist[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
   const total = dist[dist.length - 1] || 1;
@@ -74,6 +67,43 @@ export function arrowPolygon({ from, to, width: W, bend = 0.16, progress = 1 }: 
   ];
   ring.push(ring[0]);
   return ring.map(([x, y]) => f.from(x, y));
+}
+
+/** A quadratic curve bowing to one side by `bend`, drawn to `p` of the way. */
+function bentLine(x0: number, y0: number, x2: number, y2: number, bend: number, p: number) {
+  const dx = x2 - x0, dy = y2 - y0, len = Math.hypot(dx, dy) || 1;
+  const cx = (x0 + x2) / 2 - (dy / len) * bend * len, cy = (y0 + y2) / 2 + (dx / len) * bend * len;
+  const N = 40, pts: [number, number][] = [];
+  for (let i = 0; i <= N; i++) {
+    const t = (i / N) * p, u = 1 - t;
+    pts.push([u * u * x0 + 2 * u * t * cx + t * t * x2, u * u * y0 + 2 * u * t * cy + t * t * y2]);
+  }
+  return pts;
+}
+/** A smooth curve through points (Catmull-Rom), drawn to `p` of its length. */
+function routeLine(ctl: [number, number][], p: number) {
+  const all: [number, number][] = [];
+  const at = (i: number) => ctl[Math.max(0, Math.min(ctl.length - 1, i))];
+  const STEPS = 14;
+  for (let i = 0; i < ctl.length - 1; i++) {
+    const [a, b, c, d] = [at(i - 1), at(i), at(i + 1), at(i + 2)];
+    for (let k = 0; k < STEPS; k++) {
+      const t = k / STEPS, t2 = t * t, t3 = t2 * t;
+      all.push([0, 1].map((j) => 0.5 * (2 * b[j] + (-a[j] + c[j]) * t + (2 * a[j] - 5 * b[j] + 4 * c[j] - d[j]) * t2 + (-a[j] + 3 * b[j] - 3 * c[j] + d[j]) * t3)) as [number, number]);
+    }
+  }
+  all.push(ctl[ctl.length - 1]);
+  if (p >= 1) return all;
+  const d = [0];
+  for (let i = 1; i < all.length; i++) d.push(d[i - 1] + Math.hypot(all[i][0] - all[i - 1][0], all[i][1] - all[i - 1][1]));
+  const stop = d[d.length - 1] * p, out: [number, number][] = [all[0]];
+  for (let i = 1; i < all.length; i++) {
+    if (d[i] <= stop) { out.push(all[i]); continue; }
+    const f = (stop - d[i - 1]) / ((d[i] - d[i - 1]) || 1);
+    out.push([all[i - 1][0] + (all[i][0] - all[i - 1][0]) * f, all[i - 1][1] + (all[i][1] - all[i - 1][1]) * f]);
+    break;
+  }
+  return out.length > 1 ? out : [all[0], all[1]];
 }
 
 // ── Label spines ──

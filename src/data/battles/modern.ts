@@ -100,7 +100,7 @@ export const BATTLES_MODERN: Battle[] = [
     line: 'A task force sails 13,000 km for a few windswept islands',
     story: 'Argentina’s military government seized the islands it calls the Malvinas. Britain sent a fleet, and retook them after a war of 74 days.',
     why: ['Brought down Argentina’s military government, and democracy returned in 1983.', 'Sovereignty is still disputed.'],
-    lands: { a: ['GBR'], b: ['ARG'] }, moves: [{ f: [50.8, -1.1], t: [-7.93, -14.37], s: 'a' }, { f: [-7.93, -14.37], t: [-51.7, -57.85], s: 'a' }, { f: [-34.6, -58.38], t: [-51.7, -57.85], s: 'b' }], alt: 2.3, wiki: 'Falklands_War' },
+    lands: { a: ['GBR'], b: ['ARG'] }, moves: [{ f: [50.8, -1.1], t: [-7.93, -14.37], s: 'a', via: [[50.3, -1.4], [49.6, -3.0], [48.4, -6.2], [40.0, -12.5], [33.0, -19.0], [27.0, -20.0], [15.0, -21.0], [2.0, -18.0], [-6.0, -14.6]] }, { f: [-7.93, -14.37], t: [-51.7, -57.85], s: 'a', via: [[-20.0, -25.0], [-38.0, -45.0], [-50.0, -56.0]] }, { f: [-34.6, -58.38], t: [-51.7, -57.85], s: 'b', via: [[-35.3, -56.4], [-37.0, -55.8], [-38.8, -57.0], [-45.0, -62.0], [-50.0, -60.0], [-51.0, -58.0], [-51.6, -57.6]] }], alt: 2.3, wiki: 'Falklands_War' },
   { id: 'gulf-war', name: 'The Gulf War', kind: 'war', year: 1990, when: 'Aug 1990 – Feb 1991', place: 'Kuwait & Iraq', at: [29.37, 47.98],
     a: { name: 'US-led coalition', who: 'George H. W. Bush, Norman Schwarzkopf' }, b: { name: 'Iraq', who: 'Saddam Hussein' }, won: 'a',
     line: 'Live on TV: a coalition of 35 nations frees Kuwait',

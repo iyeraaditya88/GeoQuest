@@ -71,6 +71,22 @@ function bearing(a: [number, number], b: [number, number]) {
   return (Math.atan2(Math.sin(Δλ) * Math.cos(φ2), Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ)) / R + 360) % 360;
 }
 const ease = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
+/** Great-circle distance in radians. */
+function arc(a: [number, number], b: [number, number]) {
+  const φ1 = a[0] * R, φ2 = b[0] * R;
+  return 2 * Math.asin(Math.sqrt(Math.sin((φ2 - φ1) / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(((b[1] - a[1]) * R) / 2) ** 2));
+}
+/** A way through several points: where along it a share `t` of the distance falls, and the heading there. */
+function route(pts: [number, number][]) {
+  const cum = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + arc(pts[i - 1], pts[i]));
+  const total = cum[cum.length - 1] || 1;
+  const seg = (t: number) => { const d = Math.max(0, Math.min(1, t)) * total; let i = 1; while (i < pts.length - 1 && cum[i] < d) i++; return { i, f: (d - cum[i - 1]) / ((cum[i] - cum[i - 1]) || 1) }; };
+  return {
+    at(t: number): [number, number] { const { i, f } = seg(t); return along(pts[i - 1], pts[i], f); },
+    heading(t: number) { const a = Math.min(t, 0.994); return bearing(this.at(a), this.at(a + 0.006)); },
+  };
+}
 const keyOf = (k: number, i: number) => `${k}:${i}`;
 
 interface Shown { mk: maplibregl.Marker; el: HTMLElement; mark: Mark; k: number; raf?: number; heading?: number }
@@ -84,7 +100,7 @@ export const ANNOTATION_LAYERS: maplibregl.LayerSpecification[] = [
 export function createAnnotations(m: maplibregl.Map, opts: { calm: () => boolean; onPin: (at: [number, number]) => boolean }) {
   let clip: string | null = null;
   const shown = new Map<string, Shown>();
-  let rivers: string[] = [];
+  let rivers: Extract<Mark, { t: 'river' }>[] = [];
 
   // A vessel's drawing faces its course on the map, whichever way the camera turns.
   const turn = (s: Shown) => {
@@ -160,7 +176,7 @@ export function createAnnotations(m: maplibregl.Map, opts: { calm: () => boolean
 
   function add(key: string, mark: Mark, k: number, animate: boolean, spanMs: number) {
     if (mark.t === 'person') return;
-    const start = mark.t === 'item' ? mark.from ?? mark.at : mark.at;
+    const start = mark.t === 'item' ? mark.path?.[0] ?? mark.at : mark.at;
     if (!start) return;
     const el = element(mark);
     // A place where the battle's own marker stands: the marker is its dot, the name steps aside.
@@ -169,20 +185,23 @@ export function createAnnotations(m: maplibregl.Map, opts: { calm: () => boolean
     const s: Shown = { mk, el, mark, k };
     shown.set(key, s);
     requestAnimationFrame(() => el.classList.add('in'));
-    if (mark.t === 'river') showRiver(mark.river);
-    if (mark.t !== 'item' || !mark.from || !mark.to) return;
-    const from = mark.from, to = mark.to;
-    s.heading = bearing(from, to);
+    if (mark.t === 'river') showRiver(mark);
+    if (mark.t !== 'item' || !mark.path || mark.path.length < 2) return;
+    // Along its way (the sea lanes, or up a river, as authored), never across the land.
+    const way = route(mark.path);
+    const end = mark.path[mark.path.length - 1];
+    s.heading = way.heading(1);
     turn(s);
-    if (!animate || opts.calm()) { mk.setLngLat([to[1], to[0]]); return; }
+    if (!animate || opts.calm()) { mk.setLngLat([end[1], end[0]]); return; }
+    s.heading = way.heading(0);
+    turn(s);
     // Under way for most of the sentence, arriving as it ends.
     const dur = Math.max(2600, Math.min(9000, spanMs * 0.92)), t0 = performance.now();
     const step = (now: number) => {
       const t = Math.min(1, (now - t0) / dur);
-      const p = along(from, to, ease(t));
+      const p = way.at(ease(t));
       mk.setLngLat([p[1], p[0]]);
-      const ahead = along(from, to, Math.min(1, ease(t) + 0.02));
-      if (t < 0.98) { s.heading = bearing(p, ahead); turn(s); }
+      if (t < 0.98) { s.heading = way.heading(ease(t)); turn(s); }
       if (t < 1) s.raf = requestAnimationFrame(step); else el.classList.add('arrived');
     };
     s.raf = requestAnimationFrame(step);
@@ -198,15 +217,17 @@ export function createAnnotations(m: maplibregl.Map, opts: { calm: () => boolean
     window.setTimeout(() => s.mk.remove(), 450);
   }
 
-  async function showRiver(name: string) {
-    if (rivers.includes(name)) return;
-    rivers = [...rivers, name];
+  async function showRiver(mark: Extract<Mark, { t: 'river' }>) {
+    if (rivers.some((r) => r.name === mark.name)) return;
+    rivers = [...rivers, mark];
     const want = clip;
-    const nature = await loadNature();
-    if (clip !== want || !nature) return;
-    const features = rivers.flatMap((n) => {
-      const r = nature.rivers.find((x) => x.id === n);
-      return r ? [{ type: 'Feature' as const, geometry: { type: 'MultiLineString' as const, coordinates: r.c }, properties: {} }] : [];
+    // Its course from the map's own rivers, or (a channel the map doesn't carry) as drawn in the script.
+    const nature = rivers.some((r) => r.river) ? await loadNature() : null;
+    if (clip !== want) return;
+    const features = rivers.flatMap((r): GeoJSON.Feature[] => {
+      if (r.line) return [{ type: 'Feature', geometry: { type: 'LineString', coordinates: r.line.map(([la, lo]) => [lo, la]) }, properties: {} }];
+      const found = nature?.rivers.find((x) => x.id === r.river);
+      return found ? [{ type: 'Feature', geometry: { type: 'MultiLineString', coordinates: found.c }, properties: {} }] : [];
     });
     (m.getSource('ann-rivers') as maplibregl.GeoJSONSource | undefined)?.setData({ type: 'FeatureCollection', features });
     for (const id of ['ann-river-glow', 'ann-river']) if (m.getLayer(id)) m.setPaintProperty(id, 'line-opacity', id === 'ann-river-glow' ? 0.45 : 0.95);

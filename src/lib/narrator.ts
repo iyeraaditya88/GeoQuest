@@ -26,9 +26,9 @@ export type ClipCam = [number, number, number] | 'home';
  */
 export type Mark =
   | { t: 'place'; name: string; at: [number, number]; kind?: 'city' | 'fort' | 'region' | 'sea' | 'island' | 'cape' }
-  | { t: 'river'; name: string; river: string; at: [number, number] }
+  | { t: 'river'; name: string; at: [number, number]; river?: string; line?: [number, number][] }
   | { t: 'person'; name: string; wiki: string; role: string; side?: 'a' | 'b' }
-  | { t: 'item'; icon: ItemIcon; label?: string; at?: [number, number]; from?: [number, number]; to?: [number, number]; side?: 'a' | 'b' };
+  | { t: 'item'; icon: ItemIcon; label?: string; at?: [number, number]; path?: [number, number][]; side?: 'a' | 'b' };
 export type ItemIcon = 'ship' | 'steamship' | 'galley' | 'fleet' | 'cannon' | 'army' | 'cavalry' | 'fort' | 'treaty' | 'plane' | 'tank' | 'train' | 'cargo';
 export interface Clip { file: string; ms: number; lines?: string[]; cues?: number[]; bed?: string; hit?: string; cams?: Record<string, ClipCam>; marks?: Record<string, Mark[]> }
 export type SayResult = 'ended' | 'stopped' | 'failed';
@@ -72,6 +72,8 @@ const timeListeners = new Set<() => void>();
  * currentTime on between two reads in one render, and React takes a value that won't hold still
  * for a store that never settles (it gave up with "maximum update depth" as a battle began).
  */
+// (Read from the voice itself, playing or not: a clip just handed over sits at 0, so nothing it
+// names shows before it's said; one that has ended sits at its end, so all it named stays.)
 let heardMs = 0;
 const tick = () => { heardMs = el ? el.currentTime * 1000 : 0; for (const l of timeListeners) l(); };
 
@@ -342,7 +344,7 @@ export const narrator = {
   line(id: string): { lines: string[]; k: number } | null {
     if (shown?.id !== id || !shown.clip.lines?.length) return null;
     const { lines, cues = [0] } = shown.clip;
-    const k = current?.id === id && el ? lineAt(cues, heardMs) : lines.length - 1;
+    const k = el ? lineAt(cues, heardMs) : lines.length - 1;
     return { lines, k };
   },
   /** The ground under the story between clips (e.g. the open sea while the ship sails on). */
@@ -378,7 +380,7 @@ export const narrator = {
   marks(id: string): { marks: { k: number; m: Mark }[]; k: number; spanMs: number } | null {
     if (shown?.id !== id || !shown.clip.marks) return null;
     const { lines = [], cues = [0], marks, ms: total } = shown.clip;
-    const k = current?.id === id && el ? lineAt(cues, heardMs) : lines.length - 1;
+    const k = el ? lineAt(cues, heardMs) : lines.length - 1;
     const out: { k: number; m: Mark }[] = [];
     for (const [s, ms] of Object.entries(marks)) if (Number(s) <= k) for (const m of ms) out.push({ k: Number(s), m });
     return { marks: out, k, spanMs: (cues[k + 1] ?? total) - (cues[k] ?? 0) };
@@ -387,8 +389,14 @@ export const narrator = {
   sentence(id: string) {
     if (shown?.id !== id) return -1;
     const { lines = [], cues = [0] } = shown.clip;
-    return current?.id === id && el ? lineAt(cues, heardMs) : lines.length - 1;
+    return el ? lineAt(cues, heardMs) : lines.length - 1;
   },
+  /** A clip's camera move for a sentence, from the list of clips (whether or not it's on screen). */
+  camOf: (id: string, k: number): ClipCam | null => loaded?.[id]?.cams?.[String(k)] ?? null,
+  /** How many sentences a clip has (0 if unknown). */
+  sentences: (id: string) => loaded?.[id]?.cues?.length ?? 0,
+  /** When a sentence of a clip begins (ms into it), from the list of clips. */
+  cueMs: (id: string, k: number) => loaded?.[id]?.cues?.[k] ?? null,
   /** Every mark in a clip (to fetch its portraits ahead of time). */
   allMarks: (id: string) => Object.values(loaded?.[id]?.marks ?? {}).flat(),
   /** The camera move for a sentence of a clip (if the script names a place there). */

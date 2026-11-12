@@ -12,6 +12,7 @@ import { StartStory } from './theatre/StartStory';
 import { StoryBar, VoiceToggle } from './theatre/StoryBar';
 import { useTheatre, type Inset } from './theatre/useTheatre';
 import type { GlobePath } from './GlobeView';
+import type { CinemaPan } from './cinema/CinemaMap';
 import { WW2_SHAPES } from '../data/historical/ww2';
 import type { HistShape } from '../data/historical/types';
 
@@ -28,7 +29,7 @@ type View = { kind: 'list' } | { kind: 'battle'; id: string } | { kind: 'war'; i
 interface Props {
   link?: string | null;     // opened from a shared link: a battle, or ww1 / ww2
   onScene: (s: WarScene) => void;
-  onFrame: (lat: number, lng: number, altitude: number, lands?: string[]) => void;
+  onFrame: (lat: number, lng: number, altitude: number, lands?: string[], pan?: CinemaPan, also?: [number, number][]) => void;
   pinRef: MutableRefObject<(id: string) => void>;
   onClose: () => void;
   /** How much of the screen the panel covers (the cinema map frames the rest). */
@@ -195,9 +196,29 @@ function Fighter({ side, tone, won, of }: { side: Side; tone: string; won: boole
 const WAR_CHAPTERS = ['The sides', 'How it began', 'The fighting', 'How it ended'];
 /** Every country on either side, for the shot that shows who's fighting. */
 const sidesOf = (b: Battle) => [...(b.lands?.a ?? []), ...(b.lands?.b ?? [])];
+const km = (p: [number, number], q: [number, number]) => {
+  const R = Math.PI / 180, φ1 = p[0] * R, φ2 = q[0] * R;
+  return 12742 * Math.asin(Math.sqrt(Math.sin((φ2 - φ1) / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(((q[1] - p[1]) * R) / 2) ** 2));
+};
+/**
+ * Sides an ocean apart (Britain and China): the opening glides from one to the other, ending as
+ * George first names a place. Only when there's time for it to be slow; otherwise one shot of both.
+ */
+function panOf(b: Battle, clip: string): CinemaPan | undefined {
+  const A = b.lands?.a ?? [], B = b.lands?.b ?? [];
+  const at = (ids: string[]) => ids.map((id) => BY_CCA3.get(id)?.latlng).filter((x): x is [number, number] => !!x);
+  const pa = at(A), pb = at(B);
+  if (!pa.length || !pb.length || Math.min(...pa.flatMap((p) => pb.map((q) => km(p, q)))) < 4000) return undefined;
+  let k = 1;
+  for (; k < 12; k++) { const c = narrator.camAt(clip, k); if (narrator.cueMs(clip, k) === null || (c && c !== 'home' && c[2] < 2)) break; }
+  const c0 = narrator.camAt(clip, 0);
+  if (c0 && c0 !== 'home' && c0[2] < 2) k = 1; // (it names its place at once: no time to glide)
+  const until = (narrator.cueMs(clip, k) ?? 0) - (narrator.cueMs(clip, 0) ?? 0);
+  return until >= 9000 ? { a: A, b: B, ms: until - 3200 } : undefined;
+}
 const BATTLE_CHAPTERS = ['The sides', 'The battle', 'What it changed'];
 
-function Detail({ b, onScene, onFrame, onOpen, onMore }: { b: Battle; onScene: (s: WarScene) => void; onFrame: (lat: number, lng: number, alt: number, lands?: string[]) => void; onOpen: (id: string) => void; onMore: () => void }) {
+function Detail({ b, onScene, onFrame, onOpen, onMore }: { b: Battle; onScene: (s: WarScene) => void; onFrame: (lat: number, lng: number, alt: number, lands?: string[], pan?: CinemaPan, also?: [number, number][]) => void; onOpen: (id: string) => void; onMore: () => void }) {
   const i = BATTLES.indexOf(b);
   const prev = BATTLES[i - 1], next = BATTLES[i + 1];
   const [draw, setDraw] = useState(0); // the armies march again
@@ -213,7 +234,7 @@ function Detail({ b, onScene, onFrame, onOpen, onMore }: { b: Battle; onScene: (
     for (const id of b.lands?.b ?? []) paint[id] = SIDE_COLOR.b;
     onScene({ paint: draw ? paint : null, paths: [], pins, focus: true });
     const t = window.setTimeout(() => {
-      const paths: GlobePath[] = (b.moves ?? []).map((m, k) => ({ id: `${b.id}:${draw}:${k}`, points: [m.f, m.t], color: SIDE_COLOR[m.s], mode: 'arrow', arrow: true, delay: 300 + k * 350 }));
+      const paths: GlobePath[] = (b.moves ?? []).map((m, k) => ({ id: `${b.id}:${draw}:${k}`, points: [m.f, ...(m.via ?? []), m.t], color: SIDE_COLOR[m.s], mode: 'arrow', arrow: true, delay: 300 + k * 350 }));
       onScene({ paint, paths, pins, focus: true });
     }, draw ? 250 : 750);
     return () => window.clearTimeout(t);
@@ -252,7 +273,15 @@ function Detail({ b, onScene, onFrame, onOpen, onMore }: { b: Battle; onScene: (
         if (r === 'failed') { setPlaying(false); setLost(true); }
         if (r !== 'ended') return;
         if (more) { heard.current = ch; t = window.setTimeout(() => setCh((c) => c + 1), breathMs(false)); }
-        else { setPlaying(false); setEnded(true); if (told) onFrame(b.at[0], b.at[1], battleAltitude(b)); } // the end: back to the whole scene
+        else {
+          setPlaying(false);
+          setEnded(true);
+          // The end: back to the whole scene — unless the telling already closed on a wide shot.
+          const n = narrator.line(clip)?.lines.length ?? 0;
+          let last = null as ReturnType<typeof narrator.camAt>;
+          for (let k = n - 1; k >= 0 && !last; k--) last = narrator.camAt(clip, k);
+          if (told && !(last && last !== 'home' && last[2] >= 2)) onFrame(b.at[0], b.at[1], battleAltitude(b));
+        }
       });
     return () => { live = false; window.clearTimeout(t); narrator.pause(); };
   }, [b, run, clip, voiced, playing]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -265,26 +294,55 @@ function Detail({ b, onScene, onFrame, onOpen, onMore }: { b: Battle; onScene: (
   const firstCh = useRef(true);
   useEffect(() => { if (firstCh.current) { firstCh.current = false; return; } if (told) setDraw((d) => d + 1); }, [ch, told]);
   // As George names a place, the camera goes there ('home': back to the battle). The telling opens on
-  // everyone involved; a later chapter that doesn't name a place first moves in on the fighting.
+  // everyone involved — sides an ocean apart in one slow glide from one to the other — and moves in
+  // when George first names a place; a later chapter that names none first moves in on the fighting.
   const spoken = useSyncExternalStore(narrator.onTime, () => (voiced ? narrator.sentence(clip) : -1));
-  const wide = useRef(true); // (the camera hasn't yet moved in from the shot of who's fighting)
+  // The next place George names, if it comes within a few seconds (in this chapter or as the next
+  // begins): two far-apart places named in quick succession share one shot, not two quick flights.
+  const covered = useRef<string | null>(null);
+  const ahead = (k: number): { at: [number, number]; key: string; ms: number } | null => {
+    const SOON = 6000, here = narrator.cueMs(clip, k) ?? 0;
+    for (let j = k + 1; j < narrator.sentences(clip); j++) {
+      const ms = (narrator.cueMs(clip, j) ?? 0) - here;
+      if (ms > SOON) return null;
+      const c = narrator.camOf(clip, j);
+      if (c) return c === 'home' ? null : { at: [c[0], c[1]], key: `${clip}#${j}`, ms };
+    }
+    if (!told || ch + 1 >= parts) return null;
+    const nx = `battle:${b.id}:${ch + 1}`, left = narrator.clipMs(clip) - here + breathMs(false);
+    for (let j = 0; j < narrator.sentences(nx); j++) {
+      const ms = left + (narrator.cueMs(nx, j) ?? 0);
+      if (ms > SOON) return null;
+      const c = narrator.camOf(nx, j);
+      if (c) return c === 'home' ? null : { at: [c[0], c[1]], key: `${nx}#${j}`, ms };
+    }
+    return null;
+  };
   useEffect(() => {
     if (spoken < 0) return;
+    if (covered.current === `${clip}#${spoken}`) { covered.current = null; return; } // (already in the shot)
     const c = narrator.camAt(clip, spoken);
     const opening = !told || ch === 0;
-    if (spoken === 0) wide.current = opening;
+    const close = (x: ReturnType<typeof narrator.camAt>) => (x && x !== 'home' && x[2] < 2 ? x : null);
     // (The place the first sentence names comes a sentence later, after the shot of who's fighting.)
-    const named = opening && spoken === 1 && !c ? narrator.camAt(clip, 0) : null;
-    // Still on the wide opening shot, "In blue is…" and "In red is…" show each side in turn.
-    const line = narrator.line(clip)?.lines[spoken] ?? '';
-    const close = named && named !== 'home' && named[2] < 2 ? named : null; // (a place first: it leads)
-    const side = wide.current && !c && !close ? (/^In blue\b/.test(line) ? b.lands?.a : /^In red\b/.test(line) ? b.lands?.b : null) : null;
-    const go = (lat: number, lng: number, alt: number) => { if (alt < 2) wide.current = false; onFrame(lat, lng, alt); };
-    if (spoken === 0 && opening) onFrame(b.at[0], b.at[1], battleAltitude(b), sidesOf(b));
-    else if (side?.length) { const [la, lo] = BY_CCA3.get(side[0])?.latlng ?? b.at; onFrame(la, lo, battleAltitude(b), side); }
-    else if (close) go(close[0], close[1], close[2]);
-    else if (c === 'home' || (spoken === 0 && !c)) go(b.at[0], b.at[1], battleAltitude(b));
+    const named = opening && spoken === 1 && !c ? close(narrator.camAt(clip, 0)) : null;
+    const go = (lat: number, lng: number, alt: number) => {
+      const nx = ahead(spoken);
+      const d = nx ? km([lat, lng], nx.at) : 0;
+      if (nx && (d > 1500 || (d > 500 && nx.ms < 4000))) { covered.current = nx.key; onFrame(lat, lng, alt, undefined, undefined, [nx.at]); }
+      else onFrame(lat, lng, alt);
+    };
+    const home = () => go(b.at[0], b.at[1], battleAltitude(b));
+    if (spoken === 0 && opening) onFrame(b.at[0], b.at[1], battleAltitude(b), sidesOf(b), panOf(b, clip));
+    else if (named) go(named[0], named[1], named[2]);
+    else if (c === 'home') home();
     else if (c) go(c[0], c[1], c[2]);
+    else if (spoken === 0) {
+      // A chapter that names no place first: in on the fighting, unless its next shot is right there,
+      // or comes within a few seconds anyway (no detour on the way).
+      const next = narrator.camAt(clip, 1);
+      if (!(next && next !== 'home' && km([next[0], next[1]], b.at) < 400) && !ahead(0)) home();
+    }
   }, [spoken, clip]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const start = () => { track('battle_play', { b: b.id }); setLost(false); setStarted(true); setEnded(false); setDraw((d) => d + 1); setPlaying(true); };
@@ -380,7 +438,7 @@ function useNarration() {
   return { available: snap[0] === '1', on: snap[1] === '1' };
 }
 
-function WarPlayer({ war, onScene, onFrame }: { war: WorldWar; onScene: (s: WarScene) => void; onFrame: (lat: number, lng: number, alt: number, lands?: string[]) => void }) {
+function WarPlayer({ war, onScene, onFrame }: { war: WorldWar; onScene: (s: WarScene) => void; onFrame: (lat: number, lng: number, alt: number, lands?: string[], pan?: CinemaPan, also?: [number, number][]) => void }) {
   const last = war.events.length - 1;
   const [i, setI] = useState(0);
   // It opens like a video, waiting on its big play button (and from a shared link, that first tap
@@ -410,7 +468,7 @@ function WarPlayer({ war, onScene, onFrame }: { war: WorldWar; onScene: (s: WarS
     for (const [id, s] of map) paint[id] = war.colors[s];
     const paths: GlobePath[] = [
       ...(ev.fronts ?? []).map((points, k) => ({ id: `${war.id}:front:${k}`, points, color: '#fde68a', mode: 'front' as const })),
-      ...(ev.moves ?? []).map((m, k) => ({ id: `${war.id}:${i}:${k}`, points: [m.f, m.t] as [number, number][], color: m.s === 'allies' ? war.colors.allies : war.colors.enemy, mode: 'arrow' as const, arrow: true, delay: 500 + k * 300 })),
+      ...(ev.moves ?? []).map((m, k) => ({ id: `${war.id}:${i}:${k}`, points: [m.f, ...(m.via ?? []), m.t] as [number, number][], color: m.s === 'allies' ? war.colors.allies : war.colors.enemy, mode: 'arrow' as const, arrow: true, delay: 500 + k * 300 })),
     ];
     const shapes = HIST_SHAPES.filter((h) => h.war === war.id && h.from <= ev.m && ev.m < h.until)
       .map((h) => ({ id: h.id, ring: h.ring, color: war.colors[h.side], name: h.name, spine: h.spine }));
