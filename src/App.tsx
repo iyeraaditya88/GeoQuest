@@ -109,6 +109,7 @@ import { panelWidth } from './lib/layout';
 import { MusicButton } from './components/MusicButton';
 import { music } from './lib/music';
 import { narrator } from './lib/narrator';
+import { DebugBadge } from './components/DebugBadge';
 import type { MysteryStage } from './components/MysteryGame';
 import { geoDistance } from 'd3-geo';
 import { isShareGame, type ShareGame } from './lib/share';
@@ -1345,6 +1346,7 @@ export default function App() {
       className={`app ${ready ? 'ready' : ''} ${footer ? 'has-foot' : ''} ${showHint ? 'has-hint' : ''}`}
       style={{ '--li': `${leftInset}px`, '--ri': `${rightInset}px` } as React.CSSProperties}
     >
+      <DebugBadge />
       <div className="space-glow" />
       <GlobeView
         ref={globe}

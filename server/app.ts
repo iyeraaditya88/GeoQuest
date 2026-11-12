@@ -16,6 +16,7 @@ import { registerAuth } from './routes/auth.js';
 import { registerLive } from './routes/live.js';
 import { registerAnalytics } from './routes/analytics.js';
 import { registerFeedback } from './routes/feedback.js';
+import { registerDebug } from './routes/debug.js';
 import { registerCron, registerDaily } from './routes/daily.js';
 import { registerPlaces } from './routes/places.js';
 import { registerAi, checkAi } from './routes/ai.js';
@@ -55,6 +56,7 @@ registerAuth(app); // sign-in & invites (public), then the session guard, then p
 registerLive(app);
 registerAnalytics(app);
 registerFeedback(app);
+registerDebug(app); // the debug easter egg's reports (guests too), to the server log
 registerDaily(app);
 registerPlaces(app);
 registerAi(app);

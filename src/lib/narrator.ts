@@ -9,6 +9,7 @@
 import { music, silentWav } from './music';
 import { lineAt } from './subtitles';
 import { track } from './analytics';
+import { dlog, dwatch } from './debug';
 
 const BASE = '/narration';
 const KEY = 'gq-narration';
@@ -75,6 +76,7 @@ function voice() {
 
 function finish(r: SayResult) {
   const c = current;
+  dlog('narr', `finish ${c?.id ?? '-'} ${r}`);
   current = null;
   if (r === 'failed' && shown?.id === c?.id) { shown = null; tick(); } // the summary shows instead
   // Music comes back up only if nothing follows shortly (between clips it stays low).
@@ -167,13 +169,14 @@ export const narrator = {
     // iPhone only counts a finished tap (touchend / click), not the pointerup just before it: an
     // attempt there is refused, and would only get in the way of the one that counts.
     if (e?.type === 'pointerup' && (e as PointerEvent).pointerType !== 'mouse') return;
+    if (!unlocked || blocked) dlog('narr', `unlock on ${e?.type ?? '?'} (unlocked ${unlocked}, blocked ${blocked}, clip ${current?.id ?? '-'}, priming ${!!priming})`);
     const c = audio();
     if (c && c.state !== 'running') void c.resume().catch(() => null);
     const v = voice();
     if (blocked && current) { // a clip is waiting for this tap
       blocked = false;
       tick();
-      void v.play().then(() => { unlocked = true; }).catch(() => { blocked = true; tick(); });
+      void v.play().then(() => { unlocked = true; dlog('narr', 'tap started the waiting clip'); }).catch((err) => { blocked = true; tick(); dlog('narr', `tap retry refused: ${(err as DOMException)?.name}`); });
       return;
     }
     if (unlocked || current || priming) return;
@@ -182,8 +185,8 @@ export const narrator = {
     v.muted = false;
     v.src = silentWav();
     priming = v.play()
-      .then(() => { unlocked = true; if (!current) v.pause(); })
-      .catch((e) => { lastErr = `unlock:${(e as DOMException)?.name}`; }) // (refused: the next tap tries again)
+      .then(() => { unlocked = true; dlog('narr', 'unlocked'); if (!current) v.pause(); })
+      .catch((e) => { lastErr = `unlock:${(e as DOMException)?.name}`; dlog('narr', lastErr); }) // (refused: the next tap tries again)
       .finally(() => { priming = null; });
   },
   /**
@@ -193,6 +196,7 @@ export const narrator = {
   async say(id: string, opt: { rate?: number; title?: string; album?: string; prefetch?: string } = {}): Promise<SayResult> {
     const m = await load();
     const clip = m?.[id];
+    dlog('narr', `say ${id} (clip ${clip ? 'found' : 'missing'}, manifest ${m ? 'ok' : 'none'})`);
     if (!clip) return 'failed';
     const v = voice();
     if (priming) await priming;
@@ -219,11 +223,13 @@ export const narrator = {
     v.muted = false;
     try {
       await v.play();
+      dlog('narr', `playing ${id}`);
       blocked = false;
       unlocked = true;
     } catch (e) {
       const why = (e as DOMException)?.name;
       lastErr = `${id}:${why}`;
+      dlog('narr', `play refused ${id}: ${why} (${(e as Error)?.message ?? ''})`);
       if (current === mine && why !== 'AbortError') track('narration_err', { why: why ?? 'unknown', id, unlocked: unlocked ? 1 : 0 });
       // Interrupted (paused, or another clip took over): not a failure — whoever interrupted carries on.
       if (current !== mine || why === 'AbortError') { /* nothing to do */ }
@@ -309,6 +315,12 @@ function clearSession() {
   if (!s) return;
   try { s.metadata = null; s.playbackState = 'none'; } catch { /* unsupported */ }
 }
+
+// Debug mode (see debug.ts): the narrator's state, whenever it changes.
+dwatch('state', () => {
+  if (!el && !current && !shown) return null;
+  return `on ${narrationOn()} avail ${available} · unlocked ${unlocked} blocked ${blocked} · clip ${current?.id ?? '-'} · voice ${el ? `${el.paused ? 'paused' : 'playing'} ${Math.floor(el.currentTime)}s${el.muted ? ' MUTED' : ''} ${el.src.startsWith('data') ? 'silence' : el.src.split('/').pop()?.slice(0, 12)} rs${el.readyState} ns${el.networkState}` : '-'} · sounds ${ctx?.state ?? '-'}`;
+});
 
 // A readout of the narrator's state, for checking a phone: open the app with ?narrdebug.
 if (typeof window !== 'undefined' && /[?&]narrdebug/.test(window.location.search)) {

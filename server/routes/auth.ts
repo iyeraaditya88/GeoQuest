@@ -10,7 +10,7 @@ import { KEY_COOKIE, SESSION_COOKIE, authConfigured, verifySession } from '../se
 import { HOSTED, MLY_COOKIE, authLimit, clearCookie, cookie, fail, failureCounter, signIn } from '../http.js';
 
 /** What guests (no account) may call: the rest needs signing in. */
-const GUEST_OK = new Set(['GET /health', 'POST /ask', 'POST /match', 'GET /mapillary', 'GET /daily', 'POST /analytics', 'POST /feedback', 'GET /feedback/replies']);
+const GUEST_OK = new Set(['GET /health', 'POST /ask', 'POST /match', 'GET /mapillary', 'GET /daily', 'POST /analytics', 'POST /debug', 'POST /feedback', 'GET /feedback/replies']);
 
 // Wrong passwords per account (as well as per network): a pause after a handful, so guessing
 // someone's password from many addresses gets nowhere fast.

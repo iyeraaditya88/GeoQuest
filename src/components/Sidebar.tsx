@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { debug } from '../lib/debug';
 import { AnimatePresence, motion } from 'motion/react';
 import { BarChart3, Grid3x3, HatGlasses, Shapes, Inbox, BellRing, Binoculars, Brain, ChevronLeft, Castle, Drill, Hourglass, Ship, Gamepad2, Globe2, KeyRound, Landmark, Link2, ListOrdered, LogIn, LogOut, Map as MapIcon, Menu, Mountain, RotateCcw, RotateCw, Satellite, Search, SunMoon, Swords, UserRound, Users, X, Puzzle } from 'lucide-react';
 import type { MapStyle } from './GlobeView';
@@ -82,6 +83,13 @@ const STYLES: { id: MapStyle; label: string; icon: typeof Satellite }[] = [
 
 export function Sidebar(p: Props) {
   const rail = p.collapsed && !p.mobile;
+  // An easter egg: seven quick taps on the logo turn debug mode on (or off) — see lib/debug.ts.
+  const taps = useRef<number[]>([]);
+  const secretTap = () => {
+    const now = Date.now();
+    taps.current = [...taps.current.filter((t) => now - t < 3000), now];
+    if (taps.current.length >= 7) { taps.current = []; debug.toggle(); }
+  };
   // Phones: a roomier drawer (most of the screen, so nothing gets cut off).
   const width = rail ? SIDEBAR_W.rail : p.mobile ? Math.min(320, Math.round(window.innerWidth * 0.86)) : SIDEBAR_W.open;
   const show = p.mobile ? p.drawerOpen : !p.hidden;
@@ -116,7 +124,7 @@ export function Sidebar(p: Props) {
       >
         {/* Brand */}
         <div className="sb-head">
-          <div className="sb-brand">
+          <div className="sb-brand" onClick={secretTap}>
             <span className="sb-mark"><img src="/icons/icon-192.png" alt="" width={40} height={40} /></span>
             <Fade show={!rail}>
               <div className="sb-brand-text"><b>GeoQuest</b><span>Explore. Learn. Stay curious</span></div>
