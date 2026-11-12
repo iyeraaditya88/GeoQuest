@@ -3437,3 +3437,8 @@ svg.vy-flag { color: #2dd4bf; }
 @keyframes start-pulse { 50% { box-shadow: 0 0 0 18px rgba(251, 191, 36, 0.08), 0 10px 30px rgba(0, 0, 0, 0.5); } }
 @media (min-width: 901px) { .start-story { left: calc(50% + 208px); top: 50%; } }
 @media (prefers-reduced-motion: reduce) { .start-story i { animation: none; } }
+/* Cinema map markers: gone while over the horizon (see cinema/cull.ts); smaller far out. */
+.maplibregl-marker > * { transition: opacity 0.35s ease, scale 0.35s ease; }
+.maplibregl-marker.off-side > * { opacity: 0; pointer-events: none; }
+.cine-map.far .cine-clash > button { scale: 0.62; opacity: 0.85; }
+.cine-map.far .cine-flag > * { scale: 0.75; }

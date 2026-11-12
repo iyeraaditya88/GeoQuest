@@ -4,6 +4,7 @@
 import * as maplibregl from 'maplibre-gl';
 import { KM, SHIP_SVG, makeRoute, routeAt, routeHeading, routeLine, type Route } from '../../lib/sail';
 import { escapeHtml } from '../../lib/html';
+import { track } from './cull';
 import type { LL } from '../../lib/battles';
 
 export interface VoyageScene {
@@ -78,7 +79,7 @@ export function createVoyage(m: maplibregl.Map, opts: { narrow: boolean; calm: (
       el.style.setProperty('--c', v.color);
       el.innerHTML = `<button type="button" aria-label="${escapeHtml(s.name)}"><i>${s.dead ? '†' : i + 1}</i><span>${escapeHtml(s.name)}</span></button>`;
       el.querySelector('button')!.addEventListener('click', (e) => { e.stopPropagation(); opts.onPin(`stop:${i}`); });
-      return { mk: new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat(stopLL(i)).addTo(m), stops };
+      return { mk: track(new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat(stopLL(i)).addTo(m)), stops };
     });
   }
   function light(active: number | null) {
@@ -141,7 +142,7 @@ export function createVoyage(m: maplibregl.Map, opts: { narrow: boolean; calm: (
       el.className = 'cine-ship';
       el.style.setProperty('--c', v.color);
       el.innerHTML = SHIP_SVG;
-      const ship = new maplibregl.Marker({ element: el, anchor: 'center', rotationAlignment: 'map', pitchAlignment: 'map' });
+      const ship = track(new maplibregl.Marker({ element: el, anchor: 'center', rotationAlignment: 'map', pitchAlignment: 'map' }));
       let d = r.at[o.from] ?? 0, next = o.from + 1, holding = false, done = false, raf = 0, lastTrail = 0;
       let last = performance.now(), pauseUntil = last + 1700 + o.pauseMs;
       const followFrom = last + 1700;

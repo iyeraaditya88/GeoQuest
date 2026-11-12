@@ -11,6 +11,7 @@ import { mesh } from 'topojson-client';
 import { BY_CCA3, FEATURES, TOPO_50, flagUrl, topoCca3 } from '../../lib/data';
 import { arrowPolygon, labelSizeAtZoom0, metresPerPixel, spineFor, zoomForAltitude } from '../../lib/cinema/geo';
 import type { WarScene } from '../BattlesPanel';
+import { cull, track } from './cull';
 import { VOYAGE_LAYERS, VOYAGE_SOURCES, createVoyage, type CinemaSail, type VoyageScene } from './voyage';
 
 maplibregl.setWorkerUrl(mapWorkerUrl);
@@ -223,6 +224,10 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, voyage = null
     });
     // Names are sized for the zoom whenever the camera comes to rest (they fade out while it flies).
     m.on('moveend', fitNames);
+    // Markers on the far side of the globe fade away (checked once a frame while the map moves).
+    let culling = 0;
+    m.on('move', () => { if (!culling) culling = requestAnimationFrame(() => { culling = 0; cull(m); }); });
+    m.on('moveend', () => cull(m));
     m.once('load', fitNames);
     // You took the camera: no more drifting until the next event.
     const mine = (e: { originalEvent?: unknown }) => { if (e.originalEvent) { userMoved.current = true; } };
@@ -267,6 +272,7 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, voyage = null
     if (!prev || prev.paths !== sc.paths) drawPaths();
     drawLabels();
     drawMarkers();
+    cull(m);
   }
 
   function paintCountries(paint: Record<string, string>) {
@@ -389,7 +395,7 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, voyage = null
       el.innerHTML = '<button type="button"><i><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2M14.5 6.5 18 3h3v3l-3.5 3.5M5 14l4 4M7 17l-3 3M3 19l2 2"/></svg></i></button>';
       el.querySelector('button')!.setAttribute('aria-label', p.name);
       el.querySelector('button')!.addEventListener('click', () => pinRef.current?.(p.id));
-      return new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat([p.lng, p.lat]).addTo(m);
+      return track(new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat([p.lng, p.lat]).addTo(m));
     });
     // Flags rise where countries change sides; they stay planted until the next event.
     const want = new Set(sc.flags ?? []);
@@ -403,7 +409,7 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, voyage = null
       el.className = 'cine-flag';
       el.style.animationDelay = `${0.5 + i * 0.12}s`;
       el.innerHTML = `<span><img alt="" src="${flagUrl(c.cca2, 80)}"></span><i></i>`;
-      flags.current.set(id, new maplibregl.Marker({ element: el, anchor: 'bottom-left' }).setLngLat([at[1], at[0]]).addTo(m));
+      flags.current.set(id, track(new maplibregl.Marker({ element: el, anchor: 'bottom-left' }).setLngLat([at[1], at[0]]).addTo(m)));
     });
   }
 
