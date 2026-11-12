@@ -97,7 +97,7 @@ export function VoyagesPanel({ active, hover = null, era, onEra, stop, sailing, 
       <div className="voy-scroll" ref={scroller}>
         <AnimatePresence mode="wait" initial={false}>
           {v
-            ? <Detail key={v.id} v={v} stop={stop} sailing={sailing} onStop={onStop} onSail={onSail} onPick={onPick} onMore={() => setPeek(false)} />
+            ? <Detail key={v.id} v={v} stop={stop} sailing={sailing} waiting={linked || (held && sailing)} onStart={() => { if (linked) onPlay?.(); }} onStop={onStop} onSail={onSail} onPick={onPick} onMore={() => setPeek(false)} />
             : <List key="list" hover={hover} era={era} onEra={onEra} scroller={scroller} onPick={onPick} onHover={onHover} />}
         </AnimatePresence>
       </div>
@@ -156,7 +156,7 @@ function List({ hover, era, onEra, scroller, onPick, onHover }: { hover: string 
   );
 }
 
-function Detail({ v, stop, sailing, onStop, onSail, onPick, onMore }: { v: Voyage; stop: number | null; sailing: boolean; onStop: (i: number | null) => void; onSail: (on: boolean) => void; onPick: (id: string) => void; onMore: () => void }) {
+function Detail({ v, stop, sailing, waiting, onStart, onStop, onSail, onPick, onMore }: { v: Voyage; stop: number | null; sailing: boolean; waiting: boolean; onStart: () => void; onStop: (i: number | null) => void; onSail: (on: boolean) => void; onPick: (id: string) => void; onMore: () => void }) {
   const idx = VOYAGES.indexOf(v);
   const prev = VOYAGES[idx - 1], next = VOYAGES[idx + 1];
   const dist = useMemo(() => voyageKm(v), [v]);
@@ -164,17 +164,22 @@ function Detail({ v, stop, sailing, onStop, onSail, onPick, onMore }: { v: Voyag
   const stopRefs = useRef<(HTMLLIElement | null)[]>([]);
   useEffect(() => { if (stop !== null) stopRefs.current[stop]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, [stop]);
 
+  // Waiting on the first tap (a shared link, or the phone held George back): the button says what the
+  // big play button says, and pressing it starts the voyage (the tap itself starts the voice).
+  const wasWaiting = useRef(false);
   const sail = () => {
+    if (waiting || wasWaiting.current) { wasWaiting.current = false; onStart(); return; }
     if (!sailing) track('voyage', { v: v.id, m: 'sail' });
     onSail(!sailing);
   };
+  const live = sailing && !waiting;
   const atEnd = stop === v.stops.length - 1;
   const voice = useVoice(v.id);
   const intro = voice.shown === `voyage:${v.id}:intro`;
   const here = stop !== null && !intro ? v.stops[stop] : null;
   const tour = (
-    <button className={`vy-tour ${sailing ? 'on' : ''}`} onClick={sail}>
-      {sailing ? <><Pause size={15} /> Pause the voyage</> : <><Sailboat size={16} /> {stop !== null && !atEnd ? 'Sail on' : 'Follow the voyage'}</>}
+    <button className={`vy-tour ${live ? 'on' : ''}`} onPointerDown={() => { wasWaiting.current = waiting; }} onClick={sail}>
+      {live ? <><Pause size={15} /> Pause the voyage</> : <><Sailboat size={16} /> {stop !== null && !atEnd ? 'Sail on' : 'Follow the voyage'}</>}
       <em>{stop !== null ? `${stop + 1} / ${v.stops.length}` : `${v.stops.length} stops`}</em>
     </button>
   );

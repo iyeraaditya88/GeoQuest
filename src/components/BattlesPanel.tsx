@@ -374,7 +374,17 @@ function WarPlayer({ war, onScene, onFrame }: { war: WorldWar; onScene: (s: WarS
   }, []);
 
   const go = (n: number) => { track('war_step', { w: war.id, n }); setI(Math.max(0, Math.min(last, n))); };
-  const toggle = () => { if (i >= last && !playing) { setI(0); setPlaying(true); } else setPlaying((p) => !p); };
+  // What the control shows follows what you see and hear: until George can speak (waiting on the
+  // first tap) it's "play", and pressing it starts the story just as the big button does.
+  const waiting = gate || held;
+  const shown = playing && !waiting;
+  // (Noted as the finger goes down: by the click, the tap has already started the waiting voice.)
+  const wasWaiting = useRef(false);
+  const toggle = () => {
+    if (gate) { setGate(false); setI(0); setPlaying(true); return; }
+    if (held || wasWaiting.current) { wasWaiting.current = false; return; } // (this tap itself starts the voice)
+    if (i >= last && !playing) { setI(0); setPlaying(true); } else setPlaying((p) => !p);
+  };
   const m = dragM ?? ev.m;
   const pos = (x: number) => `${(x / war.months) * 100}%`;
   const ended = i >= last && !playing;
@@ -417,8 +427,8 @@ function WarPlayer({ war, onScene, onFrame }: { war: WorldWar; onScene: (s: WarS
 
         <div className="bw-controls">
           <button className="icon-btn" onClick={() => { if (!voiced) setPlaying(false); go(i - 1); }} disabled={i === 0} aria-label="Previous event"><SkipBack size={17} /></button>
-          <button className="bw-play" onClick={toggle} aria-label={playing ? 'Pause' : ended ? 'Watch again' : 'Play'}>
-            {playing ? <Pause size={18} fill="currentColor" /> : ended ? <RotateCcw size={18} /> : <Play size={18} fill="currentColor" />}
+          <button className="bw-play" onPointerDown={() => { wasWaiting.current = narrator.blocked(); }} onClick={toggle} aria-label={shown ? 'Pause' : ended ? 'Watch again' : 'Play'}>
+            {shown ? <Pause size={18} fill="currentColor" /> : ended ? <RotateCcw size={18} /> : <Play size={18} fill="currentColor" />}
           </button>
           <button className="icon-btn" onClick={() => { if (!voiced) setPlaying(false); go(i + 1); }} disabled={i === last} aria-label="Next event"><SkipForward size={17} /></button>
           <button className={`bw-speed ${fast ? 'on' : ''}`} onClick={() => setFast((f) => !f)} aria-pressed={fast}><FastForward size={13} /> {fast ? '2×' : '1×'}</button>
