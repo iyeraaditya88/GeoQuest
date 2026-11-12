@@ -56,7 +56,13 @@ let saying = 0;
 /** The clip on screen for subtitles: stays after it ends (through the breath before the next). */
 let shown: { id: string; clip: Clip } | null = null;
 const timeListeners = new Set<() => void>();
-const tick = () => { for (const l of timeListeners) l(); };
+/**
+ * Where the voice is (ms), as of the last tick. Screens read this, never the element: Safari moves
+ * currentTime on between two reads in one render, and React takes a value that won't hold still
+ * for a store that never settles (it gave up with "maximum update depth" as a battle began).
+ */
+let heardMs = 0;
+const tick = () => { heardMs = el ? el.currentTime * 1000 : 0; for (const l of timeListeners) l(); };
 
 function voice() {
   if (el) return el;
@@ -325,7 +331,7 @@ export const narrator = {
   line(id: string): { lines: string[]; k: number } | null {
     if (shown?.id !== id || !shown.clip.lines?.length) return null;
     const { lines, cues = [0] } = shown.clip;
-    const k = current?.id === id && el ? lineAt(cues, el.currentTime * 1000) : lines.length - 1;
+    const k = current?.id === id && el ? lineAt(cues, heardMs) : lines.length - 1;
     return { lines, k };
   },
   /** The ground under the story between clips (e.g. the open sea while the ship sails on). */
@@ -338,7 +344,7 @@ export const narrator = {
   clipMs: (id: string) => loaded?.[id]?.ms ?? 0,
   /** How far George is into a clip (ms): 0 unless it's the one on screen. */
   pos(id: string) {
-    return shown?.id === id && el ? Math.min(el.currentTime * 1000, shown.clip.ms) : 0;
+    return shown?.id === id && el ? Math.min(heardMs, shown.clip.ms) : 0;
   },
   /** Move within the clip being told (playing, or paused partway); false if it isn't (say it `from` there). */
   seek(id: string, ms: number) {
