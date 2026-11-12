@@ -8,6 +8,7 @@ import { wikiPhoto } from '../lib/wiki';
 import { useTheatre, type Inset } from './theatre/useTheatre';
 import { Subtitles } from './theatre/Subtitles';
 import { ShareStory } from './theatre/ShareStory';
+import { StartStory } from './theatre/StartStory';
 import { narrationOn, narrator } from '../lib/narrator';
 
 /** Narration for this voyage: is it there, is it on, and which of its clips is on screen. */
@@ -32,6 +33,9 @@ interface Props {
   onClose: () => void;
   /** How much of the screen the panel covers (the cinema map frames the rest). */
   onInset?: (i: Inset) => void;
+  /** Opened from a shared link and not yet started: show the big play button. */
+  linked?: boolean;
+  onPlay?: () => void;
 }
 
 const fmtKm = (n: number) => `≈ ${(Math.round(n / 500) * 500).toLocaleString('en-US')} km`;
@@ -48,7 +52,7 @@ const Flag = ({ v, w = 80, className }: { v: Voyage; w?: 80 | 160; className?: s
   v.flag ? <img className={className} src={flagUrl(v.flag, w)} alt={v.sailedFor} title={`Sailed for ${v.sailedFor}`} /> : <Waves className={className} size={16} aria-label={v.sailedFor} />;
 
 /** Famous voyages: a timeline of them, and each one's story — routes and stops on the globe. */
-export function VoyagesPanel({ active, hover = null, era, onEra, stop, sailing, onPick, onHover, onStop, onSail, onClose, onInset }: Props) {
+export function VoyagesPanel({ active, hover = null, era, onEra, stop, sailing, onPick, onHover, onStop, onSail, onClose, onInset, linked = false, onPlay }: Props) {
   const v = active ? BY_VOYAGE.get(active) ?? null : null;
   const scroller = useRef<HTMLDivElement>(null);
   useEffect(() => { scroller.current?.scrollTo({ top: 0 }); }, [active, era]);
@@ -56,6 +60,8 @@ export function VoyagesPanel({ active, hover = null, era, onEra, stop, sailing, 
   const { ref: sheetRef, peek, setPeek, swipe } = useTheatre(!!v, onInset);
   const phone = useMemo(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches, []);
   useEffect(() => { if (sailing) setPeek(true); }, [sailing, setPeek]);
+  // The phone held George back (no tap yet): the same play button; the tap starts him.
+  const held = useSyncExternalStore(narrator.onTime, narrator.blocked);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -74,6 +80,7 @@ export function VoyagesPanel({ active, hover = null, era, onEra, stop, sailing, 
       {v ? (
         <button className="voy-grab theatre-grab" onClick={() => setPeek((p) => !p)} aria-label={peek ? 'Show the details' : 'Back to the map'} aria-expanded={!peek}><i /></button>
       ) : <span className="voy-grab" aria-hidden />}
+      {v && (linked || (held && sailing)) && <StartStory onStart={() => { if (linked) onPlay?.(); }} />}
       <header className="gc-head">
         {v ? (
           <button className="vy-back" onClick={() => onPick(null)}><ArrowLeft size={16} /> All voyages</button>

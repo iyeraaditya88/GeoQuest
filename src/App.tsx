@@ -555,7 +555,7 @@ export default function App() {
   };
 
   const launchRef = useRef(launch);
-  const exploreRef = useRef({ startVoyages: async () => {}, startEras: async () => {}, startEmpires: async () => {}, startBattles: async (_?: string | null) => {}, pickVoyage: (_: string) => {}, pickEra: (_: string) => {}, pickEmpire: (_: string) => {} });
+  const exploreRef = useRef({ startVoyages: async () => {}, startEras: async () => {}, startEmpires: async () => {}, startBattles: async (_?: string | null) => {}, pickVoyage: (_: string, __?: string) => {}, pickEra: (_: string) => {}, pickEmpire: (_: string) => {} });
   launchRef.current = launch;
 
   // ── Feedback ──────────────────────────────────────────
@@ -619,7 +619,7 @@ export default function App() {
         const x = exploreRef.current, { kind, id } = w.explore;
         if (kind === 'battles') { void x.startBattles(id); return; }
         void (kind === 'voyages' ? x.startVoyages() : kind === 'eras' ? x.startEras() : x.startEmpires()).then(() => {
-          if (id) window.setTimeout(() => (kind === 'voyages' ? x.pickVoyage(id) : kind === 'eras' ? x.pickEra(id) : x.pickEmpire(id)), 700);
+          if (id) window.setTimeout(() => (kind === 'voyages' ? x.pickVoyage(id, 'link') : kind === 'eras' ? x.pickEra(id) : x.pickEmpire(id)), 700);
         });
       }
     }, 500);
@@ -957,6 +957,8 @@ export default function App() {
   const voyView = (v: Parameters<typeof routeView>[0]) => { const r = routeView(v); return narrow() ? { ...r, altitude: Math.min(3.4, r.altitude * 1.25) } : r; };
   // Sailing: a ship follows the route, the camera following it, pausing at each stop.
   const [sailing, setSailing] = useState(false);
+  /** A voyage opened from a shared link: it waits, like a video, for one tap on its play button. */
+  const [voyLinked, setVoyLinked] = useState<string | null>(null);
   const sailStop = useRef<(() => void) | null>(null);
   // (Stopping the ship holds George mid-sentence too: "Sail on" picks him up where he stopped.)
   const stopSail = useCallback(() => { sailStop.current?.(); sailStop.current = null; setSailing(false); narrator.pause(); }, []);
@@ -999,6 +1001,7 @@ export default function App() {
   const closeVoyages = () => { stopSail(); narrator.stop(); setVoy(null); cam.reset(); };
   const pickVoyage = useCallback((id: string | null, from?: string) => {
     if (id) track('voyage', from ? { v: id, from } : { v: id });
+    setVoyLinked(from === 'link' ? id : null); // (opened from a shared link: it waits for play)
     stopSail();
     narrator.stop();
     const v = BY_VOYAGE.get(id ?? voyRef.current?.id ?? voyRef.current?.hover ?? '');
@@ -1213,7 +1216,7 @@ export default function App() {
     if (at) globe.current?.frame(at[0], at[1], Math.min(v.altitude, 1.3));
     else globe.current?.frame(v.lat, v.lng, narrow() ? Math.min(3.4, v.altitude * 1.25) : v.altitude);
   };
-  exploreRef.current = { startVoyages, startEras, startEmpires, startBattles, pickVoyage: (id) => pickVoyage(id), pickEra, pickEmpire };
+  exploreRef.current = { startVoyages, startEras, startEmpires, startBattles, pickVoyage: (id, from) => pickVoyage(id, from), pickEra, pickEmpire };
   const erasOpen = useRef(false);
   erasOpen.current = !!eras;
   const hoverEra = useCallback((id: string | null) => setEras((x) => (x && x.hover !== id ? { ...x, hover: id } : x)), []);
@@ -1616,7 +1619,8 @@ export default function App() {
       <AnimatePresence>
         {voy && (
           <ErrorBoundary key="voyages" name="Famous voyages" onClose={closeVoyages}>
-            <VoyagesPanel active={voy.id} hover={voy.hover} stop={voy.stop} sailing={sailing} onSail={sail} era={voy.era} onEra={pickVoyageEra} onPick={pickVoyage} onHover={hoverVoyage} onStop={stopVoyage} onClose={closeVoyages} onInset={setCineInset} />
+            <VoyagesPanel active={voy.id} hover={voy.hover} stop={voy.stop} sailing={sailing} onSail={sail} era={voy.era} onEra={pickVoyageEra} onPick={pickVoyage} onHover={hoverVoyage} onStop={stopVoyage} onClose={closeVoyages} onInset={setCineInset}
+              linked={!!voy.id && voyLinked === voy.id && !sailing} onPlay={() => { setVoyLinked(null); sail(true); }} />
           </ErrorBoundary>
         )}
       </AnimatePresence>
