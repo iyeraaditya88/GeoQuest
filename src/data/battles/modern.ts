@@ -1,6 +1,6 @@
 // Battles and wars since 1945 (see lib/battles.ts for the format). Numbers are rounded estimates, and
 // recent ones are the most uncertain. Anything still unfolding says how recent its account is.
-import type { Battle } from '../../lib/battles';
+import type { Battle } from '../../lib/battles.js';
 
 const AS_OF = 'As of early 2026';
 

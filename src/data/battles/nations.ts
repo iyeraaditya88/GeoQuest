@@ -1,5 +1,5 @@
 // Battles and wars, 1815 to 1945 (see lib/battles.ts for the format). Numbers are rounded estimates.
-import type { Battle } from '../../lib/battles';
+import type { Battle } from '../../lib/battles.js';
 
 export const BATTLES_NATIONS: Battle[] = [
   { id: 'boyaca', name: 'Battle of Boyacá', kind: 'battle', year: 1819, when: '7 Aug 1819', place: 'Colombia', at: [5.46, -73.37],

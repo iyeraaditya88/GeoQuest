@@ -7,6 +7,7 @@ import { dailyNumber, localDate } from './src/lib/daily.js';
 import { isCountryPath } from './src/lib/countryPages.js';
 import { GAME_PITCH, isShareGame } from './src/lib/shareGames.js';
 import { decodeWordle, wordleScore } from './src/lib/wordleResult.js';
+import { storyOf } from './src/lib/shareStory.js';
 
 export const config = { runtime: 'nodejs' };
 
@@ -82,6 +83,19 @@ export function gamePreview(html: string, url?: URL) {
     .replace(/(<meta (?:property|name)="(?:og|twitter):description" content=")[^"]*"/g, `$1${esc(desc)}"`);
 }
 
+/** A shared war, battle or voyage (/?explore=battles&id=ww2): its own title and line in the preview. */
+export function storyPreview(html: string, url?: URL) {
+  const s = storyOf(url?.searchParams.get('explore') ?? null, url?.searchParams.get('id') ?? null);
+  if (!s) return html;
+  const title = `${s.title} · GeoQuest`;
+  const desc = `${s.line}. Free, on a 3D map, no sign-up needed.`;
+  const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  return html
+    .replace(/<title>[^<]*<\/title>/, `<title>${esc(title)}</title>`)
+    .replace(/(<meta (?:property|name)="(?:og|twitter):title" content=")[^"]*"/g, `$1${esc(title)}"`)
+    .replace(/(<meta (?:property|name)="(?:og|twitter):description" content=")[^"]*"/g, `$1${esc(desc)}"`);
+}
+
 export default async function middleware(request: Request) {
   const url = new URL(request.url);
   const main = process.env.PUBLIC_HOST;
@@ -92,7 +106,7 @@ export default async function middleware(request: Request) {
   if (PAGES.has(url.pathname)) return rewrite(new URL('/login.html' + url.search, url));
   if (INFO_PAGES.has(url.pathname)) return rewrite(new URL(`${url.pathname}.html`, url));
   if (isCountryPath(url.pathname)) return rewrite(new URL(`${url.pathname}.html`, url)); // /country/india → the built page
-  const shared = url.searchParams.has('daily') ? dailyPreview : url.searchParams.has('wordle') ? wordlePreview : url.searchParams.has('game') ? gamePreview : null;
+  const shared = url.searchParams.has('daily') ? dailyPreview : url.searchParams.has('wordle') ? wordlePreview : url.searchParams.has('game') ? gamePreview : url.searchParams.has('explore') ? storyPreview : null;
   if (url.pathname === '/' && shared && PREVIEW_BOTS.test(request.headers.get('user-agent') ?? '')) {
     try {
       const page = await fetch(new URL('/index.html', url));

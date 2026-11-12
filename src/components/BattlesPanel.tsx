@@ -7,6 +7,7 @@ import { WORLD_WARS, eventAtMonth, warMapAt, type WarStatus, type WorldWar } fro
 import { track } from '../lib/analytics';
 import { breathMs, narrationOn, narrator } from '../lib/narrator';
 import { Subtitles } from './theatre/Subtitles';
+import { ShareStory } from './theatre/ShareStory';
 import { useTheatre, type Inset } from './theatre/useTheatre';
 import type { GlobePath } from './GlobeView';
 import { WW2_SHAPES } from '../data/historical/ww2';
@@ -100,6 +101,7 @@ export function BattlesPanel({ link, onScene, onFrame, pinRef, onClose, onInset 
           </>
         )}
         <span className="gc-spacer" />
+        {view.kind !== 'list' && <ShareStory kind="battles" id={view.id} />}
         <button className="icon-btn" onClick={onClose} aria-label="Close battles and wars"><X size={17} /></button>
       </header>
       <div className="voy-scroll" ref={scroller}>

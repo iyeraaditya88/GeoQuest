@@ -1,7 +1,7 @@
 // The two world wars as timelines: each event says what happened, where to look, which armies moved
 // and which countries changed hands. The map is the sum of the events so far (see warMapAt). It uses
 // today's countries, so a fill is approximate: empires that are gone show as the lands they held.
-import type { LL } from './battles';
+import type { LL } from './battles.js';
 
 export type WarStatus = 'allies' | 'enemy' | 'held' | 'out' | null;
 export interface WarMove { f: LL; t: LL; s: 'allies' | 'enemy' }

@@ -1,5 +1,5 @@
 // Battles and wars, 1500 to 1815 (see lib/battles.ts for the format). Numbers are rounded estimates.
-import type { Battle } from '../../lib/battles';
+import type { Battle } from '../../lib/battles.js';
 
 export const BATTLES_EARLY: Battle[] = [
   { id: 'diu-1509', name: 'Battle of Diu', kind: 'battle', year: 1509, when: '3 Feb 1509', place: 'Off Diu, Gujarat', at: [20.71, 70.99],

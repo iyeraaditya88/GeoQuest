@@ -239,6 +239,19 @@ describe('shared Daily link preview', () => {
     expect(out).toContain('content="Wordle, but the word is a country.');
     expect(gamePreview(html, new URL('https://playgeoquest.app/?game=<script>'))).toBe(html);
   });
+  it('titles a shared war, battle or voyage by name, and ignores unknown ones', async () => {
+    const { storyPreview } = await import('../middleware');
+    const { storyOf, storyText } = await import('../src/lib/shareStory');
+    const html = '<title>GeoQuest</title><meta property="og:title" content="GeoQuest" /><meta property="og:description" content="x" />';
+    const war = storyPreview(html, new URL('https://playgeoquest.app/?explore=battles&id=ww2&ref=share'));
+    expect(war.match(/World War II, told on a map, narrated · GeoQuest/g)).toHaveLength(2);
+    expect(storyOf('battles', 'plassey')?.title).toBe('Battle of Plassey, told on a map, narrated');
+    expect(storyOf('voyages', 'magellan-elcano')?.title).toMatch(/^Sail with Ferdinand Magellan/);
+    expect(storyOf('voyages', 'nope')).toBeNull();
+    expect(storyPreview(html, new URL('https://playgeoquest.app/?explore=battles&id=<script>'))).toBe(html);
+    const text = storyText(storyOf('voyages', 'kon-tiki')!, 'https://playgeoquest.app');
+    expect(text).toContain('https://playgeoquest.app/?explore=voyages&id=kon-tiki&ref=share');
+  });
   it('shows the score in the picture when the link carries one', async () => {
     const { dailyPreview } = await import('../middleware');
     const html = '<title>GeoQuest</title><meta property="og:title" content="GeoQuest" /><meta property="og:image" content="old.jpg" /><meta name="twitter:image" content="old.jpg" />';

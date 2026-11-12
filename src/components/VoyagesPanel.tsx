@@ -7,6 +7,7 @@ import { track } from '../lib/analytics';
 import { wikiPhoto } from '../lib/wiki';
 import { useTheatre, type Inset } from './theatre/useTheatre';
 import { Subtitles } from './theatre/Subtitles';
+import { ShareStory } from './theatre/ShareStory';
 import { narrationOn, narrator } from '../lib/narrator';
 
 /** Narration for this voyage: is it there, is it on, and which of its clips is on screen. */
@@ -83,6 +84,7 @@ export function VoyagesPanel({ active, hover = null, era, onEra, stop, sailing, 
           </>
         )}
         <span className="gc-spacer" />
+        {v && <ShareStory kind="voyages" id={v.id} />}
         <button className="icon-btn" onClick={onClose} aria-label="Close voyages"><X size={17} /></button>
       </header>
       <div className="voy-scroll" ref={scroller}>

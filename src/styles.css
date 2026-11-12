@@ -3422,3 +3422,4 @@ svg.vy-flag { color: #2dd4bf; }
 /* Debug mode (seven taps on the logo): its badge, out of the way at the top. */
 .debug-badge { position: fixed; z-index: 9999; top: calc(var(--st) + 6px); left: 50%; transform: translateX(-50%); padding: 3px 10px; border-radius: 999px; font: 700 11px/1.4 ui-monospace, monospace; letter-spacing: 0.04em; color: #0b1020; background: #bef264; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4); }
 @media (max-width: 900px) { .vy-now-body .subs p, .vy-now-body p.sub-fallback { -webkit-line-clamp: 3; margin: 0; } }
+.voy-panel .share-story { margin-right: 6px; }

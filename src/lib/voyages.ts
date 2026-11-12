@@ -1,7 +1,7 @@
 // Famous voyages: who sailed where, the route (drawn on the globe), the stops along the way, and why
 // it mattered. Routes are [lat, lng] and keep to the sea between stops (extra points steer them
 // round coasts); a number in a route is the index of a stop. More voyages live in voyagesMore.ts.
-import { MORE } from './voyagesMore';
+import { MORE } from './voyagesMore.js';
 
 export type LL = [number, number];
 export interface Stop { name: string; at: LL; when: string; note: string }

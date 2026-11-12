@@ -1,9 +1,9 @@
 // Battles and wars since 1500: where and when each happened, who fought, how it ended and why it
 // mattered. Figures are rounded scholarly estimates; many are disputed, so they're given loosely.
 // Colours on the globe use today's countries, which is only an approximation of the lands then.
-import { BATTLES_EARLY } from '../data/battles/early';
-import { BATTLES_NATIONS } from '../data/battles/nations';
-import { BATTLES_MODERN } from '../data/battles/modern';
+import { BATTLES_EARLY } from '../data/battles/early.js';
+import { BATTLES_NATIONS } from '../data/battles/nations.js';
+import { BATTLES_MODERN } from '../data/battles/modern.js';
 
 export type LL = [number, number];
 export interface Side {

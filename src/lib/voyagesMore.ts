@@ -1,5 +1,5 @@
 // More famous voyages (see voyages.ts for the format). Kept in their own file so each list stays readable.
-import type { Voyage } from './voyages';
+import type { Voyage } from './voyages.js';
 
 export const MORE: Voyage[] = [
   {
