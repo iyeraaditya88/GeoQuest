@@ -210,13 +210,29 @@ function Detail({ b, onScene, onOpen, onMore }: { b: Battle; onScene: (s: WarSce
     return () => window.clearTimeout(t);
   }, [b, run, onScene, tone]);
 
+  // George tells the battle as the armies move (opening it was a tap, so phones let him speak).
+  const voice = useNarration();
+  const voiced = voice.available && voice.on;
+  useEffect(() => {
+    if (!voiced) return;
+    void narrator.say(`battle:${b.id}`, { title: b.name, album: 'Battles and Wars' });
+    return () => narrator.stop();
+  }, [b, run, voiced]);
+
   const outcome = b.won === 'draw' ? 'Inconclusive' : b.won === 'open' ? (b.asOf ? 'Not settled' : 'No clear winner') : null;
   return (
     <motion.div className="vy-detail bw-detail" style={{ ['--c' as string]: tone }} initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 14 }} transition={{ duration: 0.2 }}>
       <span className="er-kicker">{b.kind === 'war' ? 'War' : 'Battle'} · {b.when}</span>
       <h2 className="vy-title bw-title">{b.name}</h2>
-      <p className="bw-line">{b.line}</p>
-      <button className="peek-more" onClick={onMore}><ChevronUp size={15} /> The story</button>
+      <div className="bw-line"><Subtitles id={`battle:${b.id}`} fallback={b.line} /></div>
+      <div className="bw-peek-row">
+        <button className="peek-more" onClick={onMore}><ChevronUp size={15} /> The story</button>
+        {voice.available && (
+          <button className={`bw-speed bw-voice ${voice.on ? 'on' : ''}`} onClick={() => { track('narration', { on: voice.on ? 0 : 1 }); narrator.setOn(!voice.on); }} aria-pressed={voice.on} aria-label="Narration">
+            {voice.on ? <Volume2 size={14} /> : <VolumeX size={14} />}
+          </button>
+        )}
+      </div>
 
       <div className="bw-versus">
         <Fighter side={b.a} tone={SIDE_COLOR.a} won={b.won === 'a'} of={of} />

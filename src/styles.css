@@ -3385,14 +3385,15 @@ svg.vy-flag { color: #2dd4bf; }
   .peek .subs, .peek .sub-fallback { height: calc(1.45em * 4); min-height: 0; overflow: hidden; font-size: 15px; line-height: 1.45; }
   .peek .bw-scrub { height: 34px; }
   /* A battle: what it was, then the story on a swipe. */
-  .peek .bw-detail > :not(.er-kicker, .bw-title, .bw-line, .peek-more) { display: none; }
+  .peek .bw-detail > :not(.er-kicker, .bw-title, .bw-line, .bw-peek-row) { display: none; }
+  .peek .bw-line .subs, .peek .bw-line .sub-fallback { height: calc(1.45em * 4); min-height: 0; overflow: hidden; font-size: 15px; line-height: 1.45; }
   .peek .bw-detail .bw-title { font-size: 20px; }
   .peek .peek-more { display: inline-flex; align-items: center; gap: 6px; height: 36px; margin-top: 8px; padding: 0 14px 0 10px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--c, var(--gold)); background: rgba(255, 255, 255, 0.06); }
 }
 /* A voyage's now-playing card: only in the phone's peek (elsewhere the full story shows). */
 .vy-now { display: none; }
 @media (max-width: 900px) and (orientation: portrait), (max-width: 900px) and (min-height: 521px) {
-  .peek .vy-detail > :not(.vy-now) { display: none; }
+  .peek .vy-detail:not(.bw-detail) > :not(.vy-now) { display: none; }
   .peek .vy-now { display: grid; gap: 6px; padding-top: 2px; }
   .vy-now > .er-kicker { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .vy-now-body { min-height: 0; height: calc(22px + 4.35em + 6px); font-size: 14px; }
@@ -3423,3 +3424,7 @@ svg.vy-flag { color: #2dd4bf; }
 .debug-badge { position: fixed; z-index: 9999; top: calc(var(--st) + 6px); left: 50%; transform: translateX(-50%); padding: 3px 10px; border-radius: 999px; font: 700 11px/1.4 ui-monospace, monospace; letter-spacing: 0.04em; color: #0b1020; background: #bef264; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4); }
 @media (max-width: 900px) { .vy-now-body .subs p, .vy-now-body p.sub-fallback { -webkit-line-clamp: 3; margin: 0; } }
 .voy-panel .share-story { margin-right: 6px; }
+/* A battle: what George is saying in place of the one line; the story and the voice beside each other. */
+.bw-line .sub-fallback, .bw-line .subs p { margin: 0; }
+.bw-peek-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.bw-peek-row .peek-more { margin-top: 0; }

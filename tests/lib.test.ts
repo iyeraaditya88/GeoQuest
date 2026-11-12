@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { BATTLES } from '../src/lib/battles';
 import { VOYAGES } from '../src/lib/voyages';
 import { makeRoute, routeAt, routeHeading, routeLine } from '../src/lib/sail';
 import { alignCues, lineAt, splitSentences } from '../src/lib/subtitles';
@@ -914,5 +915,22 @@ describe('voyage narration', () => {
       if (c.bed) expect(sfx[c.bed]?.loop, `${id} bed`).toBe(true);
       if (c.hit) expect(sfx[c.hit]?.loop, `${id} hit`).toBe(false);
     }
+  });
+});
+
+describe('battle narration', () => {
+  const bat = JSON.parse(readFileSync('narration/scripts/battles.json', 'utf8')) as Record<string, { text: string; bed?: string; hit?: string }>;
+  const sfx = JSON.parse(readFileSync('narration/sfx.json', 'utf8')) as Record<string, { loop: boolean }>;
+  it('has one clip for every battle, calm, with sounds that exist', () => {
+    expect(Object.keys(bat).sort()).toEqual(BATTLES.map((b) => `battle:${b.id}`).sort());
+    for (const [id, c] of Object.entries(bat)) {
+      expect(c.text, id).not.toMatch(/!/);
+      expect(c.text.length, id).toBeLessThan(620);
+      if (c.bed) expect(sfx[c.bed]?.loop, `${id} bed`).toBe(true);
+      if (c.hit) expect(sfx[c.hit]?.loop, `${id} hit`).toBe(false);
+    }
+  });
+  it('keeps atrocities and today’s wars free of sound effects', () => {
+    for (const id of ['hiroshima', 'yugoslav-wars', 'gaza-2023', 'russia-ukraine', 'sudan-2023']) expect(bat[`battle:${id}`].bed ?? bat[`battle:${id}`].hit, id).toBeUndefined();
   });
 });
