@@ -76,7 +76,7 @@ import { countVisit, feedbackAsked, fetchReplies, markFeedbackAsked, markReplies
 import { FeaturePanel } from './components/FeaturePanel';
 import { featureInfo, type FeatureInfo, type FeatureRef } from './lib/features';
 import { AntipodeCard, type AntipodeStage } from './components/AntipodeCard';
-import { VoyagesPanel } from './components/VoyagesPanel';
+import { VoyagesPanel, type SailFrom } from './components/VoyagesPanel';
 import { ErasPanel } from './components/ErasPanel';
 import { EmpiresPanel } from './components/EmpiresPanel';
 import type { WarScene } from './components/BattlesPanel';
@@ -981,13 +981,16 @@ export default function App() {
   const sailStop = useRef<(() => void) | null>(null);
   // (Stopping the ship holds George mid-sentence too: "Sail on" picks him up where he stopped.)
   const stopSail = useCallback(() => { sailStop.current?.(); sailStop.current = null; setSailing(false); narrator.pause(); }, []);
-  const sail = (on: boolean) => {
+  const sail = (on: boolean, at?: SailFrom) => {
     stopSail();
     const v = voy?.id ? BY_VOYAGE.get(voy.id) : null;
     if (!on || !v) return;
+    setVoyLinked(null);
     const points = routePoints(v);
     const stopAt = v.route.flatMap((p, i) => (typeof p === 'number' ? [i] : []));
-    const from = voy?.stop !== null && voy?.stop !== undefined && voy.stop < v.stops.length - 1 ? voy.stop : 0;
+    const from = at ? at.stop : voy?.stop !== null && voy?.stop !== undefined && voy.stop < v.stops.length - 1 ? voy.stop : 0;
+    const intro = at ? !!at.intro : from === 0;
+    let into = at?.ms; // (a jump on the player: George picks up partway through)
     const km = voyageKm(v);
     const seconds = Math.min(80, Math.max(26, km / 800)); // for the whole route: slow, steady sailing
     const onStop = (i: number) => setVoy((x) => (x ? { ...x, stop: i } : x));
@@ -995,10 +998,14 @@ export default function App() {
     // With narration: the ship waits at each port while George tells it (the voyage's introduction
     // first, as it sets out); without, or if a clip can't play, a short pause as before.
     const voiced = narrationOn() && narrator.available();
-    const said = (id: string, title: string, next?: string) => narrator.say(id, { title, album: v.title, prefetch: next })
-      .then((r) => (r === 'failed' ? new Promise((ok) => window.setTimeout(ok, 2600)) : r));
+    const said = (id: string, title: string, next?: string) => {
+      const f = into;
+      into = undefined;
+      return narrator.say(id, { title, album: v.title, prefetch: next, from: f })
+        .then((r) => (r === 'failed' ? new Promise((ok) => window.setTimeout(ok, 2600)) : r));
+    };
     const hold = voiced ? async (i: number) => {
-      if (i === 0 && from === 0) { const r = await said(`voyage:${v.id}:intro`, v.title, `voyage:${v.id}:0`); if (r === 'stopped') return; }
+      if (i === from && intro) { const r = await said(`voyage:${v.id}:intro`, v.title, `voyage:${v.id}:0`); if (r === 'stopped') return; }
       const r = await said(`voyage:${v.id}:${i}`, `${v.stops[i].name} · ${v.voyager}`, i + 1 < v.stops.length ? `voyage:${v.id}:${i + 1}` : undefined);
       if (r === 'ended' && i + 1 < v.stops.length) narrator.ambience('waves-hull'); // out to sea again
     } : undefined;
@@ -1020,7 +1027,7 @@ export default function App() {
   const closeVoyages = () => { stopSail(); narrator.stop(); setVoy(null); cam.reset(); };
   const pickVoyage = useCallback((id: string | null, from?: string) => {
     if (id) track('voyage', from ? { v: id, from } : { v: id });
-    setVoyLinked(from === 'link' ? id : null); // (opened from a shared link: it waits for play)
+    setVoyLinked(id); // it waits, like a video, on its big play button
     stopSail();
     narrator.stop();
     const v = BY_VOYAGE.get(id ?? voyRef.current?.id ?? voyRef.current?.hover ?? '');
@@ -1030,14 +1037,15 @@ export default function App() {
   }, [stopSail]);
   const voyRef = useRef(voy);
   voyRef.current = voy;
-  const stopVoyage = useCallback((i: number | null) => {
+  const stopVoyage = useCallback((i: number | null, quiet = false) => {
     const v = voyRef.current?.id ? BY_VOYAGE.get(voyRef.current.id) : null;
     if (!v) return;
     stopSail();
+    if (!quiet) setVoyLinked(null);
     if (i !== null) track('voyage_stop', { v: v.id, p: v.stops[i]?.name ?? String(i) });
     setVoy((x) => (x ? { ...x, stop: i } : x));
     // A port picked by hand: George tells that stop.
-    if (i !== null && narrationOn() && narrator.available()) void narrator.say(`voyage:${v.id}:${i}`, { title: `${v.stops[i].name} · ${v.voyager}`, album: v.title });
+    if (i !== null && !quiet && narrationOn() && narrator.available()) void narrator.say(`voyage:${v.id}:${i}`, { title: `${v.stops[i].name} · ${v.voyager}`, album: v.title });
     const r = voyView(v);
     if (i === null) globe.current?.frame(r.lat, r.lng, r.altitude);
     else globe.current?.frame(v.stops[i].at[0], v.stops[i].at[1], Math.min(r.altitude, 1.05));
@@ -1236,7 +1244,8 @@ export default function App() {
     else globe.current?.frame(v.lat, v.lng, narrow() ? Math.min(3.4, v.altitude * 1.25) : v.altitude);
   };
   // A story from the History button, a country's page or a nudge: it opens just as a shared link does.
-  // A voyage asked for at one of its stops (from a country's page) opens at that port, once it's open.
+  // A voyage asked for at one of its stops (from a country's page) opens at that port, once it's
+  // open, waiting on its play button: the voyage sails on from there.
   const storyStop = useRef<{ id: string; stop: number } | null>(null);
   const openStory = (kind: 'battles' | 'voyages', id: string, stop?: number) => {
     setHistoryOpen(false);
@@ -1247,8 +1256,7 @@ export default function App() {
     const want = storyStop.current;
     if (!want || voy?.id !== want.id) return;
     storyStop.current = null;
-    setVoyLinked(null);
-    stopVoyage(want.stop);
+    stopVoyage(want.stop, true);
   }, [voy?.id, stopVoyage]);
   const openHistoryPart = (k: HistoryKey) => {
     setHistoryOpen(false);

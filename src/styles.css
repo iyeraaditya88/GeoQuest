@@ -3437,7 +3437,9 @@ svg.vy-flag { color: #2dd4bf; }
   .peek .subs, .peek .sub-fallback { height: calc(1.45em * 4); min-height: 0; overflow: hidden; font-size: 15px; line-height: 1.45; }
   .peek .bw-scrub { height: 34px; }
   /* A battle: what it was, then the story on a swipe. */
-  .peek .bw-detail > :not(.er-kicker, .bw-title, .bw-line, .bw-peek-row) { display: none; }
+  .peek .bw-detail > :not(.er-kicker, .bw-title, .bw-line, .bw-peek-row, .story-bar) { display: none; }
+  .peek .story-bar { margin-top: 6px; }
+  .peek .story-bar .peek-more { margin-top: 0; }
   .peek .bw-line .subs, .peek .bw-line .sub-fallback { height: calc(1.45em * 4); min-height: 0; overflow: hidden; font-size: 15px; line-height: 1.45; }
   .peek .bw-detail .bw-title { font-size: 20px; }
   .peek .peek-more { display: inline-flex; align-items: center; gap: 6px; height: 36px; margin-top: 8px; padding: 0 14px 0 10px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--c, var(--gold)); background: rgba(255, 255, 255, 0.06); }
@@ -3476,6 +3478,23 @@ svg.vy-flag { color: #2dd4bf; }
 .debug-badge { position: fixed; z-index: 9999; top: calc(var(--st) + 6px); left: 50%; transform: translateX(-50%); padding: 3px 10px; border-radius: 999px; font: 700 11px/1.4 ui-monospace, monospace; letter-spacing: 0.04em; color: #0b1020; background: #bef264; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4); }
 @media (max-width: 900px) { .vy-now-body .subs p, .vy-now-body p.sub-fallback { -webkit-line-clamp: 3; margin: 0; } }
 .voy-panel .share-story { margin-right: 6px; }
+/* The story's player: one scrubber over the whole telling (a tick at each chapter or port), the
+   time, and play with ten seconds back and on. */
+.story-bar { display: grid; margin-top: 10px; }
+.sb-scrub.bw-scrub { height: 26px; }
+.sb-scrub .bw-track { top: 11px; }
+.sb-scrub .bw-fill, .sb-scrub .bw-thumb { transition-duration: 0.3s; transition-timing-function: linear; }
+.sb-time { display: flex; justify-content: space-between; gap: 12px; margin-top: -2px; font-size: 12px; color: var(--dim); font-variant-numeric: tabular-nums; }
+.sb-time > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-time b { font-weight: 600; color: var(--muted); }
+.sb-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.sb-row > .icon-btn { position: relative; width: 40px; height: 40px; }
+.sb-row > .icon-btn i { position: absolute; inset: 0; display: grid; place-items: center; padding-top: 1px; font: 700 7px var(--display); font-style: normal; pointer-events: none; }
+.sb-row > .icon-btn:disabled { opacity: 0.3; cursor: default; }
+.sb-more { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.sb-more .bw-voice { height: 36px; }
+.vy-tour-row { display: flex; align-items: center; gap: 8px; }
+.vy-tour-row .vy-tour { flex: 1; }
 /* A battle: what George is saying in place of the one line; the story and the voice beside each other. */
 .bw-line .sub-fallback, .bw-line .subs p { margin: 0; }
 .bw-peek-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }

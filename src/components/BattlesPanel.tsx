@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type MutableRefObject, type RefObject } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, Crown, ExternalLink, FastForward, MapPin, Pause, Play, RotateCcw, Skull, SkipBack, SkipForward, Sparkles, ChevronUp, Swords, Trophy, Volume2, VolumeX, X } from 'lucide-react';
+import { ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, Crown, ExternalLink, FastForward, MapPin, Pause, Play, RotateCcw, Skull, SkipBack, SkipForward, Sparkles, ChevronUp, Swords, Trophy, X } from 'lucide-react';
 import { BY_CCA3, flagUrl } from '../lib/data';
 import { BATTLES, BATTLE_ERAS, BY_BATTLE, SIDE_COLOR, battleAltitude, battleEraOf, battlesIn, fmtMen, type Battle, type Side } from '../lib/battles';
 import { WORLD_WARS, eventAtMonth, warMapAt, type WarStatus, type WorldWar } from '../lib/worldWars';
@@ -9,6 +9,7 @@ import { breathMs, narrationOn, narrator } from '../lib/narrator';
 import { Subtitles } from './theatre/Subtitles';
 import { ShareStory } from './theatre/ShareStory';
 import { StartStory } from './theatre/StartStory';
+import { StoryBar, VoiceToggle } from './theatre/StoryBar';
 import { useTheatre, type Inset } from './theatre/useTheatre';
 import type { GlobePath } from './GlobeView';
 import { WW2_SHAPES } from '../data/historical/ww2';
@@ -197,10 +198,7 @@ const BATTLE_CHAPTERS = ['The sides', 'The battle', 'What it changed'];
 function Detail({ b, onScene, onFrame, onOpen, onMore }: { b: Battle; onScene: (s: WarScene) => void; onFrame: (lat: number, lng: number, alt: number) => void; onOpen: (id: string) => void; onMore: () => void }) {
   const i = BATTLES.indexOf(b);
   const prev = BATTLES[i - 1], next = BATTLES[i + 1];
-  const [run, setRun] = useState(0); // George starts over
   const [draw, setDraw] = useState(0); // the armies march again
-  const [gate, setGate] = useState(() => narrator.needsTap()); // (from a shared link: wait for play)
-  const held = useSyncExternalStore(narrator.onTime, narrator.blocked); // (the phone refused the voice: same button)
   const of = b.a.men && b.b.men ? Math.max(b.a.men, b.b.men) : 0;
   const tone = b.empire ? GOLD : '#f87171';
 
@@ -219,30 +217,50 @@ function Detail({ b, onScene, onFrame, onOpen, onMore }: { b: Battle; onScene: (
     return () => window.clearTimeout(t);
   }, [b, draw, onScene, tone]);
 
-  // George tells it as the armies move (opening it was a tap, so phones let him speak): in
-  // chapters when it's recorded that way, one after another, else in one clip.
+  // George tells it as the armies move: in chapters when it's recorded that way, one after another,
+  // else in one clip. It opens like a video, waiting on its big play button; the player below the
+  // words pauses it, skips ten seconds either way, and scrubs across the whole telling.
   const voice = useNarration();
   const voiced = voice.available && voice.on;
   const parts = useSyncExternalStore(narrator.subscribe, () => narrator.chapters(`battle:${b.id}`));
   const told = voiced && parts > 0;
   const [ch, setCh] = useState(0);
+  const [started, setStarted] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [ended, setEnded] = useState(false);
+  const [run, setRun] = useState(0); // (say it again: a jump the voice couldn't make by itself)
+  const from = useRef<number | undefined>(undefined); // where to pick the next clip up (a jump)
+  const heard = useRef(-1); // the chapter George last finished
+  const held = useSyncExternalStore(narrator.onTime, narrator.blocked); // (the phone refused the voice: same button)
   const names = parts >= 4 ? WAR_CHAPTERS : BATTLE_CHAPTERS;
   const clip = told ? `battle:${b.id}:${ch}` : `battle:${b.id}`;
+  const segs = useMemo(() => (told ? names.slice(0, parts).map((label, k) => ({ id: `battle:${b.id}:${k}`, label })) : [{ id: `battle:${b.id}`, label: 'The story' }]), [b.id, told, parts, names]);
   useEffect(() => {
-    if (!voiced || gate) return;
+    if (!voiced || !playing) return;
     let live = true, t = 0;
     const more = told && ch < parts - 1;
-    void narrator.say(clip, { title: told ? `${b.name} · ${names[ch]}` : b.name, album: 'Battles and Wars', prefetch: more ? `battle:${b.id}:${ch + 1}` : undefined })
+    // (Paused in the breath after a chapter: playing again goes on to the next one.)
+    if (more && heard.current === ch && from.current === undefined) { setCh(ch + 1); return; }
+    const at = from.current;
+    from.current = undefined;
+    void narrator.say(clip, { title: told ? `${b.name} · ${names[ch]}` : b.name, album: 'Battles and Wars', from: at, prefetch: more ? `battle:${b.id}:${ch + 1}` : undefined })
       .then((r) => {
-        if (!live || r !== 'ended') return;
-        if (more) t = window.setTimeout(() => setCh((c) => c + 1), breathMs(false));
-        else if (told) onFrame(b.at[0], b.at[1], battleAltitude(b)); // the end: back to the whole scene
+        if (!live) return;
+        if (r === 'failed') setPlaying(false);
+        if (r !== 'ended') return;
+        if (more) { heard.current = ch; t = window.setTimeout(() => setCh((c) => c + 1), breathMs(false)); }
+        else { setPlaying(false); setEnded(true); if (told) onFrame(b.at[0], b.at[1], battleAltitude(b)); } // the end: back to the whole scene
       });
     return () => { live = false; window.clearTimeout(t); narrator.pause(); };
-  }, [b, run, clip, voiced, gate]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => () => narrator.stop(), []);
+  }, [b, run, clip, voiced, playing]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Lock-screen play/pause while it's open; silence when it closes.
+  useEffect(() => {
+    narrator.controls({ play: () => setPlaying(true), pause: () => setPlaying(false) });
+    return () => { narrator.controls(null); narrator.stop(); };
+  }, []);
   // Each new chapter, the armies march again, so the arrows move while George describes them.
-  useEffect(() => { if (told && ch > 0) setDraw((d) => d + 1); }, [ch, told]);
+  const firstCh = useRef(true);
+  useEffect(() => { if (firstCh.current) { firstCh.current = false; return; } if (told) setDraw((d) => d + 1); }, [ch, told]);
   // As George names a place, the camera goes there ('home': back to the battle).
   const spoken = useSyncExternalStore(narrator.onTime, () => (told ? narrator.line(clip)?.k ?? -1 : -1));
   useEffect(() => {
@@ -251,31 +269,42 @@ function Detail({ b, onScene, onFrame, onOpen, onMore }: { b: Battle; onScene: (
     if (c === 'home') onFrame(b.at[0], b.at[1], battleAltitude(b));
     else if (c) onFrame(c[0], c[1], c[2]);
   }, [spoken, clip]); // eslint-disable-line react-hooks/exhaustive-deps
-  const chapter = (k: number) => { track('battle_chapter', { b: b.id, k }); setCh(k); setRun((r) => r + 1); };
+
+  const start = () => { track('battle_play', { b: b.id }); setStarted(true); setEnded(false); setDraw((d) => d + 1); setPlaying(true); };
+  const toggle = () => {
+    if (!started) { start(); return; }
+    if (ended) { from.current = 0; setEnded(false); setCh(0); setRun((r) => r + 1); setPlaying(true); return; }
+    setPlaying((p) => !p);
+  };
+  const jump = (k: number, ms: number) => {
+    track('battle_seek', { b: b.id, k });
+    from.current = ms;
+    setStarted(true);
+    setEnded(false);
+    setCh(k);
+    setRun((r) => r + 1);
+    setPlaying(true);
+  };
+  const gate = voiced && !started;
 
   const outcome = b.won === 'draw' ? 'Inconclusive' : b.won === 'open' ? (b.asOf ? 'Not settled' : 'No clear winner') : null;
   return (
     <motion.div className="vy-detail bw-detail" style={{ ['--c' as string]: tone }} initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 14 }} transition={{ duration: 0.2 }}>
-      {(gate || held) && <StartStory onStart={() => { if (gate) { setGate(false); setCh(0); setRun((r) => r + 1); } }} />}
+      {(gate || (held && playing)) && <StartStory onStart={() => { if (gate) start(); }} />}
       <span className="er-kicker">{b.kind === 'war' ? 'War' : 'Battle'} · {b.when}</span>
       <h2 className="vy-title bw-title">{b.name}</h2>
       <div className="bw-line"><Subtitles id={clip} fallback={b.line} /></div>
-      <div className="bw-peek-row">
-        <button className="peek-more" onClick={onMore}><ChevronUp size={15} /> The story</button>
-        {told && (
-          <div className="bw-chapters" role="group" aria-label="Chapters">
-            {names.slice(0, parts).map((n, k) => (
-              <button key={n} className={k === ch ? 'on' : k < ch ? 'done' : ''} onClick={() => chapter(k)} aria-label={`Chapter ${k + 1}: ${n}`} aria-current={k === ch ? 'step' : undefined}><i /></button>
-            ))}
-            <span>{names[ch]}</span>
-          </div>
-        )}
-        {voice.available && (
-          <button className={`bw-speed bw-voice ${voice.on ? 'on' : ''}`} onClick={() => { track('narration', { on: voice.on ? 0 : 1 }); narrator.setOn(!voice.on); }} aria-pressed={voice.on} aria-label="Narration">
-            {voice.on ? <Volume2 size={14} /> : <VolumeX size={14} />}
-          </button>
-        )}
-      </div>
+      {voiced ? (
+        <StoryBar segs={segs} k={told ? ch : 0} playing={playing && !held} ended={ended} onToggle={toggle} onJump={jump}>
+          <VoiceToggle on={voice.on} />
+          <button className="peek-more" onClick={onMore}><ChevronUp size={15} /> The story</button>
+        </StoryBar>
+      ) : (
+        <div className="bw-peek-row">
+          <button className="peek-more" onClick={onMore}><ChevronUp size={15} /> The story</button>
+          {voice.available && <VoiceToggle on={voice.on} />}
+        </div>
+      )}
 
       <div className="bw-versus">
         <Fighter side={b.a} tone={SIDE_COLOR.a} won={b.won === 'a'} of={of} />
@@ -335,9 +364,10 @@ function useNarration() {
 function WarPlayer({ war, onScene, onFrame }: { war: WorldWar; onScene: (s: WarScene) => void; onFrame: (lat: number, lng: number, alt: number) => void }) {
   const last = war.events.length - 1;
   const [i, setI] = useState(0);
-  // From a shared link, nothing has been tapped yet: wait for "play" rather than start in silence.
-  const [gate, setGate] = useState(() => narrator.needsTap());
-  const [playing, setPlaying] = useState(() => !calmMotion() && !gate);
+  // It opens like a video, waiting on its big play button (and from a shared link, that first tap
+  // is what lets George speak).
+  const [gate, setGate] = useState(true);
+  const [playing, setPlaying] = useState(false);
   // …or the phone refused George's first clip after all: the same play button (the tap plays it).
   const held = useSyncExternalStore(narrator.onTime, narrator.blocked);
   const [fast, setFast] = useState(false);
@@ -420,7 +450,7 @@ function WarPlayer({ war, onScene, onFrame }: { war: WorldWar; onScene: (s: WarS
   // (Noted as the finger goes down: by the click, the tap has already started the waiting voice.)
   const wasWaiting = useRef(false);
   const toggle = () => {
-    if (gate) { setGate(false); setI(0); setPlaying(true); return; }
+    if (gate) { setGate(false); setPlaying(true); return; }
     if (held || wasWaiting.current) { wasWaiting.current = false; return; } // (this tap itself starts the voice)
     if (i >= last && !playing) { setI(0); setPlaying(true); } else setPlaying((p) => !p);
   };
@@ -430,7 +460,7 @@ function WarPlayer({ war, onScene, onFrame }: { war: WorldWar; onScene: (s: WarS
 
   return (
     <motion.div className="bw-player" initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 14 }} transition={{ duration: 0.2 }}>
-      {(gate || held) && <StartStory onStart={() => { if (gate) { setGate(false); setI(0); setPlaying(true); } }} />}
+      {(gate || held) && <StartStory narrated={voiced} onStart={() => { if (gate) { setGate(false); setPlaying(true); } }} />}
       <div className="bw-stage">
         <div className="bw-war-name"><b>{war.name}</b><span>{war.years}</span></div>
         <div className="bw-now" aria-live="polite">
@@ -471,11 +501,7 @@ function WarPlayer({ war, onScene, onFrame }: { war: WorldWar; onScene: (s: WarS
           </button>
           <button className="icon-btn" onClick={() => { if (!voiced) setPlaying(false); go(i + 1); }} disabled={i === last} aria-label="Next event"><SkipForward size={17} /></button>
           <button className={`bw-speed ${fast ? 'on' : ''}`} onClick={() => setFast((f) => !f)} aria-pressed={fast}><FastForward size={13} /> {fast ? '2×' : '1×'}</button>
-          {voice.available && (
-            <button className={`bw-speed bw-voice ${voice.on ? 'on' : ''}`} onClick={() => { track('narration', { on: voice.on ? 0 : 1 }); narrator.setOn(!voice.on); }} aria-pressed={voice.on} aria-label="Narration">
-              {voice.on ? <Volume2 size={14} /> : <VolumeX size={14} />}
-            </button>
-          )}
+          {voice.available && <VoiceToggle on={voice.on} />}
           <span className="bw-count">{i + 1} / {war.events.length}</span>
         </div>
 

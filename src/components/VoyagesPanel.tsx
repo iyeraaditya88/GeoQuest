@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Anchor, ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, ChevronUp, ExternalLink, Pause, Route, Sailboat, Ship, Sparkles, Users, Volume2, VolumeX, Waves, X } from 'lucide-react';
+import { Anchor, ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, ChevronUp, ExternalLink, Pause, Route, Sailboat, Ship, Sparkles, Users, Waves, X } from 'lucide-react';
 import { flagUrl } from '../lib/data';
 import { VOYAGES, BY_VOYAGE, VOYAGE_ERAS, voyageKm, voyagesIn, type Voyage } from '../lib/voyages';
 import { track } from '../lib/analytics';
@@ -9,6 +9,7 @@ import { useTheatre, type Inset } from './theatre/useTheatre';
 import { Subtitles } from './theatre/Subtitles';
 import { ShareStory } from './theatre/ShareStory';
 import { StartStory } from './theatre/StartStory';
+import { StoryBar, VoiceToggle } from './theatre/StoryBar';
 import { narrationOn, narrator } from '../lib/narrator';
 
 /** Narration for this voyage: is it there, is it on, and which of its clips is on screen. */
@@ -18,6 +19,9 @@ function useVoice(voyage: string) {
   useEffect(() => { void narrator.load(); }, []);
   return { available: snap[0] === '1', on: snap[1] === '1', shown: shown?.startsWith(`voyage:${voyage}:`) ? shown : null };
 }
+
+/** Where to set sail from (a jump on the player): a port, how far into George's telling of it, or the introduction. */
+export interface SailFrom { stop: number; ms?: number; intro?: boolean }
 
 interface Props {
   active: string | null;
@@ -29,11 +33,11 @@ interface Props {
   onPick: (id: string | null) => void;
   onHover: (id: string) => void;
   onStop: (i: number | null) => void;
-  onSail: (on: boolean) => void;
+  onSail: (on: boolean, at?: SailFrom) => void;
   onClose: () => void;
   /** How much of the screen the panel covers (the cinema map frames the rest). */
   onInset?: (i: Inset) => void;
-  /** Opened from a shared link and not yet started: show the big play button. */
+  /** Opened and not yet started: show the big play button. */
   linked?: boolean;
   onPlay?: () => void;
 }
@@ -156,7 +160,7 @@ function List({ hover, era, onEra, scroller, onPick, onHover }: { hover: string 
   );
 }
 
-function Detail({ v, stop, sailing, waiting, onStart, onStop, onSail, onPick, onMore }: { v: Voyage; stop: number | null; sailing: boolean; waiting: boolean; onStart: () => void; onStop: (i: number | null) => void; onSail: (on: boolean) => void; onPick: (id: string) => void; onMore: () => void }) {
+function Detail({ v, stop, sailing, waiting, onStart, onStop, onSail, onPick, onMore }: { v: Voyage; stop: number | null; sailing: boolean; waiting: boolean; onStart: () => void; onStop: (i: number | null) => void; onSail: (on: boolean, at?: SailFrom) => void; onPick: (id: string) => void; onMore: () => void }) {
   const idx = VOYAGES.indexOf(v);
   const prev = VOYAGES[idx - 1], next = VOYAGES[idx + 1];
   const dist = useMemo(() => voyageKm(v), [v]);
@@ -177,6 +181,11 @@ function Detail({ v, stop, sailing, waiting, onStart, onStop, onSail, onPick, on
   const voice = useVoice(v.id);
   const intro = voice.shown === `voyage:${v.id}:intro`;
   const here = stop !== null && !intro ? v.stops[stop] : null;
+  // The player: the introduction, then each port, one scrubber over George's telling of them all.
+  const segs = useMemo(() => [{ id: `voyage:${v.id}:intro`, label: 'Setting out' }, ...v.stops.map((p, i) => ({ id: `voyage:${v.id}:${i}`, label: `${i + 1}. ${p.name}` }))], [v]);
+  const segK = voice.shown ? Math.max(0, segs.findIndex((g) => g.id === voice.shown)) : stop !== null ? stop + 1 : 0;
+  const jump = (k: number, ms: number) => { track('voyage_seek', { v: v.id, k }); onSail(true, k === 0 ? { stop: 0, ms, intro: true } : { stop: k - 1, ms }); };
+  const voiced = voice.available && voice.on;
   const tour = (
     <button className={`vy-tour ${live ? 'on' : ''}`} onPointerDown={() => { wasWaiting.current = waiting; }} onClick={sail}>
       {live ? <><Pause size={15} /> Pause the voyage</> : <><Sailboat size={16} /> {stop !== null && !atEnd ? 'Sail on' : 'Follow the voyage'}</>}
@@ -199,13 +208,16 @@ function Detail({ v, stop, sailing, waiting, onStart, onStop, onSail, onPick, on
             )}
           </motion.div>
         </AnimatePresence>
-        <div className="vy-now-row">{tour}
-          {voice.available && (
-            <button className={`bw-speed bw-voice ${voice.on ? 'on' : ''}`} onClick={() => { track('narration', { on: voice.on ? 0 : 1 }); narrator.setOn(!voice.on); }} aria-pressed={voice.on} aria-label="Narration">
-              {voice.on ? <Volume2 size={14} /> : <VolumeX size={14} />}
-            </button>
-          )}
-          <button className="peek-more" onClick={onMore}><ChevronUp size={15} /> Story</button></div>
+        {voiced ? (
+          <StoryBar segs={segs} k={segK} playing={live} ended={false} onToggle={sail} onJump={jump}>
+            <VoiceToggle on />
+            <button className="peek-more" onClick={onMore}><ChevronUp size={15} /> Story</button>
+          </StoryBar>
+        ) : (
+          <div className="vy-now-row">{tour}
+            {voice.available && <VoiceToggle on={false} />}
+            <button className="peek-more" onClick={onMore}><ChevronUp size={15} /> Story</button></div>
+        )}
       </div>
 
       <div className="vy-hero">
@@ -232,9 +244,10 @@ function Detail({ v, stop, sailing, waiting, onStart, onStop, onSail, onPick, on
         </button>
       ))}
 
+      {voiced && <StoryBar segs={segs} k={segK} playing={live} ended={false} onToggle={sail} onJump={jump}><VoiceToggle on /></StoryBar>}
       <p className="vy-story">{v.story}</p>
 
-      {tour}
+      {!voiced && <div className="vy-tour-row">{tour}{voice.available && <VoiceToggle on={false} />}</div>}
 
       <ol className="vy-stops">
         {v.stops.map((s, i) => {

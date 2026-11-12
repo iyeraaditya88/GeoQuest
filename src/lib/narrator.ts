@@ -228,14 +228,15 @@ export const narrator = {
    * Speak a clip; resolves when it ends (or is stopped, or can't play). Saying the clip that is
    * paused picks it up where it stopped.
    */
-  async say(id: string, opt: { rate?: number; title?: string; album?: string; prefetch?: string } = {}): Promise<SayResult> {
+  async say(id: string, opt: { rate?: number; title?: string; album?: string; prefetch?: string; from?: number } = {}): Promise<SayResult> {
     const m = await load();
     const clip = m?.[id];
     dlog('narr', `say ${id} (clip ${clip ? 'found' : 'missing'}, manifest ${m ? 'ok' : 'none'})`);
     if (!clip) return 'failed';
     const v = voice();
     if (priming) await priming;
-    const resuming = current?.id === id && v.paused && v.currentTime > 0;
+    // (Paused partway, or scrubbed back into a clip that had ended: it carries on from there.)
+    const resuming = opt.from === undefined && shown?.id === id && v.paused && v.currentTime > 0 && v.currentTime * 1000 < clip.ms - 150;
     if (!resuming) {
       const seq = ++saying;
       const t0 = performance.now();
@@ -245,12 +246,16 @@ export const narrator = {
       dlog('narr', `fetched ${id} in ${Math.round(performance.now() - t0)} ms`);
       current?.done('stopped');
       v.src = url;
+      // (Picked up partway, from the player's scrubber: once the clip's length is known.)
+      if (opt.from) { const at = opt.from / 1000; if (v.readyState >= 1) v.currentTime = at; else v.addEventListener('loadedmetadata', () => { v.currentTime = at; }, { once: true }); }
       shown = { id, clip };
       tick();
     }
+    const hitAt = HIT_AT[clip.hit ?? ''] ?? 0.35;
     const done = new Promise<SayResult>((res) => {
       const prev = resuming ? current : null;
-      current = { id, done: res, hit: clip.hit, hitAt: HIT_AT[clip.hit ?? ''] ?? 0.35, hitDone: prev?.hitDone ?? false };
+      const at = resuming ? v.currentTime * 1000 : opt.from ?? 0;
+      current = { id, done: res, hit: clip.hit, hitAt, hitDone: prev?.hitDone ?? at >= hitAt * clip.ms };
     });
     const mine = current; // (a later say or a pause can overtake this one: it only answers for itself)
     v.playbackRate = opt.rate ?? 1;
@@ -328,6 +333,21 @@ export const narrator = {
     const c = audio();
     if (c && c.state !== 'running') void c.resume().catch(() => null);
     void setBed(id ?? undefined, true);
+  },
+  /** A clip's length (ms), once the list of clips is here. */
+  clipMs: (id: string) => loaded?.[id]?.ms ?? 0,
+  /** How far George is into a clip (ms): 0 unless it's the one on screen. */
+  pos(id: string) {
+    return shown?.id === id && el ? Math.min(el.currentTime * 1000, shown.clip.ms) : 0;
+  },
+  /** Move within the clip being told (playing, or paused partway); false if it isn't (say it `from` there). */
+  seek(id: string, ms: number) {
+    if (current?.id !== id || shown?.id !== id || !el) return false;
+    const at = Math.max(0, Math.min(ms, shown.clip.ms - 50)) / 1000;
+    el.currentTime = at;
+    current.hitDone = !!el.duration && at >= current.hitAt * el.duration;
+    tick();
+    return true;
   },
   /** How many chapters a story is told in (id:0, id:1…): 0 if it's one clip, or not loaded yet. */
   chapters(id: string) {
