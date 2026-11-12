@@ -9,8 +9,12 @@ const all = new Set<maplibregl.Marker>();
 export const track = <T extends maplibregl.Marker>(mk: T) => { all.add(mk); return mk; };
 
 const R = Math.PI / 180;
-/** How far (in degrees of the globe) from the view's centre a marker stays in sight. */
-const IN_SIGHT = 78;
+/**
+ * How far (in degrees of the globe) from the view's centre a marker stays in sight. Two lines, not
+ * one: it goes past the farther and comes back inside the nearer, so a marker near the horizon
+ * doesn't flicker in and out as someone zooms.
+ */
+const HIDE_PAST = 80, SHOW_WITHIN = 74;
 
 export function cull(m: maplibregl.Map) {
   const c = m.getCenter();
@@ -19,8 +23,14 @@ export function cull(m: maplibregl.Map) {
     if (!el.isConnected) { all.delete(mk); continue; }
     const p = mk.getLngLat();
     const cos = Math.sin(c.lat * R) * Math.sin(p.lat * R) + Math.cos(c.lat * R) * Math.cos(p.lat * R) * Math.cos((p.lng - c.lng) * R);
-    el.classList.toggle('off-side', Math.acos(Math.max(-1, Math.min(1, cos))) / R > IN_SIGHT);
+    const deg = Math.acos(Math.max(-1, Math.min(1, cos))) / R;
+    const off = el.classList.contains('off-side');
+    if (!off && deg > HIDE_PAST) el.classList.add('off-side');
+    else if (off && deg < SHOW_WITHIN) el.classList.remove('off-side');
   }
   // Far out (the whole globe in view), the battle markers step back so the map itself leads.
-  m.getContainer().classList.toggle('far', m.getZoom() < 2.6);
+  // (Again two lines apart, so pinching around one zoom doesn't flip it back and forth.)
+  const host = m.getContainer(), z = m.getZoom();
+  if (z < 2.45) host.classList.add('far');
+  else if (z > 2.8) host.classList.remove('far');
 }

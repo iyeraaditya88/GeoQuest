@@ -3488,7 +3488,7 @@ svg.vy-flag { color: #2dd4bf; }
 /* Voyages on the cinema map: a bigger ship (the marker turns it to its course), ports that pulse on arrival. */
 .cine-ship { width: 0; height: 0; pointer-events: none; transition: opacity 0.4s; }
 .cine-ship.gone { opacity: 0; }
-.cine-ship .ss-turn { left: -34px; top: -40px; width: 68px; height: 80px; transform: none; transition: none; }
+.cine-ship .ss-turn { left: -34px; top: -40px; width: 68px; height: 80px; transform: none; transition: opacity 0.35s ease; }
 .cine-stop.on i { position: relative; }
 .cine-stop.on i::after { content: ''; position: absolute; inset: -2px; border-radius: 50%; box-shadow: 0 0 0 2px var(--c); animation: cine-port 1.6s ease-out 2; pointer-events: none; }
 @keyframes cine-port { from { transform: scale(1); opacity: 0.9; } to { transform: scale(2.6); opacity: 0; } }
@@ -3539,7 +3539,9 @@ svg.vy-flag { color: #2dd4bf; }
 @media (prefers-reduced-motion: reduce) { .start-story i { animation: none; } }
 /* Cinema map markers: gone while over the horizon (see cinema/cull.ts); smaller far out. */
 .maplibregl-marker > * { transition: opacity 0.35s ease, scale 0.35s ease; }
+.maplibregl-marker > * { transition: opacity 0.35s ease; }
 .maplibregl-marker.off-side > * { opacity: 0; pointer-events: none; }
+.cine-clash > button, .cine-flag > * { transition: scale 0.4s ease, opacity 0.4s ease; }
 .cine-map.far .cine-clash > button { scale: 0.62; opacity: 0.85; }
 .cine-map.far .cine-flag > * { scale: 0.75; }
 .cine-layer .maplibregl-ctrl-attrib.maplibregl-compact:not(.maplibregl-compact-show) { opacity: 0.55; }
@@ -3571,7 +3573,7 @@ svg.vy-flag { color: #2dd4bf; }
 .cine-item { width: 0; height: 0; pointer-events: none; opacity: 0; transition: opacity 0.6s ease; }
 .cine-item.in { opacity: 1; }
 .cine-item.out { opacity: 0; transition-duration: 0.4s; }
-.cine-item.vessel .ss-turn { left: -26px; top: -30px; width: 52px; height: 60px; transform-origin: 50% 50%; transition: none; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 10px color-mix(in srgb, var(--c) 55%, transparent)); }
+.cine-item.vessel .ss-turn { left: -26px; top: -30px; width: 52px; height: 60px; transform-origin: 50% 50%; transition: opacity 0.35s ease; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 10px color-mix(in srgb, var(--c) 55%, transparent)); }
 .cine-item.vessel .ss-turn.fleet { left: -36px; top: -32px; width: 72px; height: 64px; }
 .cine-item.arrived .ss-wake, .cine-item.arrived .st-smoke { opacity: 0; transition: opacity 1.2s; }
 .cine-item.badge b { position: absolute; left: -17px; top: -17px; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--c) 70%, white), var(--c) 70%); box-shadow: 0 0 0 2px rgba(255, 248, 232, 0.9), 0 6px 16px rgba(0, 0, 0, 0.55), 0 0 18px color-mix(in srgb, var(--c) 60%, transparent); scale: 0.6; transition: scale 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
@@ -3591,7 +3593,7 @@ svg.vy-flag { color: #2dd4bf; }
 @keyframes st-smoke { 0% { opacity: 0.75; transform: translateY(0) scale(0.8); } 100% { opacity: 0; transform: translateY(6px) scale(1.4); } }
 .gl-oar { fill: none; stroke: #e9d5b0; stroke-width: 1.3; stroke-linecap: round; }
 @media (prefers-reduced-motion: reduce) { .st-smoke circle { animation: none; } .cine-place.now i::after { animation: none; } }
-.cine-map.far .cine-place span { font-size: 12px; }
+.cine-map.far .cine-place span { scale: 0.86; transform-origin: left center; }
 .cine-map.far .cine-item.badge b { scale: 0.8; }
 
 /* People: a documentary caption over the top of the map as George names them. */

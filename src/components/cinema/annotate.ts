@@ -135,7 +135,9 @@ export function createAnnotations(m: maplibregl.Map, opts: { calm: () => boolean
       const dx = Number(s.el.dataset.dx ?? 0), dy = Number(s.el.dataset.dy ?? 0);
       const r0 = badge.getBoundingClientRect();
       const at = (ox: number, oy: number) => new DOMRect(r0.x - dx + ox, r0.y - dy + oy, r0.width, r0.height);
-      const [ox, oy] = FAN.find(([x, y]) => !icons.some((i) => i.of !== s.el && hits(i.r, at(x, y)))) ?? [0, 0];
+      // (Where it stands stays where it stands while that's still clear: no hopping about on a zoom.)
+      const clear = ([x, y]: [number, number]) => !icons.some((i) => i.of !== s.el && hits(i.r, at(x, y)));
+      const [ox, oy] = clear([dx, dy]) && (dx || dy) && !clear([0, 0]) ? [dx, dy] : FAN.find(clear) ?? [0, 0];
       if (ox !== dx || oy !== dy) moved = true;
       s.el.dataset.dx = String(ox); s.el.dataset.dy = String(oy);
       s.el.style.setProperty('--dx', `${ox}px`); s.el.style.setProperty('--dy', `${oy}px`);
@@ -154,7 +156,9 @@ export function createAnnotations(m: maplibregl.Map, opts: { calm: () => boolean
     if (moved) window.setTimeout(tidy, 450); // (the names follow their badges there: look again then)
   }
   const tidy = () => { if (!tidyFrame) tidyFrame = requestAnimationFrame(declutter); };
-  const tidyMoving = () => { if (performance.now() - lastTidy > 300) tidy(); };
+  // Settled once the map comes to rest, not while it moves: names and badges don't blink or hop
+  // under a pinch or a flight. (A long, slow drift still gets a look now and then.)
+  const tidyMoving = (e: { originalEvent?: unknown }) => { if (!e.originalEvent && !m.isZooming() && performance.now() - lastTidy > 2500) tidy(); };
   m.on('moveend', tidy);
   m.on('move', tidyMoving);
 
