@@ -13,6 +13,7 @@ import { arrowPolygon, labelSizeAtZoom0, metresPerPixel, spineFor, zoomForAltitu
 import type { WarScene } from '../BattlesPanel';
 import { cull, track } from './cull';
 import { VOYAGE_LAYERS, VOYAGE_SOURCES, createVoyage, type CinemaSail, type VoyageScene } from './voyage';
+import { flyTo } from './fly';
 
 maplibregl.setWorkerUrl(mapWorkerUrl);
 
@@ -178,12 +179,26 @@ function style(): maplibregl.StyleSpecification {
 const ARROW_MS = 1150;
 const ease = (t: number) => 1 - (1 - t) ** 3;
 
+/** The least of the map a panel may cover it down to (px), so there's always somewhere to look. */
+const MIN_VIEW = 160;
+
 export function CinemaMap({ scene, camera, padding, narrow, onPin, voyage = null, sailRef, onReady, onFail }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const ready = useRef(false);
   const sceneRef = useRef(scene), camRef = useRef(camera), padRef = useRef(padding), pinRef = useRef(onPin);
   sceneRef.current = scene; camRef.current = camera; padRef.current = padding; pinRef.current = onPin;
+  /**
+   * The panel's room, kept to what the map can spare. A panel can report more than the screen (a
+   * long list, measured whole, just before a battle opens): padding taller than the map leaves the
+   * camera nowhere to look, and the globe's maths breaks on every frame until the map crashes
+   * (seen on iPhones, debug report ecdzw).
+   */
+  const room = () => {
+    const p = padRef.current, el = host.current;
+    const w = el?.clientWidth || window.innerWidth, h = el?.clientHeight || window.innerHeight;
+    return { left: Math.max(0, Math.min(p.left, w - MIN_VIEW)), bottom: Math.max(0, Math.min(p.bottom, h - MIN_VIEW)), top: 0, right: 0 };
+  };
   const voyRef = useRef(voyage);
   voyRef.current = voyage;
   const voy = useRef<ReturnType<typeof createVoyage> | null>(null);
@@ -208,7 +223,7 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, voyage = null
     } catch { onFail(); return; }
     map.current = m;
     // Start framed like the globe it replaces (the same room left for the panel), then swoop in.
-    m.setPadding({ ...padRef.current, top: 0, right: 0 });
+    m.setPadding(room());
     if (import.meta.env.DEV) (window as unknown as { __cine?: maplibregl.Map }).__cine = m; // (for checking it from the console)
     m.addControl(new maplibregl.AttributionControl({ compact: true }), 'top-right');
     // The terrain's credit is required, but it needn't fill the corner: a small "i", tap for the text.
@@ -221,7 +236,7 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, voyage = null
     m.once('load', () => {
       ready.current = true;
       host.current?.classList.add('ready');
-      voy.current = createVoyage(m, { narrow, calm: calmMotion, padding: () => padRef.current, onPin: (id) => pinRef.current?.(id) });
+      voy.current = createVoyage(m, { narrow, calm: calmMotion, padding: room, onPin: (id) => pinRef.current?.(id) });
       if (sailRef) sailRef.current = { sail: (o) => voy.current?.sail(o) ?? (() => {}) };
       voy.current.show(voyRef.current);
       onReady();
@@ -426,7 +441,7 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, voyage = null
     userMoved.current = false;
     const bearing = ((cam.n * 37) % 28) - 14;
     const pitch = narrow ? 46 : 54;
-    const pad = { left: padRef.current.left, bottom: padRef.current.bottom, top: 0, right: 0 };
+    const pad = room();
     const calm = calmMotion();
     m.stop();
     if (!calm) showNames(false);
@@ -436,7 +451,7 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, voyage = null
     const km = 6371 * 2 * Math.asin(Math.min(1, Math.sqrt(Math.sin(((cam.lat - here.lat) * Math.PI) / 360) ** 2
       + Math.cos((cam.lat * Math.PI) / 180) * Math.cos((here.lat * Math.PI) / 180) * Math.sin(((cam.lng - here.lng) * Math.PI) / 360) ** 2)));
     const duration = calm ? 0 : Math.round(Math.min(5600, Math.max(first ? 2600 : 1600, 1300 + km * 0.45)));
-    m.flyTo({ center: [cam.lng, cam.lat], zoom, pitch, bearing, padding: pad, duration, curve: km > 1500 ? 1.75 : 1.4, easing: (t) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2), essential: true });
+    flyTo(m, { center: [cam.lng, cam.lat], zoom, pitch, bearing, padding: pad, duration, curve: km > 1500 ? 1.75 : 1.4, easing: (t) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2), essential: true });
     if (calm) return;
     m.once('moveend', () => {
       if (userMoved.current || drawn.current.cam !== cam.n) return;
@@ -455,7 +470,7 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, voyage = null
     if (voy.current?.reframe()) return;
     const cam = camRef.current;
     if (cam && m.isMoving()) { fly(cam, false); return; }
-    m.easeTo({ padding: { ...padRef.current, top: 0, right: 0 }, duration: calmMotion() ? 0 : 500, essential: true });
+    m.easeTo({ padding: room(), duration: calmMotion() ? 0 : 500, essential: true });
   }, [padKey]);
 
   // A voyage opened, changed, or a port was picked.

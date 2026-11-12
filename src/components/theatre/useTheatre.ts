@@ -24,7 +24,8 @@ export function useTheatre(active: boolean, onInset?: (i: Inset) => void) {
     // Layout sizes, not the on-screen box: they ignore the panel's entrance animation.
     const measure = () => {
       const sheet = el.offsetWidth >= window.innerWidth - 4;
-      const i: Inset = sheet ? { left: 0, bottom: el.offsetHeight } : { left: el.offsetLeft + el.offsetWidth, bottom: 0 };
+      // (Never more than the screen: a long list, before its sheet settles, can measure taller.)
+      const i: Inset = sheet ? { left: 0, bottom: Math.min(el.offsetHeight, window.innerHeight) } : { left: el.offsetLeft + el.offsetWidth, bottom: 0 };
       const key = `${i.left},${i.bottom}`;
       if (key !== last) { last = key; onInset(i); }
     };

@@ -6,6 +6,7 @@ import { KM, SHIP_SVG, makeRoute, routeAt, routeHeading, routeLine, type Route }
 import { escapeHtml } from '../../lib/html';
 import { track } from './cull';
 import type { LL } from '../../lib/battles';
+import { flyTo } from './fly';
 
 export interface VoyageScene {
   id: string;
@@ -94,7 +95,7 @@ export function createVoyage(m: maplibregl.Map, opts: { narrow: boolean; calm: (
     const w = Math.min(...lngs), e = Math.max(...lngs), s = Math.min(...lats), n = Math.max(...lats);
     const calm = opts.calm() || now;
     if (e - w > 200) { // round the world: the globe itself
-      m.flyTo({ center: [(w + e) / 2, clamp((s + n) / 2, -20, 30)], zoom: opts.narrow ? 1.05 : 1.45, pitch: 0, bearing: 0, padding: pad(), duration: calm ? 0 : 2400, essential: true });
+      flyTo(m, { center: [(w + e) / 2, clamp((s + n) / 2, -20, 30)], zoom: opts.narrow ? 1.05 : 1.45, pitch: 0, bearing: 0, padding: pad(), duration: calm ? 0 : 2400, essential: true });
       return;
     }
     const p = pad();
@@ -106,7 +107,7 @@ export function createVoyage(m: maplibregl.Map, opts: { narrow: boolean; calm: (
       const cam = m.cameraForBounds([[w, s], [e, n]], { padding: { top: vy, bottom: vy, left: hx, right: hx }, maxZoom: 5.5 });
       if (cam?.center && Number.isFinite(cam.zoom)) { center = cam.center; zoom = cam.zoom!; }
     } catch { /* (the map isn't sized yet: the middle of the route will do) */ }
-    m.flyTo({ center, zoom: Math.max(1, zoom), pitch: 34, bearing: 0, padding: p, duration: calm ? 0 : 2400, essential: true });
+    flyTo(m, { center, zoom: Math.max(1, zoom), pitch: 34, bearing: 0, padding: p, duration: calm ? 0 : 2400, essential: true });
   }
 
   return {
@@ -130,7 +131,7 @@ export function createVoyage(m: maplibregl.Map, opts: { narrow: boolean; calm: (
       if (fresh && v.active === null) { overview(first); first = false; }
       else if (fresh || moved) {
         if (v.active === null) overview();
-        else m.flyTo({ center: stopLL(v.active), zoom: 5.4, pitch, bearing: 0, padding: pad(), duration: opts.calm() ? 0 : 1800, essential: true });
+        else flyTo(m, { center: stopLL(v.active), zoom: 5.4, pitch, bearing: 0, padding: pad(), duration: opts.calm() ? 0 : 1800, essential: true });
       }
     },
 
@@ -166,7 +167,7 @@ export function createVoyage(m: maplibregl.Map, opts: { narrow: boolean; calm: (
       const [la0, lo0] = routeAt(r, d);
       ship.setLngLat([lo0, la0]).setRotation(routeHeading(r, d)).addTo(m);
       let zoom = 5.4, bearing = 0;
-      m.flyTo({ center: [lo0, la0], zoom, pitch, bearing, padding: pad(), duration: calm ? 0 : 1600, essential: true });
+      flyTo(m, { center: [lo0, la0], zoom, pitch, bearing, padding: pad(), duration: calm ? 0 : 1600, essential: true });
       arrive(o.from, last);
       if (!o.hold) pauseUntil = last + 1700 + o.pauseMs;
 
@@ -214,7 +215,7 @@ export function createVoyage(m: maplibregl.Map, opts: { narrow: boolean; calm: (
     reframe() {
       if (!scene || sailing) return !!scene;
       if (scene.active === null) overview(performance.now() - shownAt < 2500); // (just opened: the panel settling isn't a journey)
-      else m.flyTo({ center: stopLL(scene.active), zoom: 5.4, pitch, bearing: 0, padding: pad(), duration: opts.calm() ? 0 : 900, essential: true });
+      else flyTo(m, { center: stopLL(scene.active), zoom: 5.4, pitch, bearing: 0, padding: pad(), duration: opts.calm() ? 0 : 900, essential: true });
       return true;
     },
     clear,
