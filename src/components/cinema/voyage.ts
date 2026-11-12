@@ -48,6 +48,7 @@ export function createVoyage(m: maplibregl.Map, opts: { narrow: boolean; calm: (
   let route: Route | null = null;
   let pins: { mk: maplibregl.Marker; stops: number[] }[] = [];
   let sailing: (() => void) | null = null;
+  let shownAt = 0, first = true;
   const pad = () => ({ ...opts.padding(), top: 0, right: 0 });
   const pitch = opts.narrow ? 44 : 52;
   const src = (id: string) => m.getSource(id) as maplibregl.GeoJSONSource | undefined;
@@ -86,12 +87,12 @@ export function createVoyage(m: maplibregl.Map, opts: { narrow: boolean; calm: (
     for (const p of pins) p.mk.getElement().classList.toggle('on', active !== null && p.stops.includes(active));
   }
 
-  /** The whole route at a glance, tilted a little. */
-  function overview() {
+  /** The whole route at a glance, tilted a little (`now`: there at once, no flight). */
+  function overview(now = false) {
     const r = route!;
     const lngs = r.ll.map((p) => p[0]), lats = r.ll.map((p) => p[1]);
     const w = Math.min(...lngs), e = Math.max(...lngs), s = Math.min(...lats), n = Math.max(...lats);
-    const calm = opts.calm();
+    const calm = opts.calm() || now;
     if (e - w > 200) { // round the world: the globe itself
       m.flyTo({ center: [(w + e) / 2, clamp((s + n) / 2, -20, 30)], zoom: opts.narrow ? 1.05 : 1.45, pitch: 0, bearing: 0, padding: pad(), duration: calm ? 0 : 2400, essential: true });
       return;
@@ -116,6 +117,7 @@ export function createVoyage(m: maplibregl.Map, opts: { narrow: boolean; calm: (
       const moved = !fresh && scene?.active !== v.active;
       if (fresh) {
         clear();
+        shownAt = performance.now();
         scene = v;
         route = makeRoute(v.points, v.stopAt);
         src('vy-done')?.setData(line(routeLine(route, 0, route.total), v.color));
@@ -124,7 +126,8 @@ export function createVoyage(m: maplibregl.Map, opts: { narrow: boolean; calm: (
       scene = v;
       light(v.active);
       if (sailing) return; // the ship's voyage moves the camera
-      if (fresh && v.active === null) overview();
+      // The first voyage this map shows is simply there (the map fades in on it); later ones fly.
+      if (fresh && v.active === null) { overview(first); first = false; }
       else if (fresh || moved) {
         if (v.active === null) overview();
         else m.flyTo({ center: stopLL(v.active), zoom: 5.4, pitch, bearing: 0, padding: pad(), duration: opts.calm() ? 0 : 1800, essential: true });
@@ -210,7 +213,7 @@ export function createVoyage(m: maplibregl.Map, opts: { narrow: boolean; calm: (
     /** The panel changed size: frame the same thing again in the room left (not while sailing). */
     reframe() {
       if (!scene || sailing) return !!scene;
-      if (scene.active === null) overview();
+      if (scene.active === null) overview(performance.now() - shownAt < 2500); // (just opened: the panel settling isn't a journey)
       else m.flyTo({ center: stopLL(scene.active), zoom: 5.4, pitch, bearing: 0, padding: pad(), duration: opts.calm() ? 0 : 900, essential: true });
       return true;
     },

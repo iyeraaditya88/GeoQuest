@@ -555,7 +555,7 @@ export default function App() {
   };
 
   const launchRef = useRef(launch);
-  const exploreRef = useRef({ startVoyages: async () => {}, startEras: async () => {}, startEmpires: async () => {}, startBattles: async (_?: string | null) => {}, pickVoyage: (_: string, __?: string) => {}, pickEra: (_: string) => {}, pickEmpire: (_: string) => {} });
+  const exploreRef = useRef({ startVoyages: async (_?: string | null) => {}, startEras: async () => {}, startEmpires: async () => {}, startBattles: async (_?: string | null) => {}, pickVoyage: (_: string, __?: string) => {}, pickEra: (_: string) => {}, pickEmpire: (_: string) => {} });
   launchRef.current = launch;
 
   // ── Feedback ──────────────────────────────────────────
@@ -618,6 +618,7 @@ export default function App() {
       if (w?.explore) {
         const x = exploreRef.current, { kind, id } = w.explore;
         if (kind === 'battles') { void x.startBattles(id); return; }
+        if (kind === 'voyages' && id) { void x.startVoyages(id); return; }
         void (kind === 'voyages' ? x.startVoyages() : kind === 'eras' ? x.startEras() : x.startEmpires()).then(() => {
           if (id) window.setTimeout(() => (kind === 'voyages' ? x.pickVoyage(id, 'link') : kind === 'eras' ? x.pickEra(id) : x.pickEmpire(id)), 700);
         });
@@ -932,7 +933,8 @@ export default function App() {
   const [voy, setVoy] = useState<{ id: string | null; stop: number | null; hover: string | null; era: number } | null>(null); // hover: the route in the spotlight
   useEffect(() => { if (quiz || geo || play || anti || liveState.active) setVoy(null); }, [quiz, geo, play, anti, liveState.active]);
   useEffect(() => { if (!voy) { sailStop.current?.(); sailStop.current = null; setSailing(false); } }, [voy]);
-  const startVoyages = async () => {
+  /** Open the voyages; `id` (a shared link) goes straight to that voyage, with no stop at the era on the way. */
+  const startVoyages = async (id?: string | null) => {
     if (morphing.current) return;
     track('game', { g: 'voyages' });
     if (geoRef.current) exitGeo();
@@ -948,6 +950,15 @@ export default function App() {
     setAutoRotate(false);
     setEras(null);
     setEmp(null);
+    const linked = id ? BY_VOYAGE.get(id) : undefined;
+    if (linked) {
+      track('voyage', { v: linked.id, from: 'link' });
+      setVoy({ id: linked.id, stop: null, hover: linked.id, era: eraOf(linked.year) });
+      setVoyLinked(linked.id); // it waits for "play"
+      const r = voyView(linked);
+      globe.current?.frame(r.lat, r.lng, r.altitude);
+      return;
+    }
     setVoy({ id: null, stop: null, hover: voyagesIn(1)[0].id, era: 1 }); // the Age of Discovery, the one most people know
     frameEra(1);
   };
