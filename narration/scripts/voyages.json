@@ -1073,5 +1073,41 @@
   "voyage:nautilus-north-pole:4": {
     "text": "Portland, in England, and a hero's welcome.",
     "bed": "gulls-harbour"
+  },
+  "voyage:albuquerque:intro": {
+    "text": "In April 1506, a Portuguese nobleman named Afonso de Albuquerque sails for India with Tristão da Cunha's fleet. He is already in his fifties, a hardened soldier, and he has a plan. Portugal will not simply trade in the Indian Ocean. It will command it, by seizing the narrow gateways through which its riches flow.",
+    "bed": "waves-hull"
+  },
+  "voyage:albuquerque:0": {
+    "text": "Lisbon. The fleet leaves the Tagus, five of its ships under Albuquerque's own command.",
+    "bed": "gulls-harbour",
+    "hit": "ship-bell"
+  },
+  "voyage:albuquerque:1": {
+    "text": "Round the Cape of Good Hope, and up the coast of East Africa, to Mozambique Island.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:albuquerque:2": {
+    "text": "Socotra, a rugged island off the Horn of Africa. Its fort is taken, to watch the mouth of the Red Sea, the route of the Venetian and Egyptian spice trade.",
+    "bed": "waves-hull"
+  },
+  "voyage:albuquerque:3": {
+    "text": "Albuquerque turns north, along the coast of Oman. Town after town is attacked, and Muscat is sacked.",
+    "bed": "waves-hull"
+  },
+  "voyage:albuquerque:4": {
+    "text": "Hormuz, the island gateway to the Persian Gulf, and one of the richest ports in the world. Its king is forced to submit. But some of Albuquerque's captains desert him, and the fort must be abandoned. He will return, and take it for good, in 1515.",
+    "bed": "waves-hull"
+  },
+  "voyage:albuquerque:5": {
+    "text": "Cochin, on the Malabar coast. In 1509, Albuquerque becomes governor of Portuguese India.",
+    "bed": "gulls-harbour"
+  },
+  "voyage:albuquerque:6": {
+    "text": "Goa. In 1510 Albuquerque takes the city, loses it, and then, in November, takes it again by storm. Goa becomes the capital of Portuguese India, and it will remain Portuguese for 450 years."
+  },
+  "voyage:albuquerque:7": {
+    "text": "Malacca, the great port on the strait between Sumatra and the Malay peninsula, where the trade of the Indian Ocean meets the trade of China. In August 1511 it falls. Portugal now holds the gateway to the Spice Islands, and the chain of a sea empire is complete.",
+    "bed": "gulls-harbour"
   }
 }
