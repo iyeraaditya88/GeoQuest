@@ -265,13 +265,13 @@ export const narrator = {
       if (current === mine && why !== 'AbortError') track('narration_err', { why: why ?? 'unknown', id, unlocked: unlocked ? 1 : 0 });
       // Interrupted (paused, or another clip took over): not a failure — whoever interrupted carries on.
       if (current !== mine || why === 'AbortError') { /* nothing to do */ }
-      // iPhone: sound has to start from a tap. Wait a moment for one (any tap starts the clip);
-      // without one, the story carries on by the clock.
+      // iPhone: sound has to start from a tap. The story waits, showing a big play button, and
+      // any tap starts the clip.
       else if (why !== 'NotAllowedError') finish('failed');
       else {
         blocked = true;
         tick();
-        window.setTimeout(() => { if (blocked && current?.id === id) { blocked = false; tick(); finish('failed'); } }, 6000);
+        // (No timeout: the story waits on this moment, with its play button, until the tap.)
       }
     }
     if (opt.prefetch && m?.[opt.prefetch]) {
@@ -332,7 +332,9 @@ export const narrator = {
   needsTap() {
     if (!narrationOn() || unlocked) return false;
     const ua = (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }).userActivation;
-    return ua ? !ua.hasBeenActive : true;
+    const needs = ua ? !ua.hasBeenActive : true;
+    dlog('narr', `needsTap ${needs} (userActivation ${ua ? (ua.hasBeenActive ? 'active' : 'none') : 'unsupported'})`);
+    return needs;
   },
   /** The phone is waiting for a tap before George can speak. */
   blocked: () => blocked,
