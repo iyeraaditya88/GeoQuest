@@ -40,7 +40,8 @@ export async function coverCard(frameJpeg: Buffer, text: string) {
   const bg = `data:image/jpeg;base64,${frameJpeg.toString('base64')}`;
   return png(div({ width: '100%', height: '100%', position: 'relative', fontFamily: 'Space Grotesk' },
     h('img', { src: bg, width: W, height: H, style: { position: 'absolute', left: 0, top: 0 } }),
-    div({ position: 'absolute', left: 0, right: 0, bottom: 0, height: 900, backgroundImage: 'linear-gradient(transparent, rgba(5,9,19,0.95))' }),
+    // (Solid under the words, so the app's own text below never shows through them.)
+    div({ position: 'absolute', left: 0, right: 0, bottom: 0, height: 1050, backgroundImage: 'linear-gradient(rgba(5,9,19,0) 0%, rgba(5,9,19,0.96) 38%, #050913 60%)' }),
     div({ position: 'absolute', left: 70, right: 70, bottom: 260, fontSize: 84, fontWeight: 700, lineHeight: 1.1, color: '#fff' }, text),
     div({ position: 'absolute', left: 70, bottom: 150, fontSize: 48, fontWeight: 700, color: '#fbbf24' }, 'playgeoquest.app')));
 }

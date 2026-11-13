@@ -26,10 +26,11 @@ const fallback = (s: Subject, ch: Channel, link: string) =>
   ch === 'shorts' ? `${s.hook.slice(0, 60)} #geography #shorts`
     : `${s.hook}\n\n${s.facts[0] ?? ''}\n\nPlay free on a 3D globe — link in bio.\n#geography #maps #dailypuzzle #trivia`.replace(/\n\n\n/g, '\n\n');
 
-async function writeCaptions(s: Subject, date: string): Promise<PackCaption[]> {
+/** Captions for every channel, each link tagged `<channel>-<tag>` (the date, unless a tag is given). */
+export async function writeCaptions(s: Subject, date: string, tag?: string): Promise<PackCaption[]> {
   const voice = read('voice.md'), shorts = read('channels/shorts.md');
   const banned = bannedFrom(voice), limits = limitsFrom(shorts);
-  const stamp = date.replace(/-/g, '');
+  const stamp = tag ?? date.replace(/-/g, '');
   const links = Object.fromEntries(CHANNELS.map((c) => [c, tagged(`${c}-${stamp}`)])) as Record<Channel, string>;
   if (existsSync('.env')) process.loadEnvFile('.env'); // (the key stays in the environment; never printed)
   const ai = process.env.ANTHROPIC_API_KEY ? new Anthropic() : null;
@@ -68,12 +69,18 @@ export async function makePack(date: string, base: string, sceneArg?: string): P
   const captions = await writeCaptions(rec.subject, date);
   const pack: Pack = { date, scene, hook: rec.subject.hook, title: rec.subject.title, seconds: Math.round(rec.seconds * 10) / 10, video: rec.video, cover, captions };
   writeFileSync(join(dir, 'captions.json'), JSON.stringify(pack, null, 2));
-  const label: Record<Channel, string> = { tiktok: 'TikTok', reels: 'Instagram Reels', shorts: 'YouTube Shorts (title)' };
-  writeFileSync(join(dir, 'captions.md'), [
-    `# Content pack — ${date}`, '', `**Scene:** ${scene} — ${rec.subject.title}  `, `**Video:** video.mp4 (${pack.seconds} s) · **Cover:** cover.png`, '',
-    ...captions.flatMap((c) => [`## ${label[c.channel]}`, '', '```', c.caption, '```', '', `Link (put in bio / description): ${c.link}`, ...(c.problems.length ? ['', `⚠️ ${c.problems.join('; ')}`] : []), '']),
-  ].join('\n'));
+  writeFileSync(join(dir, 'captions.md'), captionsMd(pack, `# Content pack — ${date}`));
   return pack;
+}
+
+/** The captions, ready to copy, as markdown. */
+export function captionsMd(pack: Pack, heading: string) {
+  const { scene, captions } = pack;
+  const label: Record<Channel, string> = { tiktok: 'TikTok', reels: 'Instagram Reels', shorts: 'YouTube Shorts (title)' };
+  return [
+    heading, '', `**Scene:** ${scene} — ${pack.title}  `, `**Hook:** ${pack.hook}  `, `**Video:** video.mp4 (${pack.seconds} s) · **Cover:** cover.png`, '',
+    ...captions.flatMap((c) => [`## ${label[c.channel]}`, '', '```', c.caption, '```', '', `Link (put in bio / description): ${c.link}`, ...(c.problems.length ? ['', `⚠️ ${c.problems.join('; ')}`] : []), '']),
+  ].join('\n');
 }
 
 // CLI
