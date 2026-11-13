@@ -66,6 +66,8 @@ let lastErr = '';
 let saying = 0;
 /** The clip on screen for subtitles: stays after it ends (through the breath before the next). */
 let shown: { id: string; clip: Clip } | null = null;
+/** The clip being fetched to be said next (a jump, or the next chapter), until it's on screen. */
+let heading: string | null = null;
 const timeListeners = new Set<() => void>();
 /**
  * Where the voice is (ms), as of the last tick. Screens read this, never the element: Safari moves
@@ -75,7 +77,33 @@ const timeListeners = new Set<() => void>();
 // (Read from the voice itself, playing or not: a clip just handed over sits at 0, so nothing it
 // names shows before it's said; one that has ended sits at its end, so all it named stays.)
 let heardMs = 0;
-const tick = () => { heardMs = el ? el.currentTime * 1000 : 0; for (const l of timeListeners) l(); };
+/**
+ * Where a seek is headed (ms), until the voice is there: the scrubber, the words and the map go
+ * straight to it, not back to where the voice still is (or to 0, while a jumped-to clip loads).
+ */
+let aim: number | null = null;
+const tick = () => { heardMs = aim ?? (el ? el.currentTime * 1000 : 0); for (const l of timeListeners) l(); };
+// (Should the voice never report getting there, it isn't held up for good.)
+let aimT = 0;
+const unstick = () => {
+  window.clearTimeout(aimT);
+  if (aim !== null) aimT = window.setTimeout(() => { if (aim === null) return; aim = null; if (el) el.volume = 1; tick(); }, 4000);
+};
+// A seek dips the voice for a moment rather than cutting mid-word (where the volume can be set:
+// iPhone keeps it at the phone's own).
+let fadeT = 0;
+function fadeVoice(to: number, ms: number, then?: () => void) {
+  window.clearTimeout(fadeT);
+  const v = el;
+  if (!v) return;
+  const from = v.volume, t0 = performance.now();
+  const step = () => {
+    const p = Math.min(1, (performance.now() - t0) / ms);
+    v.volume = from + (to - from) * p;
+    if (p < 1) fadeT = window.setTimeout(step, 16); else then?.();
+  };
+  step();
+}
 
 function voice() {
   if (el) return el;
@@ -83,6 +111,7 @@ function voice() {
   el.preload = 'auto';
   el.setAttribute('playsinline', '');
   el.addEventListener('ended', () => finish('ended'));
+  el.addEventListener('seeked', () => { if (aim === null) return; aim = null; tick(); fadeVoice(1, 260); });
   el.addEventListener('error', () => {
     if (!current || !el?.src.includes(BASE)) return;
     track('narration_err', { why: `media${el.error?.code ?? ''}`, id: current.id });
@@ -101,6 +130,7 @@ function finish(r: SayResult) {
   const c = current;
   dlog('narr', `finish ${c?.id ?? '-'} ${r}`);
   current = null;
+  aim = null;
   if (r === 'failed' && shown?.id === c?.id) { shown = null; tick(); } // the summary shows instead
   c?.done(r);
 }
@@ -259,17 +289,26 @@ export const narrator = {
     if (!resuming) {
       const seq = ++saying;
       const t0 = performance.now();
+      heading = id;
+      tick();
       const url = await clipUrl(clip.file);
       if (seq !== saying) return 'stopped'; // another clip was asked for meanwhile
-      if (!url) return 'failed';
+      heading = null;
+      if (!url) { tick(); return 'failed'; }
       dlog('narr', `fetched ${id} in ${Math.round(performance.now() - t0)} ms`);
       current?.done('stopped');
+      window.clearTimeout(fadeT);
       v.src = url;
-      // (Picked up partway, from the player's scrubber: once the clip's length is known.)
-      if (opt.from) { const at = opt.from / 1000; if (v.readyState >= 1) v.currentTime = at; else v.addEventListener('loadedmetadata', () => { v.currentTime = at; }, { once: true }); }
+      // (Picked up partway, from the player's scrubber: once the clip's length is known. Until it's
+      // there, everything shows the moment jumped to, and the voice comes up softly into it.)
+      aim = opt.from ? Math.min(opt.from, clip.ms - 50) : null;
+      v.volume = aim === null ? 1 : 0;
+      if (aim !== null) { const at = aim / 1000; if (v.readyState >= 1) v.currentTime = at; else v.addEventListener('loadedmetadata', () => { v.currentTime = at; }, { once: true }); }
       shown = { id, clip };
       tick();
     }
+    else if (aim === null) { window.clearTimeout(fadeT); v.volume = 1; } // (paused mid-dip)
+    unstick();
     const hitAt = HIT_AT[clip.hit ?? ''] ?? 0.35;
     const done = new Promise<SayResult>((res) => {
       const prev = resuming ? current : null;
@@ -318,6 +357,7 @@ export const narrator = {
   /** Hold the voice where it is (and the beds); `say` with the same id carries on. */
   pause() {
     saying++; // (a clip still being fetched won't start)
+    if (heading) { heading = null; tick(); }
     if (!current) return;
     el?.pause();
     // The beds hush (suspending the sound instead would need a tap to resume on iPhone).
@@ -330,6 +370,8 @@ export const narrator = {
     saying++;
     el?.pause();
     if (current) finish('stopped');
+    aim = null;
+    heading = null;
     shown = null;
     tick();
     dropBed(1.2);
@@ -362,10 +404,15 @@ export const narrator = {
   /** Move within the clip being told (playing, or paused partway); false if it isn't (say it `from` there). */
   seek(id: string, ms: number) {
     if (current?.id !== id || shown?.id !== id || !el) return false;
-    const at = Math.max(0, Math.min(ms, shown.clip.ms - 50)) / 1000;
-    el.currentTime = at;
-    current.hitDone = !!el.duration && at >= current.hitAt * el.duration;
+    const v = el, c = current;
+    aim = Math.max(0, Math.min(ms, shown.clip.ms - 50));
+    const at = aim / 1000;
+    c.hitDone = !!v.duration && at >= c.hitAt * v.duration;
+    unstick();
     tick();
+    // Playing: down for a breath, over, and back up ('seeked'). Paused: straight there.
+    if (v.paused) v.currentTime = at;
+    else fadeVoice(0, 90, () => { if (current === c) v.currentTime = at; else aim = null; });
     return true;
   },
   /** How many chapters a story is told in (id:0, id:1…): 0 if it's one clip, or not loaded yet. */
@@ -376,6 +423,8 @@ export const narrator = {
   },
   /** The clip whose words are on screen (the one playing, or the last one, until the next). */
   shownId: () => shown?.id ?? null,
+  /** The clip George is on his way to (being fetched to be said), if any. */
+  heading: () => heading,
   /** What's on the map for the clip on screen: every mark up to the sentence George is on. */
   marks(id: string): { marks: { k: number; m: Mark }[]; k: number; spanMs: number } | null {
     if (shown?.id !== id || !shown.clip.marks) return null;

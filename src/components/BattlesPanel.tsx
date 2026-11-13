@@ -318,11 +318,24 @@ function Detail({ b, onScene, onFrame, onOpen, onMore }: { b: Battle; onScene: (
     }
     return null;
   };
+  const lastSpoken = useRef({ clip: '', k: -1 });
   useEffect(() => {
     if (spoken < 0) return;
+    const prev = lastSpoken.current;
+    lastSpoken.current = { clip, k: spoken };
+    const opening = !told || ch === 0;
+    // A jump on the player (not the next sentence, or a chapter picked up partway): one move
+    // straight to the shot that holds at that moment, with none of the flights in between.
+    if (spoken > 0 && (prev.clip !== clip || spoken !== prev.k + 1)) {
+      covered.current = null;
+      let held = null as ReturnType<typeof narrator.camAt>;
+      for (let j = spoken; j >= 0 && !held; j--) held = narrator.camAt(clip, j);
+      if (held && held !== 'home') onFrame(held[0], held[1], held[2]);
+      else onFrame(b.at[0], b.at[1], battleAltitude(b), !held && opening ? sidesOf(b) : undefined);
+      return;
+    }
     if (covered.current === `${clip}#${spoken}`) { covered.current = null; return; } // (already in the shot)
     const c = narrator.camAt(clip, spoken);
-    const opening = !told || ch === 0;
     const close = (x: ReturnType<typeof narrator.camAt>) => (x && x !== 'home' && x[2] < 2 ? x : null);
     // (The place the first sentence names comes a sentence later, after the shot of who's fighting.)
     const named = opening && spoken === 1 && !c ? close(narrator.camAt(clip, 0)) : null;

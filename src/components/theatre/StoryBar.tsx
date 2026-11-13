@@ -1,4 +1,4 @@
-import { useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { Pause, Play, RotateCcw, RotateCw, Volume2, VolumeX } from 'lucide-react';
 import { track } from '../../lib/analytics';
 import { narrator } from '../../lib/narrator';
@@ -29,7 +29,16 @@ export function StoryBar({ segs, k, playing, ended, onToggle, onJump, note, chil
   const at = useSyncExternalStore(narrator.onTime, () => narrator.pos(segs[here]?.id ?? ''));
   const now = ended ? total : starts[here] + at;
   const [drag, setDrag] = useState<number | null>(null);
-  const shown = drag ?? now;
+  // Where a jump is headed, until George is there: the thumb waits on it rather than sliding back
+  // to the start of a chapter that's still loading (and a second tap of ±10 goes on from it).
+  const [aim, setAim] = useState<number | null>(null);
+  useEffect(() => { if (aim !== null && Math.abs(now - aim) < 1500) setAim(null); }, [aim, now]);
+  useEffect(() => {
+    if (aim === null) return;
+    const t = window.setTimeout(() => setAim(null), 5000); // (it couldn't go there after all)
+    return () => window.clearTimeout(t);
+  }, [aim]);
+  const shown = drag ?? aim ?? now;
   // (Noted as the finger goes down: by the click, a tap the phone was waiting for has started the voice.)
   const wasWaiting = useRef(false);
 
@@ -38,6 +47,7 @@ export function StoryBar({ segs, k, playing, ended, onToggle, onJump, note, chil
     const t = Math.max(0, Math.min(g, total - 300));
     const j = segAt(t);
     const into = t - starts[j];
+    setAim(t);
     if (j === here && !ended && narrator.seek(segs[j].id, into)) return;
     onJump(j, into);
   };
@@ -60,13 +70,13 @@ export function StoryBar({ segs, k, playing, ended, onToggle, onJump, note, chil
       </div>
       <div className={`sb-time ${note ? 'sb-note' : ''}`} role={note ? 'status' : undefined}>{note ? <span>{note}</span> : <><span><b>{label}</b> · {clock(shown)}</span><span>{clock(total)}</span></>}</div>
       <div className="sb-row">
-        <button className="icon-btn" onClick={() => go(now - SKIP_MS)} aria-label="Back 10 seconds"><RotateCcw size={17} /><i>10</i></button>
+        <button className="icon-btn" onClick={() => go((aim ?? now) - SKIP_MS)} aria-label="Back 10 seconds"><RotateCcw size={17} /><i>10</i></button>
         <button className="bw-play" onPointerDown={() => { wasWaiting.current = narrator.blocked(); }}
           onClick={() => { if (wasWaiting.current) { wasWaiting.current = false; return; } onToggle(); }}
           aria-label={playing ? 'Pause' : ended ? 'Play again' : 'Play'}>
           {playing ? <Pause size={18} fill="currentColor" /> : ended ? <RotateCcw size={18} /> : <Play size={18} fill="currentColor" />}
         </button>
-        <button className="icon-btn" onClick={() => go(now + SKIP_MS)} disabled={ended} aria-label="Forward 10 seconds"><RotateCw size={17} /><i>10</i></button>
+        <button className="icon-btn" onClick={() => go((aim ?? now) + SKIP_MS)} disabled={ended} aria-label="Forward 10 seconds"><RotateCw size={17} /><i>10</i></button>
         <span className="sb-more">{children}</span>
       </div>
     </div>
