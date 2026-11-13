@@ -72,7 +72,8 @@ import { FeedbackSheet } from './components/FeedbackSheet';
 import { AccountSheet } from './components/AccountSheet';
 import { GamesSheet, type GameKey } from './components/GamesSheet';
 import { noteGame } from './lib/recentGames';
-import { HistorySheet, type HistoryKey } from './components/HistorySheet';
+import { HistorySheet, useStoryOfDay, type HistoryKey } from './components/HistorySheet';
+import { StoryTop, noteStorySeen, storySeenToday } from './components/StoryTop';
 import { countVisit, feedbackAsked, fetchReplies, markFeedbackAsked, markRepliesSeen, replyKey, repliesSeen, type FeedbackKind, type FeedbackReply } from './lib/feedback';
 import { FeaturePanel } from './components/FeaturePanel';
 import { featureInfo, type FeatureInfo, type FeatureRef } from './lib/features';
@@ -246,6 +247,12 @@ export default function App() {
   };
   // History: wars, voyages, eras and empires, one tap from the home screen (it glows until opened once).
   const [historyOpen, setHistoryOpen] = useState(false);
+  // Today's story, beside the Daily: fetched once the home screen has settled (it brings every
+  // battle with it), and gone for the day once it's been opened.
+  const [storyWanted, setStoryWanted] = useState(false);
+  useEffect(() => { const t = window.setTimeout(() => setStoryWanted(true), 2500); return () => window.clearTimeout(t); }, []);
+  const todayStory = useStoryOfDay(storyWanted);
+  const [storySeen, setStorySeen] = useState(storySeenToday);
   const [historySeen, setHistorySeen] = useState(() => { try { return localStorage.getItem('gq-history-seen') === '1'; } catch { return false; } });
   const openHistory = () => {
     setHistoryOpen(true);
@@ -1252,6 +1259,7 @@ export default function App() {
   const storyStop = useRef<{ id: string; stop: number } | null>(null);
   const openStory = (kind: 'battles' | 'voyages', id: string, stop?: number) => {
     setHistoryOpen(false);
+    if (todayStory?.id === id) { noteStorySeen(); setStorySeen(true); }
     storyStop.current = kind === 'voyages' && stop !== undefined ? { id, stop } : null;
     if (kind === 'battles') void startBattles(id); else void startVoyages(id);
   };
@@ -1574,9 +1582,12 @@ export default function App() {
       {activityOpen && <Suspense fallback={null}><ErrorBoundary name="Activity" onClose={() => setActivityOpen(false)}><ActivityPanel open={activityOpen} onClose={() => setActivityOpen(false)} /></ErrorBoundary></Suspense>}
 
 
-      {/* Today's Daily, always one tap away at the top — the front door for new players, and the daily habit. */}
+      {/* Today's Daily, always one tap away at the top — the front door for new players, and the daily
+          habit — with today's story beside it until it's been heard. */}
+      {(() => { const home = chrome && !(mobile && drawerOpen) && !quiz && !geo && !play && !anti && !voy && !eras && !emp && !battles && !liveState.active && !dailyCard; return (
+      <div className="today-top">
       <AnimatePresence>
-        {chrome && !(mobile && drawerOpen) && !quiz && !geo && !play && !anti && !voy && !eras && !emp && !battles && !liveState.active && !dailyCard && (() => {
+        {home && (() => {
           const done = !!daily?.mine && daily.date === localDate();
           const streak = daily?.streak?.count ?? 0;
           return (
@@ -1591,6 +1602,13 @@ export default function App() {
           );
         })()}
       </AnimatePresence>
+      <AnimatePresence>
+        {home && todayStory && !storySeen && (
+          <StoryTop key="story-top" story={todayStory} onPlay={() => { track('launch', { g: 'story-day', s: todayStory.id, v: 'top' }); openStory(todayStory.kind, todayStory.id); }} />
+        )}
+      </AnimatePresence>
+      </div>
+      ); })()}
 
       {/* Onboarding hint */}
       <AnimatePresence>

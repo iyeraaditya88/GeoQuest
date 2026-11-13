@@ -716,7 +716,7 @@ html.custom-cursor.cur-drag .globe-wrap, html.custom-cursor.cur-drag .globe-wrap
 
 /* ── Centre floating UI in the free space between sidebar and panel ── */
 .app { --li: 0px; --ri: 0px; }
-.ask-fab, .hint, .quiz, .daily-top, .fab-row { left: calc(var(--li) + (100vw - var(--li) - var(--ri)) / 2) !important; transition: left 0.55s var(--ease), opacity 0.3s; }
+.ask-fab, .hint, .quiz, .today-top, .fab-row { left: calc(var(--li) + (100vw - var(--li) - var(--ri)) / 2) !important; transition: left 0.55s var(--ease), opacity 0.3s; }
 .dock { left: calc(var(--li) + 16px) !important; right: calc(var(--ri) + 16px); translate: none !important; width: auto !important; max-width: 620px; margin: 0 auto; transition: left 0.55s var(--ease), right 0.55s var(--ease); }
 
 /* ── Sidebar ──────────────────────────── */
@@ -1991,7 +1991,10 @@ html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent
 .feature-fact svg { flex-shrink: 0; margin-top: 2px; color: var(--gold); }
 
 /* Today's Daily: the button at the top, and the card at the top of the menu */
-.daily-top { position: fixed; z-index: 12; top: calc(16px + var(--st)); left: 50%; translate: -50% 0; display: inline-flex; align-items: center; gap: 8px;
+/* (The Daily and today's story, side by side; on phones the story sits under the Daily.) */
+.today-top { position: fixed; z-index: 12; top: calc(16px + var(--st)); left: 50%; translate: -50% 0; display: flex; align-items: center; gap: 10px; pointer-events: none; }
+.today-top > * { pointer-events: auto; }
+.daily-top { position: relative; flex-shrink: 0; display: inline-flex; align-items: center; gap: 8px;
   height: 44px; padding: 0 6px 0 16px; border-radius: 99px; font-size: 14px; color: #1a1205; white-space: nowrap;
   background: linear-gradient(135deg, var(--gold-soft), var(--gold)); box-shadow: 0 10px 30px -10px rgba(251, 191, 36, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.25) inset; }
 .daily-top b { font: 700 14.5px var(--display); }
@@ -2002,13 +2005,34 @@ html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent
 .daily-top:active { transform: scale(0.97); }
 .daily-top.done { padding: 0 16px; color: var(--text); background: var(--glass); box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.4); }
 .daily-top.done svg { color: #34d399; }
-@media (max-width: 900px) { .daily-top { top: calc(12px + var(--st)); } }
+/* Today's story: quieter than the Daily — glass, a bronze play disc, the title in the story's own type. */
+.story-top { position: relative; display: inline-flex; align-items: center; gap: 10px; height: 44px; max-width: 300px; padding: 0 16px 0 6px; border-radius: 99px;
+  color: var(--text); text-align: left; white-space: nowrap; background: var(--glass); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  box-shadow: 0 0 0 1px rgba(214, 160, 104, 0.38), 0 10px 26px -14px rgba(0, 0, 0, 0.7); transition: box-shadow 0.2s, transform 0.15s; }
+.story-top:hover { box-shadow: 0 0 0 1px rgba(232, 178, 120, 0.7), 0 10px 26px -14px rgba(0, 0, 0, 0.7); }
+.story-top:active { transform: scale(0.97); }
+.story-top:focus-visible { outline: 2px solid #e2a96d; outline-offset: 3px; }
+.st-disc { flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: #fff7ec;
+  background: linear-gradient(135deg, #d99a5a, #8a5528); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+.st-disc svg { margin-left: 2px; }
+.st-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.15; }
+.st-text small { font: 600 10.5px var(--display); letter-spacing: 0.08em; text-transform: uppercase; color: #e2b07c; }
+.st-text b { overflow: hidden; text-overflow: ellipsis; font: 700 13.5px var(--display); }
+@media (max-width: 900px) { .today-top { top: calc(12px + var(--st)); } }
 /* Phones: between the menu button and the Friends/Sound buttons — the whole pill is the button. */
 @media (max-width: 600px) {
   .daily-top { height: 42px; padding: 0 15px; gap: 7px; }
   /* With the Friends button there too, centre it in the space between the menu and the corner buttons. */
-  .app:has(.fo-fab) .daily-top, .app:has(.signin-fab) .daily-top { left: calc(50% - 26px) !important; }
+  .app:has(.fo-fab) .today-top, .app:has(.signin-fab) .today-top { left: calc(50% - 26px) !important; }
   .daily-top .dt-go { display: none; }
+  /* The story, one slim line under the Daily (clear of the corner buttons' labels). */
+  .today-top { flex-direction: column; gap: 18px; }
+  .story-top { height: 34px; max-width: min(290px, calc(100vw - 72px)); padding: 0 14px 0 4px; gap: 8px; }
+  .st-disc { width: 26px; height: 26px; }
+  .st-text { flex-direction: row; align-items: baseline; gap: 6px; }
+  .st-text small { font-size: 10px; }
+  .st-text small .st-min { display: none; }
+  .st-text b { font-size: 13px; }
 }
 @media (max-width: 360px) { .daily-top .dt-streak { display: none; } .daily-top b { font-size: 13.5px; } }
 /* The narrowest phones (320–359px): just "Daily", so it never runs into the corner buttons. */
