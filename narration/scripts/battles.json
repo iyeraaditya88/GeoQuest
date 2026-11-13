@@ -22,6 +22,16 @@
             11.25,
             75.78
           ]
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Mamluks & Gujarat",
+          "at": [
+            20.62,
+            71.08
+          ],
+          "side": "b"
         }
       ],
       "2": [
@@ -30,6 +40,16 @@
           "name": "Francisco de Almeida",
           "wiki": "Francisco_de_Almeida",
           "role": "Viceroy of Portuguese India",
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Almeida · 18 ships",
+          "at": [
+            20.5,
+            70.72
+          ],
           "side": "a"
         }
       ]
@@ -53,6 +73,28 @@
           "wiki": "Ismail_I",
           "role": "Founder of Safavid Persia",
           "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "cavalry",
+          "label": "Qizilbash horsemen",
+          "at": [
+            39.22,
+            44.06
+          ],
+          "side": "b"
+        }
+      ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "Ottoman guns",
+          "at": [
+            39.06,
+            43.76
+          ],
+          "side": "a"
         }
       ]
     }
@@ -84,6 +126,26 @@
           "name": "Qansuh al-Ghawri",
           "wiki": "Al-Ashraf_Qansuh_al-Ghuri",
           "role": "Mamluk sultan, killed on the field",
+          "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "Ottoman guns",
+          "at": [
+            36.64,
+            37.12
+          ],
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "cavalry",
+          "label": "Mamluk cavalry",
+          "at": [
+            36.36,
+            37.4
+          ],
           "side": "b"
         }
       ],
@@ -181,6 +243,32 @@
           "role": "Aztec emperor",
           "side": "b"
         }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "La Noche Triste",
+          "path": [
+            [
+              19.43,
+              -99.13
+            ],
+            [
+              19.48,
+              -99.2
+            ],
+            [
+              19.62,
+              -98.95
+            ],
+            [
+              19.32,
+              -98.24
+            ]
+          ],
+          "side": "a"
+        }
       ]
     }
   },
@@ -232,6 +320,26 @@
           "wiki": "Francis_I_of_France",
           "role": "King of France",
           "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "cavalry",
+          "label": "French knights",
+          "at": [
+            45.26,
+            9.2
+          ],
+          "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Arquebusiers",
+          "at": [
+            45.14,
+            9.27
+          ],
+          "side": "a"
         }
       ],
       "2": [
@@ -292,6 +400,16 @@
           "wiki": "Ibrahim_Lodi",
           "role": "Sultan of Delhi",
           "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Lodi · 100,000",
+          "at": [
+            29.28,
+            77.1
+          ],
+          "side": "b"
         }
       ],
       "2": [
@@ -308,6 +426,16 @@
           "name": "Babur",
           "wiki": "Babur",
           "role": "Ruler of Kabul, heir of Timur",
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Babur · 12,000",
+          "at": [
+            29.5,
+            76.85
+          ],
           "side": "a"
         }
       ]
@@ -356,6 +484,16 @@
             29.39,
             76.97
           ]
+        },
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "Babur's guns",
+          "at": [
+            29.43,
+            76.88
+          ],
+          "side": "a"
         }
       ],
       "3": [
@@ -365,6 +503,26 @@
           "wiki": "Ibrahim_Lodi",
           "role": "Sultan of Delhi, leading the attack",
           "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "cavalry",
+          "label": "Babur's horsemen",
+          "path": [
+            [
+              29.47,
+              76.9
+            ],
+            [
+              29.44,
+              77.1
+            ],
+            [
+              29.32,
+              77.08
+            ]
+          ],
+          "side": "a"
         }
       ]
     }
@@ -444,12 +602,34 @@
           "side": "a"
         }
       ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Ottomans · 60,000",
+          "at": [
+            45.84,
+            18.66
+          ],
+          "side": "a"
+        }
+      ],
       "3": [
         {
           "t": "person",
           "name": "Louis II of Hungary",
           "wiki": "Louis_II_of_Hungary",
           "role": "King of Hungary, aged 20",
+          "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Hungary · 25,000",
+          "at": [
+            46.12,
+            18.6
+          ],
           "side": "b"
         }
       ]
@@ -498,6 +678,15 @@
             21.5
           ],
           "kind": "region"
+        },
+        {
+          "t": "river",
+          "name": "Danube",
+          "at": [
+            45.25,
+            19.85
+          ],
+          "river": "Danube"
         }
       ],
       "2": [
@@ -508,6 +697,18 @@
             45.99,
             18.68
           ]
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "Ottoman guns",
+          "at": [
+            45.9,
+            18.76
+          ],
+          "side": "a"
         }
       ]
     }
@@ -629,6 +830,28 @@
             -7.16,
             -78.51
           ]
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Inca army · 80,000",
+          "at": [
+            -7.12,
+            -78.32
+          ],
+          "side": "b"
+        }
+      ],
+      "4": [
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "Spanish guns",
+          "at": [
+            -7.24,
+            -78.62
+          ],
+          "side": "a"
         }
       ]
     }
@@ -655,6 +878,16 @@
           "wiki": "Atahualpa",
           "role": "Prisoner of the Spaniards",
           "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "cargo",
+          "label": "A room of gold",
+          "at": [
+            -7.3,
+            -78.46
+          ],
+          "side": "b"
         }
       ],
       "2": [
@@ -665,6 +898,30 @@
             -13.53,
             -71.97
           ]
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Pizarro",
+          "path": [
+            [
+              -7.2,
+              -78.48
+            ],
+            [
+              -9.5,
+              -77.6
+            ],
+            [
+              -12,
+              -75.2
+            ],
+            [
+              -13.52,
+              -71.97
+            ]
+          ],
+          "side": "a"
         }
       ]
     }
@@ -688,6 +945,24 @@
             28.65,
             77.23
           ]
+        }
+      ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Hemu's army breaks",
+          "path": [
+            [
+              29.33,
+              77
+            ],
+            [
+              28.85,
+              77.12
+            ]
+          ],
+          "side": "b"
         }
       ],
       "3": [
@@ -739,12 +1014,66 @@
     "text": "May 1565. A great Ottoman fleet and some 35,000 men land on the island of Malta. Against them stand the Knights Hospitaller under their grand master, Jean de Valette, with Maltese soldiers, about 6,000 in all. For nearly four months they hold their forts under one of the heaviest bombardments of the age. When a small relief force finally lands, the Ottomans sail away. Malta's capital, Valletta, built afterwards, is named after the grand master.",
     "bed": "cannon-musket",
     "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Ottomans · 35,000",
+          "at": [
+            35.8,
+            14.62
+          ],
+          "side": "b"
+        }
+      ],
       "2": [
         {
           "t": "person",
           "name": "Jean de Valette",
           "wiki": "Jean_Parisot_de_Valette",
           "role": "Grand master of the Knights",
+          "side": "a"
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "fort",
+          "label": "Knights · 6,000",
+          "at": [
+            35.93,
+            14.53
+          ],
+          "side": "a"
+        }
+      ],
+      "4": [
+        {
+          "t": "item",
+          "icon": "galley",
+          "label": "Relief force · 8,000",
+          "path": [
+            [
+              36.7,
+              14.88
+            ],
+            [
+              36.4,
+              14.65
+            ],
+            [
+              36.15,
+              14.48
+            ],
+            [
+              36.02,
+              14.42
+            ],
+            [
+              35.98,
+              14.37
+            ]
+          ],
           "side": "a"
         }
       ],
@@ -812,6 +1141,16 @@
           "wiki": "Müezzinzade_Ali_Pasha",
           "role": "Ottoman grand admiral",
           "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "galley",
+          "label": "Ottomans · 251 galleys",
+          "at": [
+            38.31,
+            21.5
+          ],
+          "side": "b"
         }
       ],
       "3": [
@@ -820,6 +1159,16 @@
           "name": "Don John of Austria",
           "wiki": "John_of_Austria",
           "role": "Holy League commander, aged 24",
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "galley",
+          "label": "Holy League · 206 galleys",
+          "at": [
+            38.2,
+            20.95
+          ],
           "side": "a"
         }
       ]
@@ -851,6 +1200,24 @@
             14.1
           ],
           "kind": "island"
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "galley",
+          "label": "Six galleasses",
+          "path": [
+            [
+              38.24,
+              21.04
+            ],
+            [
+              38.29,
+              21.18
+            ]
+          ],
+          "side": "a"
         }
       ]
     }
@@ -887,6 +1254,18 @@
           "role": "Wounded soldier, future novelist",
           "side": "a"
         }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "galley",
+          "label": "New fleet · 1572",
+          "at": [
+            41,
+            28.98
+          ],
+          "side": "b"
+        }
       ]
     }
   },
@@ -901,6 +1280,26 @@
           "wiki": "Sebastian,_King_of_Portugal",
           "role": "King of Portugal, aged 24",
           "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Portugal · 23,000",
+          "at": [
+            35.12,
+            -6.08
+          ],
+          "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Saadi army · 60,000",
+          "at": [
+            34.86,
+            -5.72
+          ],
+          "side": "a"
         }
       ],
       "2": [
@@ -983,6 +1382,18 @@
     },
     "bed": "naval-battle",
     "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Armada · 130 ships",
+          "at": [
+            38.55,
+            -9.75
+          ],
+          "side": "b"
+        }
+      ],
       "2": [
         {
           "t": "place",
@@ -1011,6 +1422,22 @@
             50.95,
             1.86
           ]
+        },
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "Fireships",
+          "path": [
+            [
+              50.99,
+              1.5
+            ],
+            [
+              50.99,
+              1.76
+            ]
+          ],
+          "side": "a"
         }
       ]
     }
@@ -1064,6 +1491,70 @@
             -4.3
           ],
           "kind": "region"
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "The Armada, homeward",
+          "path": [
+            [
+              59,
+              -1.8
+            ],
+            [
+              59.45,
+              -1.95
+            ],
+            [
+              59.65,
+              -4
+            ],
+            [
+              59,
+              -6.6
+            ],
+            [
+              57.6,
+              -8
+            ],
+            [
+              56.2,
+              -8.4
+            ],
+            [
+              55.3,
+              -8.9
+            ],
+            [
+              54.6,
+              -10.4
+            ],
+            [
+              53.5,
+              -10.8
+            ],
+            [
+              52,
+              -11
+            ],
+            [
+              50.5,
+              -10.2
+            ],
+            [
+              47,
+              -9.6
+            ],
+            [
+              44.2,
+              -9
+            ],
+            [
+              43.42,
+              -8.45
+            ]
+          ],
+          "side": "b"
         }
       ],
       "3": [
@@ -1075,6 +1566,16 @@
             -8
           ],
           "kind": "region"
+        },
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "Wrecked off Ireland",
+          "at": [
+            54.45,
+            -8.75
+          ],
+          "side": "b"
         }
       ],
       "5": [
@@ -1144,6 +1645,18 @@
       ]
     },
     "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Japan · 158,000",
+          "at": [
+            35.3,
+            128.85
+          ],
+          "side": "b"
+        }
+      ],
       "2": [
         {
           "t": "place",
@@ -1203,6 +1716,18 @@
           "side": "a"
         }
       ],
+      "1": [
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Yi's turtle ships",
+          "at": [
+            34.55,
+            128.15
+          ],
+          "side": "a"
+        }
+      ],
       "3": [
         {
           "t": "place",
@@ -1211,6 +1736,15 @@
             39.02,
             125.75
           ]
+        },
+        {
+          "t": "river",
+          "name": "Yalu",
+          "at": [
+            40.1,
+            124.4
+          ],
+          "river": "Yalu"
         }
       ]
     }
@@ -1250,6 +1784,26 @@
             34.57,
             126.31
           ]
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Yi · 13 ships",
+          "at": [
+            34.57,
+            126.3
+          ],
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Japan · 133 ships",
+          "at": [
+            34.35,
+            126.5
+          ],
+          "side": "b"
         }
       ],
       "2": [
@@ -1258,6 +1812,34 @@
           "name": "Toyotomi Hideyoshi",
           "wiki": "Toyotomi_Hideyoshi",
           "role": "Died September 1598",
+          "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Japan withdraws",
+          "path": [
+            [
+              35.05,
+              129.05
+            ],
+            [
+              34.75,
+              129.4
+            ],
+            [
+              34.4,
+              129.75
+            ],
+            [
+              33.95,
+              130.1
+            ],
+            [
+              33.62,
+              130.38
+            ]
+          ],
           "side": "b"
         }
       ],
@@ -1354,6 +1936,16 @@
           "name": "Kobayakawa Hideaki",
           "wiki": "Kobayakawa_Hideaki",
           "role": "Western lord, secretly turning"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Kobayakawa · 15,000",
+          "at": [
+            35.32,
+            136.42
+          ],
+          "side": "b"
         }
       ]
     }
@@ -1378,6 +1970,24 @@
       ]
     },
     "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Kobayakawa turns",
+          "path": [
+            [
+              35.32,
+              136.42
+            ],
+            [
+              35.36,
+              136.45
+            ]
+          ],
+          "side": "a"
+        }
+      ],
       "2": [
         {
           "t": "person",
@@ -1503,6 +2113,54 @@
           "wiki": "Gustavus_Adolphus",
           "role": "King of Sweden",
           "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Swedish fleet",
+          "path": [
+            [
+              59.32,
+              18.1
+            ],
+            [
+              59.05,
+              18.9
+            ],
+            [
+              58.5,
+              18.6
+            ],
+            [
+              57.6,
+              17.6
+            ],
+            [
+              56.6,
+              17.3
+            ],
+            [
+              55.9,
+              16.5
+            ],
+            [
+              55.3,
+              15.6
+            ],
+            [
+              54.6,
+              14.4
+            ],
+            [
+              54.3,
+              14
+            ],
+            [
+              54.15,
+              13.8
+            ]
+          ],
+          "side": "a"
         }
       ],
       "3": [
@@ -1541,6 +2199,15 @@
             7.8
           ],
           "kind": "region"
+        },
+        {
+          "t": "item",
+          "icon": "treaty",
+          "label": "Peace of Westphalia",
+          "at": [
+            51.96,
+            7.63
+          ]
         }
       ]
     }
@@ -1595,6 +2262,26 @@
           "wiki": "Charles_I_of_England",
           "role": "King of England",
           "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "New Model Army · 14,000",
+          "at": [
+            52.33,
+            -0.86
+          ],
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Royalists · 9,000",
+          "at": [
+            52.5,
+            -1.06
+          ],
+          "side": "b"
         }
       ]
     }
@@ -1640,6 +2327,18 @@
           "name": "Shivaji",
           "wiki": "Shivaji",
           "role": "Founder of the Maratha kingdom",
+          "side": "a"
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "fort",
+          "label": "Maratha hill forts",
+          "at": [
+            18.37,
+            73.76
+          ],
           "side": "a"
         }
       ]
@@ -1742,6 +2441,16 @@
             79.4
           ],
           "kind": "fort"
+        },
+        {
+          "t": "item",
+          "icon": "fort",
+          "label": "Jinji",
+          "at": [
+            12.25,
+            79.42
+          ],
+          "side": "a"
         }
       ],
       "2": [
@@ -1750,6 +2459,28 @@
           "name": "Tarabai",
           "wiki": "Tarabai",
           "role": "Rajaram's widow, leading the resistance",
+          "side": "a"
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "cavalry",
+          "label": "Maratha raiders",
+          "path": [
+            [
+              18.6,
+              74.3
+            ],
+            [
+              20,
+              75
+            ],
+            [
+              22.7,
+              75.9
+            ]
+          ],
           "side": "a"
         }
       ]
@@ -1865,6 +2596,18 @@
     },
     "bed": "cannon-musket",
     "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Ottomans · 150,000",
+          "at": [
+            48.12,
+            16.22
+          ],
+          "side": "b"
+        }
+      ],
       "4": [
         {
           "t": "place",
@@ -1873,6 +2616,16 @@
             48.276,
             16.334
           ]
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Relief army · 70,000",
+          "at": [
+            48.3,
+            16.3
+          ],
+          "side": "a"
         }
       ]
     }
@@ -1905,6 +2658,40 @@
           "wiki": "John_III_Sobieski",
           "role": "Leading the cavalry charge",
           "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "cavalry",
+          "label": "Winged Hussars",
+          "path": [
+            [
+              48.3,
+              16.27
+            ],
+            [
+              48.15,
+              16.27
+            ]
+          ],
+          "side": "a"
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "In flight",
+          "path": [
+            [
+              48.12,
+              16.3
+            ],
+            [
+              47.75,
+              17
+            ]
+          ],
+          "side": "b"
         }
       ]
     }
@@ -1922,6 +2709,15 @@
             11.5
           ],
           "kind": "region"
+        },
+        {
+          "t": "river",
+          "name": "Danube",
+          "at": [
+            48.64,
+            10.6
+          ],
+          "river": "Danube"
         }
       ],
       "1": [
@@ -1964,6 +2760,26 @@
           "wiki": "Camille_d'Hostun,_duc_de_Tallard",
           "role": "French commander, taken prisoner",
           "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "France & Bavaria · 56,000",
+          "at": [
+            48.66,
+            10.42
+          ],
+          "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Allies · 52,000",
+          "at": [
+            48.7,
+            10.82
+          ],
+          "side": "a"
         }
       ],
       "3": [
@@ -2061,6 +2877,16 @@
             49.59,
             34.55
           ]
+        },
+        {
+          "t": "item",
+          "icon": "fort",
+          "label": "Poltava · 4,200",
+          "at": [
+            49.52,
+            34.58
+          ],
+          "side": "a"
         }
       ]
     }
@@ -2086,12 +2912,60 @@
     },
     "bed": "cannon-musket",
     "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "fort",
+          "label": "Russian camp · 42,000",
+          "at": [
+            49.68,
+            34.64
+          ],
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Swedes · 16,000",
+          "at": [
+            49.58,
+            34.36
+          ],
+          "side": "b"
+        }
+      ],
       "1": [
         {
           "t": "person",
           "name": "Charles XII",
           "wiki": "Charles_XII_of_Sweden",
           "role": "Wounded, carried on a stretcher",
+          "side": "b"
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "cavalry",
+          "label": "Charles · to Bender",
+          "path": [
+            [
+              49.55,
+              34.4
+            ],
+            [
+              49.1,
+              34.05
+            ],
+            [
+              47.6,
+              31.5
+            ],
+            [
+              46.83,
+              29.48
+            ]
+          ],
           "side": "b"
         }
       ]
@@ -2117,6 +2991,38 @@
             28.65,
             77.23
           ]
+        },
+        {
+          "t": "item",
+          "icon": "cargo",
+          "label": "Koh-i-Noor & Peacock Throne",
+          "path": [
+            [
+              28.65,
+              77.2
+            ],
+            [
+              31.55,
+              74.35
+            ],
+            [
+              34,
+              71.55
+            ],
+            [
+              34.53,
+              69.17
+            ],
+            [
+              34.35,
+              62.2
+            ],
+            [
+              36.3,
+              59.6
+            ]
+          ],
+          "side": "a"
         }
       ]
     }
@@ -2178,6 +3084,44 @@
             13.3
           ],
           "kind": "region"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Prussian army · 60,000",
+          "path": [
+            [
+              52.4,
+              13.06
+            ],
+            [
+              51.75,
+              13.2
+            ],
+            [
+              51.1,
+              13.65
+            ]
+          ],
+          "side": "a"
+        }
+      ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "cargo",
+          "label": "Subsidy · £670,000 a year",
+          "path": [
+            [
+              51.5,
+              -0.12
+            ],
+            [
+              52.52,
+              13.4
+            ]
+          ],
+          "side": "a"
         }
       ]
     }
@@ -2289,6 +3233,15 @@
           "at": [
             48.86,
             2.35
+          ]
+        },
+        {
+          "t": "item",
+          "icon": "treaty",
+          "label": "Treaty of Paris · 1763",
+          "at": [
+            48.6,
+            2
           ]
         }
       ],
@@ -2517,6 +3470,56 @@
             -71.5
           ],
           "kind": "region"
+        },
+        {
+          "t": "river",
+          "name": "St Lawrence",
+          "at": [
+            46.72,
+            -71.42
+          ],
+          "line": [
+            [
+              46.34,
+              -72.54
+            ],
+            [
+              46.5,
+              -72.25
+            ],
+            [
+              46.6,
+              -72.02
+            ],
+            [
+              46.67,
+              -71.9
+            ],
+            [
+              46.69,
+              -71.58
+            ],
+            [
+              46.75,
+              -71.29
+            ],
+            [
+              46.81,
+              -71.2
+            ],
+            [
+              46.84,
+              -71.06
+            ],
+            [
+              46.9,
+              -70.92
+            ],
+            [
+              47,
+              -70.76
+            ]
+          ]
         }
       ],
       "2": [
@@ -2525,6 +3528,78 @@
           "name": "James Wolfe",
           "wiki": "James_Wolfe",
           "role": "British general, aged 32",
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Saunders' fleet",
+          "path": [
+            [
+              45.88,
+              -59.92
+            ],
+            [
+              46.4,
+              -59.6
+            ],
+            [
+              47.3,
+              -59.9
+            ],
+            [
+              48,
+              -61.3
+            ],
+            [
+              48.8,
+              -63.3
+            ],
+            [
+              49.3,
+              -64.3
+            ],
+            [
+              49.4,
+              -65.2
+            ],
+            [
+              49.3,
+              -66.5
+            ],
+            [
+              49.05,
+              -67.7
+            ],
+            [
+              48.6,
+              -68.6
+            ],
+            [
+              48.05,
+              -69.4
+            ],
+            [
+              47.55,
+              -69.95
+            ],
+            [
+              47.15,
+              -70.5
+            ],
+            [
+              46.95,
+              -70.8
+            ],
+            [
+              46.84,
+              -71
+            ],
+            [
+              46.81,
+              -71.19
+            ]
+          ],
           "side": "a"
         }
       ],
@@ -2553,7 +3628,45 @@
         0.3
       ]
     },
-    "hit": "rifle-volley"
+    "hit": "rifle-volley",
+    "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "British batteries",
+          "at": [
+            46.79,
+            -71.12
+          ],
+          "side": "a"
+        }
+      ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Wolfe · 4,500",
+          "at": [
+            46.77,
+            -71.34
+          ],
+          "side": "a"
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Montcalm · 4,500",
+          "at": [
+            46.84,
+            -71.12
+          ],
+          "side": "b"
+        }
+      ]
+    }
   },
   "battle:quebec-1759:2": {
     "text": "Both commanders are mortally wounded. Wolfe dies on the field, knowing he has won, and Montcalm the next morning. Quebec surrenders days later, and by 1763, France has given up Canada. But the French-speaking people of Quebec remain, and their language and culture are still a living legacy of the old colony.",
@@ -2636,6 +3749,16 @@
           "wiki": "Ahmad_Shah_Durrani",
           "role": "Ruler of Afghanistan",
           "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Afghans & allies · ~60,000",
+          "at": [
+            29.22,
+            77.05
+          ],
+          "side": "a"
         }
       ],
       "3": [
@@ -2644,6 +3767,16 @@
           "name": "Sadashivrao Bhau",
           "wiki": "Sadashivrao_Bhau",
           "role": "Commander of the Maratha army",
+          "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Marathas · 45,000",
+          "at": [
+            29.55,
+            76.9
+          ],
           "side": "b"
         }
       ]
@@ -2683,6 +3816,16 @@
           "wiki": "Ahmad_Shah_Durrani",
           "role": "Ruler of Afghanistan",
           "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "Maratha guns",
+          "at": [
+            29.47,
+            77.08
+          ],
+          "side": "b"
         }
       ]
     }
@@ -2834,6 +3977,55 @@
             25.57,
             83.98
           ]
+        },
+        {
+          "t": "river",
+          "name": "Ganges",
+          "at": [
+            25.58,
+            84
+          ],
+          "river": "Ganges"
+        }
+      ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Allies · 40,000",
+          "at": [
+            25.5,
+            83.72
+          ],
+          "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Company · 7,000",
+          "at": [
+            25.5,
+            84.28
+          ],
+          "side": "a"
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "In retreat",
+          "path": [
+            [
+              25.52,
+              83.85
+            ],
+            [
+              25.38,
+              83.35
+            ]
+          ],
+          "side": "b"
         }
       ]
     }
@@ -2879,6 +4071,15 @@
             84.5
           ],
           "kind": "region"
+        },
+        {
+          "t": "item",
+          "icon": "treaty",
+          "label": "Treaty of Allahabad",
+          "at": [
+            25.44,
+            81.85
+          ]
         }
       ]
     }
@@ -2916,6 +4117,15 @@
             -73.85
           ],
           "kind": "region"
+        },
+        {
+          "t": "river",
+          "name": "Hudson",
+          "at": [
+            42.8,
+            -73.68
+          ],
+          "river": "Hudson"
         }
       ]
     }
@@ -2954,6 +4164,16 @@
           "wiki": "John_Burgoyne",
           "role": "British general, marching south",
           "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Burgoyne · 7,000",
+          "at": [
+            43.2,
+            -73.58
+          ],
+          "side": "b"
         }
       ],
       "2": [
@@ -2962,6 +4182,16 @@
           "name": "Horatio Gates",
           "wiki": "Horatio_Gates",
           "role": "American commander at Saratoga",
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Gates · 9,000",
+          "at": [
+            42.85,
+            -73.72
+          ],
           "side": "a"
         }
       ],
@@ -3003,6 +4233,15 @@
           "wiki": "John_Burgoyne",
           "role": "Surrendered, 17 October 1777",
           "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "treaty",
+          "label": "Convention of Saratoga",
+          "at": [
+            43.11,
+            -73.58
+          ]
         }
       ]
     }
@@ -3114,6 +4353,34 @@
           "wiki": "Charles_Cornwallis,_1st_Marquess_Cornwallis",
           "role": "Trapped at Yorktown",
           "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Graves · 19 ships",
+          "path": [
+            [
+              36.95,
+              -75.75
+            ],
+            [
+              37.6,
+              -74.9
+            ],
+            [
+              38.8,
+              -74.3
+            ],
+            [
+              39.9,
+              -73.75
+            ],
+            [
+              40.45,
+              -73.95
+            ]
+          ],
+          "side": "b"
         }
       ]
     }
@@ -3140,6 +4407,18 @@
     "bed": "cannon-musket",
     "hit": "explosion-far",
     "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "Allied siege guns",
+          "at": [
+            37.13,
+            -76.6
+          ],
+          "side": "a"
+        }
+      ],
       "2": [
         {
           "t": "person",
@@ -3291,6 +4570,69 @@
           "wiki": "Charles_Leclerc_(general,_born_1772)",
           "role": "Napoleon's brother-in-law, commanding",
           "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Leclerc · 20,000 troops",
+          "at": [
+            20.15,
+            -72.35
+          ],
+          "side": "b"
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "Héros · Toussaint aboard",
+          "path": [
+            [
+              19.8,
+              -72.2
+            ],
+            [
+              20.2,
+              -72
+            ],
+            [
+              21,
+              -70.6
+            ],
+            [
+              22.3,
+              -69.4
+            ],
+            [
+              27,
+              -62
+            ],
+            [
+              33,
+              -50
+            ],
+            [
+              40,
+              -32
+            ],
+            [
+              45,
+              -16
+            ],
+            [
+              47.6,
+              -7.5
+            ],
+            [
+              48.2,
+              -5.3
+            ],
+            [
+              48.36,
+              -4.55
+            ]
+          ]
         }
       ]
     }
@@ -3375,6 +4717,46 @@
           "kind": "region"
         }
       ],
+      "1": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Prussia & Austria · 34,000",
+          "at": [
+            49.05,
+            4.95
+          ],
+          "side": "b"
+        }
+      ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "French artillery",
+          "at": [
+            49.12,
+            4.6
+          ],
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "In retreat",
+          "path": [
+            [
+              49.05,
+              4.95
+            ],
+            [
+              49.4,
+              5.6
+            ]
+          ],
+          "side": "b"
+        }
+      ],
       "4": [
         {
           "t": "person",
@@ -3396,6 +4778,16 @@
           "wiki": "Napoleon",
           "role": "Leading the French invasion of Egypt",
           "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "France · 13",
+          "at": [
+            31.34,
+            30.18
+          ],
+          "side": "b"
         }
       ],
       "2": [
@@ -3405,6 +4797,38 @@
           "wiki": "Horatio_Nelson,_1st_Viscount_Nelson",
           "role": "Rear-admiral, Royal Navy",
           "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Britain · 14",
+          "path": [
+            [
+              31.6,
+              29.98
+            ],
+            [
+              31.45,
+              30.06
+            ],
+            [
+              31.37,
+              30.13
+            ]
+          ],
+          "side": "a"
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "L'Orient",
+          "at": [
+            31.36,
+            30.22
+          ],
+          "side": "b"
         }
       ]
     }
@@ -3451,6 +4875,18 @@
           "side": "b"
         }
       ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "Mysore rockets",
+          "at": [
+            12.33,
+            76.6
+          ],
+          "side": "b"
+        }
+      ],
       "4": [
         {
           "t": "person",
@@ -3487,6 +4923,29 @@
             13.08,
             80.27
           ]
+        }
+      ],
+      "1": [
+        {
+          "t": "river",
+          "name": "Kaveri",
+          "at": [
+            12.42,
+            76.69
+          ],
+          "river": "Cauvery"
+        }
+      ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "Company siege guns",
+          "at": [
+            12.5,
+            76.62
+          ],
+          "side": "a"
         }
       ]
     }
@@ -3593,7 +5052,51 @@
       ]
     },
     "bed": "cannon-musket",
-    "hit": "explosion-far"
+    "hit": "explosion-far",
+    "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Marathas · 50,000",
+          "at": [
+            20.38,
+            75.98
+          ],
+          "side": "b"
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "Maratha guns",
+          "at": [
+            20.3,
+            76.08
+          ],
+          "side": "b"
+        }
+      ],
+      "4": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "In flight",
+          "path": [
+            [
+              20.33,
+              75.96
+            ],
+            [
+              20.6,
+              76.1
+            ]
+          ],
+          "side": "b"
+        }
+      ]
+    }
   },
   "battle:assaye:2": {
     "text": "Wellesley has lost about a third of his men. Years later, even after Waterloo, he will call Assaye his finest work in the field. More defeats follow for the Marathas that year, and British power spreads across central India. Within fifteen years, the Maratha Confederacy is broken.",
@@ -3888,6 +5391,26 @@
           "wiki": "Francis_II,_Holy_Roman_Emperor",
           "role": "Emperor of Austria",
           "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Russia & Austria · 85,000",
+          "at": [
+            49.12,
+            16.92
+          ],
+          "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "France · 73,000",
+          "at": [
+            49.17,
+            16.6
+          ],
+          "side": "a"
         }
       ]
     }
@@ -3978,6 +5501,16 @@
           "wiki": "Napoleon",
           "role": "Emperor of the French",
           "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Grande Armée · 500,000+",
+          "at": [
+            54.85,
+            26.4
+          ],
+          "side": "a"
         }
       ],
       "4": [
@@ -3986,6 +5519,16 @@
           "name": "Mikhail Kutuzov",
           "wiki": "Mikhail_Kutuzov",
           "role": "Russian commander-in-chief, aged 67",
+          "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Russia · 120,000",
+          "at": [
+            55.62,
+            36.12
+          ],
           "side": "b"
         }
       ]
@@ -4042,6 +5585,28 @@
             35.838
           ],
           "kind": "fort"
+        },
+        {
+          "t": "item",
+          "icon": "fort",
+          "label": "Great Redoubt",
+          "at": [
+            55.57,
+            35.95
+          ],
+          "side": "b"
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "French guns · 587",
+          "at": [
+            55.46,
+            35.66
+          ],
+          "side": "a"
         }
       ]
     }
@@ -4077,6 +5642,36 @@
             55.75,
             37.62
           ]
+        }
+      ],
+      "4": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Retreat from Moscow",
+          "path": [
+            [
+              55.75,
+              37.62
+            ],
+            [
+              55.52,
+              35.82
+            ],
+            [
+              54.78,
+              32.05
+            ],
+            [
+              54.3,
+              28.6
+            ],
+            [
+              54.69,
+              25.28
+            ]
+          ],
+          "side": "a"
         }
       ]
     }
@@ -4144,6 +5739,28 @@
             12.37
           ]
         }
+      ],
+      "1": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Coalition · 380,000",
+          "at": [
+            51.48,
+            12.65
+          ],
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "France · 200,000",
+          "at": [
+            51.22,
+            12.12
+          ],
+          "side": "b"
+        }
       ]
     }
   },
@@ -4168,6 +5785,72 @@
           "name": "Napoleon",
           "wiki": "Napoleon",
           "role": "Emperor of the French, in retreat",
+          "side": "b"
+        },
+        {
+          "t": "river",
+          "name": "Elster",
+          "at": [
+            51.34,
+            12.33
+          ],
+          "line": [
+            [
+              51.05,
+              12.14
+            ],
+            [
+              51.17,
+              12.25
+            ],
+            [
+              51.23,
+              12.32
+            ],
+            [
+              51.3,
+              12.33
+            ],
+            [
+              51.34,
+              12.35
+            ],
+            [
+              51.37,
+              12.29
+            ],
+            [
+              51.4,
+              12.22
+            ],
+            [
+              51.43,
+              12.1
+            ],
+            [
+              51.46,
+              11.98
+            ]
+          ]
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "In retreat",
+          "path": [
+            [
+              51.34,
+              12.3
+            ],
+            [
+              51.29,
+              12.15
+            ],
+            [
+              51.2,
+              11.97
+            ]
+          ],
           "side": "b"
         }
       ],
@@ -4231,6 +5914,18 @@
           "kind": "island"
         }
       ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Napoleon · 73,000",
+          "at": [
+            50.57,
+            4.44
+          ],
+          "side": "b"
+        }
+      ],
       "3": [
         {
           "t": "person",
@@ -4244,6 +5939,26 @@
           "name": "Gebhard von Blücher",
           "wiki": "Gebhard_Leberecht_von_Blücher",
           "role": "Commander, Prussian army",
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Wellington · 68,000",
+          "at": [
+            50.78,
+            4.36
+          ],
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Blücher · 50,000",
+          "at": [
+            50.72,
+            4.62
+          ],
           "side": "a"
         }
       ]
@@ -4281,6 +5996,26 @@
           "name": "Napoleon",
           "wiki": "Napoleon",
           "role": "Emperor of the French",
+          "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "Grand battery · 80 guns",
+          "at": [
+            50.6,
+            4.46
+          ],
+          "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "cavalry",
+          "label": "Ney's cavalry",
+          "at": [
+            50.62,
+            4.33
+          ],
           "side": "b"
         }
       ],
@@ -4327,6 +6062,46 @@
             -5.71
           ],
           "kind": "island"
+        },
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "HMS Northumberland",
+          "path": [
+            [
+              50.25,
+              -4.15
+            ],
+            [
+              48.5,
+              -6.5
+            ],
+            [
+              40,
+              -12
+            ],
+            [
+              32,
+              -19
+            ],
+            [
+              20,
+              -23
+            ],
+            [
+              8,
+              -18
+            ],
+            [
+              -5,
+              -10
+            ],
+            [
+              -15.9,
+              -5.75
+            ]
+          ],
+          "side": "b"
         }
       ]
     }
@@ -4382,6 +6157,26 @@
           "wiki": "José_de_la_Serna,_1st_Count_of_the_Andes",
           "role": "Last Spanish viceroy of Peru",
           "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Patriots · 5,800",
+          "at": [
+            -12.95,
+            -74.33
+          ],
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Royalists · 9,300",
+          "at": [
+            -13.15,
+            -73.93
+          ],
+          "side": "b"
         }
       ],
       "3": [
@@ -4406,7 +6201,33 @@
   },
   "battle:navarino": {
     "text": "October 1827, Navarino Bay, in south-west Greece. The fleets of Britain, France and Russia enter the bay to enforce a truce in the Greek war of independence. A shot is fired, a battle begins, and within four hours, the Ottoman and Egyptian fleet is gone. Greek independence is secured.",
-    "bed": "naval-battle"
+    "bed": "naval-battle",
+    "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Allies · 27 ships",
+          "at": [
+            36.85,
+            21.45
+          ],
+          "side": "a"
+        }
+      ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Ottoman-Egyptian · 78",
+          "at": [
+            36.94,
+            21.69
+          ],
+          "side": "b"
+        }
+      ]
+    }
   },
   "battle:opium-war:0": {
     "text": "This is the First Opium War, fought from 1839 to 1842 between Britain and the Qing Empire of China. In blue is Britain, the world's greatest naval power. In red is Qing China. British merchants buy tea, silk and porcelain from China, and to pay for them, they smuggle in opium grown in British India. Great numbers of Chinese become addicted, and silver drains out of the country.",
@@ -4997,6 +6818,67 @@
           "kind": "region"
         }
       ],
+      "1": [
+        {
+          "t": "river",
+          "name": "Nueces",
+          "at": [
+            28.46,
+            -98.55
+          ],
+          "line": [
+            [
+              30,
+              -100.15
+            ],
+            [
+              29.55,
+              -99.98
+            ],
+            [
+              29.2,
+              -99.95
+            ],
+            [
+              28.85,
+              -99.85
+            ],
+            [
+              28.68,
+              -99.75
+            ],
+            [
+              28.44,
+              -99.23
+            ],
+            [
+              28.46,
+              -98.55
+            ],
+            [
+              28.46,
+              -98.18
+            ],
+            [
+              28.1,
+              -97.82
+            ],
+            [
+              27.88,
+              -97.6
+            ]
+          ]
+        },
+        {
+          "t": "river",
+          "name": "Rio Grande",
+          "at": [
+            27.5,
+            -99.5
+          ],
+          "river": "Rio Grande"
+        }
+      ],
       "2": [
         {
           "t": "person",
@@ -5089,6 +6971,38 @@
             19.43,
             -99.13
           ]
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Scott's army · 10,000",
+          "path": [
+            [
+              21.45,
+              -97.12
+            ],
+            [
+              20.9,
+              -96.85
+            ],
+            [
+              20.5,
+              -96.55
+            ],
+            [
+              19.9,
+              -96.25
+            ],
+            [
+              19.5,
+              -96.05
+            ],
+            [
+              19.2,
+              -96.08
+            ]
+          ],
+          "side": "a"
         }
       ]
     }
@@ -5120,6 +7034,26 @@
           "at": [
             19.49,
             -99.12
+          ]
+        },
+        {
+          "t": "item",
+          "icon": "treaty",
+          "label": "Treaty of Guadalupe Hidalgo",
+          "at": [
+            19.56,
+            -99.05
+          ]
+        }
+      ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "cargo",
+          "label": "Gold at Sutter's Mill",
+          "at": [
+            38.8,
+            -120.89
           ]
         }
       ]
@@ -5244,6 +7178,16 @@
             31.23,
             121.47
           ]
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Ever Victorious Army",
+          "at": [
+            31.23,
+            121.47
+          ],
+          "side": "a"
         }
       ]
     }
@@ -5278,6 +7222,26 @@
             32.06,
             118.78
           ]
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Hunan Army",
+          "path": [
+            [
+              30.52,
+              117.05
+            ],
+            [
+              31.33,
+              118.38
+            ],
+            [
+              31.92,
+              118.68
+            ]
+          ],
+          "side": "a"
         }
       ],
       "1": [
@@ -5387,6 +7351,38 @@
             42.03,
             35.15
           ]
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Russian fleet",
+          "path": [
+            [
+              44.62,
+              33.45
+            ],
+            [
+              44.3,
+              33.3
+            ],
+            [
+              43.4,
+              34
+            ],
+            [
+              42.5,
+              34.9
+            ],
+            [
+              42.15,
+              35.3
+            ],
+            [
+              42.02,
+              35.16
+            ]
+          ],
+          "side": "b"
         }
       ],
       "3": [
@@ -5422,6 +7418,18 @@
     },
     "bed": "winter-wind",
     "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Allied siege lines",
+          "at": [
+            44.5,
+            33.48
+          ],
+          "side": "a"
+        }
+      ],
       "1": [
         {
           "t": "place",
@@ -5430,6 +7438,22 @@
             44.5,
             33.6
           ]
+        },
+        {
+          "t": "item",
+          "icon": "cavalry",
+          "label": "Light Brigade",
+          "path": [
+            [
+              44.52,
+              33.62
+            ],
+            [
+              44.53,
+              33.72
+            ]
+          ],
+          "side": "a"
         }
       ],
       "3": [
@@ -5480,6 +7504,27 @@
             33.55
           ],
           "kind": "fort"
+        },
+        {
+          "t": "item",
+          "icon": "fort",
+          "label": "Malakhov",
+          "at": [
+            44.6,
+            33.62
+          ],
+          "side": "b"
+        }
+      ],
+      "1": [
+        {
+          "t": "item",
+          "icon": "treaty",
+          "label": "Treaty of Paris · 1856",
+          "at": [
+            48.86,
+            2.35
+          ]
         }
       ]
     }
@@ -5597,6 +7642,26 @@
             26.85,
             80.95
           ]
+        },
+        {
+          "t": "item",
+          "icon": "fort",
+          "label": "Lucknow Residency",
+          "at": [
+            26.86,
+            80.93
+          ],
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "fort",
+          "label": "Kanpur entrenchment",
+          "at": [
+            26.47,
+            80.35
+          ],
+          "side": "a"
         }
       ],
       "3": [
@@ -5660,6 +7725,46 @@
             96
           ],
           "kind": "region"
+        },
+        {
+          "t": "item",
+          "icon": "steamship",
+          "label": "Exile to Rangoon",
+          "path": [
+            [
+              21.6,
+              88.12
+            ],
+            [
+              20.6,
+              89.2
+            ],
+            [
+              18.5,
+              91.6
+            ],
+            [
+              16.6,
+              93.3
+            ],
+            [
+              15.7,
+              94.1
+            ],
+            [
+              15.6,
+              95.2
+            ],
+            [
+              16.1,
+              96.1
+            ],
+            [
+              16.5,
+              96.28
+            ]
+          ],
+          "side": "b"
         }
       ]
     }
@@ -5699,6 +7804,26 @@
           "name": "Franz Joseph I",
           "wiki": "Franz_Joseph_I_of_Austria",
           "role": "Emperor of Austria",
+          "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "France & Sardinia · 138,000",
+          "at": [
+            45.36,
+            10.4
+          ],
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Austria · 129,000",
+          "at": [
+            45.39,
+            10.74
+          ],
           "side": "b"
         }
       ],
@@ -5814,6 +7939,16 @@
             -79.87
           ],
           "kind": "fort"
+        },
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "Confederate batteries",
+          "at": [
+            32.82,
+            -79.98
+          ],
+          "side": "b"
         }
       ]
     }
@@ -5863,6 +7998,15 @@
             32.35,
             -90.88
           ]
+        },
+        {
+          "t": "river",
+          "name": "Mississippi",
+          "at": [
+            32.6,
+            -91.1
+          ],
+          "river": "Mississippi"
         }
       ],
       "3": [
@@ -5935,6 +8079,16 @@
           "wiki": "Robert_E._Lee",
           "role": "Surrenders at Appomattox",
           "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "treaty",
+          "label": "Terms of surrender",
+          "at": [
+            37.22,
+            -78.62
+          ],
+          "side": "a"
         }
       ],
       "1": [
@@ -6055,6 +8209,32 @@
           "wiki": "George_Pickett",
           "role": "Confederate general in the charge",
           "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "Confederate guns · 150",
+          "at": [
+            39.8,
+            -77.3
+          ],
+          "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Pickett's Charge · 12,500",
+          "path": [
+            [
+              39.805,
+              -77.285
+            ],
+            [
+              39.812,
+              -77.236
+            ]
+          ],
+          "side": "b"
         }
       ]
     }
@@ -6079,6 +8259,28 @@
       ]
     },
     "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Lee's army",
+          "path": [
+            [
+              39.8,
+              -77.3
+            ],
+            [
+              39.72,
+              -77.5
+            ],
+            [
+              39.6,
+              -77.82
+            ]
+          ],
+          "side": "b"
+        }
+      ],
       "2": [
         {
           "t": "place",
@@ -6122,6 +8324,71 @@
           "wiki": "Francisco_Solano_López",
           "role": "President of Paraguay",
           "side": "b"
+        }
+      ],
+      "3": [
+        {
+          "t": "river",
+          "name": "Paraná",
+          "at": [
+            -27.5,
+            -58.85
+          ],
+          "river": "Paraná"
+        },
+        {
+          "t": "river",
+          "name": "Paraguay",
+          "at": [
+            -25.28,
+            -57.65
+          ],
+          "line": [
+            [
+              -19,
+              -57.65
+            ],
+            [
+              -21.04,
+              -57.87
+            ],
+            [
+              -22.15,
+              -57.95
+            ],
+            [
+              -23.4,
+              -57.43
+            ],
+            [
+              -24.08,
+              -57.2
+            ],
+            [
+              -25.1,
+              -57.57
+            ],
+            [
+              -25.28,
+              -57.65
+            ],
+            [
+              -26.18,
+              -58.13
+            ],
+            [
+              -26.86,
+              -58.3
+            ],
+            [
+              -27.07,
+              -58.5
+            ],
+            [
+              -27.3,
+              -58.6
+            ]
+          ]
         }
       ]
     }
@@ -6175,6 +8442,62 @@
             -56
           ],
           "kind": "region"
+        },
+        {
+          "t": "item",
+          "icon": "steamship",
+          "label": "Marquês de Olinda",
+          "path": [
+            [
+              -25.5,
+              -57.56
+            ],
+            [
+              -25.38,
+              -57.6
+            ],
+            [
+              -25.28,
+              -57.65
+            ],
+            [
+              -25.18,
+              -57.6
+            ]
+          ],
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Into Mato Grosso",
+          "path": [
+            [
+              -23.4,
+              -57.43
+            ],
+            [
+              -21.7,
+              -57.6
+            ],
+            [
+              -19.6,
+              -57.2
+            ]
+          ],
+          "side": "b"
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "treaty",
+          "label": "Treaty of the Triple Alliance",
+          "at": [
+            -34.3,
+            -58.6
+          ],
+          "side": "a"
         }
       ]
     }
@@ -6205,6 +8528,16 @@
             -58.52
           ],
           "kind": "fort"
+        },
+        {
+          "t": "item",
+          "icon": "fort",
+          "label": "Humaitá",
+          "at": [
+            -27.07,
+            -58.5
+          ],
+          "side": "b"
         }
       ]
     }
@@ -6254,6 +8587,26 @@
             -22.65,
             -56.04
           ]
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "López's last army",
+          "path": [
+            [
+              -25.2,
+              -57.3
+            ],
+            [
+              -24,
+              -56.6
+            ],
+            [
+              -22.65,
+              -56.02
+            ]
+          ],
+          "side": "b"
         }
       ]
     }
@@ -6280,6 +8633,48 @@
           "wiki": "Helmuth_von_Moltke_the_Elder",
           "role": "Prussian chief of staff",
           "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "train",
+          "label": "Prussian troop trains",
+          "path": [
+            [
+              52.52,
+              13.4
+            ],
+            [
+              51.76,
+              14.33
+            ],
+            [
+              51.15,
+              14.99
+            ]
+          ],
+          "side": "a"
+        }
+      ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Prussia · 220,000",
+          "at": [
+            50.45,
+            15.6
+          ],
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Austria & Saxony · 215,000",
+          "at": [
+            50.15,
+            16.05
+          ],
+          "side": "b"
         }
       ]
     }
@@ -6345,6 +8740,16 @@
             6.18
           ],
           "kind": "fort"
+        },
+        {
+          "t": "item",
+          "icon": "fort",
+          "label": "Metz · 180,000 trapped",
+          "at": [
+            49.12,
+            6.18
+          ],
+          "side": "b"
         }
       ],
       "1": [
@@ -6355,6 +8760,18 @@
             49.7,
             4.94
           ]
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "German guns",
+          "at": [
+            49.78,
+            5.02
+          ],
+          "side": "a"
         }
       ]
     }
@@ -6399,6 +8816,16 @@
             48.805,
             2.12
           ]
+        },
+        {
+          "t": "item",
+          "icon": "treaty",
+          "label": "Empire proclaimed",
+          "at": [
+            48.8,
+            2.12
+          ],
+          "side": "a"
         }
       ],
       "2": [
@@ -6496,6 +8923,72 @@
           "wiki": "George_Armstrong_Custer",
           "role": "Commander, 7th Cavalry",
           "side": "b"
+        },
+        {
+          "t": "river",
+          "name": "Little Bighorn",
+          "at": [
+            45.45,
+            -107.39
+          ],
+          "line": [
+            [
+              45,
+              -107.33
+            ],
+            [
+              45.13,
+              -107.4
+            ],
+            [
+              45.31,
+              -107.37
+            ],
+            [
+              45.45,
+              -107.39
+            ],
+            [
+              45.53,
+              -107.41
+            ],
+            [
+              45.57,
+              -107.445
+            ],
+            [
+              45.6,
+              -107.46
+            ],
+            [
+              45.66,
+              -107.53
+            ],
+            [
+              45.73,
+              -107.61
+            ]
+          ]
+        },
+        {
+          "t": "item",
+          "icon": "cavalry",
+          "label": "7th Cavalry · ~650",
+          "at": [
+            45.62,
+            -107.3
+          ],
+          "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Warriors · ~1,800",
+          "at": [
+            45.5,
+            -107.55
+          ],
+          "side": "a"
         }
       ]
     }
@@ -6624,6 +9117,34 @@
             -28.36,
             30.65
           ]
+        },
+        {
+          "t": "item",
+          "icon": "cavalry",
+          "label": "Chelmsford's column",
+          "path": [
+            [
+              -28.37,
+              30.66
+            ],
+            [
+              -28.47,
+              30.83
+            ]
+          ],
+          "side": "b"
+        }
+      ],
+      "1": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Zulu army · 20,000",
+          "at": [
+            -28.28,
+            30.8
+          ],
+          "side": "a"
         }
       ]
     }
@@ -6652,6 +9173,16 @@
             30.54
           ],
           "kind": "fort"
+        },
+        {
+          "t": "item",
+          "icon": "fort",
+          "label": "Rorke's Drift · 150",
+          "at": [
+            -28.35,
+            30.54
+          ],
+          "side": "b"
         }
       ],
       "3": [
@@ -6690,6 +9221,17 @@
             -69.25
           ],
           "kind": "region"
+        }
+      ],
+      "4": [
+        {
+          "t": "item",
+          "icon": "cargo",
+          "label": "Nitrate fields",
+          "at": [
+            -22.5,
+            -69.6
+          ]
         }
       ]
     }
@@ -6773,6 +9315,46 @@
             -70.51
           ],
           "kind": "cape"
+        },
+        {
+          "t": "item",
+          "icon": "steamship",
+          "label": "Huáscar",
+          "path": [
+            [
+              -20.2,
+              -70.3
+            ],
+            [
+              -21,
+              -70.35
+            ],
+            [
+              -22,
+              -70.4
+            ],
+            [
+              -22.6,
+              -70.55
+            ],
+            [
+              -23.05,
+              -70.7
+            ]
+          ],
+          "side": "b"
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Chilean landings",
+          "at": [
+            -19.6,
+            -70
+          ],
+          "side": "a"
         }
       ]
     }
@@ -6898,6 +9480,17 @@
     },
     "bed": "marching",
     "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "treaty",
+          "label": "Treaty of Wuchale",
+          "at": [
+            11.5,
+            39.6
+          ]
+        }
+      ],
       "3": [
         {
           "t": "person",
@@ -6943,6 +9536,28 @@
             14.16,
             38.9
           ]
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Italy · 17,700",
+          "at": [
+            14.22,
+            39.15
+          ],
+          "side": "b"
+        }
+      ],
+      "1": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Ethiopia · 100,000",
+          "at": [
+            14.1,
+            38.72
+          ],
+          "side": "a"
         }
       ]
     }
@@ -6951,6 +9566,17 @@
     "text": "September 1898, on the Nile, in Sudan. Herbert Kitchener's army has Maxim machine guns and river gunboats. In a single morning, wave after wave of Sudanese soldiers are cut down: about 10,000 killed, against fewer than 50 on the British side. A young Winston Churchill rides in one of the last British cavalry charges. It is a grim picture of the industrial firepower behind colonial conquest.",
     "bed": "desert-wind",
     "marks": {
+      "0": [
+        {
+          "t": "river",
+          "name": "Nile",
+          "at": [
+            15.9,
+            32.55
+          ],
+          "river": "Nile"
+        }
+      ],
       "1": [
         {
           "t": "person",
@@ -6958,6 +9584,42 @@
           "wiki": "Herbert_Kitchener,_1st_Earl_Kitchener",
           "role": "Commander, Anglo-Egyptian army",
           "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "steamship",
+          "label": "Nile gunboats",
+          "path": [
+            [
+              16.1,
+              32.62
+            ],
+            [
+              16.04,
+              32.54
+            ],
+            [
+              15.63,
+              32.49
+            ],
+            [
+              15.67,
+              32.5
+            ]
+          ],
+          "side": "a"
+        }
+      ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Mahdists · 50,000",
+          "at": [
+            15.62,
+            32.25
+          ],
+          "side": "b"
         }
       ],
       "3": [
@@ -6966,6 +9628,22 @@
           "name": "Winston Churchill",
           "wiki": "Winston_Churchill",
           "role": "Cavalry officer, aged 23",
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "cavalry",
+          "label": "21st Lancers",
+          "path": [
+            [
+              15.74,
+              32.42
+            ],
+            [
+              15.67,
+              32.36
+            ]
+          ],
           "side": "a"
         }
       ]
@@ -7040,6 +9718,16 @@
             23.14,
             -82.36
           ]
+        },
+        {
+          "t": "item",
+          "icon": "steamship",
+          "label": "USS Maine · 260 dead",
+          "at": [
+            23.25,
+            -82.3
+          ],
+          "side": "a"
         }
       ]
     }
@@ -7092,6 +9780,16 @@
             120.77
           ],
           "kind": "sea"
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Spanish fleet · 7 ships",
+          "at": [
+            14.55,
+            120.92
+          ],
+          "side": "b"
         }
       ],
       "3": [
@@ -7109,6 +9807,46 @@
           "wiki": "Theodore_Roosevelt",
           "role": "Leader of the Rough Riders",
           "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "cavalry",
+          "label": "Rough Riders",
+          "at": [
+            20.1,
+            -75.72
+          ],
+          "side": "a"
+        }
+      ],
+      "4": [
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Cervera's squadron",
+          "path": [
+            [
+              19.97,
+              -75.87
+            ],
+            [
+              19.93,
+              -76
+            ],
+            [
+              19.89,
+              -76.3
+            ],
+            [
+              19.86,
+              -76.6
+            ],
+            [
+              19.86,
+              -76.83
+            ]
+          ],
+          "side": "b"
         }
       ]
     }
@@ -7145,6 +9883,15 @@
             144.79
           ],
           "kind": "island"
+        },
+        {
+          "t": "item",
+          "icon": "treaty",
+          "label": "Treaty of Paris · 1898",
+          "at": [
+            48.6,
+            2
+          ]
         }
       ]
     }
@@ -7287,6 +10034,30 @@
           "wiki": "Frederick_Roberts,_1st_Earl_Roberts",
           "role": "British commander-in-chief",
           "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "steamship",
+          "label": "Troopships from Britain",
+          "path": [
+            [
+              -32.6,
+              16.6
+            ],
+            [
+              -33.3,
+              17.6
+            ],
+            [
+              -33.72,
+              18.25
+            ],
+            [
+              -33.9,
+              18.43
+            ]
+          ],
+          "side": "a"
         }
       ],
       "3": [
@@ -7321,6 +10092,16 @@
           "name": "Christiaan de Wet",
           "wiki": "Christiaan_de_Wet",
           "role": "Boer guerrilla general",
+          "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "cavalry",
+          "label": "Boer commandos",
+          "at": [
+            -28.2,
+            26.9
+          ],
           "side": "b"
         }
       ]
@@ -7357,6 +10138,15 @@
           "at": [
             -26.67,
             27.93
+          ]
+        },
+        {
+          "t": "item",
+          "icon": "treaty",
+          "label": "Peace of Vereeniging",
+          "at": [
+            -26.88,
+            27.72
           ]
         }
       ]
@@ -7491,6 +10281,34 @@
           "role": "Admiral of Japan's fleet",
           "side": "a"
         }
+      ],
+      "1": [
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Tōgō's battleships",
+          "path": [
+            [
+              34.62,
+              129.85
+            ],
+            [
+              34.35,
+              130.25
+            ]
+          ],
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Russian line · 38 ships",
+          "at": [
+            34.1,
+            129.85
+          ],
+          "side": "b"
+        }
       ]
     }
   },
@@ -7567,6 +10385,16 @@
           "wiki": "Pancho_Villa",
           "role": "Revolutionary leader in the north",
           "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "cavalry",
+          "label": "Villa's army",
+          "at": [
+            28.95,
+            -106.4
+          ],
+          "side": "a"
         }
       ],
       "2": [
@@ -7584,6 +10412,16 @@
           "name": "Emiliano Zapata",
           "wiki": "Emiliano_Zapata",
           "role": "Leader of the southern villagers",
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Zapatistas",
+          "at": [
+            18.7,
+            -98.95
+          ],
           "side": "a"
         }
       ]
@@ -7660,6 +10498,19 @@
         23,
         -102,
         2.2
+      ]
+    },
+    "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "treaty",
+          "label": "Constitution of 1917",
+          "at": [
+            20.59,
+            -100.39
+          ]
+        }
       ]
     }
   },
@@ -8003,6 +10854,15 @@
             44.43,
             26.1
           ]
+        },
+        {
+          "t": "item",
+          "icon": "treaty",
+          "label": "Treaty of Bucharest",
+          "at": [
+            44.43,
+            26.1
+          ]
         }
       ],
       "2": [
@@ -8112,6 +10972,28 @@
           "role": "French commander-in-chief",
           "side": "a"
         }
+      ],
+      "4": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "By Paris taxi",
+          "path": [
+            [
+              48.86,
+              2.35
+            ],
+            [
+              48.98,
+              2.55
+            ],
+            [
+              49.1,
+              2.75
+            ]
+          ],
+          "side": "a"
+        }
       ]
     }
   },
@@ -8130,6 +11012,70 @@
       ]
     },
     "marks": {
+      "0": [
+        {
+          "t": "river",
+          "name": "Aisne",
+          "at": [
+            49.4,
+            3.6
+          ],
+          "line": [
+            [
+              49.4,
+              4.7
+            ],
+            [
+              49.5,
+              4.37
+            ],
+            [
+              49.46,
+              4.12
+            ],
+            [
+              49.4,
+              3.9
+            ],
+            [
+              49.4,
+              3.68
+            ],
+            [
+              49.41,
+              3.52
+            ],
+            [
+              49.38,
+              3.32
+            ],
+            [
+              49.41,
+              3.05
+            ],
+            [
+              49.42,
+              2.88
+            ]
+          ]
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "German retreat",
+          "path": [
+            [
+              48.98,
+              3.45
+            ],
+            [
+              49.45,
+              3.6
+            ]
+          ],
+          "side": "b"
+        }
+      ],
       "2": [
         {
           "t": "place",
@@ -8215,6 +11161,42 @@
     "bed": "surf-landing",
     "hit": "rifle-volley",
     "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Allied fleet · 18 battleships",
+          "path": [
+            [
+              39.95,
+              26.1
+            ],
+            [
+              40,
+              26.18
+            ],
+            [
+              40.05,
+              26.26
+            ],
+            [
+              40.09,
+              26.33
+            ]
+          ],
+          "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "fort",
+          "label": "Forts at the Narrows",
+          "at": [
+            40.17,
+            26.42
+          ],
+          "side": "a"
+        }
+      ],
       "1": [
         {
           "t": "place",
@@ -8265,6 +11247,40 @@
             40.3,
             26.23
           ]
+        },
+        {
+          "t": "item",
+          "icon": "steamship",
+          "label": "Suvla landing",
+          "path": [
+            [
+              40.33,
+              26.05
+            ],
+            [
+              40.3,
+              26.21
+            ]
+          ],
+          "side": "b"
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "steamship",
+          "label": "Evacuation",
+          "path": [
+            [
+              40.24,
+              26.26
+            ],
+            [
+              40.05,
+              25.98
+            ]
+          ],
+          "side": "b"
         }
       ],
       "5": [
@@ -8293,6 +11309,72 @@
       ]
     },
     "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "fort",
+          "label": "Ring of forts",
+          "at": [
+            49.08,
+            5.27
+          ],
+          "side": "a"
+        },
+        {
+          "t": "river",
+          "name": "Meuse",
+          "at": [
+            49.28,
+            5.3
+          ],
+          "line": [
+            [
+              48.89,
+              5.54
+            ],
+            [
+              48.97,
+              5.49
+            ],
+            [
+              49.05,
+              5.43
+            ],
+            [
+              49.12,
+              5.4
+            ],
+            [
+              49.16,
+              5.385
+            ],
+            [
+              49.22,
+              5.36
+            ],
+            [
+              49.28,
+              5.3
+            ],
+            [
+              49.38,
+              5.18
+            ],
+            [
+              49.49,
+              5.19
+            ],
+            [
+              49.61,
+              5.08
+            ],
+            [
+              49.7,
+              4.94
+            ]
+          ]
+        }
+      ],
       "3": [
         {
           "t": "person",
@@ -8321,6 +11403,18 @@
     "bed": "artillery-distant",
     "hit": "explosion-far",
     "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "German guns · 1,200",
+          "at": [
+            49.32,
+            5.5
+          ],
+          "side": "b"
+        }
+      ],
       "2": [
         {
           "t": "place",
@@ -8330,6 +11424,15 @@
             5.438
           ],
           "kind": "fort"
+        },
+        {
+          "t": "item",
+          "icon": "fort",
+          "label": "Fort Douaumont",
+          "at": [
+            49.217,
+            5.438
+          ]
         }
       ],
       "3": [
@@ -8347,6 +11450,26 @@
             48.98,
             5.25
           ]
+        },
+        {
+          "t": "item",
+          "icon": "cargo",
+          "label": "Sacred Way · trucks",
+          "path": [
+            [
+              48.77,
+              5.16
+            ],
+            [
+              48.95,
+              5.25
+            ],
+            [
+              49.13,
+              5.35
+            ]
+          ],
+          "side": "a"
         }
       ]
     }
@@ -8370,7 +11493,31 @@
   "battle:jutland": {
     "text": "May 1916, in the North Sea. About 250 warships of the British and German fleets meet in the largest naval battle of the war. Britain loses more ships and more men. Yet afterwards, the German fleet barely challenges it again, turning instead to submarines. And it is the U-boats that will bring the United States into the war.",
     "bed": "naval-battle",
-    "hit": "explosion-far"
+    "hit": "explosion-far",
+    "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Grand Fleet · 151 ships",
+          "at": [
+            56.95,
+            5.55
+          ],
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "High Seas Fleet · 99",
+          "at": [
+            56.45,
+            6.2
+          ],
+          "side": "b"
+        }
+      ]
+    }
   },
   "battle:somme:0": {
     "text": "This is the Battle of the Somme, fought in northern France, from July to November 1916. Since 1914, the armies of the Western Front have faced each other across lines of trenches. In blue are Britain and France, whose attack here is meant to break through, and to take pressure off the French at Verdun. In red is Germany, dug into deep, strong defences on the chalk ridges above the river.",
@@ -8414,7 +11561,21 @@
       ]
     },
     "bed": "artillery-distant",
-    "hit": "whistle"
+    "hit": "whistle",
+    "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "British guns · 1.5m shells",
+          "at": [
+            49.93,
+            2.5
+          ],
+          "side": "a"
+        }
+      ]
+    }
   },
   "battle:somme:2": {
     "text": "Still the battle goes on, for four and a half months. In September, tanks go into battle for the first time in history. When the winter rains turn the ground to mud, the offensive ends. The Allies have advanced about 10 kilometres. More than a million men on both sides have been killed or wounded, and the Somme becomes a byword for the horror of the Great War.",
@@ -8430,7 +11591,21 @@
         0.9
       ]
     },
-    "bed": "trench-rain"
+    "bed": "trench-rain",
+    "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "tank",
+          "label": "First tanks · Flers",
+          "at": [
+            50.06,
+            2.82
+          ],
+          "side": "a"
+        }
+      ]
+    }
   },
   "battle:russian-civil-war:0": {
     "text": "This is the Russian Civil War, fought from 1917 to 1922, across the whole of the old Russian Empire. The Bolsheviks, known as the Reds, are shown here in blue: Lenin's communists, who seized power in the October Revolution. The red arrows belong to their enemies, the White armies, a mix of monarchists, officers and moderates, helped for a time by foreign troops. The war is fought across a land that stretches from the Baltic to the Pacific.",
@@ -8502,6 +11677,30 @@
           "name": "Nicholas II",
           "wiki": "Nicholas_II",
           "role": "Last tsar, shot in July 1918"
+        },
+        {
+          "t": "item",
+          "icon": "train",
+          "label": "Czechoslovak Legion",
+          "path": [
+            [
+              53.2,
+              45
+            ],
+            [
+              53.2,
+              50.1
+            ],
+            [
+              54.73,
+              55.97
+            ],
+            [
+              55.16,
+              61.4
+            ]
+          ],
+          "side": "b"
         }
       ]
     }
@@ -8533,6 +11732,26 @@
           "name": "Leon Trotsky",
           "wiki": "Leon_Trotsky",
           "role": "Founder of the Red Army",
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "train",
+          "label": "Trotsky's train",
+          "path": [
+            [
+              55.75,
+              37.62
+            ],
+            [
+              56.3,
+              44
+            ],
+            [
+              55.77,
+              48.66
+            ]
+          ],
           "side": "a"
         }
       ],
@@ -8587,6 +11806,54 @@
             34.1
           ],
           "kind": "region"
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Wrangel's evacuation",
+          "path": [
+            [
+              44.62,
+              33.52
+            ],
+            [
+              44.3,
+              33.1
+            ],
+            [
+              43.4,
+              31.9
+            ],
+            [
+              42.2,
+              29.9
+            ],
+            [
+              41.4,
+              29.25
+            ],
+            [
+              41.23,
+              29.12
+            ],
+            [
+              41.17,
+              29.07
+            ],
+            [
+              41.12,
+              29.06
+            ],
+            [
+              41.08,
+              29.05
+            ],
+            [
+              41.02,
+              29
+            ]
+          ],
+          "side": "b"
         }
       ]
     }
@@ -8650,6 +11917,131 @@
           "at": [
             38.42,
             27.14
+          ]
+        },
+        {
+          "t": "item",
+          "icon": "steamship",
+          "label": "Greek landing",
+          "path": [
+            [
+              38.75,
+              26.15
+            ],
+            [
+              38.78,
+              26.55
+            ],
+            [
+              38.6,
+              26.72
+            ],
+            [
+              38.47,
+              26.85
+            ],
+            [
+              38.44,
+              27
+            ],
+            [
+              38.43,
+              27.12
+            ]
+          ],
+          "side": "b"
+        }
+      ],
+      "1": [
+        {
+          "t": "item",
+          "icon": "steamship",
+          "label": "Bandırma",
+          "path": [
+            [
+              41.02,
+              28.98
+            ],
+            [
+              41.045,
+              29.03
+            ],
+            [
+              41.075,
+              29.045
+            ],
+            [
+              41.1,
+              29.06
+            ],
+            [
+              41.135,
+              29.07
+            ],
+            [
+              41.16,
+              29.06
+            ],
+            [
+              41.18,
+              29.075
+            ],
+            [
+              41.22,
+              29.12
+            ],
+            [
+              41.35,
+              29.4
+            ],
+            [
+              41.55,
+              30.5
+            ],
+            [
+              41.8,
+              32
+            ],
+            [
+              42.1,
+              33.5
+            ],
+            [
+              42.2,
+              34.8
+            ],
+            [
+              42.1,
+              35.4
+            ],
+            [
+              41.92,
+              35.85
+            ],
+            [
+              41.78,
+              36.15
+            ],
+            [
+              41.52,
+              36.38
+            ],
+            [
+              41.3,
+              36.34
+            ]
+          ],
+          "side": "a"
+        }
+      ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "treaty",
+          "label": "Treaty of Sèvres",
+          "at": [
+            48.82,
+            2.21
           ]
         }
       ],
@@ -8741,6 +12133,15 @@
         {
           "t": "place",
           "name": "Lausanne",
+          "at": [
+            46.52,
+            6.63
+          ]
+        },
+        {
+          "t": "item",
+          "icon": "treaty",
+          "label": "Treaty of Lausanne",
           "at": [
             46.52,
             6.63
@@ -8876,6 +12277,22 @@
             -5.4
           ],
           "kind": "region"
+        },
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Airlift from Africa",
+          "path": [
+            [
+              35.58,
+              -5.34
+            ],
+            [
+              37.39,
+              -5.98
+            ]
+          ],
+          "side": "a"
         }
       ],
       "3": [
@@ -8935,6 +12352,22 @@
           "name": "Pablo Picasso",
           "wiki": "Pablo_Picasso",
           "role": "Painted Guernica, 1937"
+        },
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Condor Legion",
+          "path": [
+            [
+              42.85,
+              -2.67
+            ],
+            [
+              43.3,
+              -2.68
+            ]
+          ],
+          "side": "a"
         }
       ]
     }
@@ -8959,6 +12392,17 @@
       ]
     },
     "marks": {
+      "0": [
+        {
+          "t": "river",
+          "name": "Ebro",
+          "at": [
+            41.09,
+            0.64
+          ],
+          "river": "Ebro"
+        }
+      ],
       "1": [
         {
           "t": "place",
@@ -9133,6 +12577,33 @@
             29.56,
             106.55
           ]
+        },
+        {
+          "t": "river",
+          "name": "Yangtze",
+          "at": [
+            30.6,
+            111.2
+          ],
+          "river": "Yangtze"
+        }
+      ],
+      "4": [
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Japanese bombers",
+          "path": [
+            [
+              30.6,
+              114.3
+            ],
+            [
+              29.6,
+              106.7
+            ]
+          ],
+          "side": "b"
         }
       ],
       "5": [
@@ -9181,6 +12652,22 @@
             86.5
           ],
           "kind": "region"
+        },
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "The Hump airlift",
+          "path": [
+            [
+              27.48,
+              95.02
+            ],
+            [
+              25,
+              102.7
+            ]
+          ],
+          "side": "a"
         }
       ],
       "2": [
@@ -9236,6 +12723,16 @@
             5.6
           ],
           "kind": "region"
+        },
+        {
+          "t": "item",
+          "icon": "tank",
+          "label": "Panzer divisions",
+          "at": [
+            49.85,
+            5.1
+          ],
+          "side": "b"
         }
       ]
     }
@@ -9256,6 +12753,28 @@
     },
     "bed": "aircraft-drone",
     "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Royal Navy destroyers",
+          "at": [
+            51.13,
+            2.2
+          ],
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Luftwaffe",
+          "at": [
+            50.93,
+            2.6
+          ],
+          "side": "b"
+        }
+      ],
       "2": [
         {
           "t": "place",
@@ -9265,6 +12784,30 @@
             0.9
           ],
           "kind": "sea"
+        },
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "The little ships",
+          "path": [
+            [
+              51.32,
+              1.45
+            ],
+            [
+              51.25,
+              1.7
+            ],
+            [
+              51.15,
+              2.05
+            ],
+            [
+              51.07,
+              2.33
+            ]
+          ],
+          "side": "a"
         }
       ]
     }
@@ -9284,6 +12827,18 @@
       ]
     },
     "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "Guns left behind",
+          "at": [
+            50.93,
+            2.5
+          ],
+          "side": "a"
+        }
+      ],
       "2": [
         {
           "t": "person",
@@ -9307,6 +12862,32 @@
         50,
         2,
         1.4
+      ]
+    },
+    "marks": {
+      "2": [
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Luftwaffe · 2,500 aircraft",
+          "at": [
+            50.25,
+            2.6
+          ],
+          "side": "b"
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "RAF · 750 fighters",
+          "at": [
+            51.75,
+            0.35
+          ],
+          "side": "a"
+        }
       ]
     }
   },
@@ -9340,6 +12921,24 @@
             -1
           ],
           "kind": "sea"
+        }
+      ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Hurricanes & Spitfires",
+          "path": [
+            [
+              51.32,
+              0.03
+            ],
+            [
+              51,
+              1.15
+            ]
+          ],
+          "side": "a"
         }
       ]
     }
@@ -9394,6 +12993,24 @@
             37.62
           ],
           "kind": "fort"
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Germans fall back",
+          "path": [
+            [
+              55.95,
+              37.15
+            ],
+            [
+              55.45,
+              35.3
+            ]
+          ],
+          "side": "b"
         }
       ],
       "4": [
@@ -9478,6 +13095,40 @@
           ],
           "kind": "sea"
         }
+      ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Two waves · 353 planes",
+          "path": [
+            [
+              26,
+              -158
+            ],
+            [
+              23.5,
+              -158.1
+            ],
+            [
+              21.4,
+              -157.95
+            ]
+          ],
+          "side": "a"
+        }
+      ],
+      "4": [
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "USS Arizona",
+          "at": [
+            21.37,
+            -157.93
+          ],
+          "side": "b"
+        }
       ]
     }
   },
@@ -9496,6 +13147,18 @@
       ]
     },
     "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "US carriers",
+          "at": [
+            21.6,
+            -161
+          ],
+          "side": "b"
+        }
+      ],
       "2": [
         {
           "t": "person",
@@ -9522,6 +13185,18 @@
       ]
     },
     "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "fort",
+          "label": "Fortress Singapore",
+          "at": [
+            1.3,
+            103.97
+          ],
+          "side": "b"
+        }
+      ],
       "2": [
         {
           "t": "person",
@@ -9586,6 +13261,34 @@
             102
           ],
           "kind": "region"
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Japanese bombers",
+          "path": [
+            [
+              10.8,
+              106.65
+            ],
+            [
+              3.7,
+              104.4
+            ]
+          ],
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "steamship",
+          "label": "Prince of Wales · Repulse",
+          "at": [
+            3.55,
+            104.5
+          ],
+          "side": "b"
         }
       ],
       "4": [
@@ -9668,6 +13371,28 @@
           "wiki": "Isoroku_Yamamoto",
           "role": "Commander of Japan's fleet",
           "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Kido Butai · 4 carriers",
+          "at": [
+            30,
+            -179.2
+          ],
+          "side": "b"
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "US carriers · 3",
+          "at": [
+            31.8,
+            -174.2
+          ],
+          "side": "a"
         }
       ],
       "4": [
@@ -9714,6 +13439,24 @@
             -157.97
           ]
         }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Dive-bombers",
+          "path": [
+            [
+              31.6,
+              -174.5
+            ],
+            [
+              30.3,
+              -178.8
+            ]
+          ],
+          "side": "a"
+        }
       ]
     }
   },
@@ -9732,6 +13475,18 @@
       ]
     },
     "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "steamship",
+          "label": "Yorktown · sunk",
+          "at": [
+            30.6,
+            -176.6
+          ],
+          "side": "a"
+        }
+      ],
       "3": [
         {
           "t": "place",
@@ -9822,12 +13577,57 @@
     "bed": "city-ruins",
     "hit": "explosion-far",
     "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Luftwaffe bombers",
+          "path": [
+            [
+              48.95,
+              43.6
+            ],
+            [
+              48.72,
+              44.48
+            ]
+          ],
+          "side": "b"
+        }
+      ],
       "2": [
         {
           "t": "person",
           "name": "Vasily Chuikov",
           "wiki": "Vasily_Chuikov",
           "role": "Commander, Soviet 62nd Army",
+          "side": "a"
+        }
+      ],
+      "3": [
+        {
+          "t": "river",
+          "name": "Volga",
+          "at": [
+            48.72,
+            44.6
+          ],
+          "river": "Volga"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Soviet reinforcements",
+          "path": [
+            [
+              48.78,
+              44.8
+            ],
+            [
+              48.73,
+              44.56
+            ]
+          ],
           "side": "a"
         }
       ]
@@ -9852,7 +13652,21 @@
         2.6
       ]
     },
-    "bed": "winter-wind"
+    "bed": "winter-wind",
+    "marks": {
+      "2": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Sixth Army · 250,000",
+          "at": [
+            48.78,
+            44.1
+          ],
+          "side": "b"
+        }
+      ]
+    }
   },
   "battle:el-alamein:0": {
     "text": "This is the Second Battle of El Alamein, fought in the Egyptian desert, in October and November 1942. In red are the German and Italian armies of Erwin Rommel, the Desert Fox, which have driven deep into Egypt, toward the Suez Canal. In blue is the British Eighth Army, with troops from Australia, New Zealand, India, South Africa and beyond, under its new commander, Bernard Montgomery.",
@@ -9884,6 +13698,16 @@
             30.6,
             32.33
           ]
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Axis · 116,000",
+          "at": [
+            30.86,
+            28.7
+          ],
+          "side": "b"
         }
       ],
       "2": [
@@ -9892,6 +13716,16 @@
           "name": "Bernard Montgomery",
           "wiki": "Bernard_Montgomery",
           "role": "New commander of the Eighth Army",
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Eighth Army · 195,000",
+          "at": [
+            30.76,
+            29.18
+          ],
           "side": "a"
         }
       ]
@@ -9931,6 +13765,36 @@
             27.3
           ],
           "kind": "region"
+        }
+      ],
+      "1": [
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "British guns · 900",
+          "at": [
+            30.72,
+            29.06
+          ],
+          "side": "a"
+        }
+      ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "tank",
+          "label": "British armour",
+          "path": [
+            [
+              30.8,
+              29.06
+            ],
+            [
+              30.86,
+              28.82
+            ]
+          ],
+          "side": "a"
         }
       ]
     }
@@ -9983,6 +13847,38 @@
             2.5
           ],
           "kind": "region"
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Operation Torch",
+          "path": [
+            [
+              36.12,
+              -5.33
+            ],
+            [
+              36.05,
+              -4.5
+            ],
+            [
+              36.2,
+              -2.5
+            ],
+            [
+              36.5,
+              -0.5
+            ],
+            [
+              36.9,
+              1.5
+            ],
+            [
+              36.78,
+              3.07
+            ]
+          ],
+          "side": "a"
         }
       ],
       "3": [
@@ -10028,6 +13924,18 @@
             36.19
           ]
         }
+      ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "tank",
+          "label": "Tigers & Panthers",
+          "at": [
+            50.72,
+            36.45
+          ],
+          "side": "b"
+        }
       ]
     }
   },
@@ -10053,6 +13961,18 @@
     "bed": "tanks-rolling",
     "hit": "explosion-far",
     "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "Soviet defence belts",
+          "at": [
+            51.48,
+            36.5
+          ],
+          "side": "a"
+        }
+      ],
       "4": [
         {
           "t": "place",
@@ -10061,6 +13981,26 @@
             51.04,
             36.73
           ]
+        },
+        {
+          "t": "item",
+          "icon": "tank",
+          "label": "5th Guards Tank Army",
+          "at": [
+            51.12,
+            36.84
+          ],
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "tank",
+          "label": "II SS Panzer Corps",
+          "at": [
+            50.96,
+            36.6
+          ],
+          "side": "b"
         }
       ]
     }
@@ -10228,6 +14168,15 @@
             94.5
           ],
           "kind": "region"
+        },
+        {
+          "t": "river",
+          "name": "Chindwin",
+          "at": [
+            24.5,
+            94.95
+          ],
+          "river": "Chindwin"
         }
       ],
       "2": [
@@ -10246,6 +14195,24 @@
             25.67,
             94.11
           ]
+        }
+      ],
+      "4": [
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Air supply",
+          "path": [
+            [
+              23.46,
+              91.18
+            ],
+            [
+              24.76,
+              93.9
+            ]
+          ],
+          "side": "a"
         }
       ]
     }
@@ -10266,6 +14233,24 @@
     },
     "bed": "trench-rain",
     "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "In retreat",
+          "path": [
+            [
+              24.65,
+              94.15
+            ],
+            [
+              24.25,
+              95
+            ]
+          ],
+          "side": "b"
+        }
+      ],
       "3": [
         {
           "t": "person",
@@ -10297,6 +14282,18 @@
       ]
     },
     "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "fort",
+          "label": "Atlantic Wall",
+          "at": [
+            49.3,
+            -0.3
+          ],
+          "side": "b"
+        }
+      ],
       "2": [
         {
           "t": "person",
@@ -10372,6 +14369,34 @@
             49.29,
             -0.3
           ]
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Allied armada · 7,000 ships",
+          "at": [
+            49.85,
+            -0.75
+          ],
+          "side": "a"
+        }
+      ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Paratroopers",
+          "path": [
+            [
+              50.85,
+              -1.75
+            ],
+            [
+              49.41,
+              -1.32
+            ]
+          ],
+          "side": "a"
         }
       ],
       "3": [
@@ -10419,6 +14444,16 @@
             48.89,
             -0.19
           ]
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Falaise pocket · 100,000",
+          "at": [
+            48.78,
+            0.1
+          ],
+          "side": "b"
         }
       ],
       "2": [
@@ -10458,6 +14493,48 @@
             124.9
           ],
           "kind": "island"
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Japanese navy · 67 ships",
+          "at": [
+            12.1,
+            126.4
+          ],
+          "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "US navy · 300 ships",
+          "at": [
+            10.55,
+            126.15
+          ],
+          "side": "a"
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Kamikazes from Luzon",
+          "path": [
+            [
+              15.2,
+              120.6
+            ],
+            [
+              13.3,
+              123
+            ],
+            [
+              11,
+              126
+            ]
+          ],
+          "side": "b"
         }
       ]
     }
@@ -10512,6 +14589,18 @@
     "bed": "winter-wind",
     "hit": "explosion-far",
     "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "tank",
+          "label": "German army · 200,000",
+          "at": [
+            50.4,
+            6.45
+          ],
+          "side": "b"
+        }
+      ],
       "2": [
         {
           "t": "place",
@@ -10530,6 +14619,16 @@
             50,
             5.72
           ]
+        },
+        {
+          "t": "item",
+          "icon": "fort",
+          "label": "Bastogne holds",
+          "at": [
+            49.9,
+            5.55
+          ],
+          "side": "a"
         }
       ],
       "5": [
@@ -10559,6 +14658,24 @@
     },
     "bed": "winter-wind",
     "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Allied aircraft",
+          "path": [
+            [
+              49.55,
+              4.9
+            ],
+            [
+              50.2,
+              5.65
+            ]
+          ],
+          "side": "a"
+        }
+      ],
       "1": [
         {
           "t": "person",
@@ -10632,6 +14749,15 @@
           "wiki": "Ivan_Konev",
           "role": "Soviet marshal, 1st Ukrainian Front",
           "side": "a"
+        },
+        {
+          "t": "river",
+          "name": "Oder",
+          "at": [
+            52.6,
+            14.62
+          ],
+          "river": "Oder"
         }
       ],
       "2": [
@@ -10642,6 +14768,18 @@
             52.53,
             14.38
           ]
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "Soviet artillery",
+          "at": [
+            52.55,
+            13.75
+          ],
+          "side": "a"
         }
       ]
     }
@@ -10690,6 +14828,17 @@
           "at": [
             52.5186,
             13.3761
+          ]
+        }
+      ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "treaty",
+          "label": "German surrender",
+          "at": [
+            52.49,
+            13.53
           ]
         }
       ]
@@ -10747,6 +14896,22 @@
             34.39,
             132.45
           ]
+        },
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Enola Gay",
+          "path": [
+            [
+              15,
+              145.65
+            ],
+            [
+              34.39,
+              132.45
+            ]
+          ],
+          "side": "a"
         }
       ],
       "1": [
@@ -10768,6 +14933,22 @@
             32.75,
             129.88
           ]
+        },
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Bockscar",
+          "path": [
+            [
+              15,
+              145.65
+            ],
+            [
+              32.75,
+              129.88
+            ]
+          ],
+          "side": "a"
         }
       ]
     }
@@ -10796,6 +14977,22 @@
             126
           ],
           "kind": "region"
+        },
+        {
+          "t": "item",
+          "icon": "tank",
+          "label": "Red Army",
+          "path": [
+            [
+              49.6,
+              117.4
+            ],
+            [
+              43.88,
+              125.32
+            ]
+          ],
+          "side": "a"
         }
       ],
       "3": [
@@ -10891,6 +15088,60 @@
             121.47
           ]
         }
+      ],
+      "1": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Long March · 86,000",
+          "path": [
+            [
+              25.88,
+              116.03
+            ],
+            [
+              25.6,
+              113.5
+            ],
+            [
+              25.7,
+              111
+            ],
+            [
+              26.6,
+              108.6
+            ],
+            [
+              27.7,
+              106.9
+            ],
+            [
+              26.1,
+              102.7
+            ],
+            [
+              29.9,
+              102.2
+            ],
+            [
+              31,
+              102.4
+            ],
+            [
+              33.2,
+              102.9
+            ],
+            [
+              35.5,
+              105.5
+            ],
+            [
+              36.9,
+              108.2
+            ]
+          ],
+          "side": "a"
+        }
       ]
     }
   },
@@ -10935,6 +15186,26 @@
             117.5
           ],
           "kind": "region"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Nationalists · 800,000",
+          "at": [
+            34.45,
+            117.05
+          ],
+          "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Communists · 600,000",
+          "at": [
+            33.55,
+            117.95
+          ],
+          "side": "a"
         }
       ]
     }
@@ -10980,6 +15251,15 @@
             31.23,
             121.47
           ]
+        },
+        {
+          "t": "river",
+          "name": "Yangtze",
+          "at": [
+            31.75,
+            118.4
+          ],
+          "river": "Yangtze"
         }
       ],
       "1": [
@@ -11084,6 +15364,38 @@
           "name": "Maharaja Hari Singh",
           "wiki": "Hari_Singh",
           "role": "Signs the Instrument of Accession"
+        },
+        {
+          "t": "item",
+          "icon": "treaty",
+          "label": "Instrument of Accession",
+          "at": [
+            32.73,
+            74.86
+          ],
+          "side": "a"
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Airlift to Srinagar",
+          "path": [
+            [
+              28.57,
+              77.1
+            ],
+            [
+              31.6,
+              75.6
+            ],
+            [
+              34,
+              74.77
+            ]
+          ],
+          "side": "a"
         }
       ]
     }
@@ -11245,6 +15557,16 @@
             31.78,
             35.23
           ]
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Arab Legion",
+          "at": [
+            31.83,
+            35.42
+          ],
+          "side": "b"
         }
       ],
       "1": [
@@ -11274,6 +15596,17 @@
       ]
     },
     "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "treaty",
+          "label": "Armistices of 1949",
+          "at": [
+            36.43,
+            28.22
+          ]
+        }
+      ],
       "2": [
         {
           "t": "place",
@@ -11365,6 +15698,18 @@
     },
     "bed": "tanks-rolling",
     "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "tank",
+          "label": "North Korean T-34s",
+          "at": [
+            38.05,
+            127.05
+          ],
+          "side": "b"
+        }
+      ],
       "1": [
         {
           "t": "place",
@@ -11428,6 +15773,99 @@
             37.46,
             126.62
           ]
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Invasion fleet · 230 ships",
+          "path": [
+            [
+              35.05,
+              129.05
+            ],
+            [
+              34.8,
+              128.9
+            ],
+            [
+              34.2,
+              128.4
+            ],
+            [
+              33.85,
+              127.6
+            ],
+            [
+              33.8,
+              126.8
+            ],
+            [
+              33.85,
+              126
+            ],
+            [
+              34.4,
+              125.6
+            ],
+            [
+              35.2,
+              125.75
+            ],
+            [
+              36,
+              125.95
+            ],
+            [
+              36.65,
+              125.85
+            ],
+            [
+              37.05,
+              126.1
+            ],
+            [
+              37.25,
+              126.35
+            ],
+            [
+              37.45,
+              126.58
+            ]
+          ],
+          "side": "a"
+        }
+      ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "UN forces",
+          "path": [
+            [
+              37.65,
+              126.95
+            ],
+            [
+              39,
+              125.8
+            ],
+            [
+              40.45,
+              125.6
+            ]
+          ],
+          "side": "a"
+        }
+      ],
+      "3": [
+        {
+          "t": "river",
+          "name": "Yalu",
+          "at": [
+            40.1,
+            124.4
+          ],
+          "river": "Yalu"
         }
       ]
     }
@@ -11459,6 +15897,15 @@
           "at": [
             37.956,
             126.677
+          ]
+        },
+        {
+          "t": "item",
+          "icon": "treaty",
+          "label": "Armistice of Panmunjom",
+          "at": [
+            37.96,
+            126.68
           ]
         }
       ]
@@ -11512,6 +15959,18 @@
       ]
     },
     "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "French army · 400,000",
+          "at": [
+            36.45,
+            3.35
+          ],
+          "side": "b"
+        }
+      ],
       "2": [
         {
           "t": "place",
@@ -11603,6 +16062,53 @@
             46.4,
             6.59
           ]
+        },
+        {
+          "t": "item",
+          "icon": "treaty",
+          "label": "Évian Accords",
+          "at": [
+            46.2,
+            6.3
+          ]
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "steamship",
+          "label": "Settlers leave · 900,000",
+          "path": [
+            [
+              36.79,
+              3.08
+            ],
+            [
+              37.3,
+              3.6
+            ],
+            [
+              38.5,
+              4.6
+            ],
+            [
+              40.2,
+              5
+            ],
+            [
+              41.8,
+              5.2
+            ],
+            [
+              42.8,
+              5.3
+            ],
+            [
+              43.29,
+              5.35
+            ]
+          ],
+          "side": "b"
         }
       ]
     }
@@ -11681,6 +16187,32 @@
             102.5
           ],
           "kind": "region"
+        },
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Paratroopers",
+          "path": [
+            [
+              21.04,
+              105.85
+            ],
+            [
+              21.33,
+              103.03
+            ]
+          ],
+          "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "fort",
+          "label": "French base",
+          "at": [
+            21.28,
+            102.96
+          ],
+          "side": "b"
         }
       ],
       "2": [
@@ -11689,6 +16221,16 @@
           "name": "Võ Nguyên Giáp",
           "wiki": "Võ_Nguyên_Giáp",
           "role": "Hauls his guns onto the hills",
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "Viet Minh guns",
+          "at": [
+            21.52,
+            103.14
+          ],
           "side": "a"
         }
       ],
@@ -11798,6 +16340,56 @@
             104.9
           ],
           "kind": "region"
+        },
+        {
+          "t": "item",
+          "icon": "cargo",
+          "label": "Ho Chi Minh Trail",
+          "path": [
+            [
+              18,
+              105.6
+            ],
+            [
+              17,
+              106.1
+            ],
+            [
+              15.6,
+              106.8
+            ],
+            [
+              14.2,
+              107.2
+            ],
+            [
+              12.6,
+              107.1
+            ],
+            [
+              11.5,
+              106.6
+            ]
+          ],
+          "side": "a"
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "US bombers",
+          "path": [
+            [
+              16.05,
+              108.2
+            ],
+            [
+              20.9,
+              105.9
+            ]
+          ],
+          "side": "b"
         }
       ]
     }
@@ -11878,6 +16470,16 @@
             10.78,
             106.7
           ]
+        },
+        {
+          "t": "item",
+          "icon": "tank",
+          "label": "North Vietnamese tanks",
+          "at": [
+            10.78,
+            106.7
+          ],
+          "side": "a"
         }
       ]
     }
@@ -11906,6 +16508,15 @@
             32.33
           ],
           "kind": "region"
+        },
+        {
+          "t": "river",
+          "name": "Suez Canal",
+          "at": [
+            30.6,
+            32.32
+          ],
+          "river": "Suez Canal"
         }
       ],
       "3": [
@@ -12005,6 +16616,24 @@
           "kind": "region"
         }
       ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Anglo-French bombers",
+          "path": [
+            [
+              34.59,
+              32.99
+            ],
+            [
+              30.1,
+              31.4
+            ]
+          ],
+          "side": "b"
+        }
+      ],
       "3": [
         {
           "t": "place",
@@ -12024,6 +16653,18 @@
             33.2
           ],
           "kind": "island"
+        }
+      ],
+      "5": [
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "Blockships · ~40",
+          "at": [
+            31.3,
+            32.34
+          ],
+          "side": "a"
         }
       ]
     }
@@ -12048,6 +16689,17 @@
       ]
     },
     "marks": {
+      "2": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "UN Emergency Force",
+          "at": [
+            30.75,
+            32.6
+          ]
+        }
+      ],
       "4": [
         {
           "t": "person",
@@ -12076,6 +16728,28 @@
           "name": "Fidel Castro",
           "wiki": "Fidel_Castro",
           "role": "Prime minister of Cuba",
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Brigade 2506 · 1,400",
+          "at": [
+            22.2,
+            -81.25
+          ],
+          "side": "b"
+        }
+      ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Castro's forces · 20,000",
+          "at": [
+            22.42,
+            -80.95
+          ],
           "side": "a"
         }
       ],
@@ -12296,6 +16970,26 @@
             34.45
           ],
           "kind": "sea"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Egyptian army",
+          "at": [
+            30.6,
+            33.8
+          ],
+          "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "Blockade of Tiran",
+          "at": [
+            27.98,
+            34.42
+          ],
+          "side": "b"
         }
       ]
     }
@@ -12321,6 +17015,32 @@
     },
     "bed": "tanks-rolling",
     "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Israeli Air Force",
+          "path": [
+            [
+              31.23,
+              34.66
+            ],
+            [
+              31.75,
+              33.6
+            ],
+            [
+              31.6,
+              32.3
+            ],
+            [
+              30.33,
+              31.45
+            ]
+          ],
+          "side": "a"
+        }
+      ],
       "3": [
         {
           "t": "place",
@@ -12354,6 +17074,18 @@
       ]
     },
     "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "Jordanian guns",
+          "at": [
+            31.86,
+            35.36
+          ],
+          "side": "b"
+        }
+      ],
       "1": [
         {
           "t": "place",
@@ -12399,6 +17131,16 @@
             35.75
           ],
           "kind": "region"
+        },
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "Syrian guns",
+          "at": [
+            32.85,
+            35.78
+          ],
+          "side": "b"
         }
       ],
       "2": [
@@ -12509,6 +17251,24 @@
     },
     "bed": "artillery-distant",
     "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Pakistani air strikes",
+          "path": [
+            [
+              31.55,
+              74.35
+            ],
+            [
+              32.23,
+              75.63
+            ]
+          ],
+          "side": "b"
+        }
+      ],
       "2": [
         {
           "t": "place",
@@ -12550,6 +17310,15 @@
           "at": [
             23.81,
             90.41
+          ]
+        },
+        {
+          "t": "item",
+          "icon": "treaty",
+          "label": "Surrender · 93,000 men",
+          "at": [
+            23.66,
+            90.55
           ]
         }
       ],
@@ -12608,6 +17377,16 @@
             32.33
           ],
           "kind": "sea"
+        },
+        {
+          "t": "item",
+          "icon": "fort",
+          "label": "Bar-Lev Line",
+          "at": [
+            30.8,
+            32.37
+          ],
+          "side": "a"
         }
       ]
     }
@@ -12626,7 +17405,21 @@
         0.6
       ]
     },
-    "bed": "tanks-rolling"
+    "bed": "tanks-rolling",
+    "marks": {
+      "3": [
+        {
+          "t": "item",
+          "icon": "tank",
+          "label": "Syrian tanks · 1,400",
+          "at": [
+            32.88,
+            35.85
+          ],
+          "side": "b"
+        }
+      ]
+    }
   },
   "battle:yom-kippur:2": {
     "text": "Israel calls up its reserves. In the north, it stops the Syrians, and drives them back toward Damascus. In Sinai, Israeli forces under Ariel Sharon find a gap between two Egyptian armies, and cross the canal. Follow the blue arrow to the far bank. They encircle an Egyptian army, while the United States and the Soviet Union rush in weapons to their friends.",
@@ -12665,6 +17458,40 @@
           "wiki": "Ariel_Sharon",
           "role": "Israeli general, crosses the canal",
           "side": "a"
+        }
+      ],
+      "4": [
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "US airlift",
+          "path": [
+            [
+              36.5,
+              22
+            ],
+            [
+              32,
+              34.88
+            ]
+          ],
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Soviet airlift",
+          "path": [
+            [
+              40,
+              33
+            ],
+            [
+              33.4,
+              36.5
+            ]
+          ],
+          "side": "b"
         }
       ]
     }
@@ -12727,6 +17554,24 @@
     },
     "bed": "tanks-rolling",
     "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Soviet airborne troops",
+          "path": [
+            [
+              38.6,
+              66.6
+            ],
+            [
+              34.95,
+              69.25
+            ]
+          ],
+          "side": "b"
+        }
+      ],
       "2": [
         {
           "t": "person",
@@ -12795,6 +17640,16 @@
             70
           ],
           "kind": "region"
+        },
+        {
+          "t": "item",
+          "icon": "cargo",
+          "label": "Arms via Pakistan",
+          "at": [
+            34.05,
+            71.85
+          ],
+          "side": "a"
         }
       ]
     }
@@ -12820,6 +17675,43 @@
           "name": "Mikhail Gorbachev",
           "wiki": "Mikhail_Gorbachev",
           "role": "Soviet leader from 1985",
+          "side": "b"
+        },
+        {
+          "t": "river",
+          "name": "Amu Darya",
+          "at": [
+            37.23,
+            67.3
+          ],
+          "river": "Amu Darya"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Last Soviet troops",
+          "path": [
+            [
+              34.6,
+              69.15
+            ],
+            [
+              35.32,
+              69.03
+            ],
+            [
+              36.2,
+              68.7
+            ],
+            [
+              36.7,
+              67.2
+            ],
+            [
+              37.22,
+              67.3
+            ]
+          ],
           "side": "b"
         }
       ]
@@ -12862,6 +17754,17 @@
           "wiki": "Saddam_Hussein",
           "role": "President of Iraq",
           "side": "b"
+        }
+      ],
+      "3": [
+        {
+          "t": "river",
+          "name": "Shatt al-Arab",
+          "at": [
+            30.3,
+            48.4
+          ],
+          "river": "Shatt al Arab"
         }
       ]
     }
@@ -12958,6 +17861,15 @@
             51.5
           ],
           "kind": "sea"
+        },
+        {
+          "t": "item",
+          "icon": "steamship",
+          "label": "Tanker war",
+          "at": [
+            28.3,
+            50.5
+          ]
         }
       ]
     }
@@ -13118,6 +18030,30 @@
           "kind": "island"
         }
       ],
+      "1": [
+        {
+          "t": "item",
+          "icon": "steamship",
+          "label": "General Belgrano",
+          "at": [
+            -55.4,
+            -61.53
+          ],
+          "side": "b"
+        }
+      ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "steamship",
+          "label": "HMS Sheffield",
+          "at": [
+            -53.07,
+            -56.93
+          ],
+          "side": "a"
+        }
+      ],
       "3": [
         {
           "t": "place",
@@ -13127,6 +18063,22 @@
             -59.05
           ],
           "kind": "sea"
+        },
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Argentine jets",
+          "path": [
+            [
+              -53.78,
+              -67.7
+            ],
+            [
+              -51.55,
+              -59.1
+            ]
+          ],
+          "side": "b"
         }
       ]
     }
@@ -13167,6 +18119,30 @@
             -51.69,
             -57.86
           ]
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Marines & Paras",
+          "path": [
+            [
+              -51.5,
+              -59.03
+            ],
+            [
+              -51.56,
+              -58.42
+            ],
+            [
+              -51.67,
+              -58.1
+            ],
+            [
+              -51.69,
+              -57.92
+            ]
+          ],
+          "side": "a"
         }
       ]
     }
@@ -13229,6 +18205,18 @@
     },
     "bed": "tanks-rolling",
     "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "tank",
+          "label": "Iraq · 100,000",
+          "at": [
+            29.75,
+            47.55
+          ],
+          "side": "b"
+        }
+      ],
       "2": [
         {
           "t": "place",
@@ -13248,6 +18236,18 @@
             45
           ],
           "kind": "region"
+        }
+      ],
+      "4": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Coalition · 500,000+",
+          "at": [
+            27.6,
+            45.6
+          ],
+          "side": "a"
         }
       ]
     }
@@ -13274,6 +18274,28 @@
     "bed": "aircraft-drone",
     "hit": "explosion-far",
     "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Coalition air war",
+          "path": [
+            [
+              24.7,
+              46.7
+            ],
+            [
+              29,
+              45.3
+            ],
+            [
+              33.31,
+              44.37
+            ]
+          ],
+          "side": "a"
+        }
+      ],
       "2": [
         {
           "t": "place",
@@ -13384,6 +18406,15 @@
             45.35,
             19
           ]
+        },
+        {
+          "t": "river",
+          "name": "Danube",
+          "at": [
+            45.35,
+            19
+          ],
+          "river": "Danube"
         }
       ],
       "3": [
@@ -13437,6 +18468,16 @@
             43.86,
             18.41
           ]
+        },
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "Serb guns in the hills",
+          "at": [
+            43.78,
+            18.28
+          ],
+          "side": "b"
         }
       ],
       "3": [
@@ -13471,6 +18512,24 @@
       ]
     },
     "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "NATO · 1995",
+          "path": [
+            [
+              46.03,
+              12.6
+            ],
+            [
+              43.8,
+              18.55
+            ]
+          ],
+          "side": "a"
+        }
+      ],
       "1": [
         {
           "t": "place",
@@ -13490,6 +18549,22 @@
             20.9
           ],
           "kind": "region"
+        },
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "NATO · 1999",
+          "path": [
+            [
+              46.03,
+              12.6
+            ],
+            [
+              44.75,
+              20.4
+            ]
+          ],
+          "side": "a"
         }
       ]
     }
@@ -13661,6 +18736,33 @@
             -4.32,
             15.31
           ]
+        },
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Airlift to Kitona",
+          "path": [
+            [
+              -1.67,
+              29.23
+            ],
+            [
+              -5.92,
+              12.45
+            ]
+          ],
+          "side": "b"
+        }
+      ],
+      "4": [
+        {
+          "t": "item",
+          "icon": "cargo",
+          "label": "Gold, diamonds, coltan",
+          "at": [
+            -1.3,
+            28.2
+          ]
         }
       ],
       "5": [
@@ -13798,6 +18900,16 @@
             34.08,
             74.8
           ]
+        },
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "Guns above the road",
+          "at": [
+            34.7,
+            76.05
+          ],
+          "side": "b"
         }
       ]
     }
@@ -13826,6 +18938,34 @@
             34.08,
             74.8
           ]
+        }
+      ],
+      "3": [
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "Bofors guns",
+          "at": [
+            34.42,
+            75.9
+          ],
+          "side": "a"
+        },
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Indian Air Force",
+          "path": [
+            [
+              34,
+              74.78
+            ],
+            [
+              34.6,
+              75.95
+            ]
+          ],
+          "side": "a"
         }
       ],
       "4": [
@@ -13926,6 +19066,48 @@
           ]
         }
       ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "US & British bombers",
+          "path": [
+            [
+              23.2,
+              63.4
+            ],
+            [
+              28,
+              65
+            ],
+            [
+              33.6,
+              68.6
+            ]
+          ],
+          "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Northern Alliance",
+          "path": [
+            [
+              36.75,
+              69.35
+            ],
+            [
+              35.6,
+              69.35
+            ],
+            [
+              34.75,
+              69.2
+            ]
+          ],
+          "side": "b"
+        }
+      ],
       "3": [
         {
           "t": "place",
@@ -13985,6 +19167,18 @@
           "role": "Killed in Pakistan, May 2011",
           "side": "a"
         }
+      ],
+      "4": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Foreign troops · 140,000",
+          "at": [
+            34.25,
+            69.5
+          ],
+          "side": "b"
+        }
       ]
     }
   },
@@ -14003,6 +19197,17 @@
       ]
     },
     "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "treaty",
+          "label": "Doha agreement · 2020",
+          "at": [
+            25.29,
+            51.53
+          ]
+        }
+      ],
       "1": [
         {
           "t": "place",
@@ -14081,6 +19286,24 @@
             33.31,
             44.37
           ]
+        },
+        {
+          "t": "river",
+          "name": "Tigris",
+          "at": [
+            32.55,
+            45.75
+          ],
+          "river": "Tigris"
+        },
+        {
+          "t": "river",
+          "name": "Euphrates",
+          "at": [
+            31.3,
+            45.3
+          ],
+          "river": "Euphrates"
         }
       ],
       "3": [
@@ -14124,6 +19347,20 @@
         33.5,
         43.5,
         1.2
+      ]
+    },
+    "marks": {
+      "3": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "The surge · 30,000",
+          "at": [
+            33.05,
+            44.62
+          ],
+          "side": "a"
+        }
       ]
     }
   },
@@ -14220,6 +19457,24 @@
             39.01
           ]
         }
+      ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Russian air strikes",
+          "path": [
+            [
+              35.41,
+              35.95
+            ],
+            [
+              36.2,
+              37.15
+            ]
+          ],
+          "side": "b"
+        }
       ]
     }
   },
@@ -14285,6 +19540,22 @@
           "name": "Bashar al-Assad",
           "wiki": "Bashar_al-Assad",
           "role": "Flees to Moscow, December 2024",
+          "side": "b"
+        },
+        {
+          "t": "item",
+          "icon": "plane",
+          "label": "Assad flees",
+          "path": [
+            [
+              33.41,
+              36.52
+            ],
+            [
+              35.41,
+              35.95
+            ]
+          ],
           "side": "b"
         }
       ]

@@ -43,7 +43,20 @@
   },
   "voyage:leif-erikson:2": {
     "text": "Further south, the land softens. Low, wooded hills run down to white beaches. Leif names it Markland, the land of forests. For the Norse of treeless Greenland, this timber is a treasure.",
-    "bed": "waves-hull"
+    "bed": "waves-hull",
+    "marks": {
+      "3": [
+        {
+          "t": "item",
+          "icon": "cargo",
+          "label": "Timber",
+          "at": [
+            53.7,
+            -57
+          ]
+        }
+      ]
+    }
   },
   "voyage:leif-erikson:3": {
     "text": "And then, Vinland. Grass for the animals, salmon in the rivers, and wild grapes. The Norse build houses here, and stay the winter, before sailing home. Their settlement, at the northern tip of Newfoundland, was found again in the 1960s.",
@@ -104,6 +117,15 @@
             121.8
           ],
           "kind": "sea"
+        },
+        {
+          "t": "river",
+          "name": "Yangtze",
+          "at": [
+            31.6,
+            121.4
+          ],
+          "river": "Yangtze"
         }
       ]
     }
@@ -122,7 +144,20 @@
   },
   "voyage:zheng-he:4": {
     "text": "Malacca, on its narrow strait. This is Zheng He's great base, with warehouses for the fleet's goods, at the crossroads of Asian trade.",
-    "bed": "gulls-harbour"
+    "bed": "gulls-harbour",
+    "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "cargo",
+          "label": "Silk & porcelain",
+          "at": [
+            2.38,
+            102.42
+          ]
+        }
+      ]
+    }
   },
   "voyage:zheng-he:5": {
     "text": "Semudera, on Sumatra, the gateway out of the strait. Beyond it lies the open Indian Ocean.",
@@ -197,6 +232,120 @@
             -3.22,
             40.12
           ]
+        },
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "Squadron to Aden",
+          "path": [
+            [
+              27,
+              56.5
+            ],
+            [
+              26.55,
+              56.7
+            ],
+            [
+              25.6,
+              57.3
+            ],
+            [
+              24,
+              59
+            ],
+            [
+              22.7,
+              60.1
+            ],
+            [
+              20.5,
+              59.4
+            ],
+            [
+              18,
+              57.3
+            ],
+            [
+              16,
+              54
+            ],
+            [
+              14.3,
+              50.5
+            ],
+            [
+              12.9,
+              47.5
+            ],
+            [
+              12.6,
+              45.6
+            ],
+            [
+              12.78,
+              44.98
+            ]
+          ]
+        },
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "Squadron to Malindi",
+          "path": [
+            [
+              27,
+              56.5
+            ],
+            [
+              26.55,
+              56.7
+            ],
+            [
+              25.6,
+              57.3
+            ],
+            [
+              24,
+              59
+            ],
+            [
+              22.7,
+              60.2
+            ],
+            [
+              18,
+              58.5
+            ],
+            [
+              13,
+              55.6
+            ],
+            [
+              11.5,
+              52.3
+            ],
+            [
+              8,
+              50.6
+            ],
+            [
+              4,
+              48.8
+            ],
+            [
+              0,
+              44.6
+            ],
+            [
+              -2.3,
+              41.6
+            ],
+            [
+              -3.22,
+              40.13
+            ]
+          ]
         }
       ]
     }
@@ -224,7 +373,20 @@
   "voyage:bartolomeu-dias:0": {
     "text": "Lisbon. The little fleet leaves the Tagus and turns south, along the coast of Africa.",
     "bed": "gulls-harbour",
-    "hit": "ship-bell"
+    "hit": "ship-bell",
+    "marks": {
+      "1": [
+        {
+          "t": "river",
+          "name": "Tagus",
+          "at": [
+            38.9,
+            -8.85
+          ],
+          "river": "Tagus"
+        }
+      ]
+    }
   },
   "voyage:bartolomeu-dias:1": {
     "text": "Angra Pequena, on the coast of today's Namibia. Dias raises a stone cross, a padrão, to mark how far Portugal has come.",
@@ -401,6 +563,28 @@
             -71
           ],
           "kind": "island"
+        }
+      ],
+      "1": [
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "Santa María · wrecked",
+          "at": [
+            19.8,
+            -72.2
+          ]
+        }
+      ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "fort",
+          "label": "La Navidad",
+          "at": [
+            19.72,
+            -72.08
+          ]
         }
       ]
     }
@@ -706,7 +890,20 @@
   },
   "voyage:cabral:1": {
     "text": "Near the Cape Verde Islands, one of the ships disappears without trace.",
-    "bed": "waves-hull"
+    "bed": "waves-hull",
+    "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "Lost without trace",
+          "at": [
+            15.9,
+            -25
+          ]
+        }
+      ]
+    }
   },
   "voyage:cabral:2": {
     "text": "A mountain rises out of the sea to the west. Cabral has struck an unknown coast: Brazil. The first Europeans to arrive here meet the Tupiniquim people, and the land is claimed for Portugal.",
@@ -715,6 +912,17 @@
   "voyage:cabral:3": {
     "text": "In the South Atlantic, a sudden storm sinks four ships with all hands. Among those lost is Bartolomeu Dias, the first to round the Cape, twelve years before.",
     "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "Four ships lost",
+          "at": [
+            -35.2,
+            10.7
+          ]
+        }
+      ],
       "1": [
         {
           "t": "person",
@@ -735,11 +943,37 @@
   },
   "voyage:cabral:6": {
     "text": "Calicut. A trading post is set up, then attacked. Cabral replies by bombarding the city.",
-    "bed": "waves-hull"
+    "bed": "waves-hull",
+    "marks": {
+      "2": [
+        {
+          "t": "item",
+          "icon": "cannon",
+          "label": "Cabral's guns",
+          "at": [
+            11.3,
+            75.6
+          ]
+        }
+      ]
+    }
   },
   "voyage:cabral:7": {
     "text": "Cochin, and a friendlier ruler. The ships load pepper, and turn for home.",
-    "bed": "gulls-harbour"
+    "bed": "gulls-harbour",
+    "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "cargo",
+          "label": "Pepper",
+          "at": [
+            9.9,
+            76.3
+          ]
+        }
+      ]
+    }
   },
   "voyage:vespucci:intro": {
     "text": "In 1501, a Florentine merchant and navigator named Amerigo Vespucci sails for Portugal, to explore the land Cabral had found the year before. What he sees along that coast will change how Europe thinks about the world, and give two continents their name.",
@@ -776,6 +1010,25 @@
           "name": "Pedro Álvares Cabral",
           "wiki": "Pedro_Álvares_Cabral",
           "role": "Returning from India"
+        },
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "Cabral's fleet",
+          "path": [
+            [
+              9.5,
+              -17.8
+            ],
+            [
+              12.5,
+              -17.9
+            ],
+            [
+              14.62,
+              -17.45
+            ]
+          ]
         }
       ]
     }
@@ -866,12 +1119,54 @@
           ],
           "kind": "region"
         }
+      ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "Santiago · wrecked",
+          "at": [
+            -50.2,
+            -68.25
+          ]
+        }
       ]
     }
   },
   "voyage:magellan-elcano:3": {
     "text": "At last, a passage opens through the tip of South America. For 38 days the ships thread their way through cold, twisting channels, and one of them turns back for home. The strait still carries Magellan's name.",
-    "bed": "storm-sea"
+    "bed": "storm-sea",
+    "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "San Antonio deserts",
+          "path": [
+            [
+              -52.45,
+              -68.2
+            ],
+            [
+              -51,
+              -66.6
+            ],
+            [
+              -47.5,
+              -64.3
+            ],
+            [
+              -43.5,
+              -60.5
+            ],
+            [
+              -38,
+              -54
+            ]
+          ]
+        }
+      ]
+    }
   },
   "voyage:magellan-elcano:4": {
     "text": "Then, the Pacific, far wider than anyone imagined. For 99 days there is no fresh food. The men are starving and sick with scurvy when they reach Guam.",
@@ -892,6 +1187,15 @@
           "name": "Lapulapu",
           "wiki": "Lapulapu",
           "role": "Chief of Mactan"
+        },
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "Lapulapu's warriors",
+          "at": [
+            10.38,
+            124.1
+          ]
         }
       ],
       "2": [
@@ -906,7 +1210,20 @@
   },
   "voyage:magellan-elcano:6": {
     "text": "Tidore, in the Moluccas. At last, the Spice Islands. The ships load cloves.",
-    "bed": "gulls-harbour"
+    "bed": "gulls-harbour",
+    "marks": {
+      "2": [
+        {
+          "t": "item",
+          "icon": "cargo",
+          "label": "Cloves",
+          "at": [
+            0.58,
+            127.52
+          ]
+        }
+      ]
+    }
   },
   "voyage:magellan-elcano:7": {
     "text": "Elcano takes the Victoria home the long way, across the Indian Ocean and round the Cape of Good Hope, avoiding Portuguese ports.",
@@ -995,7 +1312,57 @@
   },
   "voyage:jacques-cartier:2": {
     "text": "The Gulf of St. Lawrence, named for the saint whose feast day it is. Ahead, the river narrows and leads inland.",
-    "bed": "waves-hull"
+    "bed": "waves-hull",
+    "marks": {
+      "2": [
+        {
+          "t": "river",
+          "name": "St. Lawrence",
+          "at": [
+            48.5,
+            -69
+          ],
+          "line": [
+            [
+              49.6,
+              -66
+            ],
+            [
+              49.2,
+              -67.3
+            ],
+            [
+              48.75,
+              -68.3
+            ],
+            [
+              48.4,
+              -69.2
+            ],
+            [
+              47.95,
+              -69.85
+            ],
+            [
+              47.6,
+              -70.15
+            ],
+            [
+              47.25,
+              -70.6
+            ],
+            [
+              46.95,
+              -70.95
+            ],
+            [
+              46.82,
+              -71.18
+            ]
+          ]
+        }
+      ]
+    }
   },
   "voyage:jacques-cartier:3": {
     "text": "Stadacona, the village of the chief Donnacona, where Québec City stands today. The French will spend a brutal winter here, and when scurvy strikes, the Iroquoians save them with a tea made from white cedar.",
@@ -1119,7 +1486,35 @@
   },
   "voyage:francis-drake:5": {
     "text": "Off the coast of South America, the Golden Hind captures the Spanish treasure ship Cacafuego, laden with silver and gold.",
-    "bed": "waves-hull"
+    "bed": "waves-hull",
+    "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "Cacafuego",
+          "path": [
+            [
+              0.3,
+              -81
+            ],
+            [
+              0.85,
+              -80.65
+            ]
+          ]
+        },
+        {
+          "t": "item",
+          "icon": "cargo",
+          "label": "Silver & gold · 26 tons",
+          "at": [
+            0.7,
+            -80.3
+          ]
+        }
+      ]
+    }
   },
   "voyage:francis-drake:6": {
     "text": "California. Drake comes ashore to repair his ship among the Coast Miwok, and claims the land for England, calling it Nova Albion.",
@@ -1146,6 +1541,15 @@
           "name": "Sultan Babullah",
           "wiki": "Babullah_of_Ternate",
           "role": "Sultan of Ternate"
+        },
+        {
+          "t": "item",
+          "icon": "cargo",
+          "label": "Cloves · 6 tons",
+          "at": [
+            0.62,
+            127.52
+          ]
         }
       ]
     }
@@ -1218,7 +1622,31 @@
   },
   "voyage:willem-barentsz:4": {
     "text": "Ice Haven. The ship is crushed and trapped. Seventeen men build a hut from driftwood and ship's timbers, and call it the Safe House. Through the long, dark polar winter, they hold on.",
-    "bed": "winter-wind"
+    "bed": "winter-wind",
+    "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "Crushed in the ice",
+          "at": [
+            76.3,
+            68.55
+          ]
+        }
+      ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "fort",
+          "label": "The Safe House",
+          "at": [
+            76.12,
+            67.95
+          ]
+        }
+      ]
+    }
   },
   "voyage:willem-barentsz:5": {
     "text": "In June, the survivors escape in two open boats. A week later, Barentsz, already sick, dies, and is buried in the Arctic.",
@@ -1235,7 +1663,20 @@
   },
   "voyage:willem-barentsz:6": {
     "text": "The Kola Peninsula. Twelve survivors are rescued by a Dutch ship, captained by the very man who had parted from them at Spitsbergen.",
-    "bed": "gulls-harbour"
+    "bed": "gulls-harbour",
+    "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "Jan Rijp's ship",
+          "at": [
+            69.55,
+            34.4
+          ]
+        }
+      ]
+    }
   },
   "voyage:henry-hudson:intro": {
     "text": "In April 1610, the English navigator Henry Hudson is hired by London merchants to find a north-west passage to Asia. His ship, the Discovery, carries 23 men into icy waters that no European ship has sailed.",
@@ -1254,7 +1695,20 @@
   "voyage:henry-hudson:0": {
     "text": "London. The Discovery sails down the Thames.",
     "bed": "gulls-harbour",
-    "hit": "ship-bell"
+    "hit": "ship-bell",
+    "marks": {
+      "1": [
+        {
+          "t": "river",
+          "name": "Thames",
+          "at": [
+            51.48,
+            0.3
+          ],
+          "river": "Thames"
+        }
+      ]
+    }
   },
   "voyage:henry-hudson:1": {
     "text": "Iceland, where the volcano Hekla is erupting as they pass.",
@@ -1285,7 +1739,20 @@
     "bed": "winter-wind"
   },
   "voyage:henry-hudson:5": {
-    "text": "In the spring, with food running out, the crew mutinies. Hudson, his teenage son John and seven loyal men are set adrift in a small open boat. They are never seen again."
+    "text": "In the spring, with food running out, the crew mutinies. Hudson, his teenage son John and seven loyal men are set adrift in a small open boat. They are never seen again.",
+    "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "Hudson's open boat",
+          "at": [
+            53,
+            -80.1
+          ]
+        }
+      ]
+    }
   },
   "voyage:henry-hudson:6": {
     "text": "London. Eight survivors return. None is ever punished for the mutiny.",
@@ -1319,6 +1786,15 @@
             4.49
           ],
           "kind": "region"
+        },
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "Speedwell",
+          "at": [
+            50.84,
+            -1.33
+          ]
         }
       ]
     }
@@ -1372,6 +1848,17 @@
             -70.1
           ],
           "kind": "cape"
+        }
+      ],
+      "1": [
+        {
+          "t": "item",
+          "icon": "treaty",
+          "label": "Mayflower Compact",
+          "at": [
+            42.04,
+            -70.17
+          ]
         }
       ]
     }
@@ -1442,7 +1929,26 @@
   },
   "voyage:abel-tasman:3": {
     "text": "Golden Bay, in New Zealand. The first meeting of Europeans and Māori ends in a deadly clash.",
-    "bed": "waves-hull"
+    "bed": "waves-hull",
+    "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "galley",
+          "label": "Māori waka",
+          "path": [
+            [
+              -40.82,
+              172.98
+            ],
+            [
+              -40.72,
+              172.84
+            ]
+          ]
+        }
+      ]
+    }
   },
   "voyage:abel-tasman:4": {
     "text": "Tonga, and a warm welcome on Tongatapu.",
@@ -1520,6 +2026,17 @@
   "voyage:vitus-bering:3": {
     "text": "In November, the St. Peter is wrecked on an unknown island. Here, Bering dies of scurvy, with 28 of his men. The island now bears his name.",
     "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "St. Peter · wrecked",
+          "at": [
+            55.3,
+            165.65
+          ]
+        }
+      ],
       "2": [
         {
           "t": "person",
@@ -1568,6 +2085,17 @@
           "at": [
             48.39,
             -4.49
+          ]
+        }
+      ],
+      "1": [
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "Étoile · Rochefort",
+          "at": [
+            45.98,
+            -1.25
           ]
         }
       ]
@@ -1812,7 +2340,20 @@
   },
   "voyage:cook-last-voyage:1": {
     "text": "Cape Town, where livestock is taken aboard for the Pacific islands.",
-    "bed": "gulls-harbour"
+    "bed": "gulls-harbour",
+    "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "cargo",
+          "label": "Livestock for the islands",
+          "at": [
+            -33.72,
+            18.6
+          ]
+        }
+      ]
+    }
   },
   "voyage:cook-last-voyage:2": {
     "text": "Adventure Bay, in Tasmania, for wood and water.",
@@ -1855,6 +2396,23 @@
   "voyage:cook-last-voyage:9": {
     "text": "Kealakekua Bay, in Hawaiʻi. A great welcome, during the Makahiki festival. But when the ships return for repairs, the welcome sours, and on the 14th of February 1779, Cook is killed on the shore.",
     "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "galley",
+          "label": "Hawaiian canoes · 1,000",
+          "path": [
+            [
+              19.4,
+              -156.05
+            ],
+            [
+              19.47,
+              -155.94
+            ]
+          ]
+        }
+      ],
       "2": [
         {
           "t": "person",
@@ -1914,7 +2472,20 @@
   },
   "voyage:la-perouse:5": {
     "text": "Macau, where furs from Alaska are sold in China.",
-    "bed": "gulls-harbour"
+    "bed": "gulls-harbour",
+    "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "cargo",
+          "label": "Alaskan furs",
+          "at": [
+            22.35,
+            113.75
+          ]
+        }
+      ]
+    }
   },
   "voyage:la-perouse:6": {
     "text": "La Pérouse charts the strait between Sakhalin and Hokkaidō. It still carries his name.",
@@ -1956,6 +2527,35 @@
           ],
           "kind": "region"
         }
+      ],
+      "1": [
+        {
+          "t": "item",
+          "icon": "cargo",
+          "label": "Journals, overland",
+          "path": [
+            [
+              53.05,
+              158.65
+            ],
+            [
+              56.3,
+              159.8
+            ],
+            [
+              59.5,
+              162.5
+            ],
+            [
+              61.9,
+              160.3
+            ],
+            [
+              59.4,
+              143.3
+            ]
+          ]
+        }
       ]
     }
   },
@@ -1975,7 +2575,20 @@
   },
   "voyage:la-perouse:9": {
     "text": "Botany Bay, just as Britain's First Fleet arrives to found a colony. La Pérouse sends his last letters home with the British.",
-    "bed": "gulls-harbour"
+    "bed": "gulls-harbour",
+    "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "fleet",
+          "label": "First Fleet · 11 ships",
+          "at": [
+            -34.05,
+            151.3
+          ]
+        }
+      ]
+    }
   },
   "voyage:la-perouse:10": {
     "text": "Vanikoro, in the Solomon Islands. In a cyclone, both ships are wrecked on the reefs. No one comes home, and the mystery is solved only forty years later, when the wrecks are found."
@@ -2051,6 +2664,45 @@
           "name": "Fletcher Christian",
           "wiki": "Fletcher_Christian",
           "role": "Leader of the mutiny"
+        },
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "Bounty, under Christian",
+          "path": [
+            [
+              -19.6,
+              -175.3
+            ],
+            [
+              -19.8,
+              -172.5
+            ],
+            [
+              -19.6,
+              -168.5
+            ],
+            [
+              -18.8,
+              -163
+            ],
+            [
+              -18.2,
+              -157
+            ],
+            [
+              -17.5,
+              -152
+            ],
+            [
+              -17.3,
+              -150.2
+            ],
+            [
+              -17.48,
+              -149.5
+            ]
+          ]
         }
       ]
     }
@@ -2109,7 +2761,49 @@
   },
   "voyage:darwin-beagle:4": {
     "text": "Montevideo, the base for surveying the River Plate. Darwin rides with the gauchos, and digs up the fossils of giant extinct animals.",
-    "bed": "gulls-harbour"
+    "bed": "gulls-harbour",
+    "marks": {
+      "0": [
+        {
+          "t": "river",
+          "name": "River Plate",
+          "at": [
+            -34.65,
+            -57.3
+          ],
+          "line": [
+            [
+              -34,
+              -58.4
+            ],
+            [
+              -34.25,
+              -58.15
+            ],
+            [
+              -34.45,
+              -57.8
+            ],
+            [
+              -34.65,
+              -57.3
+            ],
+            [
+              -34.85,
+              -56.8
+            ],
+            [
+              -35.05,
+              -56.3
+            ],
+            [
+              -35.3,
+              -55.8
+            ]
+          ]
+        }
+      ]
+    }
   },
   "voyage:darwin-beagle:5": {
     "text": "The Falkland Islands, surveyed for a Britain that has just occupied them.",
@@ -2206,7 +2900,20 @@
   "voyage:john-franklin:0": {
     "text": "Greenhithe, on the Thames. Two ships set out, cheered from the shore.",
     "bed": "gulls-harbour",
-    "hit": "ship-bell"
+    "hit": "ship-bell",
+    "marks": {
+      "0": [
+        {
+          "t": "river",
+          "name": "Thames",
+          "at": [
+            51.48,
+            0.15
+          ],
+          "river": "Thames"
+        }
+      ]
+    }
   },
   "voyage:john-franklin:1": {
     "text": "Stromness, in Orkney. The last fresh water in Britain.",
@@ -2229,6 +2936,15 @@
             -66
           ],
           "kind": "sea"
+        },
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "Two whalers",
+          "at": [
+            75,
+            -63.5
+          ]
         }
       ]
     }
@@ -2262,11 +2978,59 @@
     }
   },
   "voyage:john-franklin:6": {
-    "text": "Victory Point. A note left in a stone cairn tells the story: the ships abandoned, and 105 men setting off south on foot. None of them survives."
+    "text": "Victory Point. A note left in a stone cairn tells the story: the ships abandoned, and 105 men setting off south on foot. None of them survives.",
+    "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "army",
+          "label": "105 men on foot",
+          "path": [
+            [
+              69.65,
+              -98.25
+            ],
+            [
+              69.2,
+              -98.6
+            ],
+            [
+              68.9,
+              -98.6
+            ],
+            [
+              68.55,
+              -98.1
+            ],
+            [
+              68.3,
+              -97.4
+            ],
+            [
+              67.98,
+              -96.9
+            ]
+          ]
+        }
+      ]
+    }
   },
   "voyage:john-franklin:7": {
     "text": "For more than 160 years, the ships were lost. Then, in 2014, Erebus was found in shallow water, exactly where Inuit oral history said a ship had sunk.",
-    "bed": "winter-wind"
+    "bed": "winter-wind",
+    "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "Wreck of Erebus",
+          "at": [
+            68.24,
+            -98.88
+          ]
+        }
+      ]
+    }
   },
   "voyage:nansen-fram:intro": {
     "text": "In 1893, the Norwegian scientist Fridtjof Nansen has a daring idea. If the Arctic ice drifts across the polar sea, then a ship frozen into it might drift with it, close to the North Pole. He builds a ship for that very purpose, with a round hull that the ice will lift, not crush. He calls her Fram, which means forward.",
@@ -2326,6 +3090,45 @@
             16.5
           ],
           "kind": "island"
+        },
+        {
+          "t": "item",
+          "icon": "ship",
+          "label": "Fram, free of the ice",
+          "path": [
+            [
+              80.6,
+              10
+            ],
+            [
+              79.5,
+              7.5
+            ],
+            [
+              78,
+              8.8
+            ],
+            [
+              76.3,
+              13.5
+            ],
+            [
+              74,
+              17
+            ],
+            [
+              71.8,
+              19
+            ],
+            [
+              70.6,
+              20.2
+            ],
+            [
+              70.05,
+              20.95
+            ]
+          ]
         }
       ]
     }
@@ -2368,7 +3171,20 @@
   },
   "voyage:joshua-slocum:2": {
     "text": "The Strait of Magellan, the worst of the journey. Storms, and night raiders, which he keeps away by scattering carpet tacks on the deck.",
-    "bed": "storm-sea"
+    "bed": "storm-sea",
+    "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "galley",
+          "label": "Fuegian canoes",
+          "at": [
+            -53.65,
+            -70.7
+          ]
+        }
+      ]
+    }
   },
   "voyage:joshua-slocum:3": {
     "text": "The Juan Fernández Islands, Robinson Crusoe's island. Slocum teaches the children there to make doughnuts.",
@@ -2467,6 +3283,15 @@
           "at": [
             69.24,
             -53.54
+          ]
+        },
+        {
+          "t": "item",
+          "icon": "cargo",
+          "label": "Sled dogs & supplies",
+          "at": [
+            69.24,
+            -53.45
           ]
         }
       ]
@@ -2614,11 +3439,37 @@
   "voyage:titanic:0": {
     "text": "Southampton, at noon. As she leaves, the great ship narrowly misses a moored liner.",
     "bed": "gulls-harbour",
-    "hit": "ship-bell"
+    "hit": "ship-bell",
+    "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "steamship",
+          "label": "SS New York",
+          "at": [
+            50.89,
+            -1.4
+          ]
+        }
+      ]
+    }
   },
   "voyage:titanic:1": {
     "text": "Cherbourg, in France, an evening stop, with small tenders ferrying passengers out to her.",
-    "bed": "gulls-harbour"
+    "bed": "gulls-harbour",
+    "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "steamship",
+          "label": "Tenders Nomadic & Traffic",
+          "at": [
+            49.66,
+            -1.6
+          ]
+        }
+      ]
+    }
   },
   "voyage:titanic:2": {
     "text": "Queenstown, today's Cobh, in Ireland. More than 100 Irish emigrants board. It is the last land she will ever touch.",
@@ -2629,7 +3480,46 @@
   },
   "voyage:titanic:4": {
     "text": "New York, reached only by the survivors, about 700 of them, aboard the Carpathia, in the rain.",
-    "bed": "gulls-harbour"
+    "bed": "gulls-harbour",
+    "marks": {
+      "0": [
+        {
+          "t": "item",
+          "icon": "steamship",
+          "label": "Carpathia",
+          "path": [
+            [
+              41.73,
+              -49.95
+            ],
+            [
+              41.2,
+              -60
+            ],
+            [
+              40.4,
+              -69.5
+            ],
+            [
+              40.35,
+              -72
+            ],
+            [
+              40.42,
+              -73.8
+            ],
+            [
+              40.58,
+              -74.04
+            ],
+            [
+              40.7,
+              -74.02
+            ]
+          ]
+        }
+      ]
+    }
   },
   "voyage:shackleton:intro": {
     "text": "In August 1914, days after the outbreak of the First World War, Ernest Shackleton sails to make the first crossing of Antarctica. He will never land on the continent. Instead, his ship will be crushed by the ice, and he will lead 28 men through one of the greatest survival stories ever told.",
@@ -2696,7 +3586,30 @@
   },
   "voyage:shackleton:8": {
     "text": "Elephant Island again. On the fourth attempt, the Chilean tug Yelcho brings all 22 men off the island. Every one of the 28 has survived.",
-    "bed": "waves-hull"
+    "bed": "waves-hull",
+    "marks": {
+      "1": [
+        {
+          "t": "item",
+          "icon": "steamship",
+          "label": "Yelcho",
+          "path": [
+            [
+              -59.3,
+              -57.6
+            ],
+            [
+              -60.4,
+              -56
+            ],
+            [
+              -61.05,
+              -54.86
+            ]
+          ]
+        }
+      ]
+    }
   },
   "voyage:shackleton:9": {
     "text": "Punta Arenas, in Chile, and a hero's welcome.",
@@ -2871,7 +3784,20 @@
   "voyage:albuquerque:0": {
     "text": "Lisbon. The fleet leaves the Tagus, five of its ships under Albuquerque's own command.",
     "bed": "gulls-harbour",
-    "hit": "ship-bell"
+    "hit": "ship-bell",
+    "marks": {
+      "1": [
+        {
+          "t": "river",
+          "name": "Tagus",
+          "at": [
+            38.9,
+            -8.85
+          ],
+          "river": "Tagus"
+        }
+      ]
+    }
   },
   "voyage:albuquerque:1": {
     "text": "Round the Cape of Good Hope, and up the coast of East Africa, to Mozambique Island.",
@@ -2903,6 +3829,15 @@
             40
           ],
           "kind": "sea"
+        },
+        {
+          "t": "item",
+          "icon": "fort",
+          "label": "Fort of Suq",
+          "at": [
+            12.63,
+            54.03
+          ]
         }
       ]
     }
@@ -2947,6 +3882,17 @@
             51.5
           ],
           "kind": "sea"
+        }
+      ],
+      "2": [
+        {
+          "t": "item",
+          "icon": "fort",
+          "label": "Unfinished fort",
+          "at": [
+            27.1,
+            56.46
+          ]
         }
       ]
     }

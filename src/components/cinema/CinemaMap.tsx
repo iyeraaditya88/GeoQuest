@@ -192,6 +192,8 @@ const ease = (t: number) => 1 - (1 - t) ** 3;
 
 /** The least of the map a panel may cover it down to (px), so there's always somewhere to look. */
 const MIN_VIEW = 160;
+/** What the menu buttons and a caption take from the top of the map on a phone (px). */
+const TOP_NARROW = 118;
 
 export function CinemaMap({ scene, camera, padding, narrow, onPin, voyage = null, sailRef, onReady, onFail }: Props) {
   const host = useRef<HTMLDivElement>(null);
@@ -208,7 +210,10 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, voyage = null
   const room = () => {
     const p = padRef.current, el = host.current;
     const w = el?.clientWidth || window.innerWidth, h = el?.clientHeight || window.innerHeight;
-    return { left: Math.max(0, Math.min(p.left, w - MIN_VIEW)), bottom: Math.max(0, Math.min(p.bottom, h - MIN_VIEW)), top: 0, right: 0 };
+    const bottom = Math.max(0, Math.min(p.bottom, h - MIN_VIEW));
+    // (Phones: the menu buttons and a person's caption sit over the top of the map — frame below them.)
+    const top = narrow ? Math.max(0, Math.min(TOP_NARROW, h - bottom - MIN_VIEW)) : 0;
+    return { left: Math.max(0, Math.min(p.left, w - MIN_VIEW)), bottom, top, right: 0 };
   };
   const voyRef = useRef(voyage);
   voyRef.current = voyage;
@@ -613,7 +618,7 @@ export function CinemaMap({ scene, camera, padding, narrow, onPin, voyage = null
     <div className="cine-layer">
       <div className="cine-map" ref={host} />
       <div className="cine-vignette" aria-hidden />
-      <PersonCards people={people} left={padding.left} />
+      <PersonCards people={narrow ? people.slice(-1) : people} left={padding.left} />
     </div>
   );
 }
