@@ -40,7 +40,7 @@ export const MORE: Voyage[] = [
       { name: 'Newfoundland', at: [48.7, -52.9], when: '24 Jun 1497', note: 'Landfall — the exact place is still argued over. Cabot raises the flags of England and Venice.' },
       { name: 'Bristol', at: [51.45, -2.6], when: '6 Aug 1497', note: 'A fast passage home; Henry VII rewards him with £10.' },
     ],
-    route: [0, [51.35, -3.7], [51.2, -6], 1, [52.5, -30], [50, -45], 2, [50.5, -40], [51.5, -20], [51, -6], [51.35, -3.7], 3],
+    route: [0, [51.35, -3.7], [51.2, -6], [51.45, -9.9], 1, [52.5, -30], [50, -45], 2, [50.5, -40], [51.5, -20], [51, -6], [51.35, -3.7], 3],
   },
   {
     id: 'albuquerque', voyager: 'Afonso de Albuquerque', short: 'Albuquerque', title: 'Portugal seizes the Indian Ocean', years: '1506 – 1511', year: 1506,
@@ -64,7 +64,7 @@ export const MORE: Voyage[] = [
       { name: 'Goa', at: [15.5, 73.83], when: 'Nov 1510', note: 'Taken, lost, and retaken: Goa becomes the capital of Portuguese India.' },
       { name: 'Malacca', at: [2.19, 102.25], when: 'Aug 1511', note: 'The great port on the strait falls, opening the way to the Spice Islands and China.' },
     ],
-    route: [0, [33, -13], [27.5, -17], [20, -20.5], [5, -22], [-10, -25], [-22, -22], [-30, -10], [-33, 5], [-35.2, 20], [-34.4, 25.5], [-33, 28.5], [-30, 31.5], [-25.5, 34.5], [-22, 36], [-18.5, 37.5], 1, [-10, 41], [-2, 44], [5, 50], [10.5, 53], 2, [14, 56.5], [19, 59.5], [22.6, 60], 3, [25.6, 57.2], 4, [24, 60], [18, 65], [12, 72], [10.2, 75.6], 5, [12.5, 74.3], 6, [12, 73.5], [8, 76.2], [5.6, 80.2], [6, 88], [6.5, 95], [5, 98.5], 7],
+    route: [0, [33, -13], [28.25, -17], [28.2, -17], [27.5, -17], [20, -20.5], [5, -22], [-10, -25], [-22, -22], [-30, -10], [-33, 5], [-35.2, 20], [-34.4, 25.5], [-33, 28.5], [-30, 31.5], [-25.5, 34.5], [-23.4, 36], [-22, 36], [-18.5, 37.5], [-15.6, 40.8], 1, [-14.5, 41], [-10, 41], [-2, 44], [5, 50], [10.5, 53], 2, [14, 56.5], [19, 59.5], [22.6, 60], 3, [25.6, 57.2], 4, [25.6, 57.4], [24, 60], [18, 65], [12, 72], [10.2, 75.6], 5, [12.5, 74.3], 6, [12, 73.5], [8, 76.2], [5.6, 80.2], [6, 88], [6.5, 95], [5, 98.5], [2.2, 102.1], 7],
   },
   {
     id: 'cabral', voyager: 'Pedro Álvares Cabral', short: 'Cabral', title: 'Brazil, on the way to India', years: '1500 – 1501', year: 1500,
@@ -88,7 +88,7 @@ export const MORE: Voyage[] = [
       { name: 'Calicut, India', at: [11.25, 75.75], when: 'Sep 1500', note: 'A trading post is set up — then attacked; Cabral bombards the city.' },
       { name: 'Cochin, India', at: [9.97, 76.15], when: 'Dec 1500', note: 'A friendlier ruler; the ships load pepper and sail home, reaching Lisbon in June 1501.' },
     ],
-    route: [0, [33, -13], [27.5, -17.2], 1, [5, -28], [-10, -34], 2, [-25, -30], [-33, -10], 3, [-35.5, 19.5], [-34.4, 25.5], [-33, 28.5], [-30, 31.5], [-25.5, 34.5], [-22, 36], [-18.5, 37.5], 4, [-10, 41], [-6, 40], 5, [2, 50], [8, 62], [11.4, 74], 6, 7],
+    route: [0, [33, -13], [28.25, -17], [28.2, -17], [27.5, -17.2], 1, [5, -28], [-10, -34], 2, [-25, -30], [-33, -10], 3, [-35.5, 19.5], [-34.4, 25.5], [-33, 28.5], [-30, 31.5], [-25.5, 34.5], [-23.4, 36], [-22, 36], [-18.5, 37.5], [-15.6, 40.8], 4, [-14.5, 41], [-10, 41], [-6, 40], 5, [2, 50], [8, 62], [11.4, 74], 6, 7],
     deaths: [{ stop: 3, who: 'Bartolomeu Dias', text: 'Bartolomeu Dias — the first to round the Cape, twelve years before — goes down with his ship in the storm.' }],
   },
   {
@@ -110,7 +110,7 @@ export const MORE: Voyage[] = [
       { name: 'Stadacona (Québec City)', at: [46.81, -71.2], when: 'Sep 1535', note: 'The village of the chief Donnacona; the French winter here.' },
       { name: 'Hochelaga (Montréal)', at: [45.5, -73.55], when: 'Oct 1535', note: 'A great fortified town of the St. Lawrence Iroquoians. Cartier names the hill Mont Royal.' },
     ],
-    route: [0, [48.9, -5.5], [50, -20], [51, -45], [51.6, -55.6], 1, [50.4, -59], 2, [49.8, -64.5], [49.1, -66.8], [48.2, -69], [47.2, -70.5], 3, [46.33, -72.5], [46.05, -73.12], 4],
+    route: [0, [49, -4], [48.9, -5.5], [50, -20], [51, -45], [51.6, -55.6], [51.55, -56.7], 1, [50.4, -59], [50, -61.3], 2, [49.95, -64.4], [49.9, -64.45], [49.92, -64.4], [49.9, -64.45], [49.85, -64.5], [49.8, -64.5], [49.1, -66.8], [48.5, -68.8], [48.255, -69.023], [47.8, -69.9], [47.2, -70.5], 3, [46.65, -71.8], [46.65, -71.95], [46.6, -72], [46.55, -72.15], [46.4, -72.4], [46.35, -72.5], [46.05, -73.12], [46, -73.2], [45.55, -73.55], 4],
   },
   {
     id: 'francis-drake', voyager: 'Francis Drake', short: 'Drake', title: 'The Golden Hind', years: '1577 – 1580', year: 1577, focus: [-10, -100],
@@ -137,7 +137,7 @@ export const MORE: Voyage[] = [
       { name: 'Cape of Good Hope', at: [-34.6, 18.4], when: 'Jun 1580', note: '“The most stately thing and the fairest cape,” wrote his chaplain.' },
       { name: 'Plymouth', at: [50.33, -4.14], when: '26 Sep 1580', note: 'Home, asking first: “Is the Queen alive?”' },
     ],
-    route: [0, [46, -10], [33, -17.5], [20, -22], [5, -28], [-8, -33.5], [-15, -37], [-21, -39.5], [-27, -46], [-33, -51], [-35.1, -55.8], [-38, -56], [-42, -61.5], [-46, -65.5], 1, [-51.5, -68], [-52.4, -68.3], [-52.55, -69.5], 2, [-53.8, -71.1], [-53.4, -72.4], [-52.8, -73.8], [-52.7, -74.8], 3, [-50, -77], [-40, -74.8], 4, [-25, -71.5], [-18, -71.5], [-12.1, -77.3], 5, [15, -100], [30, -119], 6, [30, -150], [15, 170], [9, 135], [5, 128], 7, [-3.5, 127], [-8.6, 125.5], [-10.5, 123.5], [-9.3, 116], 8, [-20, 95], [-32, 60], [-36.5, 25], 9, [-25, 9], [-5, -5], [8.2, -14.2], [20, -25], [37.5, -25], [46, -10], 10],
+    route: [0, [46, -10], [33, -17.5], [20, -22], [5, -28], [-8, -33.5], [-15, -37], [-21, -39.5], [-27, -46], [-33, -51], [-35.1, -55], [-35.1, -55.8], [-38, -56], [-42, -61.5], [-46, -65.5], [-48.1, -65.8], 1, [-51.5, -68], [-52.4, -68.3], [-52.49, -69.5], [-52.75, -70.45], [-52.8, -70.5], 2, [-53.7, -70.96], [-53.85, -71], [-53.837, -71.115], [-53.95, -71.45], [-53.7, -72], [-53.6, -72.35], [-53.4, -72.45], [-53.382, -72.408], [-53.5, -72.6], [-53.2, -73.3], [-52.8, -73.8], [-52.7, -74.8], 3, [-50, -77], [-40, -74.8], [-36.8, -73.5], 4, [-30.2, -71.8], [-25, -71.5], [-18, -71.5], [-14.6, -76.2], [-12.1, -77.3], [-5.5, -81.5], [0.8, -80.7], 5, [15, -100], [24.5, -112.3], [30, -119], 6, [30, -150], [15, 170], [9, 135], [5, 128], 7, [-0.6, 127.05], [-1, 127], [-3.3, 127.12], [-3.3, 127.15], [-3.45, 127.3], [-3.7, 127.25], [-3.685, 127.077], [-8.5, 125.4], [-8.545, 125.523], [-8.6, 125], [-9.7, 123.5], [-10.5, 123.5], [-10.4, 123], [-10.1, 116.8], [-10, 116.7], [-9.3, 116], 8, [-20, 95], [-32, 60], [-36.5, 25], 9, [-25, 9], [-5, -5], [8.2, -14.2], [20, -25], [37.5, -25], [46, -10], 10],
   },
   {
     id: 'willem-barentsz', voyager: 'Willem Barentsz', short: 'Barentsz', title: 'Trapped in the Arctic ice', years: '1596 – 1597', year: 1596,
@@ -160,7 +160,7 @@ export const MORE: Voyage[] = [
       { name: 'Off Novaya Zemlya', at: [76.7, 63.5], when: '20 Jun 1597', note: 'A week into the escape in open boats.' },
       { name: 'Kola Peninsula', at: [69.33, 34.1], when: 'Aug 1597', note: 'Twelve survivors are rescued by a Dutch ship — captained by the man who left them at Spitsbergen.' },
     ],
-    route: [0, [53.1, 4.75], [55, 4], [60, 4], [65, 8], [70, 15], 1, 2, [76, 25], [75, 35], [76.5, 55], 3, 4, [77, 68.4], 5, [75.5, 57], [73, 53.5], [70.5, 47], 6],
+    route: [0, [52.55, 4.65], [52.65, 4.55], [52.9, 4.6], [53.1, 4.75], [55, 4], [60, 4], [62.4, 5.2], [65, 8], [70, 15], 1, [77.5, 13.7], [79.2, 10.8], 2, [78.5, 12], [77, 14.6], [76.4, 17.3], [76, 25], [75, 35], [76.5, 55], 3, [76.6, 69], [76.5, 69], 4, [76.65, 69.05], [76.7, 69.1], [77, 68.4], [77.05, 63.85], [76.8, 63.6], 5, [75.5, 57], [74.7, 54.5], [73.214, 53.314], [73.15, 53.1], [72.95, 53.25], [72.95, 53.28], [72.931, 53.334], [72.725, 49.225], [72.4, 48.9], [71.8, 48.3], [70.5, 47], 6],
     deaths: [{ stop: 5, who: 'Willem Barentsz', text: 'Barentsz, already sick, dies in an open boat on 20 June 1597 — and is buried in the Arctic.' }],
   },
   {
@@ -184,7 +184,7 @@ export const MORE: Voyage[] = [
       { name: 'Set adrift', at: [53.3, -80.5], when: 'Jun 1611', note: 'With food running out, the crew mutinies.' },
       { name: 'London', at: [51.5, 0.05], when: 'Sep 1611', note: 'Eight survivors return; none is ever punished for the mutiny.' },
     ],
-    route: [0, [51.5, 1.4], [52.5, 2.3], [57, 1], [59.6, -1], [61, -8], 1, [62.5, -35], [59.3, -44], [61, -60], 2, [62.5, -77], 3, [56, -83], [54, -81], 4, 5, [57, -82], [60, -80], [62.3, -72], [61.5, -62], [59.3, -44], [61, -20], [55, -10], [51.5, 1.4], 6],
+    route: [0, [51.5, 1.4], [52.5, 2.3], [57, 1], [59.6, -1], [61, -8], 1, [62.5, -35], [59.3, -44], [61, -60], [62, -67.9], 2, [62.6, -74.9], [62.537, -76.985], [62.65, -77.35], [62.65, -79], [62.5, -82.1], 3, [56, -83], [54, -81], 4, 5, [57, -82], [60, -80.1], [60, -80], [62.7, -77.8], [62.4, -72.1], [62.3, -72], [61.7, -64.7], [61.5, -62], [59.3, -44], [61, -20], [55, -10], [52.9, -10.5], [51.7, -10.4], [51.3, -9.4], [49.9, -5.2], [50.9, 1.3], [51.4, 1.5], [51.5, 1.4], 6],
     deaths: [{ stop: 5, who: 'Henry Hudson', text: 'Mutineers set Hudson, his teenage son John and seven loyal men adrift in a small open boat. They were never seen again.' }],
   },
   {
@@ -228,7 +228,7 @@ export const MORE: Voyage[] = [
       { name: 'Bering Island', at: [55.2, 165.95], when: 'Nov 1741', note: 'The St. Peter is wrecked on an unknown island.' },
       { name: 'Petropavlovsk', at: [52.9, 158.8], when: 'Aug 1742', note: 'Forty-six survivors sail home in a small boat built from the wreck.' },
     ],
-    route: [0, [50, 163], [46, 175], [46, -178], [55, -155], 1, [57.5, -150], 2, [53, -170], [52.5, -180], [54, 175], 3, [53.5, 161], 4],
+    route: [0, [50, 163], [46, 175], [46, -178], [55, -155], 1, [57.5, -150], [55.5, -159.2], 2, [54.3, -164.9], [54.2, -168.8], [53, -170], [52.5, -180], [54, 175], 3, [53.5, 161], [53.05, 159.8], [53, 159.6], 4],
     deaths: [{ stop: 3, who: 'Vitus Bering', text: 'Bering dies of scurvy on 19 December 1741 on the island that now bears his name, with 28 of his men.' }],
   },
   {
@@ -255,7 +255,7 @@ export const MORE: Voyage[] = [
       { name: 'Bering Strait', at: [65.9, -168.6], when: 'Aug 1778', note: 'North into the Arctic until a wall of ice stops them at 70°44′ N.' },
       { name: 'Kealakekua Bay, Hawaiʻi', at: [19.47, -155.95], when: 'Jan – Feb 1779', note: 'A great welcome during the Makahiki festival — which turns sour when the ships return for repairs.' },
     ],
-    route: [0, [46, -10], [33, -17.5], [20, -22], [0, -25], [-20, -15], [-32, 5], 1, [-40, 40], [-45, 90], [-45, 130], 2, [-42.5, 160], 3, [-35, -178], 4, [-19, -160], 5, [0, -155], 6, [35, -140], [45, -128], 7, [55, -137], [58.5, -148], [56, -155], [54.3, -164.9], [57.5, -168], [63, -170], 8, [70.5, -163.5], [65.8, -168.6], [58, -170], [54.3, -164.9], [35, -158], 9],
+    route: [0, [46, -10], [33, -17.5], [20, -22], [0, -25], [-20, -15], [-32, 5], 1, [-40, 24.6], [-40, 40], [-45, 90], [-45, 130], [-43.6, 147.1], 2, [-42.5, 160], [-40.4, 173], [-40.7, 174.1], 3, [-41.8, 175.3], [-41.8, 175.4], [-35, -178], 4, [-19, -160], [-17.55, -149.6], 5, [0, -155], 6, [21.9, -159.3], [22, -159.2], [35, -140], [45, -128], 7, [50.2, -128.05], [50.3, -128.2], [52.5, -132.1], [55, -137], [58.5, -148], [56, -155], [54.75, -162.75], [54.35, -164.4], [54.3, -164.9], [57.5, -168], [63, -170], [62.9, -169.55], [63.25, -168.65], [63.3, -168.6], 8, [70.4, -164.9], [70.5, -163.5], [68.3, -167], [65.8, -168.6], [63, -168.7], [58, -170], [54.3, -164.9], [35, -158], [21, -157.3], 9],
     deaths: [{ stop: 9, who: 'James Cook', text: 'Cook is killed on the shore of Kealakekua Bay on 14 February 1779, in a fight over a stolen boat. Charles Clerke takes command — and dies of tuberculosis six months later.' }],
   },
   {
@@ -283,7 +283,7 @@ export const MORE: Voyage[] = [
       { name: 'Botany Bay', at: [-34.0, 151.25], when: 'Jan – Mar 1788', note: 'Arrives just as Britain’s First Fleet does; sends his last letters home with them.' },
       { name: 'Vanikoro, Solomon Islands', at: [-11.7, 167], when: '1788', note: 'The last place the ships are known to have reached.' },
     ],
-    route: [0, [44, -12], [28, -18], [10, -26], [-10, -33], [-22, -40], [-33, -51], [-42, -61.5], [-50, -63], [-54.9, -65.3], [-56.3, -67.3], [-48, -78], [-30, -95], 1, [0, -140], 2, [40, -150], 3, [50, -130], 4, [25, -150], [20, 175], [21, 121], 5, [26, 122.5], [33.8, 129], [40, 134], 6, [48, 152], 7, [30, 170], [0, -175], 8, [-25, 170], [-30, 158], 9, [-25, 160], 10],
+    route: [0, [44, -12], [28.3, -17.8], [28, -18], [13.55, -26], [10, -26], [-10, -33], [-22, -40], [-33, -51], [-42, -61.5], [-50, -63], [-54.9, -65.25], [-54.9, -65.3], [-56.3, -67.3], [-54.1, -73.6], [-48.3, -78], [-48, -78], [-30, -95], 1, [0, -140], [19.3, -156.1], 2, [21, -156.75], [40, -150], 3, [52.1, -131.8], [50, -130], [38.6, -123.6], 4, [25, -150], [20, 175], [21, 121], 5, [22.2, 114.4], [23.1, 116.9], [26, 122.5], [33.8, 129], [35.8, 129.8], [40, 134], [45.75, 141.95], 6, [46.05, 143.55], [48, 152], [50.6, 156.6], [52.1, 158.5], 7, [30, 170], [0, -175], 8, [-25, 170], [-30, 158], 9, [-25, 160], 10],
     deaths: [{ stop: 10, who: 'La Pérouse and his crews', text: 'Both ships are wrecked on the reefs of Vanikoro in a cyclone. No one came home; the mystery was solved only in 1826–28, when the wrecks were found.' }],
   },
   {
@@ -308,7 +308,7 @@ export const MORE: Voyage[] = [
       { name: 'Victory Point', at: [69.65, -98.35], when: 'Apr 1848', note: 'A note in a cairn: the ships abandoned, 105 men heading south on foot.' },
       { name: 'Wreck of HMS Erebus', at: [68.25, -98.9], when: 'Found 2014', note: 'Found in shallow water, where Inuit oral history said a ship had sunk.' },
     ],
-    route: [0, [51.5, 1.4], [53, 2.5], [57.5, -1], 1, [59.5, -6], [59.3, -44], [64, -54.5], 2, [72, -59], 3, [74.3, -80.5], 4, [73, -96.3], [71, -96.8], 5, 6, [69, -99], 7],
+    route: [0, [51.5, 1.4], [53, 2.5], [57.5, -1], 1, [59.5, -6], [59.3, -44], [60.8, -48.35], [60.9, -48.6], [64, -54.5], [68.6, -53.6], 2, [69.9, -55.4], [72, -59], 3, [74.3, -80.5], [74.4, -90.3], 4, [73.9, -95.7], [73, -96.3], [71, -96.8], 5, 6, [69.05, -99.65], [68.8, -99.3], [68.85, -99], [68.92, -99], 7],
     deaths: [
       { stop: 5, who: 'Sir John Franklin', text: 'Franklin dies aboard Erebus on 11 June 1847, with the ships still locked in the ice.' },
       { stop: 6, who: 'The crews', text: 'The survivors march south toward the Canadian mainland. All of them die — of cold, starvation, scurvy and lead poisoning.' },
@@ -338,7 +338,7 @@ export const MORE: Voyage[] = [
       { name: 'Rescue at Elephant Island', at: [-61.05, -55], when: '30 Aug 1916', note: 'On the fourth attempt, the Chilean tug Yelcho brings all 22 men off.' },
       { name: 'Punta Arenas', at: [-53.16, -70.9], when: 'Sep 1916', note: 'A hero’s welcome in Chile.' },
     ],
-    route: [0, [46, -10], [33, -17.5], [20, -22], [5, -28], [-8, -33.5], [-15, -37], [-21, -39.5], [-27, -46], [-33, -51], 1, [-40, -55], [-50, -45], 2, [-58, -30], [-65, -25], [-72, -20], 3, [-74, -40], [-71, -47], 4, [-66, -53], [-63, -54.5], 5, [-58.5, -48], [-55.5, -40], 6, 7, [-55, -45], [-60, -55.5], 8, [-57, -63], [-52.4, -68.3], [-52.55, -69.5], 9],
+    route: [0, [46, -10], [33, -17.5], [20, -22], [5, -28], [-8, -33.5], [-15, -37], [-21, -39.5], [-27, -46], [-33, -51], [-35.1, -55], 1, [-35.4, -57], [-40, -55], [-50, -45], 2, [-54.6, -35.8], [-58, -30], [-65, -25], [-72, -20], 3, [-74, -40], [-71, -47], 4, [-66, -53], [-63, -54.5], 5, [-58.5, -48], [-55.5, -40], 6, 7, [-55, -45], [-60, -55.5], 8, [-57, -63], [-54.55, -65.25], [-54.5, -65.5], [-52.4, -68.3], [-52.49, -69.5], [-52.75, -70.45], [-52.8, -70.5], 9],
   },
   {
     id: 'kon-tiki', voyager: 'Thor Heyerdahl', short: 'Heyerdahl', title: 'The Kon-Tiki raft', years: '1947', year: 1947,
@@ -383,7 +383,7 @@ export const MORE: Voyage[] = [
       { name: 'Mauritius', at: [-20.16, 57.5], when: 'Nov 1768', note: 'Baret and Commerson stay here to collect plants. She finishes her own circuit years later.' },
       { name: 'Saint-Malo, France', at: [48.65, -2.03], when: 'Mar 1769', note: 'Home after two years and four months.' },
     ],
-    route: [0, [30, -22], [0, -30], 1, [-40, -55], 2, [-54, -76], [-35, -95], 3, [-16, -175], 4, [-9, 141], [-9, 125], 5, [-10, 100], 6, [-36, 22], [-5, -5], [40, -14], [49, -6], 7],
+    route: [0, [30, -22], [0, -30], [-22.7, -41.4], [-23.1, -42.4], 1, [-40, -55], [-52.4, -68.5], [-52.4, -68.8], [-52.5, -69.6], [-52.7, -70.3], [-52.75, -70.4], 2, [-53.95, -71.05], [-53.9, -71.6], [-53.8, -72], [-54.3, -73], [-54, -76], [-35, -95], 3, [-17.4, -150.3], [-16, -175], [-16, 167.8], [-15.8, 166.9], 4, [-10.6, 142.5], [-9.085, 140.915], [-8.2, 126.7], [-8.6, 125], [-8.908, 124.962], [-8.35, 124.3], [-8.3, 124.3], [-8.25, 124.3], [-8.2, 124.25], [-8.2, 124.2], [-5.8, 107], 5, [-5.8, 106], [-10, 100], 6, [-36, 26.65], [-36, 24.4], [-36, 22], [-34.2, 18.1], [-5, -5], [12.6, -16.9], [14.7, -17.5], [14.75, -17.55], [14.8, -17.5], [37.6, -16.4], [40, -14], [49, -6], [48.8, -2.2], 7],
   },
   {
     id: 'bligh-bounty', deaths: [{ stop: 4, who: 'John Norton', text: 'Quartermaster John Norton was killed by islanders on Tofua, the only man Bligh lost on the open-boat journey itself.' }], voyager: 'William Bligh & HMS Bounty', short: 'Bligh', title: 'Mutiny on the Bounty', years: '1787 – 1789', year: 1787,
@@ -406,7 +406,7 @@ export const MORE: Voyage[] = [
       { name: 'Restoration Island', at: [-12.62, 143.45], when: 'May 1789', note: 'Past the Great Barrier Reef, the starving men land to gather oysters and berries.' },
       { name: 'Kupang, Timor', at: [-10.17, 123.58], when: '14 Jun 1789', note: 'Forty-seven days and about 6,700 km later, the launch reaches a Dutch port.' },
     ],
-    route: [0, [30, -18], [0, -15], 1, [-44, 60], [-46, 120], 2, [-48, 170], [-40, -160], 3, [-18.5, -165], 4, [-17, 170], [-13, 150], 5, [-10.6, 136], 6],
+    route: [0, [48.1, -5.4], [30, -18], [27.7, -17.5], [14.8, -17.5], [14.75, -17.55], [0, -15], 1, [-44, 29.6], [-44, 60], [-46, 120], [-43.6, 147.1], 2, [-48, 170], [-40, -160], 3, [-18.5, -154.95], [-18.5, -165], 4, [-17, 170], [-14.2, 151.2], [-13, 150], 5, [-10.8, 142.8], [-10.5, 142], [-10.6, 136], [-10.4, 123.7], 6],
   },
   {
     id: 'nansen-fram', voyager: 'Fridtjof Nansen & the Fram', short: 'Nansen', title: 'Drifting across the Arctic', years: '1893 – 1896', year: 1893,
@@ -428,7 +428,7 @@ export const MORE: Voyage[] = [
       { name: 'Franz Josef Land', at: [80.0, 51], when: 'Jun 1896', note: 'After a winter in a stone hut, a chance meeting with an English expedition saves them.' },
       { name: 'Vardø again', at: [70.37, 31.11], when: 'Aug 1896', note: 'Nansen is home. A week later the Fram, freed by the drift near Spitsbergen, sails in too.' },
     ],
-    route: [0, [58, 7], [62.5, 4], [69.5, 16], 1, [76, 65], [77.5, 105], 2, [84, 110], 3, 4, 5],
+    route: [0, [58.9, 10.3], [57.9, 7.6], [58, 7], [58.1, 6.45], [58.6, 5.4], [59.5, 5], [62.5, 4], [69.5, 16], [71.3, 24.7], [70.9, 30.6], 1, [70.5, 57.4], [75.8, 65], [76, 67.4], [77.7, 103.8], [77.8, 104.5], [77.592, 105.038], 2, [84, 110], 3, 4, 5],
   },
   {
     id: 'joshua-slocum', voyager: 'Joshua Slocum', short: 'Slocum', title: 'Alone around the world', years: '1895 – 1898', year: 1895,
@@ -452,7 +452,7 @@ export const MORE: Voyage[] = [
       { name: 'Cape Town', at: [-33.92, 18.42], when: 'Mar 1898', note: 'Three months ashore. He meets President Kruger, who insists the world is flat.' },
       { name: 'Newport, Rhode Island', at: [41.49, -71.32], when: 'Jun 1898', note: 'Home after three years and two months, in the same boat, all alone.' },
     ],
-    route: [0, [42, -50], [37, -20], 1, [15, -28], [-10, -33], [-35, -52], 2, [-50, -77], 3, [-22, -125], 4, [-23, 170], 5, [-41, 148], [-37, 120], [-12, 110], [-22, 60], [-36, 25], 6, [-10, -10], [10, -40], [30, -66], 7],
+    route: [0, [42, -50], [37, -20], [36, -5.7], [36.1, -5.6], 1, [34.2, -8.9], [15, -28], [-10, -33], [-32.5, -49.5], [-35, -52], [-52.4, -68.5], [-52.4, -68.8], [-52.5, -69.6], [-52.7, -70.3], [-52.75, -70.4], 2, [-53.95, -71.05], [-53.9, -71.6], [-52.5, -74.8], [-50, -77], 3, [-22, -125], 4, [-23, 170], 5, [-40.1, 149], [-40.815, 147.923], [-40.7, 147.4], [-37, 120], [-34, 114.5], [-12, 110], [-22, 60], [-36, 25], [-34.6, 18.9], 6, [-10, -10], [10, -40], [30, -66], 7],
   },
   {
     id: 'amundsen-south-pole', voyager: 'Roald Amundsen & the Fram', short: 'Amundsen', title: 'First to the South Pole', years: '1910 – 1912', year: 1910,
@@ -474,7 +474,7 @@ export const MORE: Voyage[] = [
       { name: 'The South Pole', at: [-89.99, 0], when: '14 Dec 1911', note: 'Five men plant the flag, leaving a tent and a note for Scott.' },
       { name: 'Hobart, Tasmania', at: [-42.88, 147.33], when: 'Mar 1912', note: 'He cables the news to the world from here.' },
     ],
-    route: [0, [58, 7], [50, -5], 1, [0, -22], [-37, 20], [-48, 100], [-55, 170], 2, 3, 4, [-85.3, -163], [-78.5, -164], [-60, 165], 5],
+    route: [0, [58.9, 10.3], [57.9, 7.6], [58, 7], [50.9, 1.3], [50.1, -4.1], [50, -5], 1, [0, -22], [-37, 20], [-48, 100], [-55, 170], 2, 3, 4, [-85.3, -163], [-78.5, -164], [-60, 165], 5],
   },
   {
     id: 'titanic', deaths: [{ stop: 3, who: 'Captain Edward Smith and more than 1,500 others', text: 'More than 1,500 of the roughly 2,200 aboard died in the freezing water. There were lifeboats for only about half.' }], voyager: 'RMS Titanic', short: 'the Titanic', title: 'The maiden voyage', years: '1912', year: 1912,
@@ -496,7 +496,7 @@ export const MORE: Voyage[] = [
       { name: 'The iceberg', at: [41.73, -49.95], when: '14 – 15 Apr 1912', note: 'Struck at 11:40 pm; gone by 2:20 am, in a calm, moonless sea.' },
       { name: 'New York', at: [40.7, -74.02], when: '18 Apr 1912', note: 'Reached only by the survivors, aboard the Carpathia, in the rain.' },
     ],
-    route: [0, 1, [49.8, -5.5], 2, [50, -20], 3, [41, -60], 4],
+    route: [0, 1, [49.8, -5.5], 2, [51.4, -8.9], [50, -20], 3, [41, -60], [40.55, -73.65], [40.6, -73.7], 4],
   },
   {
     id: 'nautilus-north-pole', voyager: 'William Anderson & USS Nautilus', short: 'Nautilus', title: 'Under the North Pole', years: '1958', year: 1958,
@@ -517,6 +517,6 @@ export const MORE: Voyage[] = [
       { name: 'Off north-east Greenland', at: [79.5, -1.5], when: '5 Aug 1958', note: 'Surfaces after some 96 hours and about 2,900 km under the ice.' },
       { name: 'Portland, England', at: [50.57, -2.44], when: '12 Aug 1958', note: 'A hero’s welcome, and a record Atlantic run behind her.' },
     ],
-    route: [0, [50, -175], [65, -169], 1, 2, 3, [62.5, -3], [50, -6], 4],
+    route: [0, [50, -175], [52.05, -175.3], [52.3, -175], [63.4, -168.6], [65, -169], [68.4, -168.6], [69.6, -167.2], [71.4, -163.7], 1, 2, 3, [62.5, -3], [57.7, -6.6], [57.3, -6.9], [55.6, -6.5], [54.4, -5.3], [50, -6], [50, -4.9], [50.2, -3.5], 4],
   },
 ];

@@ -1045,3 +1045,29 @@ describe('fleets keep to the sea (arrows routed through waypoints)', () => {
     expect(routed).toBeGreaterThan(20);
   });
 });
+
+describe('voyages keep to the sea', () => {
+  // The ship sails great circles between a voyage's points: sampled every ~10 km, none may be on
+  // land away from its ports (they sit up rivers and in harbours).
+  it('never sails over land between its stops', async () => {
+    const { countryAt } = await import('../src/lib/data');
+    const { geoInterpolate, geoDistance } = await import('d3-geo');
+    const { routePoints } = await import('../src/lib/voyages');
+    const km = (a: [number, number], b: [number, number]) => geoDistance([a[1], a[0]], [b[1], b[0]]) * 6371;
+    const ashore: string[] = [];
+    for (const v of VOYAGES) {
+      const pts = routePoints(v), ports = v.stops.map((s) => s.at as [number, number]);
+      for (let i = 1; i < pts.length; i++) {
+        const [a, b] = [pts[i - 1], pts[i]];
+        const f = geoInterpolate([a[1], a[0]], [b[1], b[0]]), n = Math.max(1, Math.ceil(km(a, b) / 10));
+        let hits = 0;
+        for (let s = 1; s < n; s++) {
+          const [lo, la] = f(s / n);
+          if (!ports.some((q) => km([la, lo], q) < 30) && countryAt(la, ((lo + 540) % 360) - 180)) hits++;
+        }
+        if (hits > 1) ashore.push(`${v.id} leg ${i}: ~${hits * 10} km`);
+      }
+    }
+    expect(ashore).toEqual([]);
+  }, 60_000);
+});
