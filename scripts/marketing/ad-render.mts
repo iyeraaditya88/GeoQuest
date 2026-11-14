@@ -2,7 +2,7 @@
 // end card, George's voiceover and the score (ad-audio.mts). Each frame is drawn by a page (ad.html
 // below) and photographed, 30 a second, so every move is exact.
 //
-//   npx tsx scripts/marketing/ad-render.mts [--vo vo-warm] [--music music-a] [--preview 12.5]
+//   npx tsx scripts/marketing/ad-render.mts [--cut long|short] [--vo vo-warm] [--music music-a] [--preview 12.5]
 //
 // Output: marketing/ad/geoquest-ad.mp4 (1080×1920). Everything that matters stays in Instagram's safe
 // area: the middle 4:5 (y 285–1635, what the grid shows), above the caption (~1540), left of the buttons. --preview <s>: one frame as a PNG, nothing else.
@@ -12,10 +12,10 @@ import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { chromium } from 'playwright';
 
-const W = 1080, H = 1920, FPS = 30, LENGTH = 30;
+const W = 1080, H = 1920, FPS = 30;
 const args = process.argv.slice(2);
 const opt = (k: string) => { const i = args.indexOf(`--${k}`); return i >= 0 ? args[i + 1] : undefined; };
-const AD = resolve('marketing', 'ad'), BUILD = join(AD, 'build'), SHOTS = join(AD, 'shots');
+const AD = resolve('marketing', 'ad'), SHOTS = join(AD, 'shots');
 const ff = (a: string[]) => execFileSync('ffmpeg', ['-y', '-loglevel', 'error', ...a], { stdio: 'inherit' });
 
 // ── The cut: what's on screen when (seconds) ──
@@ -23,19 +23,38 @@ const ff = (a: string[]) => execFileSync('ffmpeg', ['-y', '-loglevel', 'error', 
 // [shot, from, to, speed] played one after another.
 type Piece = [shot: string, from: number, to: number, speed?: number];
 interface Scene { id: string; at: number; until: number; kicker?: string; head: string; gold?: string; pieces: Piece[] }
-const SCENES: Scene[] = [
-  { id: 'intro', at: 0, until: 3.3, head: 'The whole world', gold: 'is your game board.', pieces: [['globe', 0.5, 4.0, 1.06]] },
-  { id: 'daily', at: 3.3, until: 8.6, kicker: 'Daily challenge', head: 'A new challenge,', gold: 'every day.', pieces: [['daily', 0.9, 6.2]] },
-  { id: 'wordle', at: 8.6, until: 13.8, kicker: 'Geo Wordle', head: 'Guess the country', gold: 'in six.', pieces: [['wordle', 0.7, 11.1, 2.0]] },
-  { id: 'mystery', at: 13.8, until: 19.3, kicker: 'Solve the Mystery', head: 'Chase a thief', gold: 'across the globe.', pieces: [['mystery', 6.4, 9.0], ['mystery', 12.1, 15.0]] },
-  { id: 'history', at: 19.3, until: 25.0, kicker: 'History, narrated', head: 'Watch history unfold', gold: 'on the map.', pieces: [['history', 0.4, 6.1]] },
-  { id: 'end', at: 25.0, until: LENGTH, head: 'GeoQuest', pieces: [['globe', 0, 5.0, 0.6]] },
-];
-// George's lines, as [from, to] in the take, and where each lands in the ad (vo-warm's pauses).
-const LINES: [number, number, number][] = [
-  [0.0, 0.8, 0.35], [1.08, 2.03, 1.45], [2.5, 4.07, 3.75], [4.4, 5.8, 9.0],
-  [6.38, 7.9, 14.15], [8.25, 11.25, 19.7], [11.88, 12.8, 25.55], [13.38, 15.98, 26.55],
-];
+// Two cuts: the full 30 s, and a fast one for Reels (about 17 s, cuts every ~3 s, quick moves). The
+// short one takes the score from its liveliest stretch to its own ending.
+const CUTS: Record<string, { length: number; musicFrom: number; pace: number; out: string; scenes: Scene[]; lines: [number, number, number][] }> = {
+  long: {
+    length: 30, musicFrom: 0, pace: 1, out: 'geoquest-ad.mp4',
+    scenes: [
+      { id: 'intro', at: 0, until: 3.3, head: 'The whole world', gold: 'is your game board.', pieces: [['globe', 0.5, 4.0, 1.06]] },
+      { id: 'daily', at: 3.3, until: 8.6, kicker: 'Daily challenge', head: 'A new challenge,', gold: 'every day.', pieces: [['daily', 0.9, 6.2]] },
+      { id: 'wordle', at: 8.6, until: 13.8, kicker: 'Geo Wordle', head: 'Guess the country', gold: 'in six.', pieces: [['wordle', 0.7, 11.1, 2.0]] },
+      { id: 'mystery', at: 13.8, until: 19.3, kicker: 'Solve the Mystery', head: 'Chase a thief', gold: 'across the globe.', pieces: [['mystery', 6.4, 9.0], ['mystery', 12.1, 15.0]] },
+      { id: 'history', at: 19.3, until: 25.0, kicker: 'History, narrated', head: 'Watch history unfold', gold: 'on the map.', pieces: [['history', 0.4, 6.1]] },
+      { id: 'end', at: 25.0, until: 30, head: 'GeoQuest', pieces: [['globe', 0, 5.0, 0.6]] },
+    ],
+    // George's lines, as [from, to] in the take, and where each lands in the ad (vo-warm's pauses).
+    lines: [[0.0, 0.8, 0.35], [1.08, 2.03, 1.45], [2.5, 4.07, 3.75], [4.4, 5.8, 9.0], [6.38, 7.9, 14.15], [8.25, 11.25, 19.7], [11.88, 12.8, 25.55], [13.38, 15.98, 26.55]],
+  },
+  short: {
+    length: 17.3, musicFrom: 10.5, pace: 0.55, out: 'geoquest-ad-short.mp4',
+    scenes: [
+      { id: 'intro', at: 0, until: 1.75, head: 'The whole world', gold: 'is your game board.', pieces: [['globe', 0.5, 2.6, 1.2]] },
+      { id: 'daily', at: 1.75, until: 4.55, kicker: 'Daily challenge', head: 'A new challenge,', gold: 'every day.', pieces: [['daily', 1.0, 2.2, 1.2], ['daily', 4.3, 5.9]] },
+      { id: 'wordle', at: 4.55, until: 7.35, kicker: 'Geo Wordle', head: 'Guess the country', gold: 'in six.', pieces: [['wordle', 0.7, 3.5, 2.4], ['wordle', 8.9, 12.4, 2.15]] },
+      { id: 'mystery', at: 7.35, until: 10.15, kicker: 'Solve the Mystery', head: 'Chase a thief', gold: 'across the globe.', pieces: [['mystery', 6.7, 8.1], ['mystery', 12.4, 14.2, 1.3]] },
+      { id: 'history', at: 10.15, until: 13.5, kicker: 'History, narrated', head: 'Watch history unfold', gold: 'on the map.', pieces: [['history', 0.4, 3.75]] },
+      { id: 'end', at: 13.5, until: 17.3, head: 'GeoQuest', pieces: [['globe', 0, 3.8, 0.6]] },
+    ],
+    lines: [[0.0, 0.8, 0.1], [1.08, 2.03, 0.8], [2.5, 4.07, 1.95], [4.4, 5.8, 4.7], [6.38, 7.9, 7.5], [8.25, 11.25, 10.3], [11.88, 12.8, 13.6], [13.38, 15.98, 14.6]],
+  },
+};
+const CUT = CUTS[opt('cut') ?? 'long'];
+const LENGTH = CUT.length, SCENES = CUT.scenes, LINES = CUT.lines;
+const BUILD = join(AD, 'build', opt('cut') ?? 'long'); // (each cut its own frames)
 
 /** The frames each scene shows (one per output frame), extracted from the shots. */
 function extract() {
@@ -109,7 +128,7 @@ html, body { width: ${W}px; height: ${H}px; overflow: hidden; background: #04071
 <div id="end"><img id="logo" src="logo.png"><div id="name">GeoQuest</div><div id="free">Play free</div><div id="url">playgeoquest.app</div><div id="small">No sign-up · Right in your browser</div></div>
 <div id="flash"></div><div id="vig"></div><canvas id="grain" width="640" height="1140"></canvas>
 </div><script>
-const PHONE = 0.74; // (the phone's size: it ends above Instagram's caption)
+const PHONE = 0.74, PACE = ${CUT.pace}, INTRO = ${SCENES[0].until}; // (the phone's size: it ends above Instagram's caption)
 const SCENES = ${JSON.stringify(SCENES.map(({ pieces, ...s }) => s))}, COUNTS = ${JSON.stringify(counts)}, FPS = ${FPS};
 const $ = (id) => document.getElementById(id);
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
@@ -150,13 +169,13 @@ window.render = async (f) => {
   if (sc.id === 'intro' || sc.id === 'end') {
     await setSrc(full, frameOf(sc.id, k));
     if (sc.id === 'intro') {
-      const z = 1.22 - 0.2 * expo(clamp(local / 3.0)) + 0.35 * inOut(clamp((local - 2.85) / 0.45));
-      full.style.opacity = String(clamp(local / 0.7) * (1 - clamp((local - 2.95) / 0.35)));
+      const z = 1.22 - 0.2 * expo(clamp(local / (INTRO * 0.9))) + 0.35 * inOut(clamp((local - (INTRO - 0.45 * PACE)) / (0.45 * PACE)));
+      full.style.opacity = String(clamp(local / (0.7 * PACE)) * (1 - clamp((local - (INTRO - 0.35 * PACE)) / (0.35 * PACE))));
       full.style.transform = 'scale(' + z + ')';
       full.style.filter = 'blur(' + (6 * (1 - clamp(local / 0.9)) + 10 * clamp((local - 2.9) / 0.4)) + 'px) brightness(0.8)';
       $('intro').querySelectorAll('.w').forEach((w, i) => {
-        const start = i < 3 ? 0.3 + i * 0.12 : 1.4 + (i - 3) * 0.14;
-        const p = expo(clamp((t - start) / 0.55)), out = clamp((local - 2.85) / 0.35);
+        const start = i < 3 ? (0.3 + i * 0.12) * PACE : (1.4 + (i - 3) * 0.14) * PACE;
+        const p = expo(clamp((t - start) / (0.55 * PACE))), out = clamp((local - (INTRO - 0.45 * PACE)) / (0.35 * PACE));
         w.style.opacity = String(p * (1 - out));
         w.style.transform = 'translateY(' + ((1 - p) * 70 - out * 40) + 'px) scale(' + (0.92 + 0.08 * p) + ')';
         w.style.filter = 'blur(' + ((1 - p) * 14 + out * 10) + 'px)';
@@ -173,7 +192,8 @@ window.render = async (f) => {
   const idx = SCENES.indexOf(sc), dir = idx % 2 ? 1 : -1; // (alternate sides, so the cuts swing)
   if (feature) {
     await setSrc($('screen'), frameOf(sc.id, k));
-    const inP = expo(clamp(local / 0.75)), outP = inOut(clamp((0.38 - left) / 0.38));
+    const IN = 0.75 * PACE, OUT = 0.38 * PACE;
+    const inP = expo(clamp(local / IN)), outP = inOut(clamp((OUT - left) / OUT));
     const first = idx === 1;
     // In: the first one rises from below the globe; the rest whip in from the side. Out: whip away.
     const x = first ? 0 : (1 - inP) * 1250 * -dir, y = first ? (1 - inP) * 1500 : 0;
@@ -187,12 +207,12 @@ window.render = async (f) => {
     // The words: up out of a blur, one after another; away as the phone leaves.
     const ws = $('head').querySelectorAll('.w');
     ws.forEach((w, i) => {
-      const p = expo(clamp((local - 0.18 - i * 0.075) / 0.6)), o = inOut(clamp((0.34 - left) / 0.34));
+      const p = expo(clamp((local - (0.18 + i * 0.075) * PACE) / (0.6 * PACE))), o = inOut(clamp((0.34 * PACE - left) / (0.34 * PACE)));
       w.style.opacity = String(p * (1 - o));
       w.style.transform = 'translateY(' + ((1 - p) * 60 - o * 30) + 'px)';
       w.style.filter = 'blur(' + ((1 - p) * 12 + o * 8) + 'px)';
     });
-    const kp = expo(clamp((local - 0.05) / 0.5)), ko = inOut(clamp((0.34 - left) / 0.34));
+    const kp = expo(clamp((local - 0.05 * PACE) / (0.5 * PACE))), ko = inOut(clamp((0.34 * PACE - left) / (0.34 * PACE)));
     $('kicker').style.opacity = String(kp * (1 - ko));
     $('kicker').querySelector('b').style.width = (70 * kp) + 'px';
     $('kicker').style.transform = 'translateX(' + ((1 - kp) * -30) + 'px)';
@@ -201,12 +221,14 @@ window.render = async (f) => {
 
   // ── The end card ──
   const e = sc.id === 'end';
-  const pop = (el, at, dist = 50) => { const p = e ? clamp((local - at) / 0.6) : 0; el.style.opacity = String(expo(p)); el.style.transform = 'translateY(' + ((1 - expo(p)) * dist) + 'px)'; el.style.filter = 'blur(' + ((1 - expo(p)) * 10) + 'px)'; };
-  { const p = e ? clamp((local - 0.15) / 0.7) : 0; $('logo').style.opacity = String(clamp(p * 2)); $('logo').style.transform = 'scale(' + (0.4 + 0.6 * back(p)) + ') rotate(' + ((1 - expo(p)) * -12) + 'deg)'; }
-  pop($('name'), 0.45, 60); pop($('free'), 1.3); pop($('url'), 1.65); pop($('small'), 2.3, 30);
+  const pop = (el, at, dist = 50) => { const p = e ? clamp((local - at) / (0.6 * PACE)) : 0; el.style.opacity = String(expo(p)); el.style.transform = 'translateY(' + ((1 - expo(p)) * dist) + 'px)'; el.style.filter = 'blur(' + ((1 - expo(p)) * 10) + 'px)'; };
+  { const p = e ? clamp((local - 0.15 * PACE) / (0.7 * PACE)) : 0; $('logo').style.opacity = String(clamp(p * 2)); $('logo').style.transform = 'scale(' + (0.4 + 0.6 * back(p)) + ') rotate(' + ((1 - expo(p)) * -12) + 'deg)'; }
+  pop($('name'), 0.45 * PACE, 60); pop($('free'), 1.3 * PACE); pop($('url'), 1.65 * PACE); pop($('small'), 2.3 * PACE, 30);
   // A soft flash on each cut.
   const cut = SCENES.slice(1).map((s) => Math.abs(t - s.at)).reduce((a, b) => Math.min(a, b), 9);
-  $('flash').style.opacity = String(0.35 * clamp(1 - cut / 0.16));
+  $('flash').style.opacity = String((PACE < 1 ? 0.5 : 0.35) * clamp(1 - cut / 0.16));
+  // (The fast cut: a small zoom punch on each cut, the whole frame.)
+  $('stage').style.transform = PACE < 1 ? 'scale(' + (1 + 0.035 * clamp(1 - cut / 0.22)) + ')' : '';
 };
 </script></body></html>`;
 
@@ -243,9 +265,9 @@ await browser.close();
 const vo = join(AD, 'audio', `${opt('vo') ?? 'vo-warm'}.mp3`), music = join(AD, 'audio', `${opt('music') ?? 'music-a'}.mp3`);
 const voParts = LINES.map(([a, b, at], i) => `[2:a]atrim=start=${a}:end=${b},asetpts=PTS-STARTPTS,afade=t=in:d=0.03,afade=t=out:st=${(b - a - 0.06).toFixed(2)}:d=0.06,adelay=${Math.round(at * 1000)}:all=1[l${i}]`).join(';');
 const filter = `${voParts};${LINES.map((_, i) => `[l${i}]`).join('')}amix=inputs=${LINES.length}:normalize=0,volume=1.6,apad=whole_dur=${LENGTH}[vo];[vo]asplit=2[vo1][vo2];` +
-  `[1:a]volume=0.62,apad=whole_dur=${LENGTH}[m];[m][vo1]sidechaincompress=threshold=0.04:ratio=5:attack=25:release=350:makeup=1[md];` +
+  `[1:a]atrim=start=${CUT.musicFrom},asetpts=PTS-STARTPTS,${CUT.musicFrom ? 'afade=t=in:d=0.15,' : ''}volume=0.62,apad=whole_dur=${LENGTH}[m];[m][vo1]sidechaincompress=threshold=0.04:ratio=5:attack=25:release=350:makeup=1[md];` +
   `[md][vo2]amix=inputs=2:normalize=0,atrim=duration=${LENGTH},afade=t=out:st=${LENGTH - 0.9}:d=0.9,loudnorm=I=-14:TP=-1.2:LRA=9,aresample=48000[a]`;
-const out = join(AD, 'geoquest-ad.mp4');
+const out = join(AD, CUT.out);
 ff(['-framerate', String(FPS), '-i', join(frames, '%05d.jpg'), '-i', music, '-i', vo, '-filter_complex', filter,
   '-map', '0:v', '-map', '[a]', '-c:v', 'libx264', '-preset', 'slow', '-crf', '16', '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', '-t', String(LENGTH), out]);
 console.log(out);
