@@ -4,7 +4,8 @@
 //
 //   npx tsx scripts/marketing/ad-render.mts [--vo vo-warm] [--music music-a] [--preview 12.5]
 //
-// Output: marketing/ad/geoquest-ad.mp4 (1080×1920). --preview <s>: one frame as a PNG, nothing else.
+// Output: marketing/ad/geoquest-ad.mp4 (1080×1920). Everything that matters stays in Instagram's safe
+// area: the middle 4:5 (y 285–1635, what the grid shows), above the caption (~1540), left of the buttons. --preview <s>: one frame as a PNG, nothing else.
 import { existsSync, mkdirSync, rmSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -69,7 +70,7 @@ html, body { width: ${W}px; height: ${H}px; overflow: hidden; background: #04071
   radial-gradient(35% 28% at var(--hx, 75%) var(--hy, 70%), rgba(251, 191, 36, 0.16), transparent 70%),
   radial-gradient(80% 60% at 50% 45%, #0c1a3d 0%, #060b1d 55%, #03050d 100%); }
 .full { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; will-change: transform, opacity; }
-#phone { position: absolute; left: 50%; top: 520px; width: 712px; height: 1266px; margin-left: -356px; transform-style: preserve-3d; opacity: 0; }
+#phone { position: absolute; left: 50%; top: 600px; transform-origin: 50% 0; width: 712px; height: 1266px; margin-left: -356px; transform-style: preserve-3d; opacity: 0; }
 #phone .body { position: absolute; inset: 0; border-radius: 92px; background: linear-gradient(145deg, #2a2f3d, #0b0d13 40%, #1c2030);
   box-shadow: 0 80px 160px -30px rgba(0,0,0,0.85), 0 30px 60px -20px rgba(0,0,0,0.6), inset 0 0 0 2px rgba(255,255,255,0.14), inset 0 0 0 9px #05060a; }
 #phone .screen { position: absolute; left: 16px; top: 16px; right: 16px; bottom: 16px; border-radius: 78px; overflow: hidden; background: #050913; }
@@ -80,7 +81,7 @@ html, body { width: ${W}px; height: ${H}px; overflow: hidden; background: #04071
 #phone .glare { position: absolute; inset: 16px; border-radius: 78px; pointer-events: none; overflow: hidden; }
 #phone .glare i { position: absolute; top: -20%; bottom: -20%; width: 34%; left: -60%; transform: skewX(-18deg);
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent); }
-#copy { position: absolute; left: 70px; right: 70px; top: 150px; text-align: left; }
+#copy { position: absolute; left: 80px; right: 80px; top: 310px; text-align: left; }
 #kicker { display: flex; align-items: center; gap: 18px; font-weight: 700; font-size: 30px; letter-spacing: 0.24em; text-transform: uppercase; color: #fbbf24; height: 40px; }
 #kicker b { display: block; height: 3px; background: #fbbf24; border-radius: 2px; }
 #head { margin-top: 22px; font-weight: 700; font-size: 92px; line-height: 1.02; letter-spacing: -0.035em; }
@@ -108,6 +109,7 @@ html, body { width: ${W}px; height: ${H}px; overflow: hidden; background: #04071
 <div id="end"><img id="logo" src="logo.png"><div id="name">GeoQuest</div><div id="free">Play free</div><div id="url">playgeoquest.app</div><div id="small">No sign-up · Right in your browser</div></div>
 <div id="flash"></div><div id="vig"></div><canvas id="grain" width="640" height="1140"></canvas>
 </div><script>
+const PHONE = 0.74; // (the phone's size: it ends above Instagram's caption)
 const SCENES = ${JSON.stringify(SCENES.map(({ pieces, ...s }) => s))}, COUNTS = ${JSON.stringify(counts)}, FPS = ${FPS};
 const $ = (id) => document.getElementById(id);
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
@@ -178,7 +180,7 @@ window.render = async (f) => {
     const ox = outP * 1250 * dir, ry = (first ? 0 : (1 - inP) * 35 * dir) - outP * 35 * dir;
     const floatY = Math.sin(t * 1.3) * 9, tiltY = Math.sin(t * 0.7 + idx) * 5, tiltX = 7 + Math.cos(t * 0.9) * 2;
     phone.style.opacity = '1';
-    phone.style.transform = 'perspective(2600px) translate(' + (x + ox) + 'px,' + (y + floatY) + 'px) rotateX(' + (tiltX + (first ? (1 - inP) * 25 : 0)) + 'deg) rotateY(' + (tiltY + ry) + 'deg) scale(' + (0.94 + 0.06 * inP) + ')';
+    phone.style.transform = 'perspective(2600px) translate(' + (x + ox) + 'px,' + (y + floatY) + 'px) rotateX(' + (tiltX + (first ? (1 - inP) * 25 : 0)) + 'deg) rotateY(' + (tiltY + ry) + 'deg) scale(' + PHONE * (0.94 + 0.06 * inP) + ')';
     const speed = Math.abs((1 - inP) * (first ? 0 : 1)) + outP;
     phone.style.filter = 'blur(' + Math.min(14, speed * 16) + 'px)';
     $('phone').querySelector('.glare i').style.left = (-60 + 190 * inOut(clamp((local - 0.55) / 1.1))) + '%';
