@@ -349,8 +349,9 @@ export default function App() {
   }, [cam]);
   const selectRef = useRef(select);
   selectRef.current = select;
-  // Demo mode (marketing recordings): let the recorder open a country mid-shot.
-  useEffect(() => { if (DEMO) (window as unknown as { __demo: unknown }).__demo = { select: (c: string) => selectRef.current(c) }; }, []);
+  // Demo mode (marketing recordings): let the recorder open a country, or answer a quiz, mid-shot.
+  const quizClickRef = useRef<(c: string) => void>(() => {});
+  useEffect(() => { if (DEMO) (window as unknown as { __demo: unknown }).__demo = { select: (c: string) => selectRef.current(c), answer: (c: string) => quizClickRef.current(c) }; }, []);
   // Arrived from a country page (?country=IND / ?play=1): act once the globe is ready.
   const linkWanted = useRef<{ country?: string; play?: boolean; game?: ShareGame; explore?: { kind: 'voyages' | 'eras' | 'empires' | 'battles'; id: string | null } } | null>(null);
 
@@ -488,6 +489,7 @@ export default function App() {
       }
     }
   };
+  quizClickRef.current = (c) => quizClick(c);
 
   const skip = () => {
     if (!quiz || quiz.result === 'good' || quiz.result === 'reveal') return;

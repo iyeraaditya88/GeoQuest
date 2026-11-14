@@ -49,3 +49,5 @@ narration/sample/
 narration/sfx/
 narration/review/
 narration/out/
+# The promo ad: footage, paid audio and renders (rebuilt by scripts/marketing/ad-*.mts)
+marketing/ad/
