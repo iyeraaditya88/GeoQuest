@@ -40,16 +40,17 @@ const CUTS: Record<string, { length: number; musicFrom: number; pace: number; ou
     lines: [[0.0, 0.8, 0.35], [1.08, 2.03, 1.45], [2.5, 4.07, 3.75], [4.4, 5.8, 9.0], [6.38, 7.9, 14.15], [8.25, 11.25, 19.7], [11.88, 12.8, 25.55], [13.38, 15.98, 26.55]],
   },
   short: {
-    length: 17.3, musicFrom: 10.5, pace: 0.55, out: 'geoquest-ad-short.mp4',
+    length: 17.8, musicFrom: 10.0, pace: 0.55, out: 'geoquest-ad-short.mp4',
     scenes: [
-      { id: 'intro', at: 0, until: 1.75, head: 'The whole world', gold: 'is your game board.', pieces: [['globe', 0.5, 2.6, 1.2]] },
-      { id: 'daily', at: 1.75, until: 4.55, kicker: 'Daily challenge', head: 'A new challenge,', gold: 'every day.', pieces: [['daily', 1.0, 2.2, 1.2], ['daily', 4.3, 5.9]] },
-      { id: 'wordle', at: 4.55, until: 7.35, kicker: 'Geo Wordle', head: 'Guess the country', gold: 'in six.', pieces: [['wordle', 0.7, 3.5, 2.4], ['wordle', 8.9, 12.4, 2.15]] },
-      { id: 'mystery', at: 7.35, until: 10.15, kicker: 'Solve the Mystery', head: 'Chase a thief', gold: 'across the globe.', pieces: [['mystery', 6.7, 8.1], ['mystery', 12.4, 14.2, 1.3]] },
-      { id: 'history', at: 10.15, until: 13.5, kicker: 'History, narrated', head: 'Watch history unfold', gold: 'on the map.', pieces: [['history', 0.4, 3.75]] },
-      { id: 'end', at: 13.5, until: 17.3, head: 'GeoQuest', pieces: [['globe', 0, 3.8, 0.6]] },
+      // (The opening line holds a beat longer: it's the hook.)
+      { id: 'intro', at: 0, until: 2.25, head: 'The whole world', gold: 'is your game board.', pieces: [['globe', 0.5, 3.2, 1.2]] },
+      { id: 'daily', at: 2.25, until: 5.05, kicker: 'Daily challenge', head: 'A new challenge,', gold: 'every day.', pieces: [['daily', 1.0, 2.2, 1.2], ['daily', 4.3, 5.9]] },
+      { id: 'wordle', at: 5.05, until: 7.85, kicker: 'Geo Wordle', head: 'Guess the country', gold: 'in six.', pieces: [['wordle', 0.7, 3.5, 2.4], ['wordle', 8.9, 12.4, 2.15]] },
+      { id: 'mystery', at: 7.85, until: 10.65, kicker: 'Solve the Mystery', head: 'Chase a thief', gold: 'across the globe.', pieces: [['mystery', 6.7, 8.1], ['mystery', 12.4, 14.2, 1.3]] },
+      { id: 'history', at: 10.65, until: 14.0, kicker: 'History, narrated', head: 'Watch history unfold', gold: 'on the map.', pieces: [['history', 0.4, 3.75]] },
+      { id: 'end', at: 14.0, until: 17.8, head: 'GeoQuest', pieces: [['globe', 0, 3.8, 0.6]] },
     ],
-    lines: [[0.0, 0.8, 0.1], [1.08, 2.03, 0.8], [2.5, 4.07, 1.95], [4.4, 5.8, 4.7], [6.38, 7.9, 7.5], [8.25, 11.25, 10.3], [11.88, 12.8, 13.6], [13.38, 15.98, 14.6]],
+    lines: [[0.0, 0.8, 0.1], [1.08, 2.03, 0.8], [2.5, 4.07, 2.45], [4.4, 5.8, 5.2], [6.38, 7.9, 8.0], [8.25, 11.25, 10.8], [11.88, 12.8, 14.1], [13.38, 15.98, 15.1]],
   },
 };
 const CUT = CUTS[opt('cut') ?? 'long'];
